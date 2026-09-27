@@ -80,7 +80,7 @@ Evaluation: principal active state → credential scope → direct and role poli
 
 ## API and operations
 
-Implementation language: TypeScript on Node.js 22. Code rules and quality gates are in [coding.md](coding.md). The policy evaluator is the first implemented slice; API framework, UI library, and persistence choices remain open.
+Implementation language: TypeScript on Node.js 22. Code rules and quality gates are in [coding.md](coding.md). The pure policy evaluator and principal/role attachment resolver are the first implemented slices; API framework, UI library, and persistence choices remain open.
 
 - External API: `GET /v1/models`, `POST /v1/chat/completions`.
 - Management API: principals, roles, policies, providers/subscriptions, models, credentials, usage, and audit events.

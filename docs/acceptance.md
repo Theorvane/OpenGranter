@@ -8,6 +8,9 @@
 - Inactive principals and revoked credentials are rejected regardless of policies.
 - Administrators are evaluated against an explicit system policy.
 - The policy simulator and live gateway reach the same decision for the same input.
+- A directly attached policy and policies inherited through assigned roles contribute to one decision. A matching Deny from either source overrides every Allow.
+- If an assigned role or attached policy cannot be resolved uniquely, authorization fails closed without using a partial Allow.
+- A decision records the IDs and versions of resolved policies for later audit attribution; the decision result does not expose policy statements.
 
 ## Gateway and credentials
 
@@ -45,4 +48,4 @@
 
 ## Harness connection
 
-`contracts/policy_cases.json` fixes policy-evaluator inputs and expected decisions. `contracts/route_cases.json` fixes candidate authorization and model-specific provider bounds; both now run against pure TypeScript functions. `contracts/gateway_cases.json` fixes expected HTTP behavior and still needs service-level tests against fake upstreams. `scripts/check.py` validates fixture structure and planning documents.
+`contracts/policy_cases.json` fixes policy-evaluator inputs and expected decisions. `contracts/attachment_cases.json` fixes principal and role policy resolution, including failure paths. `contracts/route_cases.json` fixes candidate authorization and model-specific provider bounds; these three contracts run against pure TypeScript functions. `contracts/gateway_cases.json` fixes expected HTTP behavior and still needs service-level tests against fake upstreams. `scripts/check.py` validates the original fixture structure and planning documents.

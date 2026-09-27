@@ -66,6 +66,9 @@ A named collection of permissions that can be assigned to multiple principals.
 **Policy**:
 A collection of rules that allows or denies a principal's actions on LLM resources.
 
+**Policy attachment**:
+A link from a policy to a principal or role. A principal can receive the policy directly or through an assigned role.
+
 **Audit event**:
 A record of an access decision or administrative change that explains what happened later.
 

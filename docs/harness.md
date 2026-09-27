@@ -1,6 +1,6 @@
 # Engineering Harness
 
-The deployable HTTP service is not yet implemented. The harness captures requirements as executable cases and detects documentation and contract errors in CI. Pure TypeScript policy evaluation, candidate authorization, Jev-assisted selection, managed invocation coordination, a text-chat HTTP handler, and a Node socket bridge are the current implementation slices.
+The deployable HTTP service is not yet implemented. The harness captures requirements as executable cases and detects documentation and contract errors in CI. Pure TypeScript policy evaluation, principal and role attachment evaluation, candidate authorization, Jev-assisted selection, managed invocation coordination, direct text-chat adapters, a chat HTTP handler, and a Node socket bridge are the current implementation slices.
 
 Planning interviews use [grill-with-docs](../skills/grill-with-docs/SKILL.md). Its [grilling](../skills/grilling/SKILL.md) dependency runs question rounds, while [domain-modeling](../skills/domain-modeling/SKILL.md) maintains the glossary and ADRs. Agreed terms live in [CONTEXT.md](../CONTEXT.md).
 
@@ -8,7 +8,7 @@ Each implementation issue starts with an English plan in `docs/plans/` and an ac
 
 ## Current checks
 
-Run `npm run check` to type-check and lint TypeScript, run policy and route-authorization contract tests, and call `python3 scripts/check.py` to validate:
+Run `npm run check` to type-check and lint TypeScript, run policy, attachment, and route-authorization contract tests, and call `python3 scripts/check.py` to validate:
 
 1. Required planning documents and internal links.
 2. Required fields and unique IDs in policy, route, and gateway contract cases.
@@ -26,7 +26,7 @@ Run `npm run check` to type-check and lint TypeScript, run policy and route-auth
 - Extend `contracts/policy_cases.json` and `contracts/route_cases.json` as policy features are agreed; the current cases execute against the pure evaluator and candidate filter.
 - Execute `contracts/gateway_cases.json` against an HTTP test server, a fake OpenRouter upstream, and fake OpenAI, Anthropic, and Gemini upstreams. Assert that each route kind uses the same IAM decision and audit path, that `provider.only` cannot be widened, and that fallback never crosses route kinds.
 - Add integration cases for authentication, secret-store failures, ledger and audit write failures, and concurrent calls.
-- Supply concrete token authentication, a route catalog, limit reservation, a secret store, durable audit/usage writes, and direct-provider adapters behind the existing HTTP gateway ports. Its current fake-port tests establish call order and failure behavior but are not a live provider test.
+- Supply concrete token authentication, a route catalog, limit reservation, a secret store, and durable audit/usage writes behind the existing HTTP gateway ports. Wire the direct-provider adapters through those ports. Its current fake-port tests establish call order and failure behavior but are not a live provider test.
 - The socket test exercises the Node HTTP bridge with fake identity, route, limit, secret, audit, and provider ports. Supply concrete implementations and execute the complete gateway contract before treating the service as deployable.
 - Add migration and retention checks to CI.
 
