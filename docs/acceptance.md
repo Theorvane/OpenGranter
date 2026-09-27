@@ -48,6 +48,7 @@
 - A delegated OpenRouter call with several authorized final-provider candidates leaves its selected candidate and actual provider unknown until verified upstream attribution is available; it does not claim that the first allowed candidate was used.
 - Estimated cost and upstream-reported cost are separate; a delegated route retains OpenRouter generation identifiers for reconciliation when available.
 - Reprocessing the same request ID does not create a duplicate usage-ledger row.
+- A PostgreSQL usage-ledger append creates one row per attempt ID. Identical retries, including after an ambiguous committed write, leave one row; conflicting retries preserve the original and raise a safe conflict. Only allowlisted metadata is stored, and database failures expose no driver details.
 - Ordinary users cannot inspect other principals' usage or audit records.
 - Administrative changes record actor and nonsecret identifiers of the prior and new configuration.
 - Disabled content auditing stores no request or response body. When enabled, only authorized auditors can read retained bodies.

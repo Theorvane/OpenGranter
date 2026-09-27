@@ -68,7 +68,7 @@ OpenRouter may use `models`, presets, automatic routing, and provider preference
 | Audit event store | Actor, action, target, outcome, request ID | Do not embed raw keys, prompts, or responses |
 | Content-audit store | Optionally retained prompts and responses | Link by event ID; separate encryption, access, and retention |
 
-The usage-record builder prepares one content-free record per upstream attempt. Both route coordinators now hand it to an injected ledger port before retrying another candidate or returning a response. A stable request ID, route kind, and attempt ordinal identify the handoff; the backing adapter must append idempotently or durably queue that ID. A failed handoff stops fallback, emits a nonsecret failure audit event when possible, and returns a safe service error without replaying inference. Missing token counts and the actual OpenRouter provider remain unknown. When one OpenRouter call permits several candidates, its selected candidate also remains unknown. Estimated and upstream-billed costs retain separate provenance, but neither is calculated here. A concrete durable adapter, recovery process, reconciliation, and authorized usage queries remain later work.
+The usage-record builder prepares one content-free record per upstream attempt. Both route coordinators hand it to an injected ledger port before retrying another candidate or returning a response. A stable request ID, route kind, and attempt ordinal identify the handoff. A PostgreSQL adapter now stores an allowlisted JSONB record behind a unique attempt ID; exact retries are no-ops and conflicting retries never overwrite the original. Its parameterized migration and write path are verified against embedded PostgreSQL. A failed handoff stops fallback, emits a nonsecret failure audit event when possible, and returns a safe service error without replaying inference. Missing token counts and the actual OpenRouter provider remain unknown. When one OpenRouter call permits several candidates, its selected candidate also remains unknown. Estimated and upstream-billed costs retain separate provenance, but neither is calculated here. Connection provisioning, migration lifecycle, recovery after database outages, reconciliation, and authorized usage queries remain later work.
 
 ## Policy contract
 
@@ -88,7 +88,7 @@ Evaluation: principal active state → credential scope → direct and role poli
 
 ## API and operations
 
-Implementation language: TypeScript on Node.js 22. Code rules and quality gates are in [coding.md](coding.md). The pure policy evaluator and principal/role attachment resolver are the first implemented slices; API framework, UI library, and persistence choices remain open.
+Implementation language: TypeScript on Node.js 22. Code rules and quality gates are in [coding.md](coding.md). PostgreSQL is implemented for the usage-ledger write adapter; API framework, UI library, and persistence choices for the other stores remain open.
 
 - External API: `GET /v1/models`, `POST /v1/chat/completions`.
 - Management API: principals, roles, policies, providers/subscriptions, models, credentials, usage, and audit events.
@@ -105,7 +105,7 @@ Fail closed when authentication, policy, route bounds, secrets, or required audi
 
 1. Supported OpenRouter request options and first API capability set across all four adapters.
 2. Company SSO protocol and service-account credential format.
-3. Database and secret-store implementations for AWS and on-premises deployments.
+3. Database connection and operational implementation for the PostgreSQL usage ledger, other stores, and secret stores in AWS and on-premises deployments.
 4. Whether monthly limits warn or block, and how concurrent calls reserve capacity.
 5. Content-audit default, configuration scope, retention, reader permissions, and tamper-resistant export.
 6. Whether streaming is part of the initial release.
