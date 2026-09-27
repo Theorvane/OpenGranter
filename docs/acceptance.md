@@ -11,6 +11,8 @@
 - A directly attached policy and policies inherited through assigned roles contribute to one decision. A matching Deny from either source overrides every Allow.
 - If an assigned role or attached policy cannot be resolved uniquely, authorization fails closed without using a partial Allow.
 - A decision records the IDs and versions of resolved policies for later audit attribution; the decision result does not expose policy statements.
+- A PostgreSQL identity reader loads a principal, direct policy attachments, assigned roles, and inherited versioned policies through one parameterized SQL statement. The attachment authenticator receives a complete snapshot and preserves direct Deny precedence over a role Allow.
+- A missing principal yields no identity. An inactive principal is denied; malformed policy JSON, missing role or policy references, duplicate records, and database failure produce a safe unavailable result without granting a partial Allow. Extra stored JSONB properties never enter the returned snapshot.
 
 ## Gateway and credentials
 
