@@ -1,0 +1,19 @@
+# OpenRouter Feature Comparison
+
+Checked against OpenRouter's published documentation on 2026-09-27. This is product research, not a decision to adopt OpenRouter or change OpenGranter's requirements.
+
+| OpenGranter concept | OpenRouter evidence | Assessment |
+| --- | --- | --- |
+| Issue a proxy API token for a person or application | Its API-key API creates named keys with optional expiry and spend limits; the raw key is returned once. Workspace members can create keys. [API keys](https://openrouter.ai/docs/api/api-reference/api-keys/create-keys), [Workspaces](https://openrouter.ai/docs/guides/features/workspaces/overview) | Available |
+| Keep upstream provider credentials on the server | BYOK credentials are encrypted and not returned after creation. Requests route through matching provider keys. [BYOK API](https://openrouter.ai/docs/api/api-reference/byok/create-byok-key) | Available |
+| Select an upstream key according to the caller | BYOK keys support model, OpenRouter API-key, and workspace-member filters. [BYOK routing](https://openrouter.ai/docs/guides/overview/auth/byok) | Available |
+| Restrict use by person and token | Guardrails attach to members and API keys, with model/provider allowlists and spend limits. A member guardrail applies to that member's keys; key guardrails can further restrict them. [Guardrails](https://openrouter.ai/docs/guides/features/guardrails/overview) | Available for documented guardrail dimensions |
+| Roles and policy semantics | Workspaces document organization admin/member permissions and member assignments. Guardrails do not document a general AWS IAM-style Action/Resource policy language with explicit Deny statements. [Workspaces](https://openrouter.ai/docs/guides/features/workspaces/overview), [Guardrails](https://openrouter.ai/docs/guides/features/guardrails/overview) | OpenGranter's proposed arbitrary policies are more detailed; absence of an undocumented feature cannot be ruled out |
+| Usage, cost, and request history | Activity and Logs can be filtered by workspace; generation metadata includes token usage and cost. Activity logs and export are listed in pricing. [Workspaces](https://openrouter.ai/docs/guides/features/workspaces/overview), [Generation API](https://openrouter.ai/docs/client-sdks/typescript/api-reference/generations), [Pricing](https://openrouter.ai/pricing/) | Available |
+| Optional prompt and response retention | Stored generation content has a retrieval API, and Broadcast can send prompt/response traces to observability destinations with a privacy mode. [Generation content](https://openrouter.ai/docs/api/api-reference/generations/list-generation-content), [Broadcast](https://openrouter.ai/docs/guides/features/broadcast/overview) | Available in documented configurations; retention and access behavior need separate review |
+| Audit of administrative changes | Published docs clearly describe usage/activity logs, but this review did not verify a customer-facing immutable trail of role, policy, or credential changes. [Workspaces](https://openrouter.ai/docs/guides/features/workspaces/overview) | Unverified, not proven absent |
+| AWS and on-premises operation | OpenRouter is documented as a hosted API and dashboard. This review found no self-hosted OpenRouter deployment path in its product docs. [Quickstart](https://openrouter.ai/docs/quickstart) | Does not establish the required on-premises option |
+
+## Implication for OpenGranter
+
+The proposed proxy-token-to-provider-key flow is not a novel capability by itself. A company could cover much of it with OpenRouter workspaces, BYOK, API keys, guardrails, and activity logs. OpenGranter's strongest reasons to exist would be company-owned deployment, the exact internal policy semantics, company-controlled secret and content retention, and audit evidence tailored to internal requirements. Those are design hypotheses to validate with stakeholders, not settled product requirements.

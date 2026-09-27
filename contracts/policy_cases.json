@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "default-deny",
+      "description": "Deny when no policy matches",
+      "principal_active": true,
+      "action": "llm:InvokeModel",
+      "resource": "model:basic",
+      "statements": [],
+      "expected": "Deny"
+    },
+    {
+      "id": "direct-allow",
+      "description": "A directly attached policy allows access",
+      "principal_active": true,
+      "action": "llm:InvokeModel",
+      "resource": "model:basic",
+      "statements": [
+        {"source": "user", "effect": "Allow", "actions": ["llm:InvokeModel"], "resources": ["model:basic"]}
+      ],
+      "expected": "Allow"
+    },
+    {
+      "id": "role-allow-user-deny",
+      "description": "A direct Deny overrides a role Allow",
+      "principal_active": true,
+      "action": "llm:InvokeModel",
+      "resource": "model:expensive",
+      "statements": [
+        {"source": "role", "effect": "Allow", "actions": ["llm:InvokeModel"], "resources": ["model:*"]},
+        {"source": "user", "effect": "Deny", "actions": ["llm:InvokeModel"], "resources": ["model:expensive"]}
+      ],
+      "expected": "Deny"
+    },
+    {
+      "id": "unrelated-deny",
+      "description": "An unrelated Deny does not override an Allow",
+      "principal_active": true,
+      "action": "llm:InvokeModel",
+      "resource": "model:basic",
+      "statements": [
+        {"source": "role", "effect": "Allow", "actions": ["llm:InvokeModel"], "resources": ["model:basic"]},
+        {"source": "user", "effect": "Deny", "actions": ["llm:InvokeModel"], "resources": ["model:expensive"]}
+      ],
+      "expected": "Allow"
+    },
+    {
+      "id": "inactive-principal",
+      "description": "An inactive principal is denied despite an Allow",
+      "principal_active": false,
+      "action": "llm:InvokeModel",
+      "resource": "model:basic",
+      "statements": [
+        {"source": "role", "effect": "Allow", "actions": ["llm:InvokeModel"], "resources": ["model:*"]}
+      ],
+      "expected": "Deny"
+    },
+    {
+      "id": "action-mismatch",
+      "description": "An Allow for a different action does not match",
+      "principal_active": true,
+      "action": "catalog:Manage",
+      "resource": "model:basic",
+      "statements": [
+        {"source": "role", "effect": "Allow", "actions": ["llm:InvokeModel"], "resources": ["model:basic"]}
+      ],
+      "expected": "Deny"
+    },
+    {
+      "id": "provider-explicit-deny",
+      "description": "A provider Deny overrides a role Allow for the provider-use action",
+      "principal_active": true,
+      "action": "llm:UseProvider",
+      "resource": "provider:anthropic",
+      "statements": [
+        {"source": "role", "effect": "Allow", "actions": ["llm:UseProvider"], "resources": ["provider:*"]},
+        {"source": "user", "effect": "Deny", "actions": ["llm:UseProvider"], "resources": ["provider:anthropic"]}
+      ],
+      "expected": "Deny"
+    },
+    {
+      "id": "provider-allow",
+      "description": "An allowed provider is eligible when the model is separately allowed",
+      "principal_active": true,
+      "action": "llm:UseProvider",
+      "resource": "provider:openai",
+      "statements": [
+        {"source": "role", "effect": "Allow", "actions": ["llm:UseProvider"], "resources": ["provider:openai"]}
+      ],
+      "expected": "Allow"
+    }
+  ]
+}

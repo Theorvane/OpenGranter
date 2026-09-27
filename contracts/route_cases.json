@@ -1,0 +1,307 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "model-deny-blocks-all-routes",
+      "principal_active": true,
+      "model_alias": "shared-chat",
+      "route_kind": "managed",
+      "candidates": [
+        {
+          "id": "openai-direct",
+          "kind": "managed",
+          "provider_id": "openai",
+          "upstream_model_id": "model-a"
+        },
+        {
+          "id": "anthropic-direct",
+          "kind": "managed",
+          "provider_id": "anthropic",
+          "upstream_model_id": "model-a"
+        }
+      ],
+      "statements": [
+        {
+          "effect": "Allow",
+          "actions": [
+            "llm:UseProvider"
+          ],
+          "resources": [
+            "provider:*"
+          ]
+        }
+      ],
+      "expected_candidate_ids": [],
+      "expected_provider_ids_by_model": {
+        "model-a": []
+      }
+    },
+    {
+      "id": "provider-deny-removes-only-that-candidate",
+      "principal_active": true,
+      "model_alias": "shared-chat",
+      "route_kind": "managed",
+      "candidates": [
+        {
+          "id": "openai-direct",
+          "kind": "managed",
+          "provider_id": "openai",
+          "upstream_model_id": "model-a"
+        },
+        {
+          "id": "anthropic-direct",
+          "kind": "managed",
+          "provider_id": "anthropic",
+          "upstream_model_id": "model-a"
+        }
+      ],
+      "statements": [
+        {
+          "effect": "Allow",
+          "actions": [
+            "llm:InvokeModel"
+          ],
+          "resources": [
+            "model:shared-chat"
+          ]
+        },
+        {
+          "effect": "Allow",
+          "actions": [
+            "llm:UseProvider"
+          ],
+          "resources": [
+            "provider:*"
+          ]
+        },
+        {
+          "effect": "Deny",
+          "actions": [
+            "llm:UseProvider"
+          ],
+          "resources": [
+            "provider:anthropic"
+          ]
+        }
+      ],
+      "expected_candidate_ids": [
+        "openai-direct"
+      ],
+      "expected_provider_ids_by_model": {
+        "model-a": [
+          "openai"
+        ]
+      }
+    },
+    {
+      "id": "delegated-provider-only-is-authorized-set",
+      "principal_active": true,
+      "model_alias": "shared-chat",
+      "route_kind": "delegated",
+      "candidates": [
+        {
+          "id": "router-openai",
+          "kind": "delegated",
+          "provider_id": "openai",
+          "upstream_model_id": "model-a"
+        },
+        {
+          "id": "router-google",
+          "kind": "delegated",
+          "provider_id": "google",
+          "upstream_model_id": "model-b"
+        },
+        {
+          "id": "openai-direct",
+          "kind": "managed",
+          "provider_id": "openai",
+          "upstream_model_id": "model-a"
+        }
+      ],
+      "statements": [
+        {
+          "effect": "Allow",
+          "actions": [
+            "llm:InvokeModel"
+          ],
+          "resources": [
+            "model:shared-chat"
+          ]
+        },
+        {
+          "effect": "Allow",
+          "actions": [
+            "llm:UseProvider"
+          ],
+          "resources": [
+            "provider:openai"
+          ]
+        }
+      ],
+      "expected_candidate_ids": [
+        "router-openai"
+      ],
+      "expected_provider_ids_by_model": {
+        "model-a": [
+          "openai"
+        ],
+        "model-b": []
+      }
+    },
+    {
+      "id": "fallback-stays-in-original-kind",
+      "principal_active": true,
+      "model_alias": "shared-chat",
+      "route_kind": "managed",
+      "candidates": [
+        {
+          "id": "openai-direct",
+          "kind": "managed",
+          "provider_id": "openai",
+          "upstream_model_id": "model-a"
+        },
+        {
+          "id": "router-openai",
+          "kind": "delegated",
+          "provider_id": "openai",
+          "upstream_model_id": "model-a"
+        },
+        {
+          "id": "google-direct",
+          "kind": "managed",
+          "provider_id": "google",
+          "upstream_model_id": "model-b"
+        }
+      ],
+      "statements": [
+        {
+          "effect": "Allow",
+          "actions": [
+            "llm:InvokeModel"
+          ],
+          "resources": [
+            "model:shared-chat"
+          ]
+        },
+        {
+          "effect": "Allow",
+          "actions": [
+            "llm:UseProvider"
+          ],
+          "resources": [
+            "provider:*"
+          ]
+        }
+      ],
+      "expected_candidate_ids": [
+        "openai-direct",
+        "google-direct"
+      ],
+      "expected_provider_ids_by_model": {
+        "model-a": [
+          "openai"
+        ],
+        "model-b": [
+          "google"
+        ]
+      }
+    },
+    {
+      "id": "delegated-models-keep-separate-provider-bounds",
+      "principal_active": true,
+      "model_alias": "shared-chat",
+      "route_kind": "delegated",
+      "candidates": [
+        {
+          "id": "router-model-a-openai",
+          "kind": "delegated",
+          "provider_id": "openai",
+          "upstream_model_id": "model-a"
+        },
+        {
+          "id": "router-model-b-google",
+          "kind": "delegated",
+          "provider_id": "google",
+          "upstream_model_id": "model-b"
+        }
+      ],
+      "statements": [
+        {
+          "effect": "Allow",
+          "actions": ["llm:InvokeModel"],
+          "resources": ["model:shared-chat"]
+        },
+        {
+          "effect": "Allow",
+          "actions": ["llm:UseProvider"],
+          "resources": ["provider:openai", "provider:google"]
+        }
+      ],
+      "expected_candidate_ids": ["router-model-a-openai", "router-model-b-google"],
+      "expected_provider_ids_by_model": {
+        "model-a": ["openai"],
+        "model-b": ["google"]
+      }
+    },
+    {
+      "id": "inactive-principal-has-no-candidates",
+      "principal_active": false,
+      "model_alias": "shared-chat",
+      "route_kind": "managed",
+      "candidates": [
+        {
+          "id": "openai-direct",
+          "kind": "managed",
+          "provider_id": "openai",
+          "upstream_model_id": "model-a"
+        }
+      ],
+      "statements": [
+        {
+          "effect": "Allow",
+          "actions": [
+            "llm:InvokeModel",
+            "llm:UseProvider"
+          ],
+          "resources": [
+            "model:*",
+            "provider:*"
+          ]
+        }
+      ],
+      "expected_candidate_ids": [],
+      "expected_provider_ids_by_model": {
+        "model-a": []
+      }
+    },
+    {
+      "id": "missing-provider-allow-has-no-candidates",
+      "principal_active": true,
+      "model_alias": "shared-chat",
+      "route_kind": "managed",
+      "candidates": [
+        {
+          "id": "openai-direct",
+          "kind": "managed",
+          "provider_id": "openai",
+          "upstream_model_id": "model-a"
+        }
+      ],
+      "statements": [
+        {
+          "effect": "Allow",
+          "actions": [
+            "llm:InvokeModel"
+          ],
+          "resources": [
+            "model:shared-chat"
+          ]
+        }
+      ],
+      "expected_candidate_ids": [],
+      "expected_provider_ids_by_model": {
+        "model-a": []
+      }
+    }
+  ]
+}
