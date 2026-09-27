@@ -23,6 +23,7 @@ export interface ProxyCredentialStore {
     readonly requestId: string;
   }) => Promise<void>;
   readonly findById: (credentialId: string) => Promise<StoredProxyCredential | undefined>;
+  readonly findOwner: (credentialId: string) => Promise<string | undefined>;
   readonly revoke: (input: {
     readonly credentialId: string;
     readonly actorId: string;
