@@ -134,6 +134,7 @@ test('GET models lists only aliases with an IAM-authorized final provider', asyn
       externalCalls++;
       return 'key';
     },
+    writeUsage: async () => {},
     writeAudit: async (event) => {
       audit.push(event);
     },
@@ -185,6 +186,7 @@ test('GET models rejects missing or inactive identity before catalog lookup', as
       resolveRoute: async () => route,
       checkLimit: async () => true,
       resolveSecret: async () => 'key',
+      writeUsage: async () => {},
       writeAudit: async (event) => {
         audit.push(event);
       },
@@ -227,6 +229,7 @@ test('GET models fails closed on catalog errors, duplicate aliases, and audit fa
       },
       checkLimit: async () => true,
       resolveSecret: async () => 'key',
+      writeUsage: async () => {},
       writeAudit: async (event) => {
         audit.push(event);
       },
@@ -250,6 +253,7 @@ test('GET models fails closed on catalog errors, duplicate aliases, and audit fa
     resolveRoute: async () => route,
     checkLimit: async () => true,
     resolveSecret: async () => 'key',
+    writeUsage: async () => {},
     writeAudit: async () => {
       throw new Error('sensitive audit detail');
     },
@@ -275,6 +279,7 @@ test('GET models rejects query-based routing overrides before reading the catalo
     resolveRoute: async () => route,
     checkLimit: async () => true,
     resolveSecret: async () => 'key',
+    writeUsage: async () => {},
     writeAudit: async (event) => {
       audit.push(event);
     },
@@ -298,6 +303,7 @@ test('managed audit events carry safe identity and policy attribution', async ()
     resolveRoute: async () => route,
     checkLimit: async () => true,
     resolveSecret: async () => 'sensitive-jev-key',
+    writeUsage: async () => {},
     writeAudit: async (event) => {
       audit.push(event);
     },
@@ -339,6 +345,7 @@ test('authenticated validation failure carries attribution; missing attribution 
     },
     checkLimit: async () => true,
     resolveSecret: async () => 'key',
+    writeUsage: async () => {},
     writeAudit: async (event: unknown) => {
       audit.push(event);
     },
@@ -367,6 +374,7 @@ test('route lookup failure is attributed without leaking the store error', async
     },
     checkLimit: async () => true,
     resolveSecret: async () => 'key',
+    writeUsage: async () => {},
     writeAudit: async (event) => {
       audit.push(event);
     },
@@ -395,6 +403,7 @@ test('policy denial records the same attribution before any external call', asyn
       upstreamCalled = true;
       return 'key';
     },
+    writeUsage: async () => {},
     writeAudit: async (event) => {
       audit.push(event);
     },
@@ -432,6 +441,7 @@ test('audit attribution is fixed when the identity port mutates its source snaps
     },
     checkLimit: async () => true,
     resolveSecret: async () => 'jev-key',
+    writeUsage: async () => {},
     writeAudit: async (event) => {
       audit.push(event);
     },
@@ -469,6 +479,7 @@ test('HTTP chat request authenticates then routes through Jev to direct adapter'
       return true;
     },
     resolveSecret: async () => 'jev-key',
+    writeUsage: async () => {},
     writeAudit: async (event) => {
       calls.push(`audit:${event.kind}`);
     },
@@ -514,6 +525,7 @@ test('missing token returns 401 and does not resolve routes or call Jev', async 
       calls.push('secret');
       return 'key';
     },
+    writeUsage: async () => {},
     writeAudit: async (event) => {
       calls.push(`audit:${event.kind}`);
       audit.push(event);
@@ -550,6 +562,7 @@ test('authentication-store failure is audited and returns a safe 503', async () 
     },
     checkLimit: async () => true,
     resolveSecret: async () => 'key',
+    writeUsage: async () => {},
     writeAudit: async (event) => {
       audit.push(event);
     },
@@ -573,6 +586,7 @@ test('route-store failure is audited without disclosing storage errors', async (
     },
     checkLimit: async () => true,
     resolveSecret: async () => 'key',
+    writeUsage: async () => {},
     writeAudit: async (event) => {
       audit.push(event);
     },
@@ -608,6 +622,7 @@ test('unsupported fields and malformed messages are rejected before upstream cal
       resolveRoute: async () => route,
       checkLimit: async () => true,
       resolveSecret: async () => 'key',
+      writeUsage: async () => {},
       writeAudit: async () => {},
       invokeDirect: async () => {
         upstreamCalled = true;
@@ -631,6 +646,7 @@ test('body stream failure returns a safe validation error', async () => {
     resolveRoute: async () => route,
     checkLimit: async () => true,
     resolveSecret: async () => 'key',
+    writeUsage: async () => {},
     writeAudit: async () => {},
     invokeDirect: async () => {
       throw new Error('unexpected provider call');
@@ -667,6 +683,7 @@ test('unknown and unauthorized models fail before Jev or direct provider', async
       resolveRoute: async () => (mode === 'unknown' ? undefined : route),
       checkLimit: async () => true,
       resolveSecret: async () => 'key',
+      writeUsage: async () => {},
       writeAudit: async () => {},
       invokeDirect: async () => {
         upstreamCalled = true;
@@ -691,6 +708,7 @@ test('HTTP boundary returns fallback provider result after retryable failure', a
     resolveRoute: async () => route,
     checkLimit: async () => true,
     resolveSecret: async () => 'key',
+    writeUsage: async () => {},
     writeAudit: async () => {},
     invokeDirect: async (candidate) => {
       attempted.push(candidate.id);

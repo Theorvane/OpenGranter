@@ -44,6 +44,8 @@
 - Every post-authentication request, routing, decision, and attempt audit event includes the same principal ID, credential ID, and policy IDs/versions. Missing attribution fails before route lookup. Authentication failures include only a request ID; no raw token, policy statements, provider key, or content appears in ordinary audit events.
 - Missing provider token counts are shown as unknown.
 - A per-attempt usage record distinguishes reported, partial, missing, and invalid provider token counts; missing values are `null`, never zero. It keeps distinct attempt IDs for a possibly billed retry and never copies prompts, responses, proxy tokens, or provider keys.
+- After each managed or delegated upstream attempt, the gateway hands off one normalized record with a stable attempt ID. A denied call or a known preflight failure before upstream contact creates none. A possibly billed managed fallback has a distinct second attempt marked for possible duplicate billing. A failed handoff stops fallback, records a nonsecret failure event where possible, returns a safe service error, and never replays inference.
+- A delegated OpenRouter call with several authorized final-provider candidates leaves its selected candidate and actual provider unknown until verified upstream attribution is available; it does not claim that the first allowed candidate was used.
 - Estimated cost and upstream-reported cost are separate; a delegated route retains OpenRouter generation identifiers for reconciliation when available.
 - Reprocessing the same request ID does not create a duplicate usage-ledger row.
 - Ordinary users cannot inspect other principals' usage or audit records.

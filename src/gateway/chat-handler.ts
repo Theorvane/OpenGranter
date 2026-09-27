@@ -16,6 +16,7 @@ import {
   type ManagedRouteAuditEvent,
 } from '../routing/invoke-jev-managed-route.ts';
 import type { JevFetcher } from '../routing/jev-managed-routing.ts';
+import type { UsageRecord } from '../usage/record-usage.ts';
 
 const MAX_BODY_BYTES = 1024 * 1024;
 
@@ -101,6 +102,9 @@ export interface ChatHandlerPorts<T> {
   readonly writeAudit: (
     event: GatewayAuditEvent | ManagedRouteAuditEvent | DelegatedRouteAuditEvent,
   ) => Promise<void>;
+  /** The backing adapter must append idempotently or durably queue by attempt ID. */
+  readonly writeUsage: (record: UsageRecord) => Promise<void>;
+  readonly now?: () => number;
   readonly invokeDirect: (candidate: RouteCandidate, request: ChatRequest) => Promise<T>;
   readonly resolveVerifiedProviderSlug?: (
     providerId: string,
@@ -359,6 +363,20 @@ export function createChatHandler<T>(
       }
       return errorResponse(400, 'invalid_request', requestId);
     }
+    if (typeof ports.writeUsage !== 'function') {
+      try {
+        await ports.writeAudit({
+          ...attribution,
+          kind: 'request-denied',
+          requestId,
+          reason: 'configuration',
+          modelAlias: chat.model,
+        });
+      } catch {
+        return errorResponse(503, 'audit_unavailable', requestId);
+      }
+      return errorResponse(503, 'usage_unavailable', requestId);
+    }
 
     let route: ManagedChatRoute | DelegatedChatRoute | undefined;
     try {
@@ -406,6 +424,8 @@ export function createChatHandler<T>(
           ports: {
             checkLimit: () => ports.checkLimit(principal.id, requestId),
             writeAudit: ports.writeAudit,
+            writeUsage: ports.writeUsage,
+            ...(ports.now ? { now: ports.now } : {}),
             ...(ports.resolveVerifiedProviderSlug
               ? { resolveVerifiedProviderSlug: ports.resolveVerifiedProviderSlug }
               : {}),
@@ -431,6 +451,8 @@ export function createChatHandler<T>(
         }
         if (result.reason === 'upstream-failed')
           return errorResponse(502, 'upstream_failed', requestId);
+        if (result.reason === 'usage-unavailable')
+          return errorResponse(503, 'usage_unavailable', requestId);
         return errorResponse(503, 'audit_unavailable', requestId);
       } catch {
         try {
@@ -469,6 +491,8 @@ export function createChatHandler<T>(
           checkLimit: () => ports.checkLimit(principal.id, requestId),
           resolveSecret: ports.resolveSecret,
           writeAudit: ports.writeAudit,
+          writeUsage: ports.writeUsage,
+          ...(ports.now ? { now: ports.now } : {}),
           invokeDirect: (candidate) => ports.invokeDirect(candidate, chat),
           ...(ports.fetchJev ? { fetchJev: ports.fetchJev } : {}),
         },
@@ -488,6 +512,8 @@ export function createChatHandler<T>(
       }
       if (result.reason === 'provider-failed')
         return errorResponse(502, 'upstream_failed', requestId);
+      if (result.reason === 'usage-unavailable')
+        return errorResponse(503, 'usage_unavailable', requestId);
       return errorResponse(503, 'audit_unavailable', requestId);
     } catch {
       try {

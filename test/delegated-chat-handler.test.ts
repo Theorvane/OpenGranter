@@ -76,6 +76,7 @@ test('delegated HTTP route sends only IAM-authorized final-provider slugs', asyn
     resolveSecret: async () => {
       throw new Error('unexpected Jev secret resolution');
     },
+    writeUsage: async () => {},
     writeAudit: async (event) => {
       calls.push(`audit:${event.kind}`);
       audit.push(event);
@@ -148,6 +149,7 @@ function fixture() {
     resolveSecret: async () => {
       throw new Error('unexpected direct secret resolution');
     },
+    writeUsage: async () => {},
     writeAudit: async (event) => {
       state.audit.push(event);
     },
@@ -262,6 +264,7 @@ test('required selection audit blocks invocation and failed outcome audit never 
     const { ports, state } = fixture();
     const response = await createChatHandler({
       ...ports,
+      writeUsage: async () => {},
       writeAudit: async (event) => {
         if (event.kind === failKind) throw new Error('sensitive audit detail');
         state.audit.push(event);
@@ -304,4 +307,24 @@ test('safe upstream failure is attributed and never replays a possibly billed ca
       category !== 'credential',
     );
   }
+});
+
+test('post-call usage handoff failure returns a safe error without replaying inference', async () => {
+  const { ports, state } = fixture();
+  const response = await createChatHandler({
+    ...ports,
+    writeUsage: async () => {
+      throw new Error('sensitive ledger detail');
+    },
+  })(request());
+  assert.equal(response.status, 503);
+  assert.equal(
+    ((await response.json()) as { error: { code: string } }).error.code,
+    'usage_unavailable',
+  );
+  assert.equal(state.upstreamCalls, 1);
+  assert.equal((state.audit[1] as { kind: string }).kind, 'usage-handoff-failed');
+  assert.equal((state.audit[1] as { attemptId: string }).attemptId, 'req-guard/delegated/1');
+  assert.equal((state.audit[1] as { outcome: string }).outcome, 'succeeded');
+  assert.equal(JSON.stringify(state.audit).includes('sensitive'), false);
 });

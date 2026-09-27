@@ -1,4 +1,5 @@
 import type { AuditAttribution } from '../audit/attribution.ts';
+import { captureAttemptUsage, type UsageHandoff } from '../usage/capture-attempt.ts';
 import {
   authorizeCandidates,
   type CandidateAuthorizationInput,
@@ -58,9 +59,16 @@ export type ManagedRouteAuditEvent =
       readonly outcome: 'succeeded' | 'failed';
       readonly failureCategory?: DirectProviderFailureCategory;
       readonly possiblyBilled?: boolean;
+    })
+  | (AuditBase & {
+      readonly kind: 'usage-handoff-failed';
+      readonly attemptId: string;
+      readonly candidateId: string;
+      readonly outcome: 'succeeded' | 'failed';
+      readonly possiblyBilled: boolean;
     });
 
-export interface JevManagedRoutePorts<T> {
+export interface JevManagedRoutePorts<T> extends UsageHandoff {
   readonly checkLimit: () => Promise<boolean>;
   readonly resolveSecret: (credentialRef: string) => Promise<string | undefined>;
   readonly writeAudit: (event: ManagedRouteAuditEvent) => Promise<void>;
@@ -83,7 +91,7 @@ export type JevManagedRouteResult<T> =
   | { readonly status: 'denied'; readonly reason: 'no-candidates' | 'limit' | 'secret-unavailable' }
   | {
       readonly status: 'failed';
-      readonly reason: 'audit-unavailable' | 'provider-failed';
+      readonly reason: 'audit-unavailable' | 'provider-failed' | 'usage-unavailable';
       readonly possiblyBilled?: boolean;
     }
   | {
@@ -180,12 +188,49 @@ export async function invokeJevManagedRoute<T>(
   ];
   let earlierAttemptPossiblyBilled = false;
   for (const [index, candidate] of attempts.entries()) {
+    const startedAt = input.ports.now?.() ?? Date.now();
+    async function usageUnavailable(outcome: 'succeeded' | 'failed', possiblyBilled: boolean) {
+      try {
+        await input.ports.writeAudit({
+          ...base,
+          kind: 'usage-handoff-failed',
+          attemptId: `${input.requestId}/managed/${index + 1}`,
+          candidateId: candidate.id,
+          outcome,
+          possiblyBilled,
+        });
+      } catch {
+        // The response still fails closed; the ledger adapter owns durable recovery.
+      }
+      return { status: 'failed', reason: 'usage-unavailable', possiblyBilled: true } as const;
+    }
     let response: T;
     try {
       response = await input.ports.invokeDirect(candidate);
     } catch (error) {
       const failure = error instanceof DirectProviderFailure ? error : undefined;
       const possiblyBilled = failure?.possiblyBilled ?? false;
+      if (!failure || failure.responseStarted || possiblyBilled) {
+        try {
+          await captureAttemptUsage(
+            {
+              ...base,
+              attemptNumber: index + 1,
+              routeKind: 'managed',
+              upstreamModelId: candidate.upstreamModelId,
+              selectedCandidateId: candidate.id,
+              actualInferenceProviderId: candidate.providerId,
+              startedAt,
+              outcome: 'failed',
+              possiblyBilled,
+              possibleDuplicate: earlierAttemptPossiblyBilled,
+            },
+            input.ports,
+          );
+        } catch {
+          return usageUnavailable('failed', possiblyBilled);
+        }
+      }
       earlierAttemptPossiblyBilled ||= possiblyBilled;
       try {
         await input.ports.writeAudit({
@@ -214,6 +259,26 @@ export async function invokeJevManagedRoute<T>(
       continue;
     }
 
+    try {
+      await captureAttemptUsage(
+        {
+          ...base,
+          attemptNumber: index + 1,
+          routeKind: 'managed',
+          upstreamModelId: candidate.upstreamModelId,
+          selectedCandidateId: candidate.id,
+          actualInferenceProviderId: candidate.providerId,
+          startedAt,
+          outcome: 'succeeded',
+          possiblyBilled: true,
+          possibleDuplicate: earlierAttemptPossiblyBilled,
+          response,
+        },
+        input.ports,
+      );
+    } catch {
+      return usageUnavailable('succeeded', true);
+    }
     try {
       await input.ports.writeAudit({
         ...base,

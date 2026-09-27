@@ -5,6 +5,7 @@ import {
   OpenRouterChatFailure,
   validOpenRouterSlug,
 } from '../providers/openrouter-chat.ts';
+import { captureAttemptUsage, type UsageHandoff } from '../usage/capture-attempt.ts';
 import {
   authorizeCandidates,
   type CandidateAuthorizationInput,
@@ -36,9 +37,16 @@ export type DelegatedRouteAuditEvent =
       readonly outcome: 'succeeded' | 'failed';
       readonly failureCategory?: OpenRouterChatFailure['category'];
       readonly possiblyBilled?: boolean;
+    })
+  | (DelegatedAuditBase & {
+      readonly kind: 'usage-handoff-failed';
+      readonly attemptId: string;
+      readonly candidateIds: readonly string[];
+      readonly outcome: 'succeeded' | 'failed';
+      readonly possiblyBilled: boolean;
     });
 
-export interface DelegatedRoutePorts<T> {
+export interface DelegatedRoutePorts<T> extends UsageHandoff {
   readonly resolveVerifiedProviderSlug?: (
     providerId: string,
     upstreamModelId: string,
@@ -73,7 +81,8 @@ export type DelegatedRouteResult<T> =
         | 'audit-unavailable'
         | 'upstream-failed'
         | 'credential-unavailable'
-        | 'configuration-unavailable';
+        | 'configuration-unavailable'
+        | 'usage-unavailable';
       readonly possiblyBilled?: boolean;
     }
   | { readonly status: 'invoked'; readonly response: T };
@@ -139,6 +148,21 @@ export async function invokeDelegatedRoute<T>(
   }
 
   const candidateIds = selected.map((candidate) => candidate.id);
+  async function usageUnavailable(outcome: 'succeeded' | 'failed', possiblyBilled: boolean) {
+    try {
+      await input.ports.writeAudit({
+        ...base,
+        kind: 'usage-handoff-failed',
+        attemptId: `${input.requestId}/delegated/1`,
+        candidateIds,
+        outcome,
+        possiblyBilled,
+      });
+    } catch {
+      // The response still fails closed; the ledger adapter owns durable recovery.
+    }
+    return { status: 'failed', reason: 'usage-unavailable', possiblyBilled: true } as const;
+  }
   try {
     await input.ports.writeAudit({
       ...base,
@@ -152,6 +176,7 @@ export async function invokeDelegatedRoute<T>(
   }
 
   let response: T;
+  const startedAt = input.ports.now?.() ?? Date.now();
   try {
     response = await invokeOpenRouter(
       input.credentialRef,
@@ -161,6 +186,26 @@ export async function invokeDelegatedRoute<T>(
   } catch (error) {
     const failure = error instanceof OpenRouterChatFailure ? error : undefined;
     const possiblyBilled = failure?.possiblyBilled ?? true;
+    if (!failure || failure.responseStarted || possiblyBilled) {
+      try {
+        await captureAttemptUsage(
+          {
+            ...base,
+            attemptNumber: 1,
+            routeKind: 'delegated',
+            upstreamModelId,
+            selectedCandidateId: selected.length === 1 ? (selected[0]?.id ?? null) : null,
+            startedAt,
+            outcome: 'failed',
+            possiblyBilled,
+            possibleDuplicate: false,
+          },
+          input.ports,
+        );
+      } catch {
+        return usageUnavailable('failed', possiblyBilled);
+      }
+    }
     try {
       await input.ports.writeAudit({
         ...base,
@@ -184,6 +229,25 @@ export async function invokeDelegatedRoute<T>(
     return { status: 'failed', reason: 'upstream-failed', possiblyBilled };
   }
 
+  try {
+    await captureAttemptUsage(
+      {
+        ...base,
+        attemptNumber: 1,
+        routeKind: 'delegated',
+        upstreamModelId,
+        selectedCandidateId: selected.length === 1 ? (selected[0]?.id ?? null) : null,
+        startedAt,
+        outcome: 'succeeded',
+        possiblyBilled: true,
+        possibleDuplicate: false,
+        response,
+      },
+      input.ports,
+    );
+  } catch {
+    return usageUnavailable('succeeded', true);
+  }
   try {
     await input.ports.writeAudit({
       ...base,
