@@ -15,7 +15,7 @@ import {
   invokeDelegatedRoute,
 } from '../routing/invoke-delegated-route.ts';
 import {
-  invokeJevManagedRoute,
+  invokeManagedRoute,
   type ManagedRouteAuditEvent,
 } from '../routing/invoke-jev-managed-route.ts';
 import type { JevFetcher } from '../routing/jev-managed-routing.ts';
@@ -52,7 +52,7 @@ export interface ManagedChatRoute {
   readonly kind?: 'managed';
   readonly version: string;
   readonly candidates: readonly RouteCandidate[];
-  readonly jev: {
+  readonly jev?: {
     readonly credentialRef: string;
     readonly minimumConfidence: number;
     readonly sendPrompt: boolean;
@@ -697,7 +697,21 @@ export function createChatHandler<T>(
     }
 
     try {
-      const result = await invokeJevManagedRoute({
+      if (
+        'jev' in route &&
+        (!isRecord(route.jev) ||
+          typeof route.jev.credentialRef !== 'string' ||
+          !/^[A-Za-z0-9][A-Za-z0-9._+:/@-]*$/u.test(route.jev.credentialRef) ||
+          route.jev.credentialRef.length > 256 ||
+          typeof route.jev.minimumConfidence !== 'number' ||
+          !Number.isFinite(route.jev.minimumConfidence) ||
+          route.jev.minimumConfidence < 0 ||
+          route.jev.minimumConfidence > 1 ||
+          typeof route.jev.sendPrompt !== 'boolean')
+      ) {
+        throw new Error('invalid managed route');
+      }
+      const result = await invokeManagedRoute({
         ...attribution,
         requestId,
         routeVersion: route.version,
@@ -705,8 +719,8 @@ export function createChatHandler<T>(
         modelAlias: chat.model,
         candidates: route.candidates,
         statements: principal.statements,
-        jev: route.jev,
-        ...(route.jev.sendPrompt
+        ...(route.jev ? { jev: route.jev } : {}),
+        ...(route.jev?.sendPrompt
           ? {
               promptText: chat.messages
                 .map((message) => `${message.role}: ${message.content}`)

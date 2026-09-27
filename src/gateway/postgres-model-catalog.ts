@@ -99,26 +99,34 @@ function parseRow(value: unknown): {
       candidates: selectedCandidates,
     };
   } else {
-    if (
-      row.credential_ref !== null ||
-      typeof row.jev_minimum_confidence !== 'number' ||
-      !Number.isFinite(row.jev_minimum_confidence) ||
-      row.jev_minimum_confidence < 0 ||
-      row.jev_minimum_confidence > 1 ||
-      typeof row.jev_send_prompt !== 'boolean'
-    ) {
-      throw new ModelCatalogUnavailable();
+    if (row.credential_ref !== null) throw new ModelCatalogUnavailable();
+    const noJev =
+      row.jev_credential_ref === null &&
+      row.jev_minimum_confidence === null &&
+      row.jev_send_prompt === null;
+    if (noJev) {
+      route = { kind: 'managed', version, candidates: selectedCandidates };
+    } else {
+      if (
+        typeof row.jev_minimum_confidence !== 'number' ||
+        !Number.isFinite(row.jev_minimum_confidence) ||
+        row.jev_minimum_confidence < 0 ||
+        row.jev_minimum_confidence > 1 ||
+        typeof row.jev_send_prompt !== 'boolean'
+      ) {
+        throw new ModelCatalogUnavailable();
+      }
+      route = {
+        kind: 'managed',
+        version,
+        candidates: selectedCandidates,
+        jev: {
+          credentialRef: identifier(row.jev_credential_ref),
+          minimumConfidence: row.jev_minimum_confidence,
+          sendPrompt: row.jev_send_prompt,
+        },
+      };
     }
-    route = {
-      kind: 'managed',
-      version,
-      candidates: selectedCandidates,
-      jev: {
-        credentialRef: identifier(row.jev_credential_ref),
-        minimumConfidence: row.jev_minimum_confidence,
-        sendPrompt: row.jev_send_prompt,
-      },
-    };
   }
   return {
     model: {
