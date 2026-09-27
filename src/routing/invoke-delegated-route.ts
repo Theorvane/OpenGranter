@@ -26,11 +26,13 @@ export type DelegatedRouteAuditEvent =
       readonly kind: 'delegated-selection';
       readonly upstreamModelId: string;
       readonly candidateIds: readonly string[];
+      readonly authorizedProviderSlugs: readonly string[];
     })
   | (DelegatedAuditBase & {
       readonly kind: 'delegated-attempt';
       readonly upstreamModelId: string;
       readonly candidateIds: readonly string[];
+      readonly authorizedProviderSlugs: readonly string[];
       readonly outcome: 'succeeded' | 'failed';
       readonly failureCategory?: OpenRouterChatFailure['category'];
       readonly possiblyBilled?: boolean;
@@ -143,6 +145,7 @@ export async function invokeDelegatedRoute<T>(
       kind: 'delegated-selection',
       upstreamModelId,
       candidateIds,
+      authorizedProviderSlugs: [...providerSlugs],
     });
   } catch {
     return { status: 'failed', reason: 'audit-unavailable' };
@@ -164,6 +167,7 @@ export async function invokeDelegatedRoute<T>(
         kind: 'delegated-attempt',
         upstreamModelId,
         candidateIds,
+        authorizedProviderSlugs: [...providerSlugs],
         outcome: 'failed',
         ...(failure ? { failureCategory: failure.category } : {}),
         possiblyBilled,
@@ -186,6 +190,7 @@ export async function invokeDelegatedRoute<T>(
       kind: 'delegated-attempt',
       upstreamModelId,
       candidateIds,
+      authorizedProviderSlugs: [...providerSlugs],
       outcome: 'succeeded',
     });
   } catch {

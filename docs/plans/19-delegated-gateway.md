@@ -10,7 +10,7 @@
 - In scope: a trusted delegated route variant for the existing text-only, non-streaming chat endpoint; final-provider IAM filtering; verified OpenRouter provider-slug resolution through an injected trusted port; limit check; attributed pre-call and outcome audit; one bounded upstream invocation; HTTP and socket tests.
 - Out of scope: the concrete provider-ID/slug registration and verification workflow, durable stores, multi-model fallback, cross-kind fallback, price/health routing, streaming, and usage reconciliation.
 - A route snapshot identifies one delegated route kind, version, upstream credential reference, and approved candidate pairs. The gateway selects the first IAM-eligible upstream model in administrator order and groups only eligible candidates for that model. Each grouped provider ID must resolve to a verified exact OpenRouter slug; missing, malformed, or ambiguous mappings fail closed. The bound adapter receives those slugs, one upstream model, the public alias request, and the route's credential reference through a narrow invocation port.
-- The gateway audits selection before inference and outcome afterward using fixed principal, credential, policy-version, route-version, candidate, and request identifiers. Denials and mapping/limit failures produce safe errors and no inference call. A failed outcome audit blocks the response and does not replay a possibly billed call.
+- The gateway audits selection before inference and outcome afterward using fixed principal, credential, policy-version, route-version, candidate, request, and actual `provider.only` slug identifiers. Denials and mapping/limit failures produce safe errors and no inference call. A failed outcome audit blocks the response and does not replay a possibly billed call.
 
 ## Design
 
@@ -22,7 +22,7 @@
 ## TDD plan
 
 - First add an HTTP test for an allowed delegated alias with one denied provider and one allowed provider; expect the current handler to fail or reject the new route before implementation. Assert the exact verified slug set, order of limit/audit/inference calls, alias response, and no direct/Jev invocation.
-- Add tests for authentication, model/provider Deny, empty candidates, missing/invalid/ambiguous mapping, mapping-store failure, limit denial, audit-write failures before and after inference, safe upstream failure, and managed-route regression. Add a socket-level delegated request.
+- Add tests for authentication, model/provider Deny, empty candidates, missing/invalid/ambiguous mapping, mapping-store failure, limit denial, audit-write failures before and after inference, the audited `provider.only` scope, safe upstream failure, and managed-route regression. Add a socket-level delegated request.
 - Implement the smallest coordinator and handler dispatch change. Run focused red/green tests, `npm run format`, `npm run check`, and `git diff --check`.
 
 ## Delivery

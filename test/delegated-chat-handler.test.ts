@@ -113,6 +113,12 @@ test('delegated HTTP route sends only IAM-authorized final-provider slugs', asyn
     audit.map((event) => (event as { kind: string }).kind),
     ['delegated-selection', 'delegated-attempt'],
   );
+  for (const event of audit) {
+    assert.deepEqual(
+      (event as { authorizedProviderSlugs?: readonly string[] }).authorizedProviderSlugs,
+      ['azure'],
+    );
+  }
   assert.equal(JSON.stringify(audit).includes('proxy-token'), false);
 });
 
