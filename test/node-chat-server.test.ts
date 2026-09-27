@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import type { AddressInfo } from 'node:net';
 import { test } from 'node:test';
 import { createNodeChatServer } from '../src/gateway/node-chat-server.ts';
+import { createOpenRouterChatInvoker } from '../src/providers/openrouter-chat.ts';
 
 test('Node server accepts a socket request and returns the Jev-managed completion', async () => {
   const server = createNodeChatServer({
@@ -75,6 +76,104 @@ test('Node server accepts a socket request and returns the Jev-managed completio
       object: 'list',
       data: [{ id: 'chat', object: 'model', created: 100, owned_by: 'opengranter' }],
     });
+  } finally {
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
+  }
+});
+
+test('Node server bounds a delegated chat request through the OpenRouter adapter', async () => {
+  const outbound: { url: string; body: unknown; authorization: string | null }[] = [];
+  const audit: unknown[] = [];
+  const invokeOpenRouter = createOpenRouterChatInvoker({
+    credentialRef: 'secret/openrouter',
+    resolveSecret: async (ref) => {
+      assert.equal(ref, 'secret/openrouter');
+      return 'upstream-key';
+    },
+    fetcher: async (url, init) => {
+      outbound.push({
+        url: String(url),
+        body: JSON.parse(String(init?.body)) as unknown,
+        authorization: new Headers(init?.headers).get('authorization'),
+      });
+      return Response.json({
+        id: 'generation-2',
+        created: 200,
+        model: 'openai/gpt-4o',
+        choices: [
+          { index: 0, message: { role: 'assistant', content: 'Hello' }, finish_reason: 'stop' },
+        ],
+      });
+    },
+  });
+  const server = createNodeChatServer({
+    newRequestId: () => 'socket-delegated',
+    authenticate: async () => ({
+      id: 'service-1',
+      active: true,
+      credentialId: 'credential-2',
+      policyVersions: [{ id: 'policy-2', version: 'v1' }],
+      statements: [
+        { effect: 'Allow', actions: ['llm:InvokeModel'], resources: ['model:chat'] },
+        { effect: 'Allow', actions: ['llm:UseProvider'], resources: ['provider:openai'] },
+      ],
+    }),
+    resolveRoute: async () => ({
+      kind: 'delegated',
+      version: 'v2',
+      credentialRef: 'secret/openrouter',
+      candidates: [
+        {
+          id: 'provider-one',
+          kind: 'delegated',
+          upstreamModelId: 'openai/gpt-4o',
+          providerId: 'openai',
+        },
+      ],
+    }),
+    resolveVerifiedProviderSlug: async () => 'azure',
+    checkLimit: async () => true,
+    resolveSecret: async () => {
+      throw new Error('unexpected Jev secret');
+    },
+    writeAudit: async (event) => {
+      audit.push(event);
+    },
+    invokeDirect: async () => {
+      throw new Error('unexpected direct call');
+    },
+    invokeOpenRouter: (credentialRef, attempt, request) => {
+      assert.equal(credentialRef, 'secret/openrouter');
+      return invokeOpenRouter(attempt, request);
+    },
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  try {
+    const address = server.address() as AddressInfo;
+    const response = await fetch(`http://127.0.0.1:${address.port}/v1/chat/completions`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer proxy-key', 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'chat', messages: [{ role: 'user', content: 'Hello' }] }),
+    });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('x-request-id'), 'socket-delegated');
+    assert.equal(((await response.json()) as { id: string }).id, 'generation-2');
+    assert.deepEqual(outbound, [
+      {
+        url: 'https://openrouter.ai/api/v1/chat/completions',
+        body: {
+          model: 'openai/gpt-4o',
+          messages: [{ role: 'user', content: 'Hello' }],
+          stream: false,
+          provider: { only: ['azure'] },
+        },
+        authorization: 'Bearer upstream-key',
+      },
+    ]);
+    assert.equal(JSON.stringify(audit).includes('upstream-key'), false);
+    assert.equal(JSON.stringify(audit).includes('Hello'), false);
   } finally {
     await new Promise<void>((resolve, reject) =>
       server.close((error) => (error ? reject(error) : resolve())),

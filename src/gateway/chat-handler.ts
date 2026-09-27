@@ -1,11 +1,16 @@
 import { type AuditAttribution, validAuditAttribution } from '../audit/attribution.ts';
 import type { Statement } from '../policy/evaluate.ts';
 import type { PolicyVersion } from '../policy/evaluate-attachments.ts';
+import type { OpenRouterChatAttempt } from '../providers/openrouter-chat.ts';
 import {
   authorizeCandidates,
   type RouteCandidate,
   type RouteKind,
 } from '../routing/authorize-candidates.ts';
+import {
+  type DelegatedRouteAuditEvent,
+  invokeDelegatedRoute,
+} from '../routing/invoke-delegated-route.ts';
 import {
   invokeJevManagedRoute,
   type ManagedRouteAuditEvent,
@@ -33,6 +38,7 @@ export interface AuthenticatedPrincipal {
 }
 
 export interface ManagedChatRoute {
+  readonly kind?: 'managed';
   readonly version: string;
   readonly candidates: readonly RouteCandidate[];
   readonly jev: {
@@ -40,6 +46,13 @@ export interface ManagedChatRoute {
     readonly minimumConfidence: number;
     readonly sendPrompt: boolean;
   };
+}
+
+export interface DelegatedChatRoute {
+  readonly kind: 'delegated';
+  readonly version: string;
+  readonly credentialRef: string;
+  readonly candidates: readonly RouteCandidate[];
 }
 
 export interface PublishedModel {
@@ -79,12 +92,25 @@ export type GatewayAuditEvent =
 export interface ChatHandlerPorts<T> {
   readonly newRequestId: () => string;
   readonly authenticate: (proxyToken: string) => Promise<AuthenticatedPrincipal | undefined>;
-  readonly resolveRoute: (modelAlias: string) => Promise<ManagedChatRoute | undefined>;
+  readonly resolveRoute: (
+    modelAlias: string,
+  ) => Promise<ManagedChatRoute | DelegatedChatRoute | undefined>;
   readonly listPublishedModels?: () => Promise<readonly PublishedModel[]>;
   readonly checkLimit: (principalId: string, requestId: string) => Promise<boolean>;
   readonly resolveSecret: (credentialRef: string) => Promise<string | undefined>;
-  readonly writeAudit: (event: GatewayAuditEvent | ManagedRouteAuditEvent) => Promise<void>;
+  readonly writeAudit: (
+    event: GatewayAuditEvent | ManagedRouteAuditEvent | DelegatedRouteAuditEvent,
+  ) => Promise<void>;
   readonly invokeDirect: (candidate: RouteCandidate, request: ChatRequest) => Promise<T>;
+  readonly resolveVerifiedProviderSlug?: (
+    providerId: string,
+    upstreamModelId: string,
+  ) => Promise<string | undefined>;
+  readonly invokeOpenRouter?: (
+    credentialRef: string,
+    attempt: OpenRouterChatAttempt,
+    request: ChatRequest,
+  ) => Promise<T>;
   readonly fetchJev?: JevFetcher;
 }
 
@@ -334,7 +360,7 @@ export function createChatHandler<T>(
       return errorResponse(400, 'invalid_request', requestId);
     }
 
-    let route: ManagedChatRoute | undefined;
+    let route: ManagedChatRoute | DelegatedChatRoute | undefined;
     try {
       route = await ports.resolveRoute(chat.model);
     } catch {
@@ -363,6 +389,63 @@ export function createChatHandler<T>(
         return errorResponse(503, 'audit_unavailable', requestId);
       }
       return errorResponse(404, 'unknown_model', requestId);
+    }
+
+    if (route.kind === 'delegated') {
+      try {
+        const result = await invokeDelegatedRoute({
+          ...attribution,
+          requestId,
+          routeVersion: route.version,
+          credentialRef: route.credentialRef,
+          principalActive: principal.active,
+          modelAlias: chat.model,
+          candidates: route.candidates,
+          statements: principal.statements,
+          request: chat,
+          ports: {
+            checkLimit: () => ports.checkLimit(principal.id, requestId),
+            writeAudit: ports.writeAudit,
+            ...(ports.resolveVerifiedProviderSlug
+              ? { resolveVerifiedProviderSlug: ports.resolveVerifiedProviderSlug }
+              : {}),
+            ...(ports.invokeOpenRouter ? { invokeOpenRouter: ports.invokeOpenRouter } : {}),
+          },
+        });
+        if (result.status === 'invoked') {
+          return Response.json(result.response, {
+            status: 200,
+            headers: { 'x-request-id': requestId },
+          });
+        }
+        if (result.status === 'denied') {
+          if (result.reason === 'no-candidates') return errorResponse(403, 'forbidden', requestId);
+          if (result.reason === 'limit') return errorResponse(429, 'limit_exceeded', requestId);
+          return errorResponse(503, 'route_unavailable', requestId);
+        }
+        if (result.reason === 'credential-unavailable') {
+          return errorResponse(503, 'credential_unavailable', requestId);
+        }
+        if (result.reason === 'configuration-unavailable') {
+          return errorResponse(503, 'route_unavailable', requestId);
+        }
+        if (result.reason === 'upstream-failed')
+          return errorResponse(502, 'upstream_failed', requestId);
+        return errorResponse(503, 'audit_unavailable', requestId);
+      } catch {
+        try {
+          await ports.writeAudit({
+            ...attribution,
+            kind: 'request-denied',
+            requestId,
+            reason: 'configuration',
+            modelAlias: chat.model,
+          });
+        } catch {
+          return errorResponse(503, 'audit_unavailable', requestId);
+        }
+        return errorResponse(503, 'route_unavailable', requestId);
+      }
     }
 
     try {

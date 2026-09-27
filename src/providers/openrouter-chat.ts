@@ -53,16 +53,16 @@ function fail(
   throw new OpenRouterChatFailure(category, responseStarted, possiblyBilled);
 }
 
-function validSlug(value: unknown): value is string {
+export function validOpenRouterSlug(value: unknown): value is string {
   return typeof value === 'string' && value.length <= 256 && SAFE_SLUG.test(value);
 }
 
 function validAttempt(value: OpenRouterChatAttempt): boolean {
   return (
-    validSlug(value.upstreamModelId) &&
+    validOpenRouterSlug(value.upstreamModelId) &&
     Array.isArray(value.authorizedProviderSlugs) &&
     value.authorizedProviderSlugs.length > 0 &&
-    value.authorizedProviderSlugs.every(validSlug) &&
+    value.authorizedProviderSlugs.every(validOpenRouterSlug) &&
     new Set(value.authorizedProviderSlugs).size === value.authorizedProviderSlugs.length
   );
 }
