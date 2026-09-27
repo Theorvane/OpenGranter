@@ -13,6 +13,10 @@
     {"id": "no-cross-kind-fallback", "request": "POST /v1/chat/completions", "condition": "Delegated route fails and only a managed route remains; no managed attempt is made", "route_kind": "delegated", "expected_status": 502, "upstream_called": true, "audit_action": "llm.failed"},
     {"id": "unbounded-routing-override", "request": "POST /v1/chat/completions", "condition": "Delegated route includes an unevaluated fallback model or destination", "route_kind": "delegated", "expected_status": 400, "upstream_called": false, "audit_action": "llm.denied"},
     {"id": "disabled-route", "request": "POST /v1/chat/completions", "condition": "Requested model alias has no enabled approved route", "expected_status": 403, "upstream_called": false, "audit_action": "llm.denied"},
-    {"id": "upstream-failure", "request": "POST /v1/chat/completions", "condition": "Authorized route; upstream returns 5xx", "expected_status": 502, "upstream_called": true, "audit_action": "llm.failed"}
+    {"id": "upstream-failure", "request": "POST /v1/chat/completions", "condition": "Authorized route; upstream returns 5xx", "expected_status": 502, "upstream_called": true, "audit_action": "llm.failed"},
+    {"id": "self-usage-read", "request": "GET /v1/usage", "condition": "Authenticated principal has usage:ReadSelf on their own principal resource", "expected_status": 200, "upstream_called": false, "audit_action": "usage.read"},
+    {"id": "denied-usage-read", "request": "GET /v1/usage", "condition": "Principal has no usage:ReadSelf Allow or has an explicit Deny", "expected_status": 403, "upstream_called": false, "audit_action": "usage.read.denied"},
+    {"id": "target-usage-read", "request": "GET /v1/usage", "condition": "A specified principal_id has usage:ReadAll Allow on that target", "expected_status": 200, "upstream_called": false, "audit_action": "usage.read"},
+    {"id": "cross-principal-usage-row", "request": "GET /v1/usage", "condition": "The ledger returns a row for another principal", "expected_status": 503, "upstream_called": false, "audit_action": "usage.read.unavailable"}
   ]
 }

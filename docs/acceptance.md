@@ -49,6 +49,7 @@
 - Estimated cost and upstream-reported cost are separate; a delegated route retains OpenRouter generation identifiers for reconciliation when available.
 - Reprocessing the same request ID does not create a duplicate usage-ledger row.
 - A PostgreSQL usage-ledger append creates one row per attempt ID. Identical retries, including after an ambiguous committed write, leave one row; conflicting retries preserve the original and raise a safe conflict. Only allowlisted metadata is stored, and database failures expose no driver details.
+- `GET /v1/usage` returns at most 100 records for one principal in stable descending keyset order. An omitted `principal_id` requires `usage:ReadSelf` on the authenticated principal; an explicit `principal_id` requires `usage:ReadAll` on that target, including self. Default or explicit Deny stops before storage. A forged cursor cannot widen the SQL principal filter; malformed and mixed-principal rows produce no partial response. Successful, denied, and unavailable reads have attributed nonsecret audit events, and a required audit-write failure prevents a successful response.
 - Ordinary users cannot inspect other principals' usage or audit records.
 - Administrative changes record actor and nonsecret identifiers of the prior and new configuration.
 - Disabled content auditing stores no request or response body. When enabled, only authorized auditors can read retained bodies.
