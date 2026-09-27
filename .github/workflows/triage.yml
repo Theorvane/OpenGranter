@@ -1,0 +1,33 @@
+name: Triage issues and pull requests
+
+on:
+  issues:
+    types: [opened, edited, reopened]
+  pull_request_target:
+    branches: [main]
+    types: [opened, reopened, ready_for_review, synchronize, converted_to_draft]
+
+# The workflow executes only code from main and never checks out a pull request head.
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: triage-${{ github.event_name }}-${{ github.event.issue.number || github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  metadata:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --experimental-strip-types scripts/run-triage.ts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

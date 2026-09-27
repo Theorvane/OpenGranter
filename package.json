@@ -8,8 +8,8 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "lint": "biome check src test package.json tsconfig.json biome.json",
-    "format": "biome check --write src test package.json tsconfig.json biome.json",
+    "lint": "biome check src test scripts package.json tsconfig.json biome.json",
+    "format": "biome check --write src test scripts package.json tsconfig.json biome.json",
     "test": "node --experimental-strip-types --test test/*.test.ts",
     "check": "npm run typecheck && npm run lint && npm test && python3 scripts/check.py"
   },

@@ -2,6 +2,8 @@
 
 Closes #
 
+CI will add a type label from the branch name, request `sjungwon03-ai` when this pull request is ready, and assign the pull request author.
+
 ## Implementation plan
 
 Link `docs/plans/<issue-number>-<topic>.md` and note any updated PRD, architecture, acceptance, or contract documents. For a documentation-only change, explain which planning document changed.

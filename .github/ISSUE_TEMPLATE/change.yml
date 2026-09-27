@@ -1,5 +1,5 @@
 name: Change proposal
-description: Propose a feature, fix, documentation change, or harness improvement.
+description: Propose a change. Start the title with feat:, fix:, docs:, chore:, ci:, or security: for automatic labeling.
 title: ""
 labels: []
 body:

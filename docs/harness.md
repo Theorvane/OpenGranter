@@ -19,6 +19,8 @@ Run `npm run check` to type-check and lint TypeScript, run policy and route-auth
 
 `.github/workflows/check.yml` runs the same command on pushes and pull requests. This does not replace service security tests or a production secret scanner.
 
+`.github/workflows/triage.yml` runs against trusted `main` code with issue and pull request metadata permissions. It classifies issue title and pull request branch prefixes, adds a triage label to new issues, requests `sjungwon03-ai` on ready pull requests, and assigns the author. The pure label planner and event handler are covered by `test/triage.test.ts`. The label records are informational; the `main` ruleset enforces one approval and the `check` status.
+
 ## Implementation connections to add
 
 - Extend `contracts/policy_cases.json` and `contracts/route_cases.json` as policy features are agreed; the current cases execute against the pure evaluator and candidate filter.
