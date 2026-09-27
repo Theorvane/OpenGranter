@@ -1,7 +1,11 @@
 import { type AuditAttribution, validAuditAttribution } from '../audit/attribution.ts';
 import type { Statement } from '../policy/evaluate.ts';
 import type { PolicyVersion } from '../policy/evaluate-attachments.ts';
-import type { RouteCandidate } from '../routing/authorize-candidates.ts';
+import {
+  authorizeCandidates,
+  type RouteCandidate,
+  type RouteKind,
+} from '../routing/authorize-candidates.ts';
 import {
   invokeJevManagedRoute,
   type ManagedRouteAuditEvent,
@@ -38,6 +42,16 @@ export interface ManagedChatRoute {
   };
 }
 
+export interface PublishedModel {
+  readonly alias: string;
+  readonly created: number;
+  readonly enabled: boolean;
+  readonly routes: readonly {
+    readonly kind: RouteKind;
+    readonly candidates: readonly RouteCandidate[];
+  }[];
+}
+
 export type GatewayAuditEvent =
   | { readonly kind: 'auth-denied'; readonly requestId: string }
   | { readonly kind: 'auth-unavailable'; readonly requestId: string }
@@ -45,6 +59,15 @@ export type GatewayAuditEvent =
       readonly kind: 'route-unavailable';
       readonly requestId: string;
       readonly modelAlias: string;
+    })
+  | (AuditAttribution & {
+      readonly kind: 'model-list-unavailable';
+      readonly requestId: string;
+    })
+  | (AuditAttribution & {
+      readonly kind: 'models-listed';
+      readonly requestId: string;
+      readonly count: number;
     })
   | (AuditAttribution & {
       readonly kind: 'request-denied';
@@ -57,6 +80,7 @@ export interface ChatHandlerPorts<T> {
   readonly newRequestId: () => string;
   readonly authenticate: (proxyToken: string) => Promise<AuthenticatedPrincipal | undefined>;
   readonly resolveRoute: (modelAlias: string) => Promise<ManagedChatRoute | undefined>;
+  readonly listPublishedModels?: () => Promise<readonly PublishedModel[]>;
   readonly checkLimit: (principalId: string, requestId: string) => Promise<boolean>;
   readonly resolveSecret: (credentialRef: string) => Promise<string | undefined>;
   readonly writeAudit: (event: GatewayAuditEvent | ManagedRouteAuditEvent) => Promise<void>;
@@ -66,6 +90,49 @@ export interface ChatHandlerPorts<T> {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function validCatalog(value: unknown): value is readonly PublishedModel[] {
+  if (!Array.isArray(value)) return false;
+  const aliases = new Set<string>();
+  for (const item of value) {
+    if (
+      !isRecord(item) ||
+      typeof item.alias !== 'string' ||
+      item.alias.length === 0 ||
+      aliases.has(item.alias) ||
+      typeof item.created !== 'number' ||
+      !Number.isSafeInteger(item.created) ||
+      item.created < 0 ||
+      typeof item.enabled !== 'boolean' ||
+      !Array.isArray(item.routes) ||
+      (item.enabled && item.routes.length === 0)
+    )
+      return false;
+    aliases.add(item.alias);
+    for (const route of item.routes) {
+      if (
+        !isRecord(route) ||
+        (route.kind !== 'managed' && route.kind !== 'delegated') ||
+        !Array.isArray(route.candidates)
+      )
+        return false;
+      for (const candidate of route.candidates) {
+        if (
+          !isRecord(candidate) ||
+          candidate.kind !== route.kind ||
+          typeof candidate.id !== 'string' ||
+          !candidate.id ||
+          typeof candidate.providerId !== 'string' ||
+          !candidate.providerId ||
+          typeof candidate.upstreamModelId !== 'string' ||
+          !candidate.upstreamModelId
+        )
+          return false;
+      }
+    }
+  }
+  return true;
 }
 
 function validateChat(value: unknown): ChatRequest | undefined {
@@ -135,7 +202,10 @@ export function createChatHandler<T>(
 ): (request: Request) => Promise<Response> {
   return async (request) => {
     const requestId = ports.newRequestId();
-    if (request.method !== 'POST' || new URL(request.url).pathname !== '/v1/chat/completions') {
+    const url = new URL(request.url);
+    const chatRequest = request.method === 'POST' && url.pathname === '/v1/chat/completions';
+    const modelListRequest = request.method === 'GET' && url.pathname === '/v1/models';
+    if (!chatRequest && !modelListRequest) {
       return errorResponse(404, 'not_found', requestId);
     }
 
@@ -183,6 +253,71 @@ export function createChatHandler<T>(
         version,
       })),
     };
+
+    if (modelListRequest) {
+      if (url.search) {
+        try {
+          await ports.writeAudit({
+            ...attribution,
+            kind: 'request-denied',
+            requestId,
+            reason: 'invalid-request',
+          });
+        } catch {
+          return errorResponse(503, 'audit_unavailable', requestId);
+        }
+        return errorResponse(400, 'invalid_request', requestId);
+      }
+      let catalog: readonly PublishedModel[] | undefined;
+      try {
+        catalog = await ports.listPublishedModels?.();
+      } catch {
+        catalog = undefined;
+      }
+      if (!validCatalog(catalog)) {
+        try {
+          await ports.writeAudit({ ...attribution, kind: 'model-list-unavailable', requestId });
+        } catch {
+          return errorResponse(503, 'audit_unavailable', requestId);
+        }
+        return errorResponse(503, 'catalog_unavailable', requestId);
+      }
+      const data = catalog
+        .filter(
+          (model) =>
+            model.enabled &&
+            model.routes.some(
+              (route) =>
+                authorizeCandidates({
+                  principalActive: principal.active,
+                  modelAlias: model.alias,
+                  routeKind: route.kind,
+                  candidates: route.candidates,
+                  statements: principal.statements,
+                }).candidates.length > 0,
+            ),
+        )
+        .map((model) => ({
+          id: model.alias,
+          object: 'model',
+          created: model.created,
+          owned_by: 'opengranter',
+        }));
+      try {
+        await ports.writeAudit({
+          ...attribution,
+          kind: 'models-listed',
+          requestId,
+          count: data.length,
+        });
+      } catch {
+        return errorResponse(503, 'audit_unavailable', requestId);
+      }
+      return Response.json(
+        { object: 'list', data },
+        { status: 200, headers: { 'x-request-id': requestId } },
+      );
+    }
 
     const chat = validateChat(await readJsonBody(request).catch(() => undefined));
     if (!chat) {
