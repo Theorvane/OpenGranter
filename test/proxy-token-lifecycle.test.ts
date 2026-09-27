@@ -21,6 +21,7 @@ async function fixture() {
   const service = createProxyTokenService({ store, now: () => now });
   return {
     db,
+    store,
     service,
     advance: (time: number) => {
       now = time;
@@ -59,6 +60,22 @@ test('issue returns a one-time opaque token and verifies its attributed identity
     ]);
     assert.equal(JSON.stringify(rows.rows).includes(issued.token), false);
     assert.equal(JSON.stringify(events.rows).includes(issued.token), false);
+  } finally {
+    await db.close();
+  }
+});
+
+test('credential owner lookup returns only the immutable principal ID', async () => {
+  const { db, store, service } = await fixture();
+  try {
+    const issued = await service.issue(issueInput);
+    assert.equal(await store.findOwner(issued.credentialId), 'service-1');
+    assert.equal(await store.findOwner('missing'), undefined);
+    await db.exec('DROP TABLE proxy_credentials CASCADE');
+    await assert.rejects(store.findOwner(issued.credentialId), {
+      name: 'ProxyCredentialUnavailable',
+      message: 'Proxy credential store unavailable',
+    });
   } finally {
     await db.close();
   }

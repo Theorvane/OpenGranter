@@ -92,6 +92,26 @@ export function createPostgresProxyCredentialStore(
         throw new ProxyCredentialUnavailable();
       }
     },
+    async findOwner(credentialId): Promise<string | undefined> {
+      try {
+        const result = await client.query(
+          'SELECT principal_id FROM proxy_credentials WHERE credential_id = $1',
+          [credentialId],
+        );
+        if (result.rows.length === 0) return undefined;
+        const row = object(result.rows[0]);
+        if (
+          result.rows.length !== 1 ||
+          typeof row?.principal_id !== 'string' ||
+          row.principal_id.length === 0
+        ) {
+          throw new ProxyCredentialUnavailable();
+        }
+        return row.principal_id;
+      } catch {
+        throw new ProxyCredentialUnavailable();
+      }
+    },
     async revoke(input) {
       try {
         const result = await client.query(
