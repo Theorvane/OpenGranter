@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { invokeJevManagedRoute } from '../src/routing/invoke-jev-managed-route.ts';
+import {
+  DirectProviderFailure,
+  invokeJevManagedRoute,
+} from '../src/routing/invoke-jev-managed-route.ts';
 
 const base = {
   requestId: 'request-1',
@@ -230,4 +233,163 @@ test('post-invocation audit failure reports possible billing without replaying t
     possiblyBilled: true,
   });
   assert.equal(directCalls, 1);
+});
+
+const twoAllowed = {
+  ...base,
+  statements: [
+    { effect: 'Allow' as const, actions: ['llm:InvokeModel'], resources: ['model:chat'] },
+    { effect: 'Allow' as const, actions: ['llm:UseProvider'], resources: ['provider:openai'] },
+    { effect: 'Allow' as const, actions: ['llm:UseProvider'], resources: ['provider:anthropic'] },
+  ],
+};
+
+function jevSelectsOpenAi() {
+  return {
+    ok: true,
+    json: async () => ({
+      model: 'jev-1',
+      answers: { route: { type: 'choice', choice: 'openai', confidence: 0.9 } },
+    }),
+  };
+}
+
+test('pre-response rate limit falls back to next authorized managed candidate once', async () => {
+  const attempted: string[] = [];
+  const audit: unknown[] = [];
+  let jevCalls = 0;
+  const result = await invokeJevManagedRoute({
+    ...twoAllowed,
+    ports: {
+      checkLimit: async () => true,
+      resolveSecret: async () => 'key',
+      writeAudit: async (event) => {
+        audit.push(event);
+      },
+      invokeDirect: async (candidate) => {
+        attempted.push(candidate.id);
+        if (candidate.id === 'openai') {
+          throw new DirectProviderFailure('rate-limit', false, false);
+        }
+        return { content: 'from backup' };
+      },
+      fetchJev: async () => {
+        jevCalls++;
+        return jevSelectsOpenAi();
+      },
+    },
+  });
+  assert.equal(result.status, 'invoked');
+  if (result.status === 'invoked') assert.equal(result.candidate.id, 'anthropic');
+  assert.deepEqual(attempted, ['openai', 'anthropic']);
+  assert.equal(jevCalls, 1);
+  assert.deepEqual(
+    audit
+      .filter((event) => (event as { kind: string }).kind === 'attempt')
+      .map((event) => ({
+        candidateId: (event as { candidateId: string }).candidateId,
+        outcome: (event as { outcome: string }).outcome,
+      })),
+    [
+      { candidateId: 'openai', outcome: 'failed' },
+      { candidateId: 'anthropic', outcome: 'succeeded' },
+    ],
+  );
+});
+
+test('unclassified or post-response failure does not fall back', async () => {
+  for (const failure of [
+    new Error('sensitive upstream error'),
+    new DirectProviderFailure('server-error', true, true),
+    new DirectProviderFailure('other', false, false),
+  ]) {
+    const attempted: string[] = [];
+    const result = await invokeJevManagedRoute({
+      ...twoAllowed,
+      ports: {
+        checkLimit: async () => true,
+        resolveSecret: async () => 'key',
+        writeAudit: async () => {},
+        invokeDirect: async (candidate) => {
+          attempted.push(candidate.id);
+          throw failure;
+        },
+        fetchJev: async () => jevSelectsOpenAi(),
+      },
+    });
+    assert.equal(result.status, 'failed');
+    assert.deepEqual(attempted, ['openai']);
+  }
+});
+
+test('exhausted retryable candidates stop without repeating any route', async () => {
+  const attempted: string[] = [];
+  const result = await invokeJevManagedRoute({
+    ...twoAllowed,
+    ports: {
+      checkLimit: async () => true,
+      resolveSecret: async () => 'key',
+      writeAudit: async () => {},
+      invokeDirect: async (candidate) => {
+        attempted.push(candidate.id);
+        throw new DirectProviderFailure('timeout', false, true);
+      },
+      fetchJev: async () => jevSelectsOpenAi(),
+    },
+  });
+  assert.equal(result.status, 'failed');
+  assert.deepEqual(attempted, ['openai', 'anthropic']);
+});
+
+test('failed attempt audit write stops fallback before the next provider', async () => {
+  const attempted: string[] = [];
+  const result = await invokeJevManagedRoute({
+    ...twoAllowed,
+    ports: {
+      checkLimit: async () => true,
+      resolveSecret: async () => 'key',
+      writeAudit: async (event) => {
+        if (event.kind === 'attempt') throw new Error('audit failed');
+      },
+      invokeDirect: async (candidate) => {
+        attempted.push(candidate.id);
+        throw new DirectProviderFailure('server-error', false, true);
+      },
+      fetchJev: async () => jevSelectsOpenAi(),
+    },
+  });
+  assert.equal(result.status, 'failed');
+  assert.deepEqual(attempted, ['openai']);
+});
+
+test('Jev outage begins with the authorized first route and still permits provider fallback', async () => {
+  const attempted: string[] = [];
+  let jevCalls = 0;
+  const result = await invokeJevManagedRoute({
+    ...twoAllowed,
+    ports: {
+      checkLimit: async () => true,
+      resolveSecret: async () => 'key',
+      writeAudit: async () => {},
+      invokeDirect: async (candidate) => {
+        attempted.push(candidate.id);
+        if (candidate.id === 'openai') {
+          throw new DirectProviderFailure('timeout', false, true);
+        }
+        return { content: 'backup response' };
+      },
+      fetchJev: async () => {
+        jevCalls++;
+        return { ok: false, json: async () => ({}) };
+      },
+    },
+  });
+  assert.equal(result.status, 'invoked');
+  if (result.status === 'invoked') {
+    assert.equal(result.candidate.id, 'anthropic');
+    assert.equal(result.decision.source, 'fallback');
+    assert.equal(result.possiblyBilled, true);
+  }
+  assert.deepEqual(attempted, ['openai', 'anthropic']);
+  assert.equal(jevCalls, 1);
 });

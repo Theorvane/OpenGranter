@@ -24,7 +24,9 @@ An optional Jev-assisted strategy asks TypeSafe Jev to choose among the already 
 
 The provisional Jev policy sends model-alias metadata and approved candidate descriptions by default. A route setting may explicitly include prompt text; this is separate from the content-audit retention setting. The current selector uses a three-second timeout and a configured confidence threshold. On timeout, HTTP failure, malformed or ineligible choice, low confidence, or too many/duplicate candidates, it selects the first already eligible candidate in supplied administrator order and returns a nonsecret reason for audit. These defaults await product-owner confirmation. An empty eligible set makes no Jev call and denies routing. A later gateway must provide the candidate set only after capability, health, limit, and IAM checks; the existing pure selector currently enforces IAM and route kind but does not perform those other checks.
 
-Fallback can move to another already-authorized candidate within the same route kind. A delegated request may continue only on delegated candidates; a managed request may continue only on managed candidates. A cross-kind switch requires a new explicit client request or a later product decision. Re-evaluate no new candidates during retry, and never use a caller-supplied upstream URL. Automatic retry after response bytes have reached the client is disabled; interrupted streams record uncertain usage until reconciled. Retryable status codes, maximum attempts, and budget reservations remain to be specified.
+Fallback can move to another already-authorized candidate within the same route kind. A delegated request may continue only on delegated candidates; a managed request may continue only on managed candidates. A cross-kind switch requires a new explicit client request or a later product decision. Re-evaluate no new candidates during retry, and never use a caller-supplied upstream URL. Automatic retry after response bytes have reached the client is disabled; interrupted streams record uncertain usage until reconciled.
+
+For Jev-assisted managed routes, Jev selects the first candidate only once. If its decision fails, begin with the first eligible candidate in administrator order. If the selected direct adapter explicitly reports a pre-response rate limit, transient server error, or timeout, try the remaining eligible managed candidates in administrator order, once each; do not ask Jev again. An unclassified error, authentication/validation/moderation failure, or failure after response bytes start stops fallback. Persist each failed attempt before trying the next. A retry may incur duplicate upstream cost, so carry possible-billing information through the attempt events and final result. Concrete adapters must map upstream errors to this narrow failure classification. Maximum attempts equal the eligible candidate count; budget reservation across those attempts remains to be specified.
 
 ## Provider adapters
 
@@ -47,10 +49,12 @@ For Jev-assisted selection, record its decision source (`jev` or deterministic f
 
 The current managed invocation coordinator first applies model/provider IAM, then checks limits and resolves the Jev credential reference. It persists a nonsecret `selection-started` audit event before calling Jev, a `decision` event before direct inference, and an `attempt` outcome afterward. Any required pre-inference audit failure stops the call. If outcome auditing fails after the provider may have processed a request, the result marks `possiblyBilled: true` and does not automatically retry. Durable retry/alert handling and usage-ledger reconciliation remain integration work.
 
+For provider fallback, each attempt event identifies its candidate and outcome; a failed attempt may include a safe failure category and possible-billing flag. The final selected candidate can differ from Jev's initial choice, and both facts must remain visible in audit and usage views.
+
 ## Remaining contract questions
 
 - Exact default price-weighting or deterministic ranking formula and tie-breaking.
-- Retryable errors, maximum attempts, and whether an OpenRouter internal retry counts as one or more local attempts.
+- Whether an OpenRouter internal retry counts as one or more local attempts; exact direct-adapter status mappings and per-attempt budget reservations.
 - Metric freshness, health thresholds, and capability discovery.
 - First supported request fields beyond text chat and whether streaming is required at launch.
 - OpenRouter provider identity mapping across its endpoint slugs, BYOK routes, and the internal provider resource IDs.

@@ -22,6 +22,8 @@
 - A model Allow with a provider Deny cannot reach that provider in either mode. If another provider is allowed, it may serve the request; otherwise the request is denied before any upstream call.
 - A delegated request sends only the principal's eligible providers in a server-generated OpenRouter `provider.only` restriction. Caller overrides and OpenRouter fallback models cannot widen the authorized model/provider pairs.
 - If an eligible candidate fails, fallback can use another previously authorized candidate of the same route kind. It never silently moves between OpenRouter and direct-provider routes.
+- If a Jev-selected direct provider reports a classified rate limit, transient server failure, or timeout before response bytes start, the coordinator tries the remaining authorized managed candidates once each in administrator order without asking Jev again. It records every attempt and the final provider.
+- A provider authentication/validation error, unclassified error, response-started failure, or failed audit write does not trigger another provider attempt. Possible duplicate billing is surfaced when a failed attempt may have incurred cost.
 - Anthropic and Gemini adapters translate the supported chat request and response fields; unsupported features are rejected before invocation.
 - A policy Deny on any possible model, provider, or destination prevents an unreviewed fallback from reaching that destination. Unsupported routing overrides are rejected before any upstream call.
 - A disabled route or unavailable registered credential fails closed; no silent switch to another route kind occurs.

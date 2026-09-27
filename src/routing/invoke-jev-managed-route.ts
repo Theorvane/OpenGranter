@@ -16,6 +16,27 @@ interface AuditBase {
   readonly modelAlias: string;
 }
 
+export type DirectProviderFailureCategory = 'rate-limit' | 'server-error' | 'timeout' | 'other';
+
+/** An adapter must explicitly classify a failed attempt before the coordinator can retry it. */
+export class DirectProviderFailure extends Error {
+  readonly category: DirectProviderFailureCategory;
+  readonly responseStarted: boolean;
+  readonly possiblyBilled: boolean;
+
+  constructor(
+    category: DirectProviderFailureCategory,
+    responseStarted: boolean,
+    possiblyBilled: boolean,
+  ) {
+    super('Direct provider attempt failed');
+    this.name = 'DirectProviderFailure';
+    this.category = category;
+    this.responseStarted = responseStarted;
+    this.possiblyBilled = possiblyBilled;
+  }
+}
+
 export type ManagedRouteAuditEvent =
   | (AuditBase & {
       readonly kind: 'denied';
@@ -34,6 +55,8 @@ export type ManagedRouteAuditEvent =
       readonly kind: 'attempt';
       readonly candidateId: string;
       readonly outcome: 'succeeded' | 'failed';
+      readonly failureCategory?: DirectProviderFailureCategory;
+      readonly possiblyBilled?: boolean;
     });
 
 export interface JevManagedRoutePorts<T> {
@@ -58,6 +81,7 @@ export type JevManagedRouteResult<T> =
   | {
       readonly status: 'failed';
       readonly reason: 'audit-unavailable' | 'provider-failed';
+      readonly possiblyBilled?: boolean;
     }
   | {
       readonly status: 'failed';
@@ -69,6 +93,7 @@ export type JevManagedRouteResult<T> =
       readonly candidate: RouteCandidate;
       readonly decision: JevDecision;
       readonly response: T;
+      readonly possiblyBilled?: boolean;
     };
 
 /** Coordinate an already authenticated managed request with narrow infrastructure ports. */
@@ -143,37 +168,63 @@ export async function invokeJevManagedRoute<T>(
     return { status: 'failed', reason: 'audit-unavailable' };
   }
 
-  let response: T;
-  try {
-    response = await input.ports.invokeDirect(selection.candidate);
-  } catch {
+  const attempts = [
+    selection.candidate,
+    ...eligible.filter((candidate) => candidate.id !== selection.candidate.id),
+  ];
+  let earlierAttemptPossiblyBilled = false;
+  for (const [index, candidate] of attempts.entries()) {
+    let response: T;
+    try {
+      response = await input.ports.invokeDirect(candidate);
+    } catch (error) {
+      const failure = error instanceof DirectProviderFailure ? error : undefined;
+      const possiblyBilled = failure?.possiblyBilled ?? false;
+      earlierAttemptPossiblyBilled ||= possiblyBilled;
+      try {
+        await input.ports.writeAudit({
+          ...base,
+          kind: 'attempt',
+          candidateId: candidate.id,
+          outcome: 'failed',
+          ...(failure ? { failureCategory: failure.category } : {}),
+          possiblyBilled,
+        });
+      } catch {
+        return { status: 'failed', reason: 'outcome-audit-unavailable', possiblyBilled: true };
+      }
+      const retryable =
+        failure !== undefined &&
+        !failure.responseStarted &&
+        failure.category !== 'other' &&
+        index < attempts.length - 1;
+      if (!retryable) {
+        return {
+          status: 'failed',
+          reason: 'provider-failed',
+          ...(earlierAttemptPossiblyBilled ? { possiblyBilled: true } : {}),
+        };
+      }
+      continue;
+    }
+
     try {
       await input.ports.writeAudit({
         ...base,
         kind: 'attempt',
-        candidateId: selection.candidate.id,
-        outcome: 'failed',
+        candidateId: candidate.id,
+        outcome: 'succeeded',
       });
     } catch {
       return { status: 'failed', reason: 'outcome-audit-unavailable', possiblyBilled: true };
     }
-    return { status: 'failed', reason: 'provider-failed' };
+    return {
+      status: 'invoked',
+      candidate,
+      decision: selection.decision,
+      response,
+      ...(earlierAttemptPossiblyBilled ? { possiblyBilled: true } : {}),
+    };
   }
-
-  try {
-    await input.ports.writeAudit({
-      ...base,
-      kind: 'attempt',
-      candidateId: selection.candidate.id,
-      outcome: 'succeeded',
-    });
-  } catch {
-    return { status: 'failed', reason: 'outcome-audit-unavailable', possiblyBilled: true };
-  }
-  return {
-    status: 'invoked',
-    candidate: selection.candidate,
-    decision: selection.decision,
-    response,
-  };
+  return { status: 'failed', reason: 'provider-failed' };
 }

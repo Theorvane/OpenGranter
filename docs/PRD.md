@@ -61,7 +61,7 @@ Unrestricted cross-mode fallback, credit resale, every provider-specific API par
 | IAM integration | Internal IAM-style policy engine; no direct AWS IAM integration |
 | First users | Internal developers and service accounts |
 | First upstreams | OpenRouter plus direct OpenAI, Anthropic, and Google Gemini adapters |
-| Managed route selection | OpenRouter-like health and price-aware selection with configurable order, price/latency/throughput preferences, and same-kind fallback; exact scoring and retry triggers require a contract |
+| Managed route selection | OpenRouter-like health and price-aware selection with configurable order, price/latency/throughput preferences, and same-kind fallback. For Jev-assisted direct routes, only adapter-classified pre-response rate limits, transient server errors, and timeouts retry through the previously authorized candidates once each. Exact scoring and budget reservation remain open. |
 | Jev-assisted managed selection | Optional TypeSafe Jev decision over already eligible direct candidates; OpenGranter validates the choice and makes the provider call. Data disclosure and failure policy are provisional in [the routing contract](routing.md) pending product-owner confirmation. |
 | Delegated IAM | Require permission for the model and every eligible final inference provider; restrict OpenRouter to the authorized provider set before sending |
 | Fallback boundary | Within delegated routes or within managed routes, never silently between the two kinds |
