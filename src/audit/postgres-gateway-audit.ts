@@ -151,6 +151,11 @@ function details(event: RecordValue): RecordValue {
         targetPrincipalId: identifier(event.targetPrincipalId),
         mode: oneOf(event.mode, ['self', 'all'] as const),
       };
+    case 'audit-history-read':
+      return { targetPrincipalId: identifier(event.targetPrincipalId), count: count(event.count) };
+    case 'audit-history-read-denied':
+    case 'audit-history-read-unavailable':
+      return { targetPrincipalId: identifier(event.targetPrincipalId) };
     case 'request-denied': {
       const modelAlias = optionalIdentifier(event.modelAlias);
       return {

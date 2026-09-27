@@ -1,4 +1,6 @@
 import { type AuditAttribution, validAuditAttribution } from '../audit/attribution.ts';
+import { parseAuditHistoryQuery, projectAuditHistoryPage } from '../audit/history-http.ts';
+import type { AuditHistoryPage, AuditHistoryQuery } from '../audit/postgres-audit-history.ts';
 import type { Statement } from '../policy/evaluate.ts';
 import { evaluate } from '../policy/evaluate.ts';
 import type { PolicyVersion } from '../policy/evaluate-attachments.ts';
@@ -105,6 +107,17 @@ export type GatewayAuditEvent =
       readonly mode: 'self' | 'all';
     })
   | (AuditAttribution & {
+      readonly kind: 'audit-history-read';
+      readonly requestId: string;
+      readonly targetPrincipalId: string;
+      readonly count: number;
+    })
+  | (AuditAttribution & {
+      readonly kind: 'audit-history-read-denied' | 'audit-history-read-unavailable';
+      readonly requestId: string;
+      readonly targetPrincipalId: string;
+    })
+  | (AuditAttribution & {
       readonly kind: 'request-denied';
       readonly requestId: string;
       readonly reason: 'invalid-request' | 'unknown-model' | 'configuration';
@@ -119,6 +132,7 @@ export interface ChatHandlerPorts<T> {
   ) => Promise<ManagedChatRoute | DelegatedChatRoute | undefined>;
   readonly listPublishedModels?: () => Promise<readonly PublishedModel[]>;
   readonly listUsage?: (query: UsageHistoryQuery) => Promise<UsageHistoryPage>;
+  readonly listAudit?: (query: AuditHistoryQuery) => Promise<AuditHistoryPage>;
   readonly checkLimit: (principalId: string, requestId: string) => Promise<boolean>;
   readonly resolveSecret: (credentialRef: string) => Promise<string | undefined>;
   readonly writeAudit: (
@@ -258,7 +272,8 @@ export function createChatHandler<T>(
     const chatRequest = request.method === 'POST' && url.pathname === '/v1/chat/completions';
     const modelListRequest = request.method === 'GET' && url.pathname === '/v1/models';
     const usageListRequest = request.method === 'GET' && url.pathname === '/v1/usage';
-    if (!chatRequest && !modelListRequest && !usageListRequest) {
+    const auditListRequest = request.method === 'GET' && url.pathname === '/v1/audit';
+    if (!chatRequest && !modelListRequest && !usageListRequest && !auditListRequest) {
       return errorResponse(404, 'not_found', requestId);
     }
 
@@ -306,6 +321,91 @@ export function createChatHandler<T>(
         version,
       })),
     };
+
+    if (auditListRequest) {
+      let parsed: ReturnType<typeof parseAuditHistoryQuery>;
+      try {
+        parsed = parseAuditHistoryQuery(url);
+      } catch {
+        try {
+          await ports.writeAudit({
+            ...attribution,
+            kind: 'request-denied',
+            requestId,
+            reason: 'invalid-request',
+          });
+        } catch {
+          return errorResponse(503, 'audit_unavailable', requestId);
+        }
+        return errorResponse(400, 'invalid_request', requestId);
+      }
+      const targetPrincipalId = parsed.requestedPrincipalId ?? principal.id;
+      const decision = evaluate({
+        principalActive: principal.active,
+        action: 'audit:Read',
+        resource: `principal:${targetPrincipalId}`,
+        statements: principal.statements,
+      });
+      if (decision.effect !== 'Allow') {
+        try {
+          await ports.writeAudit({
+            ...attribution,
+            kind: 'audit-history-read-denied',
+            requestId,
+            targetPrincipalId,
+          });
+        } catch {
+          return errorResponse(503, 'audit_unavailable', requestId);
+        }
+        return errorResponse(403, 'forbidden', requestId);
+      }
+      let page: AuditHistoryPage;
+      try {
+        if (!ports.listAudit) throw new Error('audit reader unavailable');
+        page = projectAuditHistoryPage(
+          await ports.listAudit({
+            principalId: targetPrincipalId,
+            limit: parsed.limit,
+            cursor: parsed.cursor,
+          }),
+          targetPrincipalId,
+          parsed.limit,
+          parsed.cursor,
+        );
+      } catch {
+        try {
+          await ports.writeAudit({
+            ...attribution,
+            kind: 'audit-history-read-unavailable',
+            requestId,
+            targetPrincipalId,
+          });
+        } catch {
+          return errorResponse(503, 'audit_unavailable', requestId);
+        }
+        return errorResponse(503, 'audit_history_unavailable', requestId);
+      }
+      try {
+        await ports.writeAudit({
+          ...attribution,
+          kind: 'audit-history-read',
+          requestId,
+          targetPrincipalId,
+          count: page.events.length,
+        });
+      } catch {
+        return errorResponse(503, 'audit_unavailable', requestId);
+      }
+      return Response.json(
+        {
+          object: 'list',
+          data: page.events,
+          has_more: page.nextCursor !== null,
+          next_cursor: page.nextCursor,
+        },
+        { status: 200, headers: { 'x-request-id': requestId } },
+      );
+    }
 
     if (usageListRequest) {
       let parsed: ReturnType<typeof parseUsageHistoryQuery>;
