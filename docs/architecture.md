@@ -15,6 +15,7 @@ flowchart LR
     A --> P[Policy engine]
     P --> Q[Limit check]
     Q --> R[Route planner]
+    R --> J[Optional Jev decision service]
     R --> S[Secret store]
     R --> O[OpenRouter adapter]
     R --> U[Direct provider adapter]
@@ -36,6 +37,14 @@ Authenticate and resolve the model alias to administrator-approved route candida
 | --- | --- | --- | --- |
 | Delegated | OpenRouter selects its eventual inference provider within an approved and enforceable route scope | OpenGranter uses a server-held OpenRouter key; the caller never receives it | Record OpenGranter's decision plus OpenRouter generation ID, actual model/provider when reported, and upstream cost |
 | Managed | OpenGranter selects a registered direct provider and model | OpenGranter uses the selected provider's server-held key and registered host | Record the candidate set, selected route, attempted routes, provider response, and cost source |
+
+A managed route may use TypeSafe Jev as a decision service. OpenGranter first applies IAM and all other eligibility checks, then sends only approved candidate descriptions to Jev. Jev returns a candidate ID; OpenGranter checks membership in the eligible set and calls the direct provider itself. Jev never supplies the upstream URL, provider credential, or route kind. Its API credential is a separate server-held secret. If Jev fails or gives an unusable recommendation, the confirmed fallback policy selects the first eligible candidate in administrator order and records the fallback reason. Sending prompt text to Jev requires an explicit administrator setting; the default request contains route metadata only. This disclosure default and the TypeSafe integration target remain pending product-owner confirmation. See [the routing contract](routing.md) and [ADR 0005](adr/0005-jev-as-managed-decision-service.md).
+
+The TypeScript managed invocation coordinator connects IAM candidate filtering, a limit-check port, a Jev secret-reference port, the Jev decision client, an audit-write port, and a direct-adapter invocation port. The trusted caller must already authenticate the principal and provide a versioned route snapshot whose candidates have passed capability and health checks. The coordinator writes the start and decision audit events before the external decision and inference calls respectively. Its ports are tested with fakes; concrete HTTP authentication, durable stores, and usage reconciliation are still required for a runnable gateway.
+
+A text-only, non-streaming `POST /v1/chat/completions` HTTP handler authenticates the presented proxy token through an injected identity port, validates the minimal request shape, resolves a trusted managed route, and calls the coordinator. A Node HTTP server bridge exposes that handler on a socket; the integration test reaches it with a real HTTP request and fake infrastructure ports. Direct OpenAI, Anthropic, and Gemini adapters now translate that subset against fixed official hosts through injected secret and HTTP ports. No deployable configuration or concrete identity, route, secret, audit, or limit store exists yet. This slice does not settle the release-level API field or streaming contract.
+
+After a Jev choice, the coordinator can try each remaining authorized managed candidate once when a direct adapter explicitly classifies a failure before any upstream response starts. It records every attempt before moving on, never crosses into a delegated route, and never re-queries Jev during that request. Current direct adapters treat an HTTP 429 or 5xx response as response-started and stop replay; a pre-response timeout may retry. An unclassified failure or any response-started failure ends the chain. Adapters must report possible billing for uncertain attempts; durable usage reconciliation remains separate work.
 
 Both modes expose the same OpenAI-compatible API subset and use the same principal, proxy token, IAM evaluator, limits, and audit pipeline. An administrator may publish different model aliases for different modes or attach multiple approved routes to one alias. A route change is a configuration change with an audit event and version. Fallback stays within the selected route kind; it never silently switches between OpenRouter-delegated and direct managed paths. The [routing contract](routing.md) defines candidate filtering and selection controls; exact scoring and retry triggers remain open.
 
