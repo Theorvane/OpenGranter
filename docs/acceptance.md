@@ -50,6 +50,8 @@
 ## Usage and audit
 
 - A PostgreSQL audit adapter appends gateway and managed/delegated route metadata events with request ID, occurrence time, and only allowlisted details. Attributed events retain nonsecret principal, credential, and policy-version identifiers; anonymous authentication failures have no invented identity.
+- A PostgreSQL audit reader returns at most 100 nonsecret events for one bound principal, ordered by event ID. An opaque cursor continues the same principal's history without gaps when events share a timestamp. Malformed cursors, mixed-principal or anonymous rows, malformed details, and storage failures reject the whole page with a safe error; unexpected JSONB fields do not appear in results.
+- The audit reader is internal. An authenticated caller must evaluate `audit:Read` before exposing it through an API; anonymous and organization-wide audit search remain separate decisions.
 - The adapter never serializes the original event object. Extra prompt, response, token, provider-key, and upstream-error fields do not enter SQL rows. Unknown kinds and malformed nested details fail before SQL, while database errors expose only fixed safe errors.
 - The append adapter alone does not establish tamper resistance, reader authorization, retention, or exactly-once delivery after an ambiguous write. Those remain release gates.
 - Successful calls, policy denials, and provider failures each have a request ID and audit event.
