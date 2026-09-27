@@ -14,6 +14,10 @@
 
 ## Gateway and credentials
 
+- A trusted issuance call returns a new opaque proxy token once, persists only its digest and nonsecret principal/expiry metadata, and atomically records the actor and request ID in a credential event. Invalid identity or expiry input creates no credential.
+- Malformed, unknown, wrong-secret, expired, and revoked tokens yield no authenticated identity. A revoked token stops working on the next verification. Repeated revocation leaves one revocation event.
+- If credential storage or a required lifecycle audit write fails, issuance and revocation return a safe error and leave no unaudited credential change. The raw token never appears in database rows, lifecycle events, or errors.
+- The credential verifier connects to the existing attachment authenticator so an issued token resolves its service principal and stops resolving after revocation. A trusted management boundary must check `iam:Manage` before exposing issuance or revocation.
 - `GET /v1/models` lists only enabled published aliases with at least one model and final-provider IAM-allowed candidate, across managed and delegated routes. It returns the OpenAI list shape with alias IDs and no upstream identifiers, writes an attributed count event, and fails closed on catalog or required audit-write failure.
 - The same proxy token can invoke an allowed delegated route and an allowed managed route without revealing either upstream credential.
 - The OpenRouter adapter sends one registered model and only the supplied authorized provider slugs to the fixed endpoint; configuration, secret, HTTP, redirect, timeout, and malformed-response failures expose safe metadata. The delegated gateway filters model and final-provider IAM permissions, requires verified slug mappings, checks limits, and records selection and outcome audit before returning. Component tests include a socket request through the adapter; the concrete mapping store and deployment acceptance remain separate work.
