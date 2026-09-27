@@ -1,5 +1,6 @@
 import { type AuditAttribution, validAuditAttribution } from '../audit/attribution.ts';
 import type { Statement } from '../policy/evaluate.ts';
+import { evaluate } from '../policy/evaluate.ts';
 import type { PolicyVersion } from '../policy/evaluate-attachments.ts';
 import type { OpenRouterChatAttempt } from '../providers/openrouter-chat.ts';
 import {
@@ -16,6 +17,13 @@ import {
   type ManagedRouteAuditEvent,
 } from '../routing/invoke-jev-managed-route.ts';
 import type { JevFetcher } from '../routing/jev-managed-routing.ts';
+import {
+  encodeUsageCursor,
+  parseStoredUsageRecord,
+  parseUsageHistoryQuery,
+  type UsageHistoryPage,
+  type UsageHistoryQuery,
+} from '../usage/history.ts';
 import type { UsageRecord } from '../usage/record-usage.ts';
 
 const MAX_BODY_BYTES = 1024 * 1024;
@@ -84,6 +92,19 @@ export type GatewayAuditEvent =
       readonly count: number;
     })
   | (AuditAttribution & {
+      readonly kind: 'usage-read';
+      readonly requestId: string;
+      readonly targetPrincipalId: string;
+      readonly count: number;
+      readonly mode: 'self' | 'all';
+    })
+  | (AuditAttribution & {
+      readonly kind: 'usage-read-denied' | 'usage-read-unavailable';
+      readonly requestId: string;
+      readonly targetPrincipalId: string;
+      readonly mode: 'self' | 'all';
+    })
+  | (AuditAttribution & {
       readonly kind: 'request-denied';
       readonly requestId: string;
       readonly reason: 'invalid-request' | 'unknown-model' | 'configuration';
@@ -97,6 +118,7 @@ export interface ChatHandlerPorts<T> {
     modelAlias: string,
   ) => Promise<ManagedChatRoute | DelegatedChatRoute | undefined>;
   readonly listPublishedModels?: () => Promise<readonly PublishedModel[]>;
+  readonly listUsage?: (query: UsageHistoryQuery) => Promise<UsageHistoryPage>;
   readonly checkLimit: (principalId: string, requestId: string) => Promise<boolean>;
   readonly resolveSecret: (credentialRef: string) => Promise<string | undefined>;
   readonly writeAudit: (
@@ -235,7 +257,8 @@ export function createChatHandler<T>(
     const url = new URL(request.url);
     const chatRequest = request.method === 'POST' && url.pathname === '/v1/chat/completions';
     const modelListRequest = request.method === 'GET' && url.pathname === '/v1/models';
-    if (!chatRequest && !modelListRequest) {
+    const usageListRequest = request.method === 'GET' && url.pathname === '/v1/usage';
+    if (!chatRequest && !modelListRequest && !usageListRequest) {
       return errorResponse(404, 'not_found', requestId);
     }
 
@@ -283,6 +306,109 @@ export function createChatHandler<T>(
         version,
       })),
     };
+
+    if (usageListRequest) {
+      let parsed: ReturnType<typeof parseUsageHistoryQuery>;
+      try {
+        parsed = parseUsageHistoryQuery(url);
+      } catch {
+        try {
+          await ports.writeAudit({
+            ...attribution,
+            kind: 'request-denied',
+            requestId,
+            reason: 'invalid-request',
+          });
+        } catch {
+          return errorResponse(503, 'audit_unavailable', requestId);
+        }
+        return errorResponse(400, 'invalid_request', requestId);
+      }
+      const mode = parsed.requestedPrincipalId === null ? 'self' : 'all';
+      const targetPrincipalId = parsed.requestedPrincipalId ?? principal.id;
+      const decision = evaluate({
+        principalActive: principal.active,
+        action: mode === 'self' ? 'usage:ReadSelf' : 'usage:ReadAll',
+        resource: `principal:${targetPrincipalId}`,
+        statements: principal.statements,
+      });
+      if (decision.effect !== 'Allow') {
+        try {
+          await ports.writeAudit({
+            ...attribution,
+            kind: 'usage-read-denied',
+            requestId,
+            targetPrincipalId,
+            mode,
+          });
+        } catch {
+          return errorResponse(503, 'audit_unavailable', requestId);
+        }
+        return errorResponse(403, 'forbidden', requestId);
+      }
+      let data: UsageRecord[];
+      let hasMore: boolean;
+      let nextCursor: string | null;
+      try {
+        if (!ports.listUsage) throw new Error('usage reader unavailable');
+        const page = await ports.listUsage({
+          principalId: targetPrincipalId,
+          limit: parsed.limit,
+          cursor: parsed.cursor,
+        });
+        if (
+          !page ||
+          !Array.isArray(page.records) ||
+          page.records.length > parsed.limit ||
+          typeof page.hasMore !== 'boolean' ||
+          (page.hasMore && page.records.length === 0)
+        ) {
+          throw new Error('invalid usage page');
+        }
+        data = page.records.map(parseStoredUsageRecord);
+        if (data.some((record) => record.principalId !== targetPrincipalId)) {
+          throw new Error('cross-principal usage row');
+        }
+        const last = data.at(-1);
+        if (page.hasMore && (!last || last.attemptId.length > 512)) {
+          throw new Error('invalid usage cursor');
+        }
+        nextCursor =
+          page.hasMore && last
+            ? encodeUsageCursor({ occurredAt: last.occurredAt, attemptId: last.attemptId })
+            : null;
+        hasMore = page.hasMore;
+      } catch {
+        try {
+          await ports.writeAudit({
+            ...attribution,
+            kind: 'usage-read-unavailable',
+            requestId,
+            targetPrincipalId,
+            mode,
+          });
+        } catch {
+          return errorResponse(503, 'audit_unavailable', requestId);
+        }
+        return errorResponse(503, 'usage_unavailable', requestId);
+      }
+      try {
+        await ports.writeAudit({
+          ...attribution,
+          kind: 'usage-read',
+          requestId,
+          targetPrincipalId,
+          mode,
+          count: data.length,
+        });
+      } catch {
+        return errorResponse(503, 'audit_unavailable', requestId);
+      }
+      return Response.json(
+        { object: 'list', data, has_more: hasMore, next_cursor: nextCursor },
+        { status: 200, headers: { 'x-request-id': requestId } },
+      );
+    }
 
     if (modelListRequest) {
       if (url.search) {
