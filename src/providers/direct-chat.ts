@@ -9,6 +9,54 @@ export interface DirectProviderRegistration {
   readonly maxOutputTokens?: number;
 }
 
+export class InvalidDirectProviderConfiguration extends Error {
+  constructor() {
+    super('Invalid direct provider configuration');
+    this.name = 'InvalidDirectProviderConfiguration';
+  }
+}
+
+function registrationSnapshot(
+  input: readonly DirectProviderRegistration[],
+): DirectProviderRegistration[] {
+  if (!Array.isArray(input)) throw new InvalidDirectProviderConfiguration();
+  const ids = new Set<string>();
+  return input.map((value: unknown) => {
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+      throw new InvalidDirectProviderConfiguration();
+    }
+    const item = value as Record<string, unknown>;
+    if (
+      typeof item.providerId !== 'string' ||
+      item.providerId.length > 256 ||
+      !/^[A-Za-z0-9][A-Za-z0-9._+:/@-]*$/u.test(item.providerId) ||
+      ids.has(item.providerId) ||
+      (item.kind !== 'openai' && item.kind !== 'anthropic' && item.kind !== 'google') ||
+      typeof item.credentialRef !== 'string' ||
+      item.credentialRef.length > 1024 ||
+      !/^[^\s\p{Cc}]+$/u.test(item.credentialRef)
+    )
+      throw new InvalidDirectProviderConfiguration();
+    if (
+      (item.kind === 'anthropic' || item.maxOutputTokens !== undefined) &&
+      (typeof item.maxOutputTokens !== 'number' ||
+        !Number.isSafeInteger(item.maxOutputTokens) ||
+        item.maxOutputTokens <= 0)
+    ) {
+      throw new InvalidDirectProviderConfiguration();
+    }
+    ids.add(item.providerId);
+    return {
+      providerId: item.providerId,
+      kind: item.kind,
+      credentialRef: item.credentialRef,
+      ...(typeof item.maxOutputTokens === 'number'
+        ? { maxOutputTokens: item.maxOutputTokens }
+        : {}),
+    };
+  });
+}
+
 export interface DirectChatPorts {
   readonly registrations: readonly DirectProviderRegistration[];
   readonly resolveSecret: (credentialRef: string) => Promise<string | undefined>;
@@ -215,10 +263,9 @@ function prepare(
 export function createDirectChatInvoker(
   ports: DirectChatPorts,
 ): (candidate: RouteCandidate, request: ChatRequest) => Promise<ChatCompletion> {
+  const registrations = registrationSnapshot(ports.registrations);
   return async (candidate, request) => {
-    const registration = ports.registrations.find(
-      (item) => item.providerId === candidate.providerId,
-    );
+    const registration = registrations.find((item) => item.providerId === candidate.providerId);
     if (!registration || candidate.kind !== 'managed') fail('other');
     let key: string | undefined;
     try {
