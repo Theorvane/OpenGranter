@@ -2,9 +2,11 @@
 
 Write and maintain all repository instructions, planning documents, domain documentation, and contract descriptions in English. `CLAUDE.md` is a symbolic link to this file; edit `AGENTS.md` as the single source of truth and preserve that link.
 
-For every repository change, follow [CONTRIBUTING.md](CONTRIBUTING.md): issue first, a new issue-numbered branch, then a pull request. Never commit directly to `main`. Use the defined branch and commit names. Disclose material AI assistance with `Assisted-by: Codex`. A `Signed-off-by` trailer is a human DCO attestation; never add one on a person's behalf or sign off as an agent.
+For every repository change, follow [CONTRIBUTING.md](CONTRIBUTING.md): issue first, a new issue-numbered branch, then a pull request. Never commit directly to `main`. Use the defined branch and commit names. Disclose material AI assistance with `Assisted-by: Codex`. The contributor `sjungwon03` has explicitly authorized Codex to add `Signed-off-by: sjungwon03 <sjungwon03@gmail.com>` to commits prepared for their requested work. Use that identity for both author and committer on those commits. Do not sign off as an agent or apply another person's DCO trailer without their authorization.
 
 Changes must follow the scope in `docs/PRD.md` and the acceptance criteria in `docs/acceptance.md`. Do not implement unresolved options in `docs/architecture.md` as settled requirements.
+
+For every implementation issue, write or update an English plan in `docs/plans/<issue-number>-<topic>.md` before coding. Use [the plan template](docs/plans/TEMPLATE.md), link the plan in the pull request, and update the relevant PRD, architecture, acceptance, and contract documents when their behavior changes. Keep unresolved decisions explicit.
 
 Implement the product in TypeScript. Follow [the coding rules](docs/coding.md), keep the TypeScript strictness settings enabled, and use `CONTEXT.md` names in code. Python is limited to the existing planning-document checker until it is replaced.
 
@@ -12,10 +14,11 @@ When revisiting the plan, read `skills/grill-with-docs/SKILL.md` and its depende
 
 ## Change workflow
 
-1. Update the relevant contract case or acceptance scenario before changing behavior.
-2. For authorization, authentication, secrets, and usage accounting, verify success, denial, and failure paths.
-3. Run `npm run check`, which includes type checking, linting, tests, and the planning-document checker.
-4. Report what changed, the validation result, and material remaining risks.
+1. Record the issue and its implementation plan before coding; update acceptance scenarios and contract cases for changed behavior.
+2. Follow test-driven development for every production-code change: write a meaningful test that fails for the expected reason, run it and record the failure, make the smallest implementation that passes, then refactor while keeping tests green. For a bug, reproduce it with a failing regression test first.
+3. For authorization, authentication, secrets, and usage accounting, verify success, denial, and failure paths. Test through public boundaries rather than repeating implementation logic.
+4. Run `npm run check`, which includes type checking, linting, tests, and the planning-document checker. For documentation-only changes, update the relevant plan or documentation and run the applicable checks; a production-code test is not required when behavior does not change.
+5. Link the plan and report red/green evidence, validation results, and material remaining risks in the pull request.
 
 ## Security invariants
 

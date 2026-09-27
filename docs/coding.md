@@ -27,11 +27,12 @@ OpenGranter's service and future management UI use TypeScript. The repository cu
 
 ## Tests and review
 
+- Use TDD for every production-code change. Add a behavior-focused test first, run it to see the expected failure, implement the minimum passing behavior, then refactor with the tests green. Begin a bug fix with a failing regression test. Record the red and green commands and outcomes in the pull request.
 - Test behavior through public module boundaries. Run shared cases in `contracts/` against the implementation instead of copying the evaluator's logic into tests.
 - For permission changes, cover implicit Deny, explicit Deny precedence, wildcard matching, inactive principals, and action/resource mismatches.
 - For provider and persistence adapters, use fakes for routine tests and focused integration tests for failure paths. Avoid live provider calls in CI.
 - Keep tests deterministic: control time, identifiers, and external responses. Do not put real credentials or customer content in fixtures.
-- Update acceptance scenarios and contract cases when product behavior changes; record unresolved product choices as open decisions.
+- Write or update the issue plan in `docs/plans/` before implementation. Update acceptance scenarios and contract cases when product behavior changes; record unresolved product choices as open decisions.
 
 ## References
 

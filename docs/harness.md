@@ -4,6 +4,8 @@ The service is not yet implemented. The harness captures requirements as executa
 
 Planning interviews use [grill-with-docs](../skills/grill-with-docs/SKILL.md). Its [grilling](../skills/grilling/SKILL.md) dependency runs question rounds, while [domain-modeling](../skills/domain-modeling/SKILL.md) maintains the glossary and ADRs. Agreed terms live in [CONTEXT.md](../CONTEXT.md).
 
+Each implementation issue starts with an English plan in `docs/plans/` and an acceptance or contract case that can fail before the implementation changes. Run the focused test to confirm the expected red state, implement the smallest passing change, and refactor while green. The pull request links the plan and records the red/green commands and outcomes. Documentation-only changes run the document checks without inventing product tests.
+
 ## Current checks
 
 Run `npm run check` to type-check and lint TypeScript, run policy and route-authorization contract tests, and call `python3 scripts/check.py` to validate:
