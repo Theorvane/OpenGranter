@@ -16,6 +16,7 @@
 - Keep the existing `issues` event trigger and trusted `main` checkout. The workflow already has `issues: write` permission, so no permission expansion is needed.
 - Add a pure author-assignment planner alongside the label planner. The event handler uses live issue author and assignee fields from the GitHub API, then applies labels and a single additive assignee request.
 - GitHub's [issue assignees API](https://docs.github.com/en/rest/issues/assignees) supports `POST /repos/{owner}/{repo}/issues/{issue_number}/assignees` with an `assignees` array. Preserve the existing assignee list; never replace it.
+- Include `ci` in the documented branch types. The existing triage planner already recognizes `ci` branch prefixes and applies its CI area label; this issue's branch uses that convention.
 - Update [the engineering harness](../harness.md) and `CONTRIBUTING.md`. No product architecture or ADR change is needed.
 
 ## TDD plan

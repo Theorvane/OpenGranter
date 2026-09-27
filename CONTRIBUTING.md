@@ -20,7 +20,7 @@ Name each plan `docs/plans/<issue-number>-<short-kebab-case-topic>.md`. The plan
 
 ### Branch names
 
-Use `<type>/<issue-number>-<short-kebab-case-topic>`. Allowed types are `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, and `security`.
+Use `<type>/<issue-number>-<short-kebab-case-topic>`. Allowed types are `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `ci`, and `security`.
 
 Examples:
 
