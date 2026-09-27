@@ -12,7 +12,7 @@ All repository documents and contribution discussions in issues and pull request
 6. Open a pull request against `main` that links the issue with `Closes #<number>` when merging the PR will fully resolve it, or `Refs #<number>` otherwise. Link the plan and record the red/green test evidence, verification, and material risks. Wait for checks and review before merging.
 7. Use a new issue and branch for follow-up work. Do not reuse a merged branch.
 
-Issue titles start with `feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`, `ci:`, or `security:`. CI maps those prefixes to a type label and adds `status:needs-triage` to new issues. Pull requests receive a type label from their issue-numbered branch prefix. The `ci` and `security` prefixes also add an area label. Unknown titles remain untyped for triage; automated relabeling preserves unrelated labels.
+Issue titles start with `feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`, `ci:`, or `security:`. CI maps those prefixes to a type label, adds `status:needs-triage` to new issues, and assigns the issue author when absent. Pull requests receive a type label from their issue-numbered branch prefix. The `ci` and `security` prefixes also add an area label. Unknown titles remain untyped for triage; automated relabeling preserves unrelated labels and other assignees.
 
 ## Implementation plans
 
@@ -20,7 +20,7 @@ Name each plan `docs/plans/<issue-number>-<short-kebab-case-topic>.md`. The plan
 
 ### Branch names
 
-Use `<type>/<issue-number>-<short-kebab-case-topic>`. Allowed types are `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, and `security`.
+Use `<type>/<issue-number>-<short-kebab-case-topic>`. Allowed types are `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `ci`, and `security`.
 
 Examples:
 

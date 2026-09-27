@@ -1,4 +1,4 @@
-import { planIssue, planPullRequest } from './labels.ts';
+import { planIssue, planIssueAuthor, planPullRequest } from './labels.ts';
 
 export interface TriageApi {
   get(path: string): Promise<unknown>;
@@ -67,6 +67,13 @@ export async function handleTriageEvent(
       labels: names(issue.labels, 'name'),
     });
     await applyLabels(api, issuePath, changes);
+    const author = planIssueAuthor(
+      stringField(asRecord(issue.user), 'login'),
+      names(issue.assignees, 'login'),
+    );
+    if (author !== null) {
+      await api.post(`${issuePath}/assignees`, { assignees: [author] });
+    }
     return;
   }
 

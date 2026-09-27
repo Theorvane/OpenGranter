@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { handleTriageEvent, type TriageApi } from '../src/triage/handle-event.ts';
-import { planIssue, planPullRequest } from '../src/triage/labels.ts';
+import { planIssue, planIssueAuthor, planPullRequest } from '../src/triage/labels.ts';
+
+test('issue author assignment is additive and idempotent', () => {
+  assert.equal(planIssueAuthor('sjungwon03', []), 'sjungwon03');
+  assert.equal(planIssueAuthor('sjungwon03', ['another-user']), 'sjungwon03');
+  assert.equal(planIssueAuthor('sjungwon03', ['SJUNGWON03', 'another-user']), null);
+});
 
 test('issue titles map to stable type and area labels', () => {
   assert.deepEqual(
@@ -115,7 +121,12 @@ test('issue event applies labels from current GitHub metadata', async () => {
   const api: TriageApi = {
     get: async (path) => {
       calls.push(`GET ${path}`);
-      return { title: 'ci: run checks', labels: [{ name: 'priority:high' }] };
+      return {
+        title: 'ci: run checks',
+        user: { login: 'sjungwon03' },
+        assignees: [],
+        labels: [{ name: 'priority:high' }],
+      };
     },
     post: async (path, body) => {
       calls.push(`POST ${path} ${JSON.stringify(body)}`);
@@ -128,7 +139,33 @@ test('issue event applies labels from current GitHub metadata', async () => {
   assert.deepEqual(calls, [
     'GET repos/o/r/issues/3',
     'POST repos/o/r/issues/3/labels {"labels":["type:chore","area:ci","status:needs-triage"]}',
+    'POST repos/o/r/issues/3/assignees {"assignees":["sjungwon03"]}',
   ]);
+});
+
+test('edited issue preserves other assignees and does not duplicate author assignment', async () => {
+  for (const assignees of [[{ login: 'another-user' }], [{ login: 'SJUNGWON03' }]]) {
+    const calls: string[] = [];
+    const api: TriageApi = {
+      get: async () => ({
+        title: 'docs: update guide',
+        user: { login: 'sjungwon03' },
+        assignees,
+        labels: [{ name: 'type:docs' }],
+      }),
+      post: async (path, body) => {
+        calls.push(`POST ${path} ${JSON.stringify(body)}`);
+      },
+      delete: async () => {},
+    };
+    await handleTriageEvent('issues', { action: 'edited', issue: { number: 13 } }, 'o/r', api);
+    assert.deepEqual(
+      calls,
+      assignees[0]?.login === 'another-user'
+        ? ['POST repos/o/r/issues/13/assignees {"assignees":["sjungwon03"]}']
+        : [],
+    );
+  }
 });
 
 test('ready pull request requests review, assigns author, and updates labels', async () => {
