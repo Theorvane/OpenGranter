@@ -169,6 +169,13 @@ test('unsupported fields and malformed messages are rejected before upstream cal
     { ...validBody, stream: true },
     { ...validBody, temperature: 0.7 },
     { model: 'chat', messages: [{ role: 'user', content: [{ type: 'image_url' }] }] },
+    {
+      model: 'chat',
+      messages: [
+        { role: 'user', content: 'Hello' },
+        { role: 'system', content: 'Late instruction' },
+      ],
+    },
     { model: 'chat', messages: [{ role: { toString: 'user' }, content: 'Hello' }] },
   ];
   for (const body of bodies) {

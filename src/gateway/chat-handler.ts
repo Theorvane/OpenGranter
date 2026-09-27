@@ -71,6 +71,7 @@ function validateChat(value: unknown): ChatRequest | undefined {
   }
   if (value.messages.length === 0) return undefined;
   const messages: ChatMessage[] = [];
+  let nonSystemSeen = false;
   for (const item of value.messages) {
     if (!isRecord(item) || Object.keys(item).some((key) => !['role', 'content'].includes(key))) {
       return undefined;
@@ -78,6 +79,8 @@ function validateChat(value: unknown): ChatRequest | undefined {
     if (item.role !== 'system' && item.role !== 'user' && item.role !== 'assistant') {
       return undefined;
     }
+    if (item.role === 'system' && nonSystemSeen) return undefined;
+    if (item.role !== 'system') nonSystemSeen = true;
     if (typeof item.content !== 'string') return undefined;
     messages.push({ role: item.role, content: item.content });
   }

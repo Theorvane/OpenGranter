@@ -41,6 +41,8 @@ The public contract is a tested subset of OpenAI Chat Completions, not a claim o
 
 Anthropic and Gemini have distinct native request shapes; a direct route to either must not merely forward the OpenAI JSON body. [Anthropic Messages](https://platform.claude.com/docs/en/api/messages/create), [Gemini generateContent](https://ai.google.dev/api/generate-content), [OpenAI Chat Completions](https://platform.openai.com/docs/api-reference/chat/create).
 
+The current direct adapters implement text-only, non-streaming chat through fixed official hosts. Administrator registrations map an inference provider ID to one native API kind and a credential reference. Anthropic registrations also set a positive output-token limit. The HTTP boundary accepts system messages only as a leading group, so Anthropic and Gemini translation cannot silently reorder later system instructions. Adapters normalize one text assistant choice and provider token counts when available; absent usage remains unknown. A 429, 5xx response, or timeout gets an explicit retry classification, while authentication, validation, and malformed success responses stop fallback. No provider error body or credential enters the returned failure.
+
 ## Audit and accounting
 
 Record the plan and each attempt's route kind, model alias, upstream model, allowed provider set, selected or reported inference provider, policy version, outcome, and nonsecret credential ID. A delegated attempt also retains OpenRouter generation/request identifiers when available. Store estimated and upstream-reported cost separately. A later reconciliation may revise the reporting projection but must retain the original immutable attempt event.
