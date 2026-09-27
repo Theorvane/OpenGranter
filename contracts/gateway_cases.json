@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "cases": [
+    {"id": "unauthenticated", "request": "POST /v1/chat/completions", "condition": "No credential", "expected_status": 401, "upstream_called": false, "audit_action": "auth.denied"},
+    {"id": "unauthorized-model", "request": "POST /v1/chat/completions", "condition": "Authenticated without model invocation permission", "expected_status": 403, "upstream_called": false, "audit_action": "llm.denied"},
+    {"id": "unknown-model", "request": "POST /v1/chat/completions", "condition": "Unknown model alias", "expected_status": 404, "upstream_called": false, "audit_action": "llm.denied"},
+    {"id": "successful-delegated-call", "request": "POST /v1/chat/completions", "condition": "Authorized delegated route; OpenRouter succeeds", "route_kind": "delegated", "expected_status": 200, "upstream_called": true, "audit_action": "llm.invoked"},
+    {"id": "successful-managed-call", "request": "POST /v1/chat/completions", "condition": "Authorized managed route; registered direct provider succeeds", "route_kind": "managed", "expected_status": 200, "upstream_called": true, "audit_action": "llm.invoked"},
+    {"id": "managed-selects-approved-provider", "request": "POST /v1/chat/completions", "condition": "Two direct-provider routes are configured; the selection rule chooses an authorized destination and records its route ID", "route_kind": "managed", "expected_status": 200, "upstream_called": true, "audit_action": "llm.invoked"},
+    {"id": "delegated-provider-denied", "request": "POST /v1/chat/completions", "condition": "Model is allowed but all possible OpenRouter inference providers are denied", "route_kind": "delegated", "expected_status": 403, "upstream_called": false, "audit_action": "llm.denied"},
+    {"id": "delegated-provider-bounded", "request": "POST /v1/chat/completions", "condition": "Only one OpenRouter inference provider is authorized; server-generated provider.only contains only that provider", "route_kind": "delegated", "expected_status": 200, "upstream_called": true, "audit_action": "llm.invoked"},
+    {"id": "managed-same-kind-fallback", "request": "POST /v1/chat/completions", "condition": "First direct provider fails before response starts; second previously authorized direct provider succeeds", "route_kind": "managed", "expected_status": 200, "upstream_called": true, "audit_action": "llm.invoked"},
+    {"id": "no-cross-kind-fallback", "request": "POST /v1/chat/completions", "condition": "Delegated route fails and only a managed route remains; no managed attempt is made", "route_kind": "delegated", "expected_status": 502, "upstream_called": true, "audit_action": "llm.failed"},
+    {"id": "unbounded-routing-override", "request": "POST /v1/chat/completions", "condition": "Delegated route includes an unevaluated fallback model or destination", "route_kind": "delegated", "expected_status": 400, "upstream_called": false, "audit_action": "llm.denied"},
+    {"id": "disabled-route", "request": "POST /v1/chat/completions", "condition": "Requested model alias has no enabled approved route", "expected_status": 403, "upstream_called": false, "audit_action": "llm.denied"},
+    {"id": "upstream-failure", "request": "POST /v1/chat/completions", "condition": "Authorized route; upstream returns 5xx", "expected_status": 502, "upstream_called": true, "audit_action": "llm.failed"}
+  ]
+}
