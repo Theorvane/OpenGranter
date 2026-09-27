@@ -38,6 +38,11 @@ export interface AttachmentDecision {
   readonly policyVersions: readonly PolicyVersion[];
 }
 
+export interface ResolvedAttachments {
+  readonly statements: readonly Statement[];
+  readonly policyVersions: readonly PolicyVersion[];
+}
+
 function oneRecord<T extends { readonly id: string }>(records: readonly T[], id: string): T | null {
   if (id.length === 0) return null;
   let found: T | null = null;
@@ -55,6 +60,30 @@ const unresolved: AttachmentDecision = {
   policyVersions: [],
 };
 
+/** Resolve a complete trusted snapshot once, without applying an action-specific decision. */
+export function resolvePolicyAttachments(
+  snapshot: Pick<AttachmentInput, 'principal' | 'roles' | 'policies'>,
+): ResolvedAttachments | undefined {
+  if (!snapshot.principal.active) return undefined;
+  const policyIds = [...snapshot.principal.directPolicyIds];
+  for (const roleId of new Set(snapshot.principal.roleIds)) {
+    const role = oneRecord(snapshot.roles, roleId);
+    if (role === null) return undefined;
+    policyIds.push(...role.policyIds);
+  }
+
+  const policies: VersionedPolicy[] = [];
+  for (const policyId of new Set(policyIds)) {
+    const policy = oneRecord(snapshot.policies, policyId);
+    if (policy === null || policy.version.length === 0) return undefined;
+    policies.push(policy);
+  }
+  return {
+    statements: policies.flatMap((policy) => policy.statements),
+    policyVersions: policies.map(({ id, version }) => ({ id, version })),
+  };
+}
+
 /** Evaluate a trusted attachment snapshot; authentication must happen before this call. */
 export function evaluateAttachments(input: AttachmentInput): AttachmentDecision {
   if (!input.principal.active) {
@@ -69,28 +98,17 @@ export function evaluateAttachments(input: AttachmentInput): AttachmentDecision 
     };
   }
 
-  const policyIds = [...input.principal.directPolicyIds];
-  for (const roleId of new Set(input.principal.roleIds)) {
-    const role = oneRecord(input.roles, roleId);
-    if (role === null) return unresolved;
-    policyIds.push(...role.policyIds);
-  }
-
-  const policies: VersionedPolicy[] = [];
-  for (const policyId of new Set(policyIds)) {
-    const policy = oneRecord(input.policies, policyId);
-    if (policy === null || policy.version.length === 0) return unresolved;
-    policies.push(policy);
-  }
+  const resolved = resolvePolicyAttachments(input);
+  if (!resolved) return unresolved;
 
   const decision = evaluate({
     principalActive: true,
     action: input.action,
     resource: input.resource,
-    statements: policies.flatMap((policy) => policy.statements),
+    statements: resolved.statements,
   });
   return {
     ...decision,
-    policyVersions: policies.map(({ id, version }) => ({ id, version })),
+    policyVersions: resolved.policyVersions,
   };
 }
