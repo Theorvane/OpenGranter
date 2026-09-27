@@ -14,7 +14,7 @@
 
 ## Gateway and credentials
 
-- `GET /v1/models` lists only models the caller may use, and calls route only to approved models.
+- `GET /v1/models` lists only enabled published aliases with at least one model and final-provider IAM-allowed candidate, across managed and delegated routes. It returns the OpenAI list shape with alias IDs and no upstream identifiers, writes an attributed count event, and fails closed on catalog or required audit-write failure.
 - The same proxy token can invoke an allowed delegated route and an allowed managed route without revealing either upstream credential.
 - A socket-level request to the current managed text-chat boundary authenticates a proxy token, rejects unsupported fields before external calls, and returns a safe request ID with the direct adapter's completion. This is a component test with fake infrastructure ports, not a deployment acceptance test.
 - A gateway request receives permissions from its authenticated principal's direct and role policy attachments. A direct Deny overrides an inherited Allow; revoked or inactive identities and unresolved attachments stop before route resolution. A missing or mismatched snapshot returns a safe service error. Only nonsecret credential and policy IDs/versions are available for later audit attribution.

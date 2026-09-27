@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { createChatHandler } from '../src/gateway/chat-handler.ts';
+import { createChatHandler, type PublishedModel } from '../src/gateway/chat-handler.ts';
 import { DirectProviderFailure } from '../src/routing/invoke-jev-managed-route.ts';
 
 const statements = [
@@ -40,6 +40,255 @@ const attributedPrincipal = {
   policyVersions: [{ id: 'policy-1', version: 'v3' }],
   statements,
 };
+
+test('GET models lists only aliases with an IAM-authorized final provider', async () => {
+  const audit: unknown[] = [];
+  let externalCalls = 0;
+  const handler = createChatHandler({
+    newRequestId: () => 'req-models',
+    authenticate: async () => ({
+      ...attributedPrincipal,
+      statements: [
+        { effect: 'Allow' as const, actions: ['llm:InvokeModel'], resources: ['model:*'] },
+        { effect: 'Allow' as const, actions: ['llm:UseProvider'], resources: ['provider:openai'] },
+      ],
+    }),
+    listPublishedModels: async () => [
+      {
+        alias: 'managed-chat',
+        created: 100,
+        enabled: true,
+        routes: [
+          {
+            kind: 'managed' as const,
+            candidates: [
+              { id: 'one', kind: 'managed' as const, upstreamModelId: 'gpt', providerId: 'openai' },
+            ],
+          },
+        ],
+      },
+      {
+        alias: 'delegated-chat',
+        created: 200,
+        enabled: true,
+        routes: [
+          {
+            kind: 'delegated' as const,
+            candidates: [
+              {
+                id: 'two',
+                kind: 'delegated' as const,
+                upstreamModelId: 'remote',
+                providerId: 'openai',
+              },
+            ],
+          },
+        ],
+      },
+      {
+        alias: 'denied-chat',
+        created: 300,
+        enabled: true,
+        routes: [
+          {
+            kind: 'managed' as const,
+            candidates: [
+              {
+                id: 'three',
+                kind: 'managed' as const,
+                upstreamModelId: 'secret',
+                providerId: 'anthropic',
+              },
+            ],
+          },
+        ],
+      },
+      {
+        alias: 'disabled-chat',
+        created: 400,
+        enabled: false,
+        routes: [
+          {
+            kind: 'managed' as const,
+            candidates: [
+              {
+                id: 'four',
+                kind: 'managed' as const,
+                upstreamModelId: 'gpt',
+                providerId: 'openai',
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    resolveRoute: async () => {
+      externalCalls++;
+      return route;
+    },
+    checkLimit: async () => {
+      externalCalls++;
+      return true;
+    },
+    resolveSecret: async () => {
+      externalCalls++;
+      return 'key';
+    },
+    writeAudit: async (event) => {
+      audit.push(event);
+    },
+    invokeDirect: async () => {
+      externalCalls++;
+      return {};
+    },
+    fetchJev: async () => {
+      externalCalls++;
+      throw new Error('unexpected');
+    },
+  });
+  const response = await handler(
+    new Request('http://localhost/v1/models', { headers: { authorization: 'Bearer proxy-token' } }),
+  );
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    object: 'list',
+    data: [
+      { id: 'managed-chat', object: 'model', created: 100, owned_by: 'opengranter' },
+      { id: 'delegated-chat', object: 'model', created: 200, owned_by: 'opengranter' },
+    ],
+  });
+  assert.equal(externalCalls, 0);
+  assert.deepEqual(audit, [
+    {
+      kind: 'models-listed',
+      requestId: 'req-models',
+      count: 2,
+      principalId: 'user-1',
+      credentialId: 'credential-1',
+      policyVersions: [{ id: 'policy-1', version: 'v3' }],
+    },
+  ]);
+});
+
+test('GET models rejects missing or inactive identity before catalog lookup', async () => {
+  for (const active of [undefined, false]) {
+    const audit: unknown[] = [];
+    let catalogCalled = false;
+    const handler = createChatHandler({
+      newRequestId: () => 'req-models-denied',
+      authenticate: async () =>
+        active === undefined ? undefined : { ...attributedPrincipal, active },
+      listPublishedModels: async () => {
+        catalogCalled = true;
+        return [];
+      },
+      resolveRoute: async () => route,
+      checkLimit: async () => true,
+      resolveSecret: async () => 'key',
+      writeAudit: async (event) => {
+        audit.push(event);
+      },
+      invokeDirect: async () => ({}),
+    });
+    const response = await handler(
+      new Request('http://localhost/v1/models', {
+        headers: { authorization: 'Bearer proxy-token' },
+      }),
+    );
+    assert.equal(response.status, 401);
+    assert.equal(catalogCalled, false);
+    assert.deepEqual(audit, [{ kind: 'auth-denied', requestId: 'req-models-denied' }]);
+  }
+});
+
+test('GET models fails closed on catalog errors, duplicate aliases, and audit failures', async () => {
+  const entry: PublishedModel = {
+    alias: 'chat',
+    created: 100,
+    enabled: true,
+    routes: [
+      {
+        kind: 'managed',
+        candidates: [{ id: 'one', kind: 'managed', upstreamModelId: 'gpt', providerId: 'openai' }],
+      },
+    ],
+  };
+  for (const catalog of [undefined, [entry, entry], [{ ...entry, created: -1 }]]) {
+    const audit: unknown[] = [];
+    const handler = createChatHandler({
+      newRequestId: () => 'req-catalog-down',
+      authenticate: async () => attributedPrincipal,
+      listPublishedModels: async () => {
+        if (!catalog) throw new Error('sensitive catalog detail');
+        return catalog;
+      },
+      resolveRoute: async () => {
+        throw new Error('unexpected');
+      },
+      checkLimit: async () => true,
+      resolveSecret: async () => 'key',
+      writeAudit: async (event) => {
+        audit.push(event);
+      },
+      invokeDirect: async () => ({}),
+    });
+    const response = await handler(
+      new Request('http://localhost/v1/models', {
+        headers: { authorization: 'Bearer proxy-token' },
+      }),
+    );
+    assert.equal(response.status, 503);
+    assert.equal((await response.text()).includes('sensitive'), false);
+    assert.equal((audit[0] as { kind?: string }).kind, 'model-list-unavailable');
+    assert.equal(JSON.stringify(audit).includes('sensitive'), false);
+  }
+
+  const handler = createChatHandler({
+    newRequestId: () => 'req-audit-down',
+    authenticate: async () => attributedPrincipal,
+    listPublishedModels: async () => [],
+    resolveRoute: async () => route,
+    checkLimit: async () => true,
+    resolveSecret: async () => 'key',
+    writeAudit: async () => {
+      throw new Error('sensitive audit detail');
+    },
+    invokeDirect: async () => ({}),
+  });
+  const response = await handler(
+    new Request('http://localhost/v1/models', { headers: { authorization: 'Bearer proxy-token' } }),
+  );
+  assert.equal(response.status, 503);
+  assert.equal((await response.text()).includes('sensitive'), false);
+});
+
+test('GET models rejects query-based routing overrides before reading the catalog', async () => {
+  let catalogCalled = false;
+  const audit: unknown[] = [];
+  const handler = createChatHandler({
+    newRequestId: () => 'req-query',
+    authenticate: async () => attributedPrincipal,
+    listPublishedModels: async () => {
+      catalogCalled = true;
+      return [];
+    },
+    resolveRoute: async () => route,
+    checkLimit: async () => true,
+    resolveSecret: async () => 'key',
+    writeAudit: async (event) => {
+      audit.push(event);
+    },
+    invokeDirect: async () => ({}),
+  });
+  const response = await handler(
+    new Request('http://localhost/v1/models?provider=denied', {
+      headers: { authorization: 'Bearer proxy-token' },
+    }),
+  );
+  assert.equal(response.status, 400);
+  assert.equal(catalogCalled, false);
+  assert.equal((audit[0] as { kind?: string }).kind, 'request-denied');
+});
 
 test('managed audit events carry safe identity and policy attribution', async () => {
   const audit: unknown[] = [];

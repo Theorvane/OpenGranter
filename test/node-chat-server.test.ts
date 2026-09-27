@@ -24,6 +24,21 @@ test('Node server accepts a socket request and returns the Jev-managed completio
       candidates: [{ id: 'openai', kind: 'managed', upstreamModelId: 'gpt', providerId: 'openai' }],
       jev: { credentialRef: 'jev-ref', minimumConfidence: 0.6, sendPrompt: false },
     }),
+    listPublishedModels: async () => [
+      {
+        alias: 'chat',
+        created: 100,
+        enabled: true,
+        routes: [
+          {
+            kind: 'managed',
+            candidates: [
+              { id: 'openai', kind: 'managed', upstreamModelId: 'gpt', providerId: 'openai' },
+            ],
+          },
+        ],
+      },
+    ],
     checkLimit: async () => true,
     resolveSecret: async () => 'jev-key',
     writeAudit: async () => {},
@@ -52,6 +67,14 @@ test('Node server accepts a socket request and returns the Jev-managed completio
     assert.equal(response.status, 200);
     assert.equal(response.headers.get('x-request-id'), 'socket-1');
     assert.equal(((await response.json()) as { id: string }).id, 'completion-1');
+    const models = await fetch(`http://127.0.0.1:${address.port}/v1/models`, {
+      headers: { authorization: 'Bearer proxy-key' },
+    });
+    assert.equal(models.status, 200);
+    assert.deepEqual(await models.json(), {
+      object: 'list',
+      data: [{ id: 'chat', object: 'model', created: 100, owned_by: 'opengranter' }],
+    });
   } finally {
     await new Promise<void>((resolve, reject) =>
       server.close((error) => (error ? reject(error) : resolve())),
