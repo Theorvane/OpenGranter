@@ -21,6 +21,9 @@
     {"id": "self-audit-read", "request": "GET /v1/audit", "condition": "Authenticated principal has audit:Read on their own principal resource", "expected_status": 200, "upstream_called": false, "audit_action": "audit.history.read"},
     {"id": "denied-audit-read", "request": "GET /v1/audit", "condition": "Principal has no audit:Read Allow or has an explicit Deny on the target", "expected_status": 403, "upstream_called": false, "audit_action": "audit.history.read.denied"},
     {"id": "target-audit-read", "request": "GET /v1/audit", "condition": "A specified principal_id has audit:Read Allow on that target", "expected_status": 200, "upstream_called": false, "audit_action": "audit.history.read"},
-    {"id": "cross-principal-audit-row", "request": "GET /v1/audit", "condition": "The audit reader returns a row for another principal", "expected_status": 503, "upstream_called": false, "audit_action": "audit.history.read.unavailable"}
+    {"id": "cross-principal-audit-row", "request": "GET /v1/audit", "condition": "The audit reader returns a row for another principal", "expected_status": 503, "upstream_called": false, "audit_action": "audit.history.read.unavailable"},
+    {"id": "ordered-managed-without-jev", "request": "POST /v1/chat/completions", "condition": "Managed route omits Jev settings and invokes the first IAM-eligible candidate in administrator order", "route_kind": "managed", "expected_status": 200, "upstream_called": true, "audit_action": "llm.invoked"},
+    {"id": "ordered-managed-denied-provider", "request": "POST /v1/chat/completions", "condition": "First managed candidate has a final-provider Deny and the second candidate is allowed", "route_kind": "managed", "expected_status": 200, "upstream_called": true, "audit_action": "llm.invoked"},
+    {"id": "malformed-jev-route", "request": "POST /v1/chat/completions", "condition": "A managed route explicitly supplies malformed Jev settings", "route_kind": "managed", "expected_status": 503, "upstream_called": false, "audit_action": "llm.denied"}
   ]
 }

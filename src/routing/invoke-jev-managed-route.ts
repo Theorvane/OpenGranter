@@ -12,6 +12,8 @@ import {
   selectManagedWithJev,
 } from './jev-managed-routing.ts';
 
+export type ManagedDecision = JevDecision | { readonly source: 'order' };
+
 interface AuditBase extends AuditAttribution {
   readonly requestId: string;
   readonly routeVersion: string;
@@ -51,7 +53,7 @@ export type ManagedRouteAuditEvent =
   | (AuditBase & {
       readonly kind: 'decision';
       readonly candidateId: string;
-      readonly decision: JevDecision;
+      readonly decision: ManagedDecision;
     })
   | (AuditBase & {
       readonly kind: 'attempt';
@@ -82,7 +84,7 @@ export interface JevManagedRouteInput<T>
   /** Supplied by the trusted route store, after capability and health filtering. */
   readonly routeVersion: string;
   readonly requestId: string;
-  readonly jev: Omit<JevConfig, 'apiKey'> & { readonly credentialRef: string };
+  readonly jev?: Omit<JevConfig, 'apiKey'> & { readonly credentialRef: string };
   readonly promptText?: string;
   readonly ports: JevManagedRoutePorts<T>;
 }
@@ -102,13 +104,13 @@ export type JevManagedRouteResult<T> =
   | {
       readonly status: 'invoked';
       readonly candidate: RouteCandidate;
-      readonly decision: JevDecision;
+      readonly decision: ManagedDecision;
       readonly response: T;
       readonly possiblyBilled?: boolean;
     };
 
 /** Coordinate an already authenticated managed request with narrow infrastructure ports. */
-export async function invokeJevManagedRoute<T>(
+export async function invokeManagedRoute<T>(
   input: JevManagedRouteInput<T>,
 ): Promise<JevManagedRouteResult<T>> {
   const base: AuditBase = {
@@ -139,12 +141,14 @@ export async function invokeJevManagedRoute<T>(
   }
 
   let apiKey: string | undefined;
-  try {
-    apiKey = await input.ports.resolveSecret(input.jev.credentialRef);
-  } catch {
-    return deny('secret-unavailable');
+  if (input.jev) {
+    try {
+      apiKey = await input.ports.resolveSecret(input.jev.credentialRef);
+    } catch {
+      return deny('secret-unavailable');
+    }
+    if (!apiKey) return deny('secret-unavailable');
   }
-  if (!apiKey) return deny('secret-unavailable');
 
   try {
     await input.ports.writeAudit({
@@ -156,20 +160,33 @@ export async function invokeJevManagedRoute<T>(
     return { status: 'failed', reason: 'audit-unavailable' };
   }
 
-  const selection = await selectManagedWithJev({
-    principalActive: input.principalActive,
-    modelAlias: input.modelAlias,
-    candidates: eligible,
-    statements: input.statements,
-    jev: {
-      apiKey,
-      minimumConfidence: input.jev.minimumConfidence,
-      sendPrompt: input.jev.sendPrompt,
-    },
-    ...(input.promptText !== undefined ? { promptText: input.promptText } : {}),
-    ...(input.ports.fetchJev ? { fetcher: input.ports.fetchJev } : {}),
-  });
-  if (selection.status === 'no-candidates') return deny('no-candidates');
+  let selection: {
+    readonly status: 'selected';
+    readonly candidate: RouteCandidate;
+    readonly decision: ManagedDecision;
+  };
+  if (input.jev) {
+    if (!apiKey) return deny('secret-unavailable');
+    const result = await selectManagedWithJev({
+      principalActive: input.principalActive,
+      modelAlias: input.modelAlias,
+      candidates: eligible,
+      statements: input.statements,
+      jev: {
+        apiKey,
+        minimumConfidence: input.jev.minimumConfidence,
+        sendPrompt: input.jev.sendPrompt,
+      },
+      ...(input.promptText !== undefined ? { promptText: input.promptText } : {}),
+      ...(input.ports.fetchJev ? { fetcher: input.ports.fetchJev } : {}),
+    });
+    if (result.status === 'no-candidates') return deny('no-candidates');
+    selection = result;
+  } else {
+    const first = eligible[0];
+    if (!first) return deny('no-candidates');
+    selection = { status: 'selected', candidate: first, decision: { source: 'order' } };
+  }
 
   try {
     await input.ports.writeAudit({
@@ -299,3 +316,6 @@ export async function invokeJevManagedRoute<T>(
   }
   return { status: 'failed', reason: 'provider-failed' };
 }
+
+/** Preserve the Jev-specific entry point for existing callers. */
+export const invokeJevManagedRoute = invokeManagedRoute;

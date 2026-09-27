@@ -91,7 +91,8 @@ function policyVersions(value: unknown): { id: string; version: string }[] {
 
 function decision(value: unknown): RecordValue {
   const input = record(value);
-  const source = oneOf(input.source, ['jev', 'fallback'] as const);
+  const source = oneOf(input.source, ['jev', 'fallback', 'order'] as const);
+  if (source === 'order') return { source };
   const model = optionalIdentifier(input.model);
   const confidence = input.confidence;
   if (
