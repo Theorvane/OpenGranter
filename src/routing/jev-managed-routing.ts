@@ -45,6 +45,9 @@ export type JevDecision =
   | {
       readonly source: 'fallback';
       readonly reason: 'unavailable' | 'invalid-response' | 'invalid-choice' | 'low-confidence';
+      readonly model?: string;
+      readonly confidence?: number;
+      readonly usage?: { readonly inputTokens: number; readonly outputTokens: number };
     };
 
 export type JevManagedSelectionResult =
@@ -147,6 +150,7 @@ export async function selectManagedWithJev(
         }
         const data: unknown = await response.json();
         const answer = isRecord(data) && isRecord(data.answers) ? data.answers.route : undefined;
+        const usage = isRecord(data) ? readUsage(data.usage) : undefined;
         if (
           !isRecord(data) ||
           typeof data.model !== 'string' ||
@@ -162,14 +166,25 @@ export async function selectManagedWithJev(
           return first.id;
         }
         if (!eligible.some((candidate) => candidate.id === answer.choice)) {
-          decision = { source: 'fallback', reason: 'invalid-choice' };
+          decision = {
+            source: 'fallback',
+            reason: 'invalid-choice',
+            model: data.model,
+            confidence: answer.confidence,
+            ...(usage ? { usage } : {}),
+          };
           return first.id;
         }
         if (answer.confidence < input.jev.minimumConfidence) {
-          decision = { source: 'fallback', reason: 'low-confidence' };
+          decision = {
+            source: 'fallback',
+            reason: 'low-confidence',
+            model: data.model,
+            confidence: answer.confidence,
+            ...(usage ? { usage } : {}),
+          };
           return first.id;
         }
-        const usage = readUsage(data.usage);
         decision = {
           source: 'jev',
           model: data.model,

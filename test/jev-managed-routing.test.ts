@@ -111,6 +111,30 @@ test('invalid, denied, low-confidence, and failed Jev choices use first eligible
   if (failed.status === 'selected') assert.equal(failed.decision.source, 'fallback');
 });
 
+test('low-confidence fallback still reports Jev usage for accounting', async () => {
+  const result = await selectManagedWithJev({
+    ...base,
+    fetcher: async () => ({
+      ok: true,
+      json: async () => ({
+        model: 'jev-1',
+        answers: { route: { type: 'choice', choice: 'openai', confidence: 0.2 } },
+        usage: { input_tokens: 45, output_tokens: 5 },
+      }),
+    }),
+  });
+  assert.equal(result.status, 'selected');
+  if (result.status === 'selected') {
+    assert.deepEqual(result.decision, {
+      source: 'fallback',
+      reason: 'low-confidence',
+      model: 'jev-1',
+      confidence: 0.2,
+      usage: { inputTokens: 45, outputTokens: 5 },
+    });
+  }
+});
+
 test('no authorized candidates never calls Jev', async () => {
   const result = await selectManagedWithJev({
     ...base,
