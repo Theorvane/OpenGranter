@@ -29,6 +29,12 @@ A route that sends an authorized request to OpenRouter, which selects the eventu
 **Managed route**:
 A route for which OpenGranter selects a registered direct provider and model before making the upstream call.
 
+**Route decision service**:
+An optional service that recommends one candidate from a managed route's already eligible direct destinations. OpenGranter remains responsible for the final selection boundary and the inference call.
+
+**Jev-assisted selection**:
+A managed-route selection strategy that asks TypeSafe Jev to recommend one eligible direct destination.
+
 **Model alias**:
 A model name exposed by OpenGranter that resolves to one or more approved routes.
 
