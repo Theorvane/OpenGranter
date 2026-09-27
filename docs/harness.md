@@ -1,6 +1,6 @@
 # Engineering Harness
 
-The service is not yet implemented. The harness captures requirements as executable cases and detects documentation and contract errors in CI. Pure TypeScript policy evaluation and candidate authorization are the first implementation slices.
+The service is not yet implemented. The harness captures requirements as executable cases and detects documentation and contract errors in CI. Pure TypeScript policy evaluation, principal and role attachment evaluation, and candidate authorization are the first implementation slices.
 
 Planning interviews use [grill-with-docs](../skills/grill-with-docs/SKILL.md). Its [grilling](../skills/grilling/SKILL.md) dependency runs question rounds, while [domain-modeling](../skills/domain-modeling/SKILL.md) maintains the glossary and ADRs. Agreed terms live in [CONTEXT.md](../CONTEXT.md).
 
@@ -8,7 +8,7 @@ Each implementation issue starts with an English plan in `docs/plans/` and an ac
 
 ## Current checks
 
-Run `npm run check` to type-check and lint TypeScript, run policy and route-authorization contract tests, and call `python3 scripts/check.py` to validate:
+Run `npm run check` to type-check and lint TypeScript, run policy, attachment, and route-authorization contract tests, and call `python3 scripts/check.py` to validate:
 
 1. Required planning documents and internal links.
 2. Required fields and unique IDs in policy, route, and gateway contract cases.
