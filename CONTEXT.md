@@ -14,6 +14,9 @@ An external company or internal platform that supplies model inference to the or
 **Upstream**:
 A service OpenGranter calls to fulfill a model request. An upstream may be OpenRouter or a direct provider.
 
+**Proxy gateway**:
+The OpenGranter API boundary that authenticates a proxy token and routes an authorized model request to an approved upstream.
+
 **Route**:
 An administrator-approved path from an OpenGranter model alias to an upstream and upstream model. A route may delegate model selection to OpenRouter or use OpenGranter's own selection.
 

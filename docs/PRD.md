@@ -42,6 +42,8 @@ For example, an `analyst` role may allow `model:approved-*`, while a policy atta
 4. The gateway normalizes usage and records audit events. If content auditing is enabled for this request, it stores prompts and responses separately under the content-audit policy.
 5. Authorized readers inspect usage, denials, and permission changes.
 
+The current implementation has a minimal HTTP slice for non-streaming text chat (`model` and string-content `messages`). Other OpenAI-compatible fields fail validation in this slice; the release-level supported-field list remains an open decision. The HTTP boundary uses injected identity, route, limit, secret, audit, and direct-provider ports rather than deployed backing services.
+
 ## 6. Nonfunctional requirements
 
 - Keep provider keys in a secret manager; keep only references in the application database. Retrieve secrets only for authorized calls.
