@@ -64,9 +64,11 @@ OpenRouter may use `models`, presets, automatic routing, and provider preference
 | Policy store | Versioned policies, attachments, change history | Retain the policy version used for a decision |
 | Model catalog and route store | Alias, approved route candidates, upstream model ID, subscription, active state, route version | Callers cannot specify an upstream URL or an unregistered route |
 | Secret store | Raw OpenRouter and direct-provider credentials | Application database holds reference and version only |
-| Usage ledger | Per-request tokens, status, estimated and upstream-reported cost, route and principal attribution | Keep immutable events separate from reporting aggregates; reconcile OpenRouter generation IDs |
+| Usage ledger | Per-attempt tokens, status, estimated and upstream-reported cost, route and principal attribution | Keep immutable events separate from reporting aggregates; correlate attempts by request ID and reconcile OpenRouter generation IDs |
 | Audit event store | Actor, action, target, outcome, request ID | Do not embed raw keys, prompts, or responses |
 | Content-audit store | Optionally retained prompts and responses | Link by event ID; separate encryption, access, and retention |
+
+The current pure usage-record builder prepares one content-free attempt record. It preserves the request and attempt IDs separately, leaves unreported actual provider and token counts unknown, distinguishes malformed usage from partial reporting, and keeps estimated and upstream-billed decimal costs with separate provenance. It does not calculate prices or write records. Durable append, idempotency, recovery after a post-call write failure, and authorized usage queries remain later work.
 
 ## Policy contract
 
