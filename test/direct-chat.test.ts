@@ -158,6 +158,9 @@ test('an upstream HTTP error stops managed fallback after the first provider', a
       },
     });
     const result = await invokeJevManagedRoute({
+      principalId: 'user-1',
+      credentialId: 'credential-1',
+      policyVersions: [{ id: 'policy-1', version: 'v3' }],
       requestId: 'req-1',
       routeVersion: 'v1',
       principalActive: true,

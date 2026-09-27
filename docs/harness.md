@@ -1,6 +1,6 @@
 # Engineering Harness
 
-The deployable HTTP service is not yet implemented. The harness captures requirements as executable cases and detects documentation and contract errors in CI. Pure TypeScript policy evaluation, principal and role attachment evaluation, gateway attachment authentication, candidate authorization, Jev-assisted selection, managed invocation coordination, direct text-chat adapters, a chat HTTP handler, and a Node socket bridge are the current implementation slices.
+The deployable HTTP service is not yet implemented. The harness captures requirements as executable cases and detects documentation and contract errors in CI. Pure TypeScript policy evaluation, principal and role attachment evaluation, gateway attachment authentication, audit attribution, candidate authorization, Jev-assisted selection, managed invocation coordination, direct text-chat adapters, a chat HTTP handler, and a Node socket bridge are the current implementation slices.
 
 Planning interviews use [grill-with-docs](../skills/grill-with-docs/SKILL.md). Its [grilling](../skills/grilling/SKILL.md) dependency runs question rounds, while [domain-modeling](../skills/domain-modeling/SKILL.md) maintains the glossary and ADRs. Agreed terms live in [CONTEXT.md](../CONTEXT.md).
 

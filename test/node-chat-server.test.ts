@@ -11,6 +11,8 @@ test('Node server accepts a socket request and returns the Jev-managed completio
         ? {
             id: 'user-1',
             active: true,
+            credentialId: 'credential-1',
+            policyVersions: [{ id: 'policy-1', version: 'v1' }],
             statements: [
               { effect: 'Allow', actions: ['llm:InvokeModel'], resources: ['model:chat'] },
               { effect: 'Allow', actions: ['llm:UseProvider'], resources: ['provider:openai'] },

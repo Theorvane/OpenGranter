@@ -1,3 +1,4 @@
+import type { AuditAttribution } from '../audit/attribution.ts';
 import {
   authorizeCandidates,
   type CandidateAuthorizationInput,
@@ -10,7 +11,7 @@ import {
   selectManagedWithJev,
 } from './jev-managed-routing.ts';
 
-interface AuditBase {
+interface AuditBase extends AuditAttribution {
   readonly requestId: string;
   readonly routeVersion: string;
   readonly modelAlias: string;
@@ -67,7 +68,9 @@ export interface JevManagedRoutePorts<T> {
   readonly fetchJev?: JevFetcher;
 }
 
-export interface JevManagedRouteInput<T> extends Omit<CandidateAuthorizationInput, 'routeKind'> {
+export interface JevManagedRouteInput<T>
+  extends Omit<CandidateAuthorizationInput, 'routeKind'>,
+    AuditAttribution {
   /** Supplied by the trusted route store, after capability and health filtering. */
   readonly routeVersion: string;
   readonly requestId: string;
@@ -101,6 +104,9 @@ export async function invokeJevManagedRoute<T>(
   input: JevManagedRouteInput<T>,
 ): Promise<JevManagedRouteResult<T>> {
   const base: AuditBase = {
+    principalId: input.principalId,
+    credentialId: input.credentialId,
+    policyVersions: input.policyVersions,
     requestId: input.requestId,
     routeVersion: input.routeVersion,
     modelAlias: input.modelAlias,
