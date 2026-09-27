@@ -18,7 +18,7 @@ interface AuditBase {
 
 export type DirectProviderFailureCategory = 'rate-limit' | 'server-error' | 'timeout' | 'other';
 
-/** An adapter must explicitly classify a failed attempt before the coordinator can retry it. */
+/** An adapter must classify a failure and report whether an upstream response began. */
 export class DirectProviderFailure extends Error {
   readonly category: DirectProviderFailureCategory;
   readonly responseStarted: boolean;

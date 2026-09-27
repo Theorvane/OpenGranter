@@ -254,7 +254,7 @@ function jevSelectsOpenAi() {
   };
 }
 
-test('pre-response rate limit falls back to next authorized managed candidate once', async () => {
+test('pre-response timeout falls back to next authorized managed candidate once', async () => {
   const attempted: string[] = [];
   const audit: unknown[] = [];
   let jevCalls = 0;
@@ -269,7 +269,7 @@ test('pre-response rate limit falls back to next authorized managed candidate on
       invokeDirect: async (candidate) => {
         attempted.push(candidate.id);
         if (candidate.id === 'openai') {
-          throw new DirectProviderFailure('rate-limit', false, false);
+          throw new DirectProviderFailure('timeout', false, true);
         }
         return { content: 'from backup' };
       },

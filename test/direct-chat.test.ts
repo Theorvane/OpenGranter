@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createDirectChatInvoker } from '../src/providers/direct-chat.ts';
-import { DirectProviderFailure } from '../src/routing/invoke-jev-managed-route.ts';
+import {
+  DirectProviderFailure,
+  invokeJevManagedRoute,
+} from '../src/routing/invoke-jev-managed-route.ts';
 
 const request = {
   model: 'chat',
@@ -125,9 +128,69 @@ test('HTTP failures expose only safe category and never provider error body', as
     await assert.rejects(invoker(candidate, request), (error: unknown) => {
       assert.ok(error instanceof DirectProviderFailure);
       assert.equal(error.category, category);
+      assert.equal(error.responseStarted, true);
       assert.equal(error.message.includes('sensitive-key'), false);
       return true;
     });
+  }
+});
+
+test('an upstream HTTP error stops managed fallback after the first provider', async () => {
+  for (const status of [429, 503]) {
+    const called: string[] = [];
+    const audit: unknown[] = [];
+    const invokeDirect = createDirectChatInvoker({
+      registrations: [
+        { providerId: 'provider-1', kind: 'openai', credentialRef: 'secret/openai' },
+        {
+          providerId: 'provider-2',
+          kind: 'anthropic',
+          credentialRef: 'secret/anthropic',
+          maxOutputTokens: 256,
+        },
+      ],
+      resolveSecret: async () => 'provider-key',
+      fetcher: async (url) => {
+        called.push(String(url));
+        return new Response(JSON.stringify({ error: { message: 'private upstream detail' } }), {
+          status,
+        });
+      },
+    });
+    const result = await invokeJevManagedRoute({
+      requestId: 'req-1',
+      routeVersion: 'v1',
+      principalActive: true,
+      modelAlias: 'chat',
+      candidates: [
+        candidate,
+        { id: 'two', kind: 'managed', providerId: 'provider-2', upstreamModelId: 'claude' },
+      ],
+      statements: [
+        { effect: 'Allow', actions: ['llm:InvokeModel'], resources: ['model:chat'] },
+        {
+          effect: 'Allow',
+          actions: ['llm:UseProvider'],
+          resources: ['provider:provider-1', 'provider:provider-2'],
+        },
+      ],
+      jev: { credentialRef: 'secret/jev', minimumConfidence: 0.6, sendPrompt: false },
+      ports: {
+        checkLimit: async () => true,
+        resolveSecret: async () => 'jev-key',
+        writeAudit: async (event) => {
+          audit.push(event);
+        },
+        invokeDirect: (selected) => invokeDirect(selected, request),
+        fetchJev: async () => {
+          throw new Error('decision service unavailable');
+        },
+      },
+    });
+    assert.equal(result.status, 'failed');
+    assert.deepEqual(called, ['https://api.openai.com/v1/chat/completions']);
+    assert.equal(JSON.stringify(audit).includes('private upstream detail'), false);
+    assert.equal(JSON.stringify(audit).includes('possiblyBilled'), true);
   }
 });
 

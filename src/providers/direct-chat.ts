@@ -49,8 +49,9 @@ function count(value: unknown): number | undefined {
 function fail(
   category: 'rate-limit' | 'server-error' | 'timeout' | 'other',
   possiblyBilled = false,
+  responseStarted = false,
 ): never {
-  throw new DirectProviderFailure(category, false, possiblyBilled);
+  throw new DirectProviderFailure(category, responseStarted, possiblyBilled);
 }
 function usage(prompt: unknown, completion: unknown, total: unknown): ChatCompletion['usage'] {
   const p = count(prompt),
@@ -245,15 +246,19 @@ export function createDirectChatInvoker(
         fail('timeout', true);
       fail('other', true);
     }
-    if (response.status === 429) fail('rate-limit', true);
-    if (response.status >= 500) fail('server-error', true);
-    if (!response.ok) fail('other');
+    if (response.status === 429) fail('rate-limit', true, true);
+    if (response.status >= 500) fail('server-error', true, true);
+    if (!response.ok) fail('other', true, true);
     let body: unknown;
     try {
       body = (await response.json()) as unknown;
     } catch {
-      fail('other', true);
+      fail('other', true, true);
     }
-    return normalize(registration.kind, body, request.model);
+    try {
+      return normalize(registration.kind, body, request.model);
+    } catch {
+      fail('other', true, true);
+    }
   };
 }
