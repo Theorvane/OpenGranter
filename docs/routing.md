@@ -45,6 +45,8 @@ Record the plan and each attempt's route kind, model alias, upstream model, allo
 
 For Jev-assisted selection, record its decision source (`jev` or deterministic fallback), chosen candidate ID, safe model identifier and confidence when valid, fallback reason when applicable, and Jev usage when available. Do not record its bearer key, response body, or prompt in ordinary audit events. Jev's own usage and cost must be attributed separately from the eventual inference provider's usage and cost.
 
+The current managed invocation coordinator first applies model/provider IAM, then checks limits and resolves the Jev credential reference. It persists a nonsecret `selection-started` audit event before calling Jev, a `decision` event before direct inference, and an `attempt` outcome afterward. Any required pre-inference audit failure stops the call. If outcome auditing fails after the provider may have processed a request, the result marks `possiblyBilled: true` and does not automatically retry. Durable retry/alert handling and usage-ledger reconciliation remain integration work.
+
 ## Remaining contract questions
 
 - Exact default price-weighting or deterministic ranking formula and tie-breaking.

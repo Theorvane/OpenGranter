@@ -1,6 +1,6 @@
 # Engineering Harness
 
-The service is not yet implemented. The harness captures requirements as executable cases and detects documentation and contract errors in CI. Pure TypeScript policy evaluation and candidate authorization are the first implementation slices.
+The HTTP service is not yet implemented. The harness captures requirements as executable cases and detects documentation and contract errors in CI. Pure TypeScript policy evaluation, candidate authorization, Jev-assisted selection, and managed invocation coordination are the current implementation slices.
 
 Planning interviews use [grill-with-docs](../skills/grill-with-docs/SKILL.md). Its [grilling](../skills/grilling/SKILL.md) dependency runs question rounds, while [domain-modeling](../skills/domain-modeling/SKILL.md) maintains the glossary and ADRs. Agreed terms live in [CONTEXT.md](../CONTEXT.md).
 
@@ -26,6 +26,7 @@ Run `npm run check` to type-check and lint TypeScript, run policy and route-auth
 - Extend `contracts/policy_cases.json` and `contracts/route_cases.json` as policy features are agreed; the current cases execute against the pure evaluator and candidate filter.
 - Execute `contracts/gateway_cases.json` against an HTTP test server, a fake OpenRouter upstream, and fake OpenAI, Anthropic, and Gemini upstreams. Assert that each route kind uses the same IAM decision and audit path, that `provider.only` cannot be widened, and that fallback never crosses route kinds.
 - Add integration cases for authentication, secret-store failures, ledger and audit write failures, and concurrent calls.
+- Wire the managed invocation coordinator to a real authenticated HTTP gateway, route catalog, limit reservation, secret store, durable audit/usage writes, and direct-provider adapters. Its current fake-port tests establish call order and failure behavior but are not a live proxy test.
 - Add migration and retention checks to CI.
 
 When changing an expected contract outcome, review the [PRD](PRD.md) and [acceptance scenarios](acceptance.md) together. Do not change an expected outcome merely to match an implementation bug.
