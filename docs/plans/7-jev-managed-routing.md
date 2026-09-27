@@ -42,7 +42,7 @@
 
 ## Delivery
 
-- Complete the open product decisions, then amend this plan and contracts before production code.
+- Keep the PR in draft while the Jev integration target and prompt-disclosure default remain open; record the confirmed fallback contract in this plan and the routing tests.
 - Implement the decision and invocation boundaries in issue #7's branch, update the draft PR with red/green evidence, and link remaining HTTP gateway/native-adapter dependencies.
 - Risk: A future gateway could bypass candidate filtering if it calls the Jev client directly. Route live requests through the tested coordinator, supply only trusted route snapshots, and add HTTP tests before claiming live routing support.
 - Risk: A provider call may complete before an outcome audit write fails. The coordinator marks possible billing and does not replay the call; durable reconciliation and alerting remain necessary.
