@@ -12,6 +12,8 @@ All repository documents and contribution discussions in issues and pull request
 6. Open a pull request against `main` that links the issue with `Closes #<number>` when merging the PR will fully resolve it, or `Refs #<number>` otherwise. Link the plan and record the red/green test evidence, verification, and material risks. Wait for checks and review before merging.
 7. Use a new issue and branch for follow-up work. Do not reuse a merged branch.
 
+Issue titles start with `feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`, `ci:`, or `security:`. CI maps those prefixes to a type label and adds `status:needs-triage` to new issues. Pull requests receive a type label from their issue-numbered branch prefix. The `ci` and `security` prefixes also add an area label. Unknown titles remain untyped for triage; automated relabeling preserves unrelated labels.
+
 ## Implementation plans
 
 Name each plan `docs/plans/<issue-number>-<short-kebab-case-topic>.md`. The plan states the problem and scope, user-visible behavior, permission and audit impact, affected contracts, test cases to write first, implementation steps, risks, and unresolved decisions. Keep it concise and revise it when the implementation changes. Link the plan from the pull request so the reason for the code remains reviewable. An issue may link a shared plan when several issues implement the same agreed design; each pull request must identify the plan and its specific scope.
@@ -54,6 +56,6 @@ The example identity is illustrative. Contributors must use their own verified n
 
 ## Review and merge
 
-Require the repository checks and at least one human review. Use squash merge by default, preserving the issue reference, `Assisted-by` trailer when applicable, and a human `Signed-off-by` trailer in the resulting commit. Configure GitHub branch protection or rulesets for `main` after the repository is created. Neither the presence of an `Assisted-by` trailer nor passing CI substitutes for review.
+Require the repository checks and at least one approval before merging to `main`. The trusted triage workflow requests `sjungwon03-ai` on every pull request, including drafts, and assigns the pull request author; a reviewer cannot review their own pull request. The request label is informational and is not an approval. Use squash merge by default, preserving the issue reference, `Assisted-by` trailer when applicable, and a human `Signed-off-by` trailer in the resulting commit. Neither the presence of an `Assisted-by` trailer nor passing CI substitutes for review.
 
 These conventions take inspiration from [Node.js commit guidelines](https://github.com/nodejs/node/blob/main/doc/contributing/pull-requests.md) and its [agent disclosure guidance](https://github.com/nodejs/node/blob/main/AGENTS.md). OpenGranter's workflow and enforcement are defined by this document.
