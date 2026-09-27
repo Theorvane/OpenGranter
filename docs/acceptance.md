@@ -40,6 +40,7 @@
 ## Usage and audit
 
 - Successful calls, policy denials, and provider failures each have a request ID and audit event.
+- Every post-authentication request, routing, decision, and attempt audit event includes the same principal ID, credential ID, and policy IDs/versions. Missing attribution fails before route lookup. Authentication failures include only a request ID; no raw token, policy statements, provider key, or content appears in ordinary audit events.
 - Missing provider token counts are shown as unknown.
 - Estimated cost and upstream-reported cost are separate; a delegated route retains OpenRouter generation identifiers for reconciliation when available.
 - Reprocessing the same request ID does not create a duplicate usage-ledger row.

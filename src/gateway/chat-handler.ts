@@ -1,3 +1,4 @@
+import { type AuditAttribution, validAuditAttribution } from '../audit/attribution.ts';
 import type { Statement } from '../policy/evaluate.ts';
 import type { PolicyVersion } from '../policy/evaluate-attachments.ts';
 import type { RouteCandidate } from '../routing/authorize-candidates.ts';
@@ -23,8 +24,8 @@ export interface AuthenticatedPrincipal {
   readonly id: string;
   readonly active: boolean;
   readonly statements: readonly Statement[];
-  readonly credentialId?: string;
-  readonly policyVersions?: readonly PolicyVersion[];
+  readonly credentialId: string;
+  readonly policyVersions: readonly PolicyVersion[];
 }
 
 export interface ManagedChatRoute {
@@ -40,13 +41,17 @@ export interface ManagedChatRoute {
 export type GatewayAuditEvent =
   | { readonly kind: 'auth-denied'; readonly requestId: string }
   | { readonly kind: 'auth-unavailable'; readonly requestId: string }
-  | { readonly kind: 'route-unavailable'; readonly requestId: string; readonly modelAlias: string }
-  | {
+  | (AuditAttribution & {
+      readonly kind: 'route-unavailable';
+      readonly requestId: string;
+      readonly modelAlias: string;
+    })
+  | (AuditAttribution & {
       readonly kind: 'request-denied';
       readonly requestId: string;
       readonly reason: 'invalid-request' | 'unknown-model' | 'configuration';
       readonly modelAlias?: string;
-    };
+    });
 
 export interface ChatHandlerPorts<T> {
   readonly newRequestId: () => string;
@@ -158,10 +163,36 @@ export function createChatHandler<T>(
       return errorResponse(401, 'unauthorized', requestId);
     }
 
+    const candidateAttribution: AuditAttribution = {
+      principalId: principal.id,
+      credentialId: principal.credentialId,
+      policyVersions: principal.policyVersions,
+    };
+    if (!validAuditAttribution(candidateAttribution)) {
+      try {
+        await ports.writeAudit({ kind: 'auth-unavailable', requestId });
+      } catch {
+        return errorResponse(503, 'audit_unavailable', requestId);
+      }
+      return errorResponse(503, 'authentication_unavailable', requestId);
+    }
+    const attribution: AuditAttribution = {
+      ...candidateAttribution,
+      policyVersions: candidateAttribution.policyVersions.map(({ id, version }) => ({
+        id,
+        version,
+      })),
+    };
+
     const chat = validateChat(await readJsonBody(request).catch(() => undefined));
     if (!chat) {
       try {
-        await ports.writeAudit({ kind: 'request-denied', requestId, reason: 'invalid-request' });
+        await ports.writeAudit({
+          ...attribution,
+          kind: 'request-denied',
+          requestId,
+          reason: 'invalid-request',
+        });
       } catch {
         return errorResponse(503, 'audit_unavailable', requestId);
       }
@@ -173,7 +204,12 @@ export function createChatHandler<T>(
       route = await ports.resolveRoute(chat.model);
     } catch {
       try {
-        await ports.writeAudit({ kind: 'route-unavailable', requestId, modelAlias: chat.model });
+        await ports.writeAudit({
+          ...attribution,
+          kind: 'route-unavailable',
+          requestId,
+          modelAlias: chat.model,
+        });
       } catch {
         return errorResponse(503, 'audit_unavailable', requestId);
       }
@@ -182,6 +218,7 @@ export function createChatHandler<T>(
     if (!route) {
       try {
         await ports.writeAudit({
+          ...attribution,
           kind: 'request-denied',
           requestId,
           reason: 'unknown-model',
@@ -195,6 +232,7 @@ export function createChatHandler<T>(
 
     try {
       const result = await invokeJevManagedRoute({
+        ...attribution,
         requestId,
         routeVersion: route.version,
         principalActive: principal.active,
@@ -236,6 +274,7 @@ export function createChatHandler<T>(
     } catch {
       try {
         await ports.writeAudit({
+          ...attribution,
           kind: 'request-denied',
           requestId,
           reason: 'configuration',
