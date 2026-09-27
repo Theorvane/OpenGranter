@@ -87,6 +87,7 @@ function harness(
       return true;
     },
     resolveSecret: async () => 'jev-key',
+    writeUsage: async () => {},
     writeAudit: async (event) => {
       audit.push(event);
     },

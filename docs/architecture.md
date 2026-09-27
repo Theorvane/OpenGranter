@@ -68,7 +68,7 @@ OpenRouter may use `models`, presets, automatic routing, and provider preference
 | Audit event store | Actor, action, target, outcome, request ID | Do not embed raw keys, prompts, or responses |
 | Content-audit store | Optionally retained prompts and responses | Link by event ID; separate encryption, access, and retention |
 
-The current pure usage-record builder prepares one content-free attempt record. It preserves the request and attempt IDs separately, leaves unreported actual provider and token counts unknown, distinguishes malformed usage from partial reporting, and keeps estimated and upstream-billed decimal costs with separate provenance. It does not calculate prices or write records. Durable append, idempotency, recovery after a post-call write failure, and authorized usage queries remain later work.
+The usage-record builder prepares one content-free record per upstream attempt. Both route coordinators now hand it to an injected ledger port before retrying another candidate or returning a response. A stable request ID, route kind, and attempt ordinal identify the handoff; the backing adapter must append idempotently or durably queue that ID. A failed handoff stops fallback, emits a nonsecret failure audit event when possible, and returns a safe service error without replaying inference. Missing token counts and the actual OpenRouter provider remain unknown. When one OpenRouter call permits several candidates, its selected candidate also remains unknown. Estimated and upstream-billed costs retain separate provenance, but neither is calculated here. A concrete durable adapter, recovery process, reconciliation, and authorized usage queries remain later work.
 
 ## Policy contract
 

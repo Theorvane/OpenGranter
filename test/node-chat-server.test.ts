@@ -42,6 +42,7 @@ test('Node server accepts a socket request and returns the Jev-managed completio
     ],
     checkLimit: async () => true,
     resolveSecret: async () => 'jev-key',
+    writeUsage: async () => {},
     writeAudit: async () => {},
     invokeDirect: async () => ({
       id: 'completion-1',
@@ -138,6 +139,7 @@ test('Node server bounds a delegated chat request through the OpenRouter adapter
     resolveSecret: async () => {
       throw new Error('unexpected Jev secret');
     },
+    writeUsage: async () => {},
     writeAudit: async (event) => {
       audit.push(event);
     },

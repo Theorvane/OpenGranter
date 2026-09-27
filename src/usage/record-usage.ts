@@ -28,7 +28,7 @@ export interface UsageRecord extends AuditAttribution {
   readonly modelAlias: string;
   readonly routeKind: RouteKind;
   readonly upstreamModelId: string;
-  readonly selectedCandidateId: string;
+  readonly selectedCandidateId: string | null;
   readonly actualInferenceProviderId: string | null;
   readonly occurredAt: number;
   readonly latencyMs: number;
@@ -46,7 +46,7 @@ export interface BuildUsageRecordInput extends AuditAttribution {
   readonly modelAlias: string;
   readonly routeKind: RouteKind;
   readonly upstreamModelId: string;
-  readonly selectedCandidateId: string;
+  readonly selectedCandidateId: string | null;
   readonly actualInferenceProviderId?: string | undefined;
   readonly occurredAt: number;
   readonly latencyMs: number;
@@ -155,7 +155,8 @@ export function buildUsageRecord(input: BuildUsageRecordInput): UsageRecord {
     !nonempty(input.modelAlias) ||
     (input.routeKind !== 'delegated' && input.routeKind !== 'managed') ||
     !nonempty(input.upstreamModelId) ||
-    !nonempty(input.selectedCandidateId) ||
+    (input.selectedCandidateId !== null && !nonempty(input.selectedCandidateId)) ||
+    (input.routeKind === 'managed' && input.selectedCandidateId === null) ||
     (input.actualInferenceProviderId !== undefined && !nonempty(input.actualInferenceProviderId)) ||
     !nonnegativeInteger(input.occurredAt) ||
     !nonnegativeInteger(input.latencyMs) ||
