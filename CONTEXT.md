@@ -76,4 +76,4 @@ A record of an access decision or administrative change that explains what happe
 Optional retention of LLM prompts and responses linked to audit events.
 
 **Usage ledger**:
-A per-call record of token usage and cost attribution.
+Per-attempt records of token usage and cost attribution, linked to the client request they served.
