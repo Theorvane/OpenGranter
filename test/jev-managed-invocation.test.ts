@@ -6,6 +6,9 @@ import {
 } from '../src/routing/invoke-jev-managed-route.ts';
 
 const base = {
+  principalId: 'user-1',
+  credentialId: 'credential-1',
+  policyVersions: [{ id: 'policy-1', version: 'v3' }],
   requestId: 'request-1',
   routeVersion: 'route-v1',
   principalActive: true,
@@ -295,6 +298,13 @@ test('pre-response timeout falls back to next authorized managed candidate once'
       { candidateId: 'anthropic', outcome: 'succeeded' },
     ],
   );
+  for (const event of audit) {
+    assert.equal((event as { principalId?: string }).principalId, 'user-1');
+    assert.equal((event as { credentialId?: string }).credentialId, 'credential-1');
+    assert.deepEqual((event as { policyVersions?: unknown }).policyVersions, [
+      { id: 'policy-1', version: 'v3' },
+    ]);
+  }
 });
 
 test('unclassified or post-response failure does not fall back', async () => {
