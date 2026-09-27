@@ -1,4 +1,5 @@
 import type { Statement } from '../policy/evaluate.ts';
+import type { PolicyVersion } from '../policy/evaluate-attachments.ts';
 import type { RouteCandidate } from '../routing/authorize-candidates.ts';
 import {
   invokeJevManagedRoute,
@@ -22,6 +23,8 @@ export interface AuthenticatedPrincipal {
   readonly id: string;
   readonly active: boolean;
   readonly statements: readonly Statement[];
+  readonly credentialId?: string;
+  readonly policyVersions?: readonly PolicyVersion[];
 }
 
 export interface ManagedChatRoute {
