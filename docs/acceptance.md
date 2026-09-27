@@ -75,3 +75,9 @@
 The PostgreSQL migration runner applies versions `001` through `006` in order, records their checksums, and skips unchanged history on a second run. It refuses edited, missing, duplicate, skipped, and out-of-order versions before applying new SQL. A failing migration leaves neither its schema changes nor its history row, and driver errors expose no SQL text. Deployment connection provisioning and concurrent migrator coordination remain separate release work.
 
 `contracts/policy_cases.json` fixes policy-evaluator inputs and expected decisions. `contracts/attachment_cases.json` fixes principal and role policy resolution, including failure paths. `contracts/route_cases.json` fixes candidate authorization and model-specific provider bounds; these three contracts run against pure TypeScript functions. `contracts/gateway_cases.json` fixes expected HTTP behavior and still needs service-level tests against fake upstreams. `scripts/check.py` validates the original fixture structure and planning documents.
+
+## PostgreSQL gateway integration
+
+- Applying all migrations and issuing an opaque token allows an authorized principal to list stored aliases, invoke an ordered managed route, and inspect attributed audit and usage metadata through the composed HTTP handler. Prompts, responses, and raw tokens remain absent from metadata history.
+- Generated credential IDs beginning with `-` or `_` remain valid audit attribution. Stored explicit/default Deny and token revocation stop inference.
+- Unavailable IAM and required audit storage return safe service errors before inference. A usage handoff failure after inference returns unavailable without replaying the provider call.

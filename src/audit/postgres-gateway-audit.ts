@@ -49,6 +49,11 @@ function identifier(value: unknown): string {
   return value;
 }
 
+function credentialIdentifier(value: unknown): string {
+  if (typeof value === 'string' && /^[A-Za-z0-9_-]{22}$/u.test(value)) return value;
+  return identifier(value);
+}
+
 function count(value: unknown): number {
   if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) {
     throw new InvalidGatewayAuditEvent();
@@ -273,7 +278,7 @@ export function projectGatewayAuditEvent(value: unknown, now: number) {
   const projectedDetails = details(event);
   const anonymous = kind === 'auth-denied' || kind === 'auth-unavailable';
   const principalId = anonymous ? null : identifier(event.principalId);
-  const credentialId = anonymous ? null : identifier(event.credentialId);
+  const credentialId = anonymous ? null : credentialIdentifier(event.credentialId);
   const versions = anonymous ? null : policyVersions(event.policyVersions);
   return {
     occurredAt: now,
