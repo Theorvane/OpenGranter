@@ -73,7 +73,7 @@ def pattern_matches(pattern, value):
 def check_gateway_cases(cases):
     for case in cases:
         name = case.get('id', '?')
-        if case.get('request') not in {'GET /v1/models', 'GET /v1/usage', 'POST /v1/chat/completions'}:
+        if case.get('request') not in {'GET /v1/models', 'GET /v1/usage', 'GET /v1/audit', 'POST /v1/chat/completions'}:
             fail(f'gateway {name}: unsupported request')
         if not isinstance(case.get('expected_status'), int) or not 100 <= case['expected_status'] <= 599:
             fail(f'gateway {name}: invalid expected_status')

@@ -17,6 +17,10 @@
     {"id": "self-usage-read", "request": "GET /v1/usage", "condition": "Authenticated principal has usage:ReadSelf on their own principal resource", "expected_status": 200, "upstream_called": false, "audit_action": "usage.read"},
     {"id": "denied-usage-read", "request": "GET /v1/usage", "condition": "Principal has no usage:ReadSelf Allow or has an explicit Deny", "expected_status": 403, "upstream_called": false, "audit_action": "usage.read.denied"},
     {"id": "target-usage-read", "request": "GET /v1/usage", "condition": "A specified principal_id has usage:ReadAll Allow on that target", "expected_status": 200, "upstream_called": false, "audit_action": "usage.read"},
-    {"id": "cross-principal-usage-row", "request": "GET /v1/usage", "condition": "The ledger returns a row for another principal", "expected_status": 503, "upstream_called": false, "audit_action": "usage.read.unavailable"}
+    {"id": "cross-principal-usage-row", "request": "GET /v1/usage", "condition": "The ledger returns a row for another principal", "expected_status": 503, "upstream_called": false, "audit_action": "usage.read.unavailable"},
+    {"id": "self-audit-read", "request": "GET /v1/audit", "condition": "Authenticated principal has audit:Read on their own principal resource", "expected_status": 200, "upstream_called": false, "audit_action": "audit.history.read"},
+    {"id": "denied-audit-read", "request": "GET /v1/audit", "condition": "Principal has no audit:Read Allow or has an explicit Deny on the target", "expected_status": 403, "upstream_called": false, "audit_action": "audit.history.read.denied"},
+    {"id": "target-audit-read", "request": "GET /v1/audit", "condition": "A specified principal_id has audit:Read Allow on that target", "expected_status": 200, "upstream_called": false, "audit_action": "audit.history.read"},
+    {"id": "cross-principal-audit-row", "request": "GET /v1/audit", "condition": "The audit reader returns a row for another principal", "expected_status": 503, "upstream_called": false, "audit_action": "audit.history.read.unavailable"}
   ]
 }
