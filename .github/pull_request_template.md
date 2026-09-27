@@ -2,7 +2,7 @@
 
 Closes #
 
-CI will add a type label from the branch name, request `sjungwon03-ai` when this pull request is ready, and assign the pull request author.
+CI will add a type label from the branch name, request `sjungwon03-ai` even for drafts, and assign the pull request author.
 
 ## Implementation plan
 

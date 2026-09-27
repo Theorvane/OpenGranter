@@ -56,7 +56,7 @@ test('ready pull requests receive branch labels, reviewer, and author assignment
   );
 });
 
-test('draft and already configured pull requests are idempotent', () => {
+test('draft and already configured pull requests receive one review request', () => {
   assert.deepEqual(
     planPullRequest({
       headRef: 'docs/1-publish-planning-harness',
@@ -67,9 +67,9 @@ test('draft and already configured pull requests are idempotent', () => {
       assignees: ['sjungwon03'],
     }),
     {
-      addLabels: [],
+      addLabels: ['ai-review-requested'],
       removeLabels: [],
-      requestReviewer: null,
+      requestReviewer: 'sjungwon03-ai',
       assignAuthor: null,
     },
   );

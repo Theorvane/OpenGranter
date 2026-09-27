@@ -80,17 +80,14 @@ export function planPullRequest(input: PullRequestInput): PullRequestPlan {
   const prefix = /^([a-z]+)\/\d+-[a-z0-9-]+$/.exec(input.headRef)?.[1];
   const desired = [...labelsForPrefix(prefix)];
   const delta = reconcileLabels(input.labels, desired);
-  const canRequestReview = !input.draft && input.author.toLowerCase() !== reviewer;
+  const canRequestReview = input.author.toLowerCase() !== reviewer;
   const reviewLabel = 'ai-review-requested';
   if (canRequestReview && !input.labels.includes(reviewLabel)) {
     desired.push(reviewLabel);
   }
   return {
     addLabels: [...delta.addLabels, ...desired.filter((label) => label === reviewLabel)],
-    removeLabels:
-      input.draft && input.labels.includes(reviewLabel)
-        ? [...delta.removeLabels, reviewLabel]
-        : delta.removeLabels,
+    removeLabels: delta.removeLabels,
     requestReviewer:
       canRequestReview &&
       !input.requestedReviewers.some((login) => login.toLowerCase() === reviewer)

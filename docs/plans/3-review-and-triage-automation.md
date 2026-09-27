@@ -10,7 +10,7 @@
 
 - Require one approving review for pull requests into `main`, alongside the existing `check` status and resolved review conversations.
 - Use a trusted GitHub Actions workflow to label issues from title prefixes and pull requests from issue-numbered branch prefixes. Preserve unrelated labels and avoid duplicate API changes.
-- Add a triage label to new issues. When a ready pull request opens, reopens, becomes ready, or receives a new commit, request `sjungwon03-ai`, assign the author, and mark review requested.
+- Add a triage label to new issues. For every pull request, including drafts, request `sjungwon03-ai`, assign the author, and mark review requested. Repeat the metadata check on reopen, readiness changes, and new commits.
 - If `sjungwon03-ai` authors a pull request, omit the impossible self-review request and leave the required independent approval in place.
 - Keep the existing `main` branch strategy and issue-to-branch-to-PR workflow. Do not adopt OpenScene's release branches or automatic merge.
 - The automation does not read provider keys, customer prompts, or runtime audit data. It changes repository metadata only.

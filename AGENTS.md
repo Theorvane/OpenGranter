@@ -4,7 +4,7 @@ Write and maintain all repository instructions, planning documents, domain docum
 
 For every repository change, follow [CONTRIBUTING.md](CONTRIBUTING.md): issue first, a new issue-numbered branch, then a pull request. Never commit directly to `main`. Use the defined branch and commit names. Disclose material AI assistance with `Assisted-by: Codex`. The contributor `sjungwon03` has explicitly authorized Codex to add `Signed-off-by: sjungwon03 <sjungwon03@gmail.com>` to commits prepared for their requested work. Use that identity for both author and committer on those commits. Do not sign off as an agent or apply another person's DCO trailer without their authorization.
 
-Pull requests to `main` require CI and at least one approval. The repository triage workflow labels issues and pull requests, requests `sjungwon03-ai` on ready pull requests, and assigns each pull request author. Keep this automation on trusted base-branch code; never execute an untrusted pull request head with a write-capable token.
+Pull requests to `main` require CI and at least one approval. The repository triage workflow labels issues and pull requests, requests `sjungwon03-ai` on every pull request including drafts, and assigns each pull request author. Keep this automation on trusted base-branch code; never execute an untrusted pull request head with a write-capable token.
 
 Changes must follow the scope in `docs/PRD.md` and the acceptance criteria in `docs/acceptance.md`. Do not implement unresolved options in `docs/architecture.md` as settled requirements.
 

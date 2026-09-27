@@ -56,6 +56,6 @@ The example identity is illustrative. Contributors must use their own verified n
 
 ## Review and merge
 
-Require the repository checks and at least one approval before merging to `main`. The trusted triage workflow requests `sjungwon03-ai` on every ready pull request and assigns the pull request author; a reviewer cannot review their own pull request. The request label is informational and is not an approval. Use squash merge by default, preserving the issue reference, `Assisted-by` trailer when applicable, and a human `Signed-off-by` trailer in the resulting commit. Neither the presence of an `Assisted-by` trailer nor passing CI substitutes for review.
+Require the repository checks and at least one approval before merging to `main`. The trusted triage workflow requests `sjungwon03-ai` on every pull request, including drafts, and assigns the pull request author; a reviewer cannot review their own pull request. The request label is informational and is not an approval. Use squash merge by default, preserving the issue reference, `Assisted-by` trailer when applicable, and a human `Signed-off-by` trailer in the resulting commit. Neither the presence of an `Assisted-by` trailer nor passing CI substitutes for review.
 
 These conventions take inspiration from [Node.js commit guidelines](https://github.com/nodejs/node/blob/main/doc/contributing/pull-requests.md) and its [agent disclosure guidance](https://github.com/nodejs/node/blob/main/AGENTS.md). OpenGranter's workflow and enforcement are defined by this document.
