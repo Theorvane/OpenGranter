@@ -52,6 +52,7 @@ The current implementation has a minimal HTTP slice for non-streaming text chat 
 - Identify duplicate requests and disclose possible double billing on provider retries.
 - Separate dashboard-reading permissions from model-invocation permissions.
 - Support both AWS and on-premises deployment without making AWS IAM a runtime dependency.
+- Apply PostgreSQL schema files in version order and verify historical checksums before database-backed adapters start. Production connection and rollout orchestration remain separate work.
 - Implement the service and management UI in TypeScript, following [the coding rules](coding.md).
 
 ## 7. Out of scope and open decisions
