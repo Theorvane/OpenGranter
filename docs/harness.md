@@ -19,7 +19,7 @@ Run `npm run check` to type-check and lint TypeScript, run policy, attachment, a
 
 `.github/workflows/check.yml` runs the same command on pushes and pull requests. This does not replace service security tests or a production secret scanner.
 
-`.github/workflows/triage.yml` runs against trusted `main` code with issue and pull request metadata permissions. It classifies issue title and pull request branch prefixes, adds a triage label to new issues, requests `sjungwon03-ai` on every pull request including drafts, and assigns the author. The pure label planner and event handler are covered by `test/triage.test.ts`. The label records are informational; the `main` ruleset enforces one approval and the `check` status.
+`.github/workflows/triage.yml` runs against trusted `main` code with issue and pull request metadata permissions. It classifies issue title and pull request branch prefixes, adds a triage label to new issues, assigns issue and pull request authors without removing other assignees, and requests `sjungwon03-ai` on every pull request including drafts. The pure triage planner and event handler are covered by `test/triage.test.ts`. The label records are informational; the `main` ruleset enforces one approval and the `check` status.
 
 ## Implementation connections to add
 

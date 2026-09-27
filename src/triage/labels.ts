@@ -76,6 +76,14 @@ export function planIssue(input: IssueInput): LabelChange {
   return delta;
 }
 
+/** Add the issue creator without removing any existing assignee. */
+export function planIssueAuthor(author: string, assignees: readonly string[]): string | null {
+  if (!author || assignees.some((login) => login.toLowerCase() === author.toLowerCase())) {
+    return null;
+  }
+  return author;
+}
+
 export function planPullRequest(input: PullRequestInput): PullRequestPlan {
   const prefix = /^([a-z]+)\/\d+-[a-z0-9-]+$/.exec(input.headRef)?.[1];
   const desired = [...labelsForPrefix(prefix)];
