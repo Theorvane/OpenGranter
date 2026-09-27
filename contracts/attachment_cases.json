@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "direct-allow-human",
+      "principal": {"id": "alice", "kind": "human", "active": true, "policy_ids": ["basic"], "role_ids": []},
+      "roles": [],
+      "policies": [{"id": "basic", "version": "v1", "statements": [{"effect": "Allow", "actions": ["llm:InvokeModel"], "resources": ["model:basic"]}]}],
+      "action": "llm:InvokeModel", "resource": "model:basic",
+      "expected_effect": "Allow", "expected_reason": "allowed",
+      "expected_policies": [{"id": "basic", "version": "v1"}]
+    },
+    {
+      "id": "role-allow-service",
+      "principal": {"id": "batch", "kind": "service", "active": true, "policy_ids": [], "role_ids": ["analyst"]},
+      "roles": [{"id": "analyst", "policy_ids": ["models"]}],
+      "policies": [{"id": "models", "version": "v3", "statements": [{"effect": "Allow", "actions": ["llm:InvokeModel"], "resources": ["model:*"]}]}],
+      "action": "llm:InvokeModel", "resource": "model:basic",
+      "expected_effect": "Allow", "expected_reason": "allowed",
+      "expected_policies": [{"id": "models", "version": "v3"}]
+    },
+    {
+      "id": "removed-role-no-longer-allows",
+      "principal": {"id": "batch", "kind": "service", "active": true, "policy_ids": [], "role_ids": []},
+      "roles": [{"id": "analyst", "policy_ids": ["models"]}],
+      "policies": [{"id": "models", "version": "v3", "statements": [{"effect": "Allow", "actions": ["llm:InvokeModel"], "resources": ["model:*"]}]}],
+      "action": "llm:InvokeModel", "resource": "model:basic",
+      "expected_effect": "Deny", "expected_reason": "implicit-deny", "expected_policies": []
+    },
+    {
+      "id": "direct-deny-overrides-role-allow",
+      "principal": {"id": "alice", "kind": "human", "active": true, "policy_ids": ["restricted"], "role_ids": ["analyst"]},
+      "roles": [{"id": "analyst", "policy_ids": ["models"]}],
+      "policies": [
+        {"id": "restricted", "version": "v2", "statements": [{"effect": "Deny", "actions": ["llm:InvokeModel"], "resources": ["model:expensive"]}]},
+        {"id": "models", "version": "v3", "statements": [{"effect": "Allow", "actions": ["llm:InvokeModel"], "resources": ["model:*"]}]}
+      ],
+      "action": "llm:InvokeModel", "resource": "model:expensive",
+      "expected_effect": "Deny", "expected_reason": "explicit-deny",
+      "expected_policies": [{"id": "restricted", "version": "v2"}, {"id": "models", "version": "v3"}]
+    },
+    {
+      "id": "second-role-deny-overrides-first-role-allow",
+      "principal": {"id": "batch", "kind": "service", "active": true, "policy_ids": [], "role_ids": ["analyst", "blocked"]},
+      "roles": [{"id": "analyst", "policy_ids": ["models"]}, {"id": "blocked", "policy_ids": ["block-provider"]}],
+      "policies": [
+        {"id": "models", "version": "v1", "statements": [{"effect": "Allow", "actions": ["llm:UseProvider"], "resources": ["provider:*"]}]},
+        {"id": "block-provider", "version": "v1", "statements": [{"effect": "Deny", "actions": ["llm:UseProvider"], "resources": ["provider:anthropic"]}]}
+      ],
+      "action": "llm:UseProvider", "resource": "provider:anthropic",
+      "expected_effect": "Deny", "expected_reason": "explicit-deny",
+      "expected_policies": [{"id": "models", "version": "v1"}, {"id": "block-provider", "version": "v1"}]
+    },
+    {
+      "id": "no-policy-default-deny",
+      "principal": {"id": "alice", "kind": "human", "active": true, "policy_ids": [], "role_ids": []},
+      "roles": [], "policies": [],
+      "action": "llm:InvokeModel", "resource": "model:basic",
+      "expected_effect": "Deny", "expected_reason": "implicit-deny", "expected_policies": []
+    },
+    {
+      "id": "inactive-principal-deny",
+      "principal": {"id": "alice", "kind": "human", "active": false, "policy_ids": ["basic"], "role_ids": []},
+      "roles": [],
+      "policies": [{"id": "basic", "version": "v1", "statements": [{"effect": "Allow", "actions": ["llm:InvokeModel"], "resources": ["model:basic"]}]}],
+      "action": "llm:InvokeModel", "resource": "model:basic",
+      "expected_effect": "Deny", "expected_reason": "inactive", "expected_policies": []
+    },
+    {
+      "id": "missing-role-fails-closed",
+      "principal": {"id": "alice", "kind": "human", "active": true, "policy_ids": ["basic"], "role_ids": ["missing"]},
+      "roles": [],
+      "policies": [{"id": "basic", "version": "v1", "statements": [{"effect": "Allow", "actions": ["llm:InvokeModel"], "resources": ["model:basic"]}]}],
+      "action": "llm:InvokeModel", "resource": "model:basic",
+      "expected_effect": "Deny", "expected_reason": "unresolved-attachment", "expected_policies": []
+    },
+    {
+      "id": "missing-inherited-policy-fails-closed",
+      "principal": {"id": "alice", "kind": "human", "active": true, "policy_ids": ["basic"], "role_ids": ["analyst"]},
+      "roles": [{"id": "analyst", "policy_ids": ["missing"]}],
+      "policies": [{"id": "basic", "version": "v1", "statements": [{"effect": "Allow", "actions": ["llm:InvokeModel"], "resources": ["model:basic"]}]}],
+      "action": "llm:InvokeModel", "resource": "model:basic",
+      "expected_effect": "Deny", "expected_reason": "unresolved-attachment", "expected_policies": []
+    },
+    {
+      "id": "duplicate-role-record-fails-closed",
+      "principal": {"id": "alice", "kind": "human", "active": true, "policy_ids": ["basic"], "role_ids": ["analyst"]},
+      "roles": [{"id": "analyst", "policy_ids": []}, {"id": "analyst", "policy_ids": []}],
+      "policies": [{"id": "basic", "version": "v1", "statements": [{"effect": "Allow", "actions": ["llm:InvokeModel"], "resources": ["model:basic"]}]}],
+      "action": "llm:InvokeModel", "resource": "model:basic",
+      "expected_effect": "Deny", "expected_reason": "unresolved-attachment", "expected_policies": []
+    },
+    {
+      "id": "duplicate-policy-record-fails-closed",
+      "principal": {"id": "alice", "kind": "human", "active": true, "policy_ids": ["basic"], "role_ids": []},
+      "roles": [],
+      "policies": [
+        {"id": "basic", "version": "v1", "statements": [{"effect": "Allow", "actions": ["llm:InvokeModel"], "resources": ["model:basic"]}]},
+        {"id": "basic", "version": "v2", "statements": [{"effect": "Deny", "actions": ["llm:InvokeModel"], "resources": ["model:basic"]}]}
+      ],
+      "action": "llm:InvokeModel", "resource": "model:basic",
+      "expected_effect": "Deny", "expected_reason": "unresolved-attachment", "expected_policies": []
+    },
+    {
+      "id": "overlapping-attachment-deduplicates-policy",
+      "principal": {"id": "batch", "kind": "service", "active": true, "policy_ids": ["providers"], "role_ids": ["runner"]},
+      "roles": [{"id": "runner", "policy_ids": ["providers"]}],
+      "policies": [{"id": "providers", "version": "v4", "statements": [{"effect": "Allow", "actions": ["llm:UseProvider"], "resources": ["provider:openai"]}]}],
+      "action": "llm:UseProvider", "resource": "provider:openai",
+      "expected_effect": "Allow", "expected_reason": "allowed",
+      "expected_policies": [{"id": "providers", "version": "v4"}]
+    }
+  ]
+}
