@@ -163,6 +163,11 @@ The existing self/specified-principal IAM requirements apply to all filtered rea
 
 Unavailable or malformed registration storage rejects construction with its fixed safe error; no server is returned. Empty registrations are valid for deployments that have only delegated routes or no published managed models. Registered direct calls still pass through token authentication, full IAM destination evaluation, limits, audit, and usage accounting. The configuration is a startup snapshot, so deployments rebuild the handler/server after changing registrations. Callers continue owning database and HTTP resource lifecycle. Existing custom-invoker factories retain their signatures.
 
+## Audit occurrence-time filters
+
+`GET /v1/audit` accepts optional inclusive `from_ms` and exclusive `to_ms` occurrence-time bounds in epoch milliseconds. Values must be canonical nonnegative safe-integer decimals; when both are present, start must precede end. Duplicate and unknown query fields remain invalid. The target principal's `audit:Read` requirement applies to every range, including self reads.
+
+The PostgreSQL reader binds the time predicates alongside the principal and event-ID cursor, and validates every row, including its lookahead record. The HTTP projection independently checks occurrence times for injected readers. Out-of-range data rejects the whole page with safe availability errors and required read auditing. Pagination remains descending by event ID, even when recorded occurrence times are not monotonic. Clients repeat the range with the next cursor; the cursor is only a position and never expands principal scope. No dedicated time index or schema change is introduced; benchmark ranges before changing indexes. Retention, organization-wide search, and content auditing remain separate work.
 
 ## Usage CSV page export
 

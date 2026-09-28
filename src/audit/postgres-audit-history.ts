@@ -1,5 +1,7 @@
 import { type GatewayAuditSqlClient, projectGatewayAuditEvent } from './postgres-gateway-audit.ts';
 
+import { type AuditTimeRange, matchesAuditTimeRange, validAuditTimeRange } from './time-range.ts';
+
 const MAX_BIGINT = 9_223_372_036_854_775_807n;
 
 export class AuditHistoryUnavailable extends Error {
@@ -34,7 +36,7 @@ function occurredAt(value: unknown): number {
   return numeric;
 }
 
-export interface AuditHistoryQuery {
+export interface AuditHistoryQuery extends AuditTimeRange {
   readonly principalId: string;
   readonly limit: number;
   readonly cursor?: string | null;
@@ -67,7 +69,8 @@ export function createPostgresAuditHistoryReader(
       query.principalId.length > 256 ||
       !Number.isSafeInteger(query.limit) ||
       query.limit < 1 ||
-      query.limit > 100
+      query.limit > 100 ||
+      !validAuditTimeRange(query)
     ) {
       throw new AuditHistoryUnavailable();
     }
@@ -80,9 +83,17 @@ export function createPostgresAuditHistoryReader(
          FROM gateway_audit_events
          WHERE principal_id = $1
            AND ($2::bigint IS NULL OR event_id < $2::bigint)
+           AND ($4::bigint IS NULL OR occurred_at_ms >= $4::bigint)
+           AND ($5::bigint IS NULL OR occurred_at_ms < $5::bigint)
          ORDER BY event_id DESC
          LIMIT $3`,
-        [query.principalId, cursor?.text ?? null, query.limit + 1],
+        [
+          query.principalId,
+          cursor?.text ?? null,
+          query.limit + 1,
+          query.fromMs ?? null,
+          query.toMs ?? null,
+        ],
       );
       if (result.rows.length > query.limit + 1) throw new AuditHistoryUnavailable();
       let previous = cursor?.numeric ?? MAX_BIGINT + 1n;
@@ -106,6 +117,7 @@ export function createPostgresAuditHistoryReader(
           occurredAt(row.occurred_at_ms),
         );
         if (
+          !matchesAuditTimeRange(projected.occurredAt, query) ||
           projected.principalId !== query.principalId ||
           projected.credentialId === null ||
           projected.policyVersions === null

@@ -32,3 +32,7 @@
 
 - This branch starts from main and remains independent of pending audit-range PR #62.
 - Report page bounds, CSV text transformation, and remaining full-history export work in the PR.
+
+## Integration update
+
+PR #62 was approved and merged during implementation. Merge current main, preserve the audit-range and CSV contracts, and run the combined checks before publication.
