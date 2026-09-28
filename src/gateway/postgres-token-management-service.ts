@@ -43,7 +43,28 @@ export function createPostgresTokenManagementService(ports: {
   readonly now: () => number;
 }) {
   const identities = createPostgresIdentitySnapshotStore(ports.client);
-  const coordinator = createPostgresTokenManagementCoordinator(ports);
+  const coordinator = createPostgresTokenManagementCoordinator({
+    ...ports,
+    resolveMaxLifetimeMs: async (principalId) => {
+      const result = await ports.client.query(
+        'SELECT principal_id, kind FROM iam_principals WHERE principal_id = $1',
+        [principalId],
+      );
+      const row = result.rows[0];
+      if (
+        result.rows.length !== 1 ||
+        typeof row !== 'object' ||
+        row === null ||
+        Array.isArray(row) ||
+        !('principal_id' in row) ||
+        row.principal_id !== principalId ||
+        !('kind' in row) ||
+        (row.kind !== 'human' && row.kind !== 'service')
+      )
+        throw new TokenManagementUnavailable();
+      return (row.kind === 'human' ? 30 : 90) * 86_400_000;
+    },
+  });
 
   async function resolveActor(id: string): Promise<TokenManagementActor> {
     try {

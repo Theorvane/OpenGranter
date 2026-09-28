@@ -275,8 +275,15 @@ The PostgreSQL migration runner applies versions `001` through `008` in order, r
 - Normal, uppercase, parameterized, and whitespace-trimmed application/json requests remain accepted.
 - Authentication still precedes media validation; denial-audit failure retains audit_unavailable without exposing input.
 
-## Planned SSO management foundation (not yet implemented)
+## SSO management foundation (SSO pending; internal lifetime caps implemented)
 
 - OIDC-authenticated human management callers still pass existing iam:Manage policy checks; authentication does not grant management authority. Service-account management authentication is excluded from the first slice.
 - New human-owner proxy tokens cannot exceed 30 days; new service-owner tokens cannot exceed 90 days. Expiry remains mandatory.
-- Identity binding and management authentication scenarios await the remaining planning answers. These scenarios are release requirements pending implementation, not assertions that SSO or caps already work.
+- Identity binding and management authentication scenarios await the remaining planning answers. SSO scenarios remain pending implementation; internal lifetime cap scenarios are covered separately below.
+
+## Internal proxy-token lifetime caps
+
+- For both persisted owner kinds, exact maximum future expiry succeeds and one millisecond beyond fails without credential or lifecycle writes; caller kind/cap fields cannot widen it.
+- Policy Deny and decision-audit failure stop before target-kind lookup. Missing/malformed/duplicate/unavailable owner data fails safely after authorized decision persistence.
+- Cap validation and credential creation use one issuance timestamp. Previously issued long-lived credentials remain revocable.
+- These scenarios concern the trusted internal service; SSO identity binding and public management authentication remain pending.
