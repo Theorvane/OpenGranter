@@ -199,3 +199,12 @@ The PostgreSQL migration runner applies versions `001` through `008` in order, r
 - Invalid inputs reject before SQL. Out-of-scope, duplicate, malformed, and falsely activated rows or driver failures return a fixed safe error without partial mappings.
 - Delegated IAM filtering precedes persisted lookup: denied providers are never looked up or sent upstream. Missing mappings stop before inference; successful requests send only authorized resolved slugs.
 - Migration `009` ships in the complete manifest and applies idempotently. Administrator verification, audited configuration writes, and deployment adapter wiring remain separate work.
+
+## Persisted dual-route gateway composition
+
+- A dual-route PostgreSQL handler and unbound Node server use stored direct registrations and verified OpenRouter provider mappings without caller-supplied invokers. Construction retrieves no secret and performs no upstream call.
+- The same proxy token reaches allowed managed and delegated aliases through one socket; both persist normalized per-attempt usage and attributed content-free audit.
+- Delegated requests resolve only their stored secret reference and forward only IAM-allowed, enabled/verified provider slugs. Denied providers, missing mappings, limits, revocation, and required pre-call audit failure stop external contact.
+- Missing secrets prevent transport. OpenRouter upstream failure exposes only the existing safe gateway response and never switches to a direct provider.
+- Empty direct registrations permit delegated-only construction; malformed or unavailable registration storage rejects construction safely.
+- Existing factories remain available. Migrations, listening, DB lifecycle, secret/limit implementations, and deployment runtime selection remain caller responsibilities.

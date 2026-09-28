@@ -1,0 +1,264 @@
+import assert from 'node:assert/strict';
+import type { AddressInfo } from 'node:net';
+import { test } from 'node:test';
+import { PGlite } from '@electric-sql/pglite';
+import { createNodePostgresDualRouteChatServer } from '../src/gateway/node-postgres-dual-chat-server.ts';
+import { createPostgresProxyCredentialStore } from '../src/gateway/postgres-proxy-credentials.ts';
+import { createProxyTokenService } from '../src/gateway/proxy-tokens.ts';
+import { loadPostgresMigrationSources } from '../src/storage/postgres-migration-sources.ts';
+import { applyPostgresMigrations } from '../src/storage/postgres-migrations.ts';
+
+async function fixture(direct = true) {
+  const db = new PGlite();
+  const client = { query: (sql: string, params: readonly unknown[]) => db.query(sql, [...params]) };
+  await applyPostgresMigrations(
+    {
+      transaction: (callback) =>
+        db.transaction((tx) =>
+          callback({
+            exec: (sql) => tx.exec(sql),
+            query: (sql, params) => tx.query(sql, [...params]),
+          }),
+        ),
+    },
+    await loadPostgresMigrationSources(),
+    () => 1000,
+  );
+  await db.exec(`
+    INSERT INTO iam_principals VALUES ('service-1', 'service', true);
+    INSERT INTO iam_policies VALUES ('allow', 'v1', '[{"effect":"Allow","actions":["llm:InvokeModel","llm:UseProvider","usage:ReadSelf","audit:Read"],"resources":["*"]},{"effect":"Deny","actions":["llm:UseProvider"],"resources":["provider:denied-provider"]}]');
+    INSERT INTO iam_principal_policies VALUES ('service-1', 'allow');
+    INSERT INTO catalog_models VALUES ('direct-chat', 1000, true, NULL), ('or-chat', 1000, true, NULL);
+    INSERT INTO catalog_routes (route_id, alias, kind, version, credential_ref, candidates) VALUES
+      ('direct-v1', 'direct-chat', 'managed', 'v1', NULL, '[{"id":"direct","kind":"managed","providerId":"openai","upstreamModelId":"gpt-fixture"}]'),
+      ('or-v1', 'or-chat', 'delegated', 'v1', 'secret/openrouter', '[{"id":"allowed","kind":"delegated","providerId":"openai","upstreamModelId":"openai/gpt-fixture"},{"id":"denied","kind":"delegated","providerId":"denied-provider","upstreamModelId":"openai/gpt-fixture"}]');
+    UPDATE catalog_models SET active_route_id = 'direct-v1' WHERE alias = 'direct-chat';
+    UPDATE catalog_models SET active_route_id = 'or-v1' WHERE alias = 'or-chat';
+    INSERT INTO openrouter_provider_mappings VALUES ('openai', 'openai/gpt-fixture', 'openai', true, true), ('denied-provider', 'openai/gpt-fixture', 'azure', true, true);
+  `);
+  if (direct)
+    await db.exec(
+      "INSERT INTO direct_provider_registrations VALUES ('openai', 'openai', 'secret/openai', true, NULL)",
+    );
+  const tokens = createProxyTokenService({
+    store: createPostgresProxyCredentialStore(client),
+    now: () => 1000,
+  });
+  const issued = await tokens.issue({
+    principalId: 'service-1',
+    actorId: 'bootstrap',
+    requestId: 'issued',
+    expiresAt: 10000,
+  });
+  const secrets: string[] = [];
+  const hosts: string[] = [];
+  const state = { limit: true, secret: true, upstreamStatus: 200 };
+  let sequence = 0;
+  const server = await createNodePostgresDualRouteChatServer({
+    client,
+    now: () => 1000,
+    newRequestId: () => `dual-${++sequence}`,
+    checkLimit: async () => state.limit,
+    resolveSecret: async (ref) => {
+      secrets.push(ref);
+      return state.secret ? 'fixture-upstream-key' : undefined;
+    },
+    timeoutMs: 1000,
+    ...{
+      invokeOpenRouter: async () => {
+        throw new Error('unexpected runtime override');
+      },
+      resolveVerifiedProviderSlug: async () => {
+        throw new Error('unexpected mapping override');
+      },
+    },
+    fetcher: async (url, init) => {
+      hosts.push(String(url));
+      assert.equal(init?.redirect, 'error');
+      assert.ok(init?.signal instanceof AbortSignal);
+      const body = JSON.parse(String(init?.body));
+      if (String(url).includes('openrouter.ai')) {
+        assert.equal(body.model, 'openai/gpt-fixture');
+        assert.deepEqual(body.provider, { only: ['openai'] });
+        assert.equal(body.stream, false);
+      } else {
+        assert.equal(String(url), 'https://api.openai.com/v1/chat/completions');
+        assert.equal(body.model, 'gpt-fixture');
+      }
+      if (state.upstreamStatus !== 200)
+        return new Response('private-upstream-failure', { status: state.upstreamStatus });
+      return Response.json({
+        id: 'completion-fixture',
+        created: 1000,
+        model: body.model,
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: 'private-response' },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: { prompt_tokens: 2, completion_tokens: 3, total_tokens: 5 },
+      });
+    },
+  });
+  assert.equal(server.listening, false);
+  assert.deepEqual(secrets, []);
+  assert.deepEqual(hosts, []);
+  await new Promise<void>((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+  const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  const headers = { authorization: `Bearer ${issued.token}`, 'content-type': 'application/json' };
+  const call = (model = 'or-chat') =>
+    fetch(`${base}/v1/chat/completions`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ model, messages: [{ role: 'user', content: 'private-prompt' }] }),
+    });
+  const close = async () => {
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
+    await db.close();
+  };
+  return { db, client, server, base, headers, call, close, tokens, issued, secrets, hosts, state };
+}
+
+test('one persisted socket and token invoke both route kinds and retain content-free history', async () => {
+  const { db, base, headers, call, close, secrets, hosts, issued } = await fixture();
+  try {
+    for (const model of ['direct-chat', 'or-chat']) {
+      const response = await call(model);
+      assert.equal(response.status, 200);
+      const body = (await response.json()) as { model: string };
+      assert.equal(body.model, model);
+    }
+    assert.deepEqual(secrets, ['secret/openai', 'secret/openrouter']);
+    assert.deepEqual(hosts, [
+      'https://api.openai.com/v1/chat/completions',
+      'https://openrouter.ai/api/v1/chat/completions',
+    ]);
+    const models = await fetch(`${base}/v1/models`, { headers });
+    assert.equal(models.status, 200);
+    assert.deepEqual(
+      ((await models.json()) as { data: { id: string }[] }).data.map((item) => item.id).sort(),
+      ['direct-chat', 'or-chat'],
+    );
+    for (const path of ['usage', 'audit']) {
+      const response = await fetch(`${base}/v1/${path}`, { headers });
+      assert.equal(response.status, 200);
+      const text = await response.text();
+      assert.ok((JSON.parse(text) as { data: unknown[] }).data.length > 0);
+      for (const secret of [
+        'private-prompt',
+        'private-response',
+        'fixture-upstream-key',
+        issued.token,
+      ])
+        assert.equal(text.includes(secret), false);
+    }
+    const usage = await db.query<{ record: { routeKind: string } }>(
+      'SELECT record FROM usage_records',
+    );
+    assert.deepEqual(usage.rows.map((item) => item.record.routeKind).sort(), [
+      'delegated',
+      'managed',
+    ]);
+  } finally {
+    await close();
+  }
+});
+
+test('mapping, IAM and limit denials block contact; secret/upstream/audit failures remain safe without route switching', async () => {
+  const { db, call, close, secrets, hosts, state } = await fixture();
+  try {
+    for (const update of [
+      "UPDATE openrouter_provider_mappings SET enabled = false WHERE provider_id = 'openai'",
+      "UPDATE openrouter_provider_mappings SET enabled = true, verified = false WHERE provider_id = 'openai'",
+    ]) {
+      await db.exec(update);
+      const response = await call();
+      assert.equal(response.status, 503);
+      await response.text();
+    }
+    await db.exec(
+      "UPDATE openrouter_provider_mappings SET enabled = true, verified = true WHERE provider_id = 'openai'",
+    );
+    state.limit = false;
+    assert.equal((await call()).status, 429);
+    state.limit = true;
+    await db.exec(
+      `INSERT INTO iam_policies VALUES ('deny', 'v1', '[{"effect":"Deny","actions":["llm:UseProvider"],"resources":["provider:openai"]}]'); INSERT INTO iam_principal_policies VALUES ('service-1', 'deny')`,
+    );
+    for (const model of ['direct-chat', 'or-chat']) assert.equal((await call(model)).status, 403);
+    assert.deepEqual(secrets, []);
+    assert.deepEqual(hosts, []);
+    await db.exec("DELETE FROM iam_principal_policies WHERE policy_id = 'deny'");
+    state.secret = false;
+    assert.equal((await call()).status, 503);
+    assert.deepEqual(secrets, ['secret/openrouter']);
+    assert.deepEqual(hosts, []);
+    state.secret = true;
+    state.upstreamStatus = 503;
+    const failed = await call();
+    assert.equal(failed.status, 502);
+    assert.equal((await failed.text()).includes('private-upstream-failure'), false);
+    assert.deepEqual(hosts, ['https://openrouter.ai/api/v1/chat/completions']);
+    await db.exec('DROP TABLE gateway_audit_events');
+    assert.equal((await call()).status, 503);
+    assert.equal(secrets.length, 2);
+    assert.equal(hosts.length, 1);
+  } finally {
+    await close();
+  }
+});
+
+test('delegated-only construction works and revoked tokens stop both paths before secrets', async () => {
+  const { call, close, tokens, issued, secrets, hosts } = await fixture(false);
+  try {
+    const response = await call();
+    assert.equal(response.status, 200);
+    await response.text();
+    await tokens.revoke({
+      credentialId: issued.credentialId,
+      actorId: 'admin',
+      requestId: 'revoked',
+    });
+    for (const model of ['direct-chat', 'or-chat']) assert.equal((await call(model)).status, 401);
+    assert.deepEqual(secrets, ['secret/openrouter']);
+    assert.deepEqual(hosts, ['https://openrouter.ai/api/v1/chat/completions']);
+  } finally {
+    await close();
+  }
+});
+
+test('registration bootstrap failure rejects safely before transport or secret lookup', async () => {
+  let external = 0;
+  await assert.rejects(
+    createNodePostgresDualRouteChatServer({
+      client: {
+        query: async () => {
+          throw new Error('private-driver-secret');
+        },
+      },
+      now: () => 1000,
+      newRequestId: () => 'id',
+      checkLimit: async () => true,
+      resolveSecret: async () => {
+        external++;
+        return 'fixture';
+      },
+      fetcher: async () => {
+        external++;
+        return Response.json({});
+      },
+    }),
+    {
+      name: 'DirectProviderStoreUnavailable',
+      message: 'Direct provider registration store unavailable',
+    },
+  );
+  assert.equal(external, 0);
+});
