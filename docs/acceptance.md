@@ -99,3 +99,11 @@ The PostgreSQL migration runner applies versions `001` through `007` in order, r
 - Unsupported kinds, invalid/duplicate IDs, malformed secret references, missing Anthropic limits, invalid numeric limits, non-row data, and SQL failures reject the entire snapshot with a fixed safe error. No partial configuration is returned.
 - A direct invoker built from the snapshot contacts only its fixed registered provider host and resolves the matching secret reference. Disabled and unknown providers reach neither the secret resolver nor the transport. Database constraints reject invalid Anthropic registrations, and PostgreSQL bigint limits decode without precision loss within the supported safe-integer range.
 - Configuration loading remains an explicit trusted operation; live reload, registration writes, and HTTP management are not provided by this reader.
+
+
+## Persisted direct gateway composition
+
+- The async Node factory loads stored enabled registrations and returns an unbound server without retrieving provider secrets. An authenticated, authorized socket chat uses that stored secret reference and fixed provider host, then persists attributed content-free usage and audit history.
+- Explicit model Deny and credential revocation stop requests before any additional secret lookup or provider call. Tokens, keys, prompts, and responses remain absent from history metadata.
+- Unavailable or malformed registration storage rejects construction safely without secret lookup or transport. Empty registration snapshots still permit construction for delegated-only configurations.
+- Callers supply connection, migrations, limits, secret resolution, transport options, and optional delegated/Jev ports, and own listening/shutdown. Configuration changes require rebuilding this snapshot; no live reload or process startup is provided.
