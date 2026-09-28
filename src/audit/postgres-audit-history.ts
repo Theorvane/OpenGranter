@@ -1,6 +1,9 @@
+import {
+  type AuditHistoryFilters,
+  matchesAuditHistoryFilters,
+  validAuditHistoryFilters,
+} from './history-filters.ts';
 import { type GatewayAuditSqlClient, projectGatewayAuditEvent } from './postgres-gateway-audit.ts';
-
-import { type AuditTimeRange, matchesAuditTimeRange, validAuditTimeRange } from './time-range.ts';
 
 const MAX_BIGINT = 9_223_372_036_854_775_807n;
 
@@ -36,7 +39,7 @@ function occurredAt(value: unknown): number {
   return numeric;
 }
 
-export interface AuditHistoryQuery extends AuditTimeRange {
+export interface AuditHistoryQuery extends AuditHistoryFilters {
   readonly principalId: string;
   readonly limit: number;
   readonly cursor?: string | null;
@@ -70,7 +73,7 @@ export function createPostgresAuditHistoryReader(
       !Number.isSafeInteger(query.limit) ||
       query.limit < 1 ||
       query.limit > 100 ||
-      !validAuditTimeRange(query)
+      !validAuditHistoryFilters(query)
     ) {
       throw new AuditHistoryUnavailable();
     }
@@ -85,6 +88,7 @@ export function createPostgresAuditHistoryReader(
            AND ($2::bigint IS NULL OR event_id < $2::bigint)
            AND ($4::bigint IS NULL OR occurred_at_ms >= $4::bigint)
            AND ($5::bigint IS NULL OR occurred_at_ms < $5::bigint)
+           AND ($6::text IS NULL OR details->>'modelAlias' = $6::text)
          ORDER BY event_id DESC
          LIMIT $3`,
         [
@@ -93,6 +97,7 @@ export function createPostgresAuditHistoryReader(
           query.limit + 1,
           query.fromMs ?? null,
           query.toMs ?? null,
+          query.modelAlias ?? null,
         ],
       );
       if (result.rows.length > query.limit + 1) throw new AuditHistoryUnavailable();
@@ -117,7 +122,7 @@ export function createPostgresAuditHistoryReader(
           occurredAt(row.occurred_at_ms),
         );
         if (
-          !matchesAuditTimeRange(projected.occurredAt, query) ||
+          !matchesAuditHistoryFilters(projected.occurredAt, projected.details, query) ||
           projected.principalId !== query.principalId ||
           projected.credentialId === null ||
           projected.policyVersions === null
