@@ -13,6 +13,7 @@ const migrationFiles = [
   '006_optional_managed_jev.sql',
   '007_direct_provider_registrations.sql',
   '008_token_management_decisions.sql',
+  '009_openrouter_provider_mappings.sql',
 ] as const;
 
 export class MigrationSourceUnavailable extends Error {

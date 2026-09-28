@@ -191,3 +191,11 @@ The PostgreSQL migration runner applies versions `001` through `008` in order, r
 - Malformed/incomplete or unavailable actor snapshots fail with a fixed availability error and no policy decision or mutation. Required decision-write failure also prevents mutation, leaving an existing token active.
 - Invalid actor/operation IDs or nonnegative-safe-integer expiry reject before database reads. Decision audits contain only resolved policy IDs/versions and nonsecret operation metadata.
 - Authentication and public management endpoints remain separate work. The consistent actor snapshot is read once per operation; concurrent changes after that read are not revalidated or locked across decision and mutation.
+
+## Persisted verified OpenRouter provider mappings
+
+- A PostgreSQL resolver returns only an enabled, explicitly verified slug for the exact inference-provider ID and upstream model ID. Missing, disabled, unverified, and wrong-model mappings do not resolve.
+- Duplicate active verified mappings for the same model/slug under different IAM provider IDs are rejected by the schema. Disabled/unverified staging mappings do not grant eligibility.
+- Invalid inputs reject before SQL. Out-of-scope, duplicate, malformed, and falsely activated rows or driver failures return a fixed safe error without partial mappings.
+- Delegated IAM filtering precedes persisted lookup: denied providers are never looked up or sent upstream. Missing mappings stop before inference; successful requests send only authorized resolved slugs.
+- Migration `009` ships in the complete manifest and applies idempotently. Administrator verification, audited configuration writes, and deployment adapter wiring remain separate work.
