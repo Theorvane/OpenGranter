@@ -346,8 +346,12 @@ export function createChatHandler<T>(
   return async (request) => {
     const requestId = ports.newRequestId();
     const url = new URL(request.url);
-    const chatRequest = request.method === 'POST' && url.pathname === '/v1/chat/completions';
-    const modelListRequest = request.method === 'GET' && url.pathname === '/v1/models';
+    const chatRequest =
+      request.method === 'POST' &&
+      (url.pathname === '/v1/chat/completions' || url.pathname === '/api/v1/chat/completions');
+    const modelListRequest =
+      request.method === 'GET' &&
+      (url.pathname === '/v1/models' || url.pathname === '/api/v1/models');
     const usageListRequest = request.method === 'GET' && url.pathname === '/v1/usage';
     const auditListRequest = request.method === 'GET' && url.pathname === '/v1/audit';
     if (!chatRequest && !modelListRequest && !usageListRequest && !auditListRequest) {
