@@ -199,3 +199,12 @@ The PostgreSQL migration runner applies versions `001` through `008` in order, r
 - Invalid inputs reject before SQL. Out-of-scope, duplicate, malformed, and falsely activated rows or driver failures return a fixed safe error without partial mappings.
 - Delegated IAM filtering precedes persisted lookup: denied providers are never looked up or sent upstream. Missing mappings stop before inference; successful requests send only authorized resolved slugs.
 - Migration `009` ships in the complete manifest and applies idempotently. Administrator verification, audited configuration writes, and deployment adapter wiring remain separate work.
+
+## Persisted policy simulation
+
+- An internal simulator loads one current PostgreSQL principal/direct/role policy snapshot for an exact action/resource and returns only effect, reason, and evaluated policy IDs/versions.
+- Direct and inherited grants combine; explicit Deny wins, absent matching Allow defaults deny, and inactive principals deny with no evaluated policy versions. Missing principals return no result.
+- Policy, version, attachment, and active-state changes affect the next simulation. Extra caller policy/state fields cannot override stored data; statements and unexpected stored fields are not returned.
+- Invalid bounded inputs reject before SQL. Malformed/incomplete/unavailable snapshots fail safely without partial grants or driver details.
+- Simulation and the live PostgreSQL gateway agree on model/provider IAM for the same persisted state. Simulation produces no inference, credential mutation, usage record, or decision audit; it does not certify catalog/credential/limit readiness.
+- This remains a trusted internal diagnostic. Public authentication, reader scope, simulation-access audit, and hypothetical-policy editing remain open.
