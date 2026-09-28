@@ -1,6 +1,13 @@
 import type { AuditHistoryEvent, AuditHistoryPage } from './postgres-audit-history.ts';
 import { projectGatewayAuditEvent } from './postgres-gateway-audit.ts';
 
+import {
+  type AuditTimeRange,
+  matchesAuditTimeRange,
+  parseAuditTimeRange,
+  validAuditTimeRange,
+} from './time-range.ts';
+
 const MAX_BIGINT = 9_223_372_036_854_775_807n;
 
 export class InvalidAuditHistoryQuery extends Error {
@@ -23,14 +30,14 @@ function principalId(value: string): boolean {
   return value.length <= 256 && /^[A-Za-z0-9][A-Za-z0-9._+:/@-]*$/u.test(value);
 }
 
-export function parseAuditHistoryQuery(url: URL): {
+export function parseAuditHistoryQuery(url: URL): AuditTimeRange & {
   readonly requestedPrincipalId: string | null;
   readonly limit: number;
   readonly cursor: string | null;
 } {
   for (const key of url.searchParams.keys()) {
     if (
-      !['principal_id', 'limit', 'cursor'].includes(key) ||
+      !['principal_id', 'limit', 'cursor', 'from_ms', 'to_ms'].includes(key) ||
       url.searchParams.getAll(key).length !== 1
     ) {
       throw new InvalidAuditHistoryQuery();
@@ -46,7 +53,14 @@ export function parseAuditHistoryQuery(url: URL): {
   }
   const cursor = url.searchParams.get('cursor');
   if (cursor !== null) eventId(cursor);
-  return { requestedPrincipalId, limit: rawLimit === null ? 50 : Number(rawLimit), cursor };
+  const range = parseAuditTimeRange(url.searchParams);
+  if (range === null) throw new InvalidAuditHistoryQuery();
+  return {
+    ...range,
+    requestedPrincipalId,
+    limit: rawLimit === null ? 50 : Number(rawLimit),
+    cursor,
+  };
 }
 
 /** Reproject an injected reader's output before it crosses the HTTP boundary. */
@@ -55,8 +69,14 @@ export function projectAuditHistoryPage(
   targetPrincipalId: string,
   limit: number,
   cursor: string | null,
+  range: AuditTimeRange = {},
 ): AuditHistoryPage {
-  if (!value || !Array.isArray(value.events) || value.events.length > limit) {
+  if (
+    !validAuditTimeRange(range) ||
+    !value ||
+    !Array.isArray(value.events) ||
+    value.events.length > limit
+  ) {
     throw new InvalidAuditHistoryQuery();
   }
   let previous = cursor === null ? MAX_BIGINT + 1n : eventId(cursor);
@@ -79,6 +99,7 @@ export function projectAuditHistoryPage(
       input.occurredAt,
     );
     if (
+      !matchesAuditTimeRange(projected.occurredAt, range) ||
       projected.principalId !== targetPrincipalId ||
       projected.credentialId === null ||
       projected.policyVersions === null

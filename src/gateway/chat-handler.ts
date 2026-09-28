@@ -367,10 +367,13 @@ export function createChatHandler<T>(
             principalId: targetPrincipalId,
             limit: parsed.limit,
             cursor: parsed.cursor,
+            ...(parsed.fromMs === undefined ? {} : { fromMs: parsed.fromMs }),
+            ...(parsed.toMs === undefined ? {} : { toMs: parsed.toMs }),
           }),
           targetPrincipalId,
           parsed.limit,
           parsed.cursor,
+          parsed,
         );
       } catch {
         try {

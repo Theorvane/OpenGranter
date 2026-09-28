@@ -85,7 +85,7 @@ test('forged cursors and invalid page sizes fail before storage access', async (
   assert.equal(calls.length, 0);
   await reader({ principalId: 'service-1', limit: 2, cursor: '9' });
   assert.match(calls[0]?.sql ?? '', /WHERE principal_id = \$1/u);
-  assert.deepEqual(calls[0]?.params, ['service-1', '9', 3]);
+  assert.deepEqual(calls[0]?.params, ['service-1', '9', 3, null, null]);
 });
 
 test('mixed-principal and malformed stored rows fail as a whole', async () => {
@@ -154,4 +154,78 @@ test('database failures return a fixed safe error', async () => {
     name: 'AuditHistoryUnavailable',
     message: 'Audit history unavailable',
   });
+});
+
+test('audit time filters retain event-ID pagination and principal scope', async () => {
+  const { db, writer, reader } = await fixture();
+  try {
+    for (const [id, time] of [
+      ['before', 999],
+      ['one', 1000],
+      ['two', 1000],
+      ['after', 1001],
+    ] as const) {
+      await writer.append(event('service-1', id, 1));
+      await db.query('UPDATE gateway_audit_events SET occurred_at_ms = $1 WHERE request_id = $2', [
+        time,
+        id,
+      ]);
+    }
+    await writer.append(event('service-2', 'foreign', 1));
+    const filter = { principalId: 'service-1', limit: 1, fromMs: 1000, toMs: 1001 };
+    const first = await reader(filter);
+    assert.deepEqual(
+      first.events.map((row) => row.requestId),
+      ['two'],
+    );
+    assert.ok(first.nextCursor);
+    const second = await reader({ ...filter, cursor: first.nextCursor });
+    assert.deepEqual(
+      second.events.map((row) => row.requestId),
+      ['one'],
+    );
+    assert.equal(second.nextCursor, null);
+  } finally {
+    await db.close();
+  }
+});
+
+test('malformed audit time filters fail before SQL', async () => {
+  let calls = 0;
+  const reader = createPostgresAuditHistoryReader({
+    query: async () => {
+      calls++;
+      return { rows: [] };
+    },
+  });
+  for (const filter of [{ fromMs: -1 }, { toMs: 1.5 }, { fromMs: 1000, toMs: 1000 }]) {
+    await assert.rejects(reader({ principalId: 'service-1', limit: 1, ...filter }), {
+      name: 'AuditHistoryUnavailable',
+    });
+  }
+  assert.equal(calls, 0);
+});
+
+test('out-of-range SQL results reject the entire audit page', async () => {
+  const reader = createPostgresAuditHistoryReader({
+    query: async () => ({
+      rows: [
+        {
+          event_id: '1',
+          occurred_at_ms: '1000',
+          kind: 'models-listed',
+          request_id: 'request-1',
+          principal_id: 'service-1',
+          credential_id: 'credential-1',
+          policy_versions: [{ id: 'allow', version: 'v1' }],
+          details: { count: 1 },
+        },
+      ],
+    }),
+  });
+  for (const filter of [{ fromMs: 1001 }, { toMs: 1000 }]) {
+    await assert.rejects(reader({ principalId: 'service-1', limit: 1, ...filter }), {
+      name: 'AuditHistoryUnavailable',
+    });
+  }
 });

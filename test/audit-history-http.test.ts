@@ -208,3 +208,57 @@ test('audit read events persist only target and count metadata', async () => {
     );
   }
 });
+
+test('audit time bounds reach the authorized reader', async () => {
+  const { handler, state } = fixture();
+  const response = await handler(request('?from_ms=1000&to_ms=1001'));
+  assert.equal(response.status, 200);
+  assert.deepEqual(state.queries, [
+    { principalId: 'person-1', limit: 50, cursor: null, fromMs: 1000, toMs: 1001 },
+  ]);
+});
+
+test('out-of-range injected audit pages fail closed', async () => {
+  for (const query of ['?from_ms=1001', '?to_ms=1000']) {
+    const { handler, state } = fixture();
+    assert.equal((await handler(request(query))).status, 503);
+    assert.equal((state.audit[0] as { kind: string }).kind, 'audit-history-read-unavailable');
+  }
+});
+
+test('invalid audit time ranges reject before storage', async () => {
+  for (const query of [
+    '?from_ms=-1',
+    '?from_ms=01',
+    '?to_ms=1.5',
+    '?from_ms=',
+    '?to_ms=9007199254740992',
+    '?from_ms=1000&to_ms=1000',
+    '?from_ms=1001&to_ms=1000',
+    '?from_ms=0&from_ms=1',
+  ]) {
+    const { handler, state } = fixture();
+    assert.equal((await handler(request(query))).status, 400);
+    assert.equal(state.queries.length, 0);
+  }
+});
+
+test('audit ranges do not bypass permissions or required read auditing', async () => {
+  for (const statements of [
+    [],
+    [
+      { effect: 'Allow' as const, actions: ['audit:Read'], resources: ['principal:person-1'] },
+      { effect: 'Deny' as const, actions: ['audit:Read'], resources: ['principal:person-1'] },
+    ],
+  ]) {
+    const { handler, state } = fixture({ statements });
+    assert.equal((await handler(request('?from_ms=0'))).status, 403);
+    assert.equal(state.queries.length, 0);
+  }
+  const { handler } = fixture({
+    writeAudit: async () => {
+      throw new Error('private failure');
+    },
+  });
+  assert.equal((await handler(request('?from_ms=0'))).status, 503);
+});
