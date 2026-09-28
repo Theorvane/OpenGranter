@@ -32,6 +32,7 @@ import {
 } from '../usage/history.ts';
 import type { UsageRecord } from '../usage/record-usage.ts';
 import { validOutputTokenLimit } from './chat-parameters.ts';
+import { createClientErrorResponse as errorResponse } from './client-errors.ts';
 
 const MAX_BODY_BYTES = 1024 * 1024;
 
@@ -339,13 +340,6 @@ async function readJsonBody(request: Request): Promise<unknown> {
   } finally {
     reader.releaseLock();
   }
-}
-
-function errorResponse(status: number, code: string, requestId: string): Response {
-  return Response.json(
-    { error: { code }, request_id: requestId },
-    { status, headers: { 'x-request-id': requestId } },
-  );
 }
 
 /** A text-only, non-streaming HTTP request boundary with injected trusted infrastructure. */

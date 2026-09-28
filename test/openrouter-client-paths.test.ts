@@ -153,17 +153,22 @@ for (const denied of [false, true]) {
     assert.deepEqual(f.activity, ['authenticate', 'catalog']);
   });
 }
-for (const [options, status, code] of [
-  [{ authenticated: false }, 401, 'unauthorized'],
-  [{ denied: true }, 403, 'forbidden'],
-  [{ limited: true }, 429, 'limit_exceeded'],
-  [{ auditFails: true }, 503, 'audit_unavailable'],
+for (const [options, status, code, message] of [
+  [{ authenticated: false }, 401, 'unauthorized', 'Authentication is required.'],
+  [{ denied: true }, 403, 'forbidden', 'Access is denied.'],
+  [{ limited: true }, 429, 'limit_exceeded', 'Request limit exceeded.'],
+  [
+    { auditFails: true },
+    503,
+    'audit_unavailable',
+    'Required audit recording is temporarily unavailable.',
+  ],
 ] as const) {
   test(`OpenRouter chat path preserves ${code} and stops inference`, async () => {
     const f = fixture(options);
     const response = await createChatHandler(f.ports)(clientRequest('/api/v1/chat/completions'));
     assert.equal(response.status, status);
-    assert.deepEqual(await response.json(), { error: { code }, request_id: 'request' });
+    assert.deepEqual(await response.json(), { error: { code, message }, request_id: 'request' });
     assert.equal(f.activity.includes('direct'), false);
     assert.equal(f.activity.includes('delegated'), false);
     assert.equal(f.activity.includes('usage'), false);

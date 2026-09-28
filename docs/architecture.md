@@ -334,3 +334,7 @@ Exact /api/v1 chat/models aliases use the same security and execution pipeline a
 ## Client output token limits
 
 Both chat paths accept positive safe-integer max_tokens. Native adapters map a captured limit and retain direct registration caps and existing defaults; invalid supplied values fail before external work. IAM, limits, required audit and usage are unchanged. See [contract](../contracts/client-output-limits.md).
+
+## Safe external-client errors
+
+All gateway errors and Node pre-header internal failures include fixed allowlisted English messages, preserving existing codes/statuses and required audit behavior without exposing private details. See [contract](../contracts/safe-client-errors.md).
