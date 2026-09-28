@@ -1,12 +1,11 @@
+import {
+  type AuditHistoryFilters,
+  matchesAuditHistoryFilters,
+  validAuditHistoryFilters,
+} from './history-filters.ts';
 import type { AuditHistoryEvent, AuditHistoryPage } from './postgres-audit-history.ts';
 import { projectGatewayAuditEvent } from './postgres-gateway-audit.ts';
-
-import {
-  type AuditTimeRange,
-  matchesAuditTimeRange,
-  parseAuditTimeRange,
-  validAuditTimeRange,
-} from './time-range.ts';
+import { parseAuditTimeRange } from './time-range.ts';
 
 const MAX_BIGINT = 9_223_372_036_854_775_807n;
 
@@ -30,7 +29,7 @@ function principalId(value: string): boolean {
   return value.length <= 256 && /^[A-Za-z0-9][A-Za-z0-9._+:/@-]*$/u.test(value);
 }
 
-export function parseAuditHistoryQuery(url: URL): AuditTimeRange & {
+export function parseAuditHistoryQuery(url: URL): AuditHistoryFilters & {
   readonly requestedPrincipalId: string | null;
   readonly format: 'json' | 'csv';
   readonly limit: number;
@@ -38,7 +37,7 @@ export function parseAuditHistoryQuery(url: URL): AuditTimeRange & {
 } {
   for (const key of url.searchParams.keys()) {
     if (
-      !['principal_id', 'limit', 'cursor', 'from_ms', 'to_ms', 'format'].includes(key) ||
+      !['principal_id', 'limit', 'cursor', 'from_ms', 'to_ms', 'format', 'model'].includes(key) ||
       url.searchParams.getAll(key).length !== 1
     ) {
       throw new InvalidAuditHistoryQuery();
@@ -58,8 +57,11 @@ export function parseAuditHistoryQuery(url: URL): AuditTimeRange & {
   if (cursor !== null) eventId(cursor);
   const range = parseAuditTimeRange(url.searchParams);
   if (range === null) throw new InvalidAuditHistoryQuery();
+  const modelAlias = url.searchParams.get('model');
+  const filters = { ...range, ...(modelAlias === null ? {} : { modelAlias }) };
+  if (!validAuditHistoryFilters(filters)) throw new InvalidAuditHistoryQuery();
   return {
-    ...range,
+    ...filters,
     requestedPrincipalId,
     format,
     limit: rawLimit === null ? 50 : Number(rawLimit),
@@ -73,10 +75,10 @@ export function projectAuditHistoryPage(
   targetPrincipalId: string,
   limit: number,
   cursor: string | null,
-  range: AuditTimeRange = {},
+  range: AuditHistoryFilters = {},
 ): AuditHistoryPage {
   if (
-    !validAuditTimeRange(range) ||
+    !validAuditHistoryFilters(range) ||
     !value ||
     !Array.isArray(value.events) ||
     value.events.length > limit
@@ -103,7 +105,7 @@ export function projectAuditHistoryPage(
       input.occurredAt,
     );
     if (
-      !matchesAuditTimeRange(projected.occurredAt, range) ||
+      !matchesAuditHistoryFilters(projected.occurredAt, projected.details, range) ||
       projected.principalId !== targetPrincipalId ||
       projected.credentialId === null ||
       projected.policyVersions === null

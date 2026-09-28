@@ -85,7 +85,7 @@ test('forged cursors and invalid page sizes fail before storage access', async (
   assert.equal(calls.length, 0);
   await reader({ principalId: 'service-1', limit: 2, cursor: '9' });
   assert.match(calls[0]?.sql ?? '', /WHERE principal_id = \$1/u);
-  assert.deepEqual(calls[0]?.params, ['service-1', '9', 3, null, null]);
+  assert.deepEqual(calls[0]?.params, ['service-1', '9', 3, null, null, null]);
 });
 
 test('mixed-principal and malformed stored rows fail as a whole', async () => {
@@ -225,6 +225,89 @@ test('out-of-range SQL results reject the entire audit page', async () => {
   });
   for (const filter of [{ fromMs: 1001 }, { toMs: 1000 }]) {
     await assert.rejects(reader({ principalId: 'service-1', limit: 1, ...filter }), {
+      name: 'AuditHistoryUnavailable',
+    });
+  }
+});
+
+test('model/time/cursor filters exclude other principals and events without a known model', async () => {
+  const { db, writer, reader } = await fixture();
+  try {
+    for (const [principal, requestId, modelAlias] of [
+      ['service-1', 'one', 'chat'],
+      ['service-1', 'other-model', 'other'],
+      ['service-2', 'foreign', 'chat'],
+      ['service-1', 'two', 'chat'],
+    ] as const)
+      await writer.append({
+        kind: 'route-unavailable',
+        principalId: principal,
+        requestId,
+        modelAlias,
+        credentialId: 'credential-1',
+        policyVersions: [],
+      });
+    await writer.append(event('service-1', 'without-model', 1));
+    const filter = {
+      principalId: 'service-1',
+      limit: 1,
+      modelAlias: 'chat',
+      fromMs: 1000,
+      toMs: 1001,
+    };
+    const first = await reader(filter);
+    assert.deepEqual(
+      first.events.map((row) => row.requestId),
+      ['two'],
+    );
+    assert.ok(first.nextCursor);
+    const second = await reader({ ...filter, cursor: first.nextCursor });
+    assert.deepEqual(
+      second.events.map((row) => row.requestId),
+      ['one'],
+    );
+    assert.equal(second.nextCursor, null);
+    assert.deepEqual((await reader({ ...filter, modelAlias: "chat' OR 1=1 --" })).events, []);
+  } finally {
+    await db.close();
+  }
+});
+
+test('malformed model filters reject before SQL', async () => {
+  let calls = 0;
+  const reader = createPostgresAuditHistoryReader({
+    query: async () => {
+      calls++;
+      return { rows: [] };
+    },
+  });
+  for (const modelAlias of ['', ' ', '\0', 'a'.repeat(257)]) {
+    await assert.rejects(reader({ principalId: 'service-1', limit: 1, modelAlias }), {
+      name: 'AuditHistoryUnavailable',
+    });
+  }
+  assert.equal(calls, 0);
+});
+
+test('out-of-model or spoofed lookahead rows reject the entire SQL page', async () => {
+  const row = {
+    event_id: '8',
+    occurred_at_ms: '1000',
+    kind: 'route-unavailable',
+    request_id: 'request-1',
+    principal_id: 'service-1',
+    credential_id: 'credential-1',
+    policy_versions: [],
+    details: { modelAlias: 'chat' },
+  };
+  for (const extra of [
+    { ...row, event_id: '7', details: { modelAlias: 'other' } },
+    { ...row, event_id: '7', kind: 'models-listed', details: { count: 1, modelAlias: 'chat' } },
+  ]) {
+    const reader = createPostgresAuditHistoryReader({
+      query: async () => ({ rows: [row, extra] }),
+    });
+    await assert.rejects(reader({ principalId: 'service-1', limit: 1, modelAlias: 'chat' }), {
       name: 'AuditHistoryUnavailable',
     });
   }
