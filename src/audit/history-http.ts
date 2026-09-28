@@ -32,12 +32,13 @@ function principalId(value: string): boolean {
 
 export function parseAuditHistoryQuery(url: URL): AuditTimeRange & {
   readonly requestedPrincipalId: string | null;
+  readonly format: 'json' | 'csv';
   readonly limit: number;
   readonly cursor: string | null;
 } {
   for (const key of url.searchParams.keys()) {
     if (
-      !['principal_id', 'limit', 'cursor', 'from_ms', 'to_ms'].includes(key) ||
+      !['principal_id', 'limit', 'cursor', 'from_ms', 'to_ms', 'format'].includes(key) ||
       url.searchParams.getAll(key).length !== 1
     ) {
       throw new InvalidAuditHistoryQuery();
@@ -47,6 +48,8 @@ export function parseAuditHistoryQuery(url: URL): AuditTimeRange & {
   if (requestedPrincipalId !== null && !principalId(requestedPrincipalId)) {
     throw new InvalidAuditHistoryQuery();
   }
+  const format = url.searchParams.get('format') ?? 'json';
+  if (format !== 'json' && format !== 'csv') throw new InvalidAuditHistoryQuery();
   const rawLimit = url.searchParams.get('limit');
   if (rawLimit !== null && !/^(?:[1-9]|[1-9][0-9]|100)$/u.test(rawLimit)) {
     throw new InvalidAuditHistoryQuery();
@@ -58,6 +61,7 @@ export function parseAuditHistoryQuery(url: URL): AuditTimeRange & {
   return {
     ...range,
     requestedPrincipalId,
+    format,
     limit: rawLimit === null ? 50 : Number(rawLimit),
     cursor,
   };

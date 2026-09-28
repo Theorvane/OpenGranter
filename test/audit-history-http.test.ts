@@ -262,3 +262,79 @@ test('audit ranges do not bypass permissions or required read auditing', async (
   });
   assert.equal((await handler(request('?from_ms=0'))).status, 503);
 });
+
+test('authorized ranged audit CSV uses identical scope and exposes continuation', async () => {
+  const { handler, state } = fixture({
+    listAudit: async () => ({ events: [event], nextCursor: '8' }),
+  });
+  const response = await handler(request('?format=csv&from_ms=1000&to_ms=1001'));
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('content-type'), 'text/csv; charset=utf-8');
+  assert.equal(
+    response.headers.get('content-disposition'),
+    'attachment; filename="opengranter-audit.csv"',
+  );
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+  assert.equal(response.headers.get('x-has-more'), 'true');
+  assert.equal(response.headers.get('x-next-cursor'), '8');
+  assert.deepEqual(state.queries, [
+    { principalId: 'person-1', limit: 50, cursor: null, fromMs: 1000, toMs: 1001 },
+  ]);
+  const csv = await response.text();
+  assert.ok(csv.includes('"8","1000","models-listed"'));
+  assert.ok(!csv.includes('private'));
+  assert.equal((state.audit[0] as { kind: string }).kind, 'audit-history-read');
+});
+
+test('audit CSV cannot bypass permissions, page validation, or required audit', async () => {
+  for (const statements of [
+    [],
+    [
+      { effect: 'Allow' as const, actions: ['audit:Read'], resources: ['principal:person-1'] },
+      { effect: 'Deny' as const, actions: ['audit:Read'], resources: ['principal:person-1'] },
+    ],
+  ]) {
+    const { handler, state } = fixture({ statements });
+    assert.equal((await handler(request('?format=csv'))).status, 403);
+    assert.equal(state.queries.length, 0);
+  }
+  for (const options of [
+    {
+      listAudit: async () => {
+        throw new Error('private storage');
+      },
+    },
+    { listAudit: async () => ({ events: [{ ...event, principalId: 'other' }], nextCursor: null }) },
+    { listAudit: async () => ({ events: [{ ...event, occurredAt: 999 }], nextCursor: null }) },
+    {
+      writeAudit: async () => {
+        throw new Error('private audit');
+      },
+    },
+  ]) {
+    const { handler } = fixture(options);
+    const response = await handler(request('?format=csv&from_ms=1000'));
+    assert.equal(response.status, 503);
+    assert.ok(response.headers.get('content-type')?.includes('application/json'));
+    assert.ok(!(await response.text()).includes('private'));
+  }
+});
+
+test('empty audit CSV contains headers only and explicit completion', async () => {
+  const { handler } = fixture({ listAudit: async () => ({ events: [], nextCursor: null }) });
+  const response = await handler(request('?format=csv'));
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('x-has-more'), 'false');
+  assert.equal(response.headers.get('x-next-cursor'), null);
+  assert.equal((await response.text()).split('\r\n').length, 2);
+});
+
+test('audit formats are explicit, bounded, and reject before storage when invalid', async () => {
+  for (const query of ['?format=', '?format=xml', '?format=CSV', '?format=csv&format=json']) {
+    const { handler, state } = fixture();
+    assert.equal((await handler(request(query))).status, 400);
+    assert.equal(state.queries.length, 0);
+  }
+  const { handler } = fixture();
+  assert.equal((await handler(request('?format=json'))).status, 200);
+});

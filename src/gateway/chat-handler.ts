@@ -1,4 +1,5 @@
 import { type AuditAttribution, validAuditAttribution } from '../audit/attribution.ts';
+import { serializeAuditCsv } from '../audit/csv.ts';
 import { parseAuditHistoryQuery, projectAuditHistoryPage } from '../audit/history-http.ts';
 import type { AuditHistoryPage, AuditHistoryQuery } from '../audit/postgres-audit-history.ts';
 import type { Statement } from '../policy/evaluate.ts';
@@ -362,6 +363,7 @@ export function createChatHandler<T>(
         return errorResponse(403, 'forbidden', requestId);
       }
       let page: AuditHistoryPage;
+      let auditCsv: string | null = null;
       try {
         if (!ports.listAudit) throw new Error('audit reader unavailable');
         page = projectAuditHistoryPage(
@@ -377,6 +379,7 @@ export function createChatHandler<T>(
           parsed.cursor,
           parsed,
         );
+        if (parsed.format === 'csv') auditCsv = serializeAuditCsv(page, targetPrincipalId, parsed);
       } catch {
         try {
           await ports.writeAudit({
@@ -400,6 +403,19 @@ export function createChatHandler<T>(
         });
       } catch {
         return errorResponse(503, 'audit_unavailable', requestId);
+      }
+      if (auditCsv !== null) {
+        return new Response(auditCsv, {
+          status: 200,
+          headers: {
+            'content-type': 'text/csv; charset=utf-8',
+            'content-disposition': 'attachment; filename="opengranter-audit.csv"',
+            'cache-control': 'no-store',
+            'x-request-id': requestId,
+            'x-has-more': String(page.nextCursor !== null),
+            ...(page.nextCursor === null ? {} : { 'x-next-cursor': page.nextCursor }),
+          },
+        });
       }
       return Response.json(
         {
