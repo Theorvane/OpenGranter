@@ -256,6 +256,14 @@ Deployment code supplies this resolver explicitly after migrations. The existing
 
 Both route kinds keep current token/attachment authentication, model/final-provider IAM, limits, sanitized audit, and per-attempt usage. Delegated mapping/configuration failures return existing safe errors before inference; upstream failures never switch to direct routes. Direct registrations remain a construction snapshot, while mappings read per lookup; concurrent changes after those reads are not revalidated. CLI/environment wiring, SSO, management endpoints, live reload, and secret/limit implementations remain separate work. See the [composition contract](../contracts/persisted-dual-gateway.md).
 
+## Persisted policy simulation
+
+`createPostgresPolicySimulator(client)` composes the existing single-statement identity reader and pure attachment evaluator for trusted internal diagnostics. It validates bounded principal/action/resource strings before SQL, loads a current complete snapshot per call, and explicitly passes only that snapshot plus the requested action/resource to evaluation. Caller policy/state fields cannot affect results. Missing principals return no result; valid inactive principals deny with empty evaluated policy versions. Malformed/incomplete/unavailable snapshots produce fixed simulator errors without driver causes or partial grants.
+
+Results contain only effect, existing reason, and evaluated policy IDs/versions. No statements, secrets, content, credential writes, inference, audit append, or usage append are involved. This is IAM simulation only: it does not authenticate credentials, check catalog/provider readiness or limits, or guarantee a successful invocation. The caller restricts access to this internal read capability. Public simulator authentication, reader scope, read audit, and hypothetical policy editing remain open.
+
+One snapshot is consistent at its read; later concurrent changes are not revalidated. Using the same evaluator aligns simulation and gateway IAM for the same persisted state. Tests compare current model/provider simulation to live PostgreSQL HTTP gateway Allow/Deny behavior. See the [simulator contract](../contracts/persisted-policy-simulator.md).
+
 ## Owned dual-route runtime
 
 `startPostgresDualRouteGateway` owns connection opening, complete bundled schema verification/application, persisted dual server construction, listening, and shutdown. A private lifecycle helper is shared with `startPostgresGateway`; the public wrappers select fixed server compositions rather than exposing a caller-supplied server builder. Schema application now occurs in the shared lifecycle before either composition, preserving the prior direct startup order.

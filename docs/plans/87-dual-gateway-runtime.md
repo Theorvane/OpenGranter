@@ -41,3 +41,7 @@
 - Green: the same command passed all 19 shared lifecycle and dual socket cases.
 - Initial `npm run check` passed TypeScript strict checking, Biome, 327 tests, and planning/link/contract/fixture checks. One external PostgreSQL case was skipped locally without a database URL; CI provides PostgreSQL. Embedded PostgreSQL/socket cases passed.
 - `git diff --check` passed. No migration change; `CLAUDE.md` remains linked to `AGENTS.md`.
+
+### Integration after simulator review
+
+PR #86 became approved during implementation and was merged to main. Integrated its simulator code/contracts and preserved both additive documentation sections. The combined `npm run check` passed strict TypeScript, Biome, 332 tests, and planning/link/contract/fixture checks; the same external PostgreSQL case remained locally skipped. Runtime production code was unchanged during integration.
