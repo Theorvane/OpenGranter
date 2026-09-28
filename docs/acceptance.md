@@ -301,3 +301,7 @@ The PostgreSQL migration runner applies versions `001` through `008` in order, r
 - Limit checks and all request attribution retain authenticated identity and versions; subsequent requests may observe source updates.
 - Malformed snapshot and required failure-audit errors stop downstream work with existing safe errors.
 See [contract](../contracts/gateway-principal-snapshots.md).
+
+## Authenticated policy data validation
+
+Malformed active authentication fails before routing, catalog, history, limits and inference, with required anonymous safe failure audit. Valid Allow/Deny, wildcard, empty-policy and inactive behavior remains unchanged. See [contract](../contracts/gateway-policy-validation.md).

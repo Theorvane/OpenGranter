@@ -322,3 +322,7 @@ The service captures validated primitive request fields before loading the actor
 
 Capture immutable known-field principal and policy context immediately after authentication, retaining it through asynchronous HTTP request processing. No database policy revalidation is added.
 See [contract](../contracts/gateway-principal-snapshots.md).
+
+## Authenticated policy data validation
+
+Malformed active authentication fails before routing, catalog, history, limits and inference, with required anonymous safe failure audit. Valid Allow/Deny, wildcard, empty-policy and inactive behavior remains unchanged. See [contract](../contracts/gateway-policy-validation.md).

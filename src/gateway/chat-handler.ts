@@ -158,23 +158,72 @@ export interface ChatHandlerPorts<T> {
   readonly fetchJev?: JevFetcher;
 }
 
-function snapshotPrincipal(principal: AuthenticatedPrincipal): AuthenticatedPrincipal {
+function snapshotPrincipal(value: unknown): AuthenticatedPrincipal | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (!isRecord(value) || typeof value.active !== 'boolean') {
+    throw new Error('Invalid authenticated principal');
+  }
+  if (!value.active) return undefined;
+  if (
+    !validAuditAttribution({
+      principalId: value.id,
+      credentialId: value.credentialId,
+      policyVersions: value.policyVersions,
+    }) ||
+    typeof value.id !== 'string' ||
+    typeof value.credentialId !== 'string' ||
+    !Array.isArray(value.statements) ||
+    !Array.isArray(value.policyVersions)
+  ) {
+    throw new Error('Invalid authenticated principal');
+  }
+  const statements: Statement[] = [];
+  for (const statement of value.statements) {
+    if (
+      !isRecord(statement) ||
+      (statement.effect !== 'Allow' && statement.effect !== 'Deny') ||
+      !Array.isArray(statement.actions) ||
+      !Array.isArray(statement.resources)
+    ) {
+      throw new Error('Invalid authenticated policy');
+    }
+    const actions: string[] = [];
+    const resources: string[] = [];
+    for (const action of statement.actions) {
+      if (typeof action !== 'string') throw new Error('Invalid authenticated policy');
+      actions.push(action);
+    }
+    for (const resource of statement.resources) {
+      if (typeof resource !== 'string') throw new Error('Invalid authenticated policy');
+      resources.push(resource);
+    }
+    statements.push(
+      Object.freeze({
+        effect: statement.effect,
+        actions: Object.freeze(actions),
+        resources: Object.freeze(resources),
+      }),
+    );
+  }
+  const policyVersions: PolicyVersion[] = [];
+  for (const policy of value.policyVersions) {
+    if (
+      !isRecord(policy) ||
+      typeof policy.id !== 'string' ||
+      !policy.id ||
+      typeof policy.version !== 'string' ||
+      !policy.version
+    ) {
+      throw new Error('Invalid authenticated policy version');
+    }
+    policyVersions.push(Object.freeze({ id: policy.id, version: policy.version }));
+  }
   return Object.freeze({
-    id: principal.id,
-    active: principal.active,
-    credentialId: principal.credentialId,
-    statements: Object.freeze(
-      principal.statements.map((statement) =>
-        Object.freeze({
-          effect: statement.effect,
-          actions: Object.freeze([...statement.actions]),
-          resources: Object.freeze([...statement.resources]),
-        }),
-      ),
-    ),
-    policyVersions: Object.freeze(
-      principal.policyVersions.map(({ id, version }) => Object.freeze({ id, version })),
-    ),
+    id: value.id,
+    active: true,
+    credentialId: value.credentialId,
+    statements: Object.freeze(statements),
+    policyVersions: Object.freeze(policyVersions),
   });
 }
 
@@ -311,7 +360,7 @@ export function createChatHandler<T>(
     if (token) {
       try {
         const authenticated = await ports.authenticate(token);
-        principal = authenticated?.active ? snapshotPrincipal(authenticated) : authenticated;
+        principal = snapshotPrincipal(authenticated);
       } catch {
         try {
           await ports.writeAudit({ kind: 'auth-unavailable', requestId });
