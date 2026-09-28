@@ -1,3 +1,22 @@
+/** Validate a provider usage container before projecting its known counters. */
+export function normalizeProviderUsage(
+  value: unknown,
+  fields: readonly [prompt: string, completion: string, total?: string] = [
+    'prompt_tokens',
+    'completion_tokens',
+    'total_tokens',
+  ],
+): ReturnType<typeof normalizeProviderTokens> {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== 'object' || Array.isArray(value)) return { total_tokens: null };
+  const container = value as Record<string, unknown>;
+  return normalizeProviderTokens(
+    container[fields[0]],
+    container[fields[1]],
+    fields[2] === undefined ? undefined : container[fields[2]],
+  );
+}
+
 /** Project only recognized counters, preserving missing and invalid reporting. */
 export function normalizeProviderTokens(
   prompt: unknown,

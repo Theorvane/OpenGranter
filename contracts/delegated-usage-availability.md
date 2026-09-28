@@ -4,4 +4,4 @@ OpenRouter chat responses use the same known-counter projection as [direct provi
 
 Derive an absent total only from two valid components. An unsafe sum is null. A supplied invalid total stays invalid. No counters omit the usage object. The existing delegated ledger marks complete valid counts reported, incomplete valid counts partial, all absent counts missing, and any invalid count invalid. A successful completion remains successful independently of reporting quality.
 
-Provider bounds, response-model verification, fixed endpoint, secret handling, and failure metadata are unchanged. This is availability preservation, not billed-cost reconciliation, final-provider discovery, or validation of malformed usage containers.
+Provider bounds, response-model verification, fixed endpoint, secret handling, and failure metadata are unchanged. The [container contract](provider-usage-containers.md) defines malformed-container handling. Billed-cost reconciliation and final-provider discovery remain separate concerns.
