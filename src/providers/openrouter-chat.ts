@@ -1,5 +1,5 @@
 import type { ChatRequest } from '../gateway/chat-handler.ts';
-import { resolveOutputTokenLimit } from '../gateway/chat-parameters.ts';
+import { resolveOutputTokenLimit, snapshotStopSequences } from '../gateway/chat-parameters.ts';
 import { normalizeProviderUsage } from '../usage/normalize-provider-tokens.ts';
 import type { ChatCompletion } from './direct-chat.ts';
 
@@ -125,6 +125,12 @@ export function createOpenRouterChatInvoker(
     } catch {
       fail('configuration');
     }
+    let stop: ReturnType<typeof snapshotStopSequences>;
+    try {
+      stop = snapshotStopSequences(request.stop);
+    } catch {
+      fail('configuration');
+    }
     const configuredTimeout = ports.timeoutMs;
     const timeoutMs = configuredTimeout === undefined ? 30_000 : configuredTimeout;
     if (
@@ -154,6 +160,7 @@ export function createOpenRouterChatInvoker(
           messages: request.messages,
           stream: false,
           ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
+          ...(stop === undefined ? {} : { stop }),
           provider: { only: attempt.authorizedProviderSlugs },
         }),
         redirect: 'error',

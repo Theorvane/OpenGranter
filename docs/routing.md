@@ -70,3 +70,7 @@ For provider fallback, each attempt event identifies its candidate and outcome; 
 ## Client output maximum
 
 Both compatible chat paths accept optional max_tokens. All four adapters preserve a captured positive safe-integer maximum through the native mapping, with configured direct registration caps bounding requests. Existing defaults remain on omission. This does not grant model/provider permissions, reserve a budget or implement reasoning/streaming support. See [contract](../contracts/client-output-limits.md).
+
+## Client stop conditions
+
+Both compatible chat paths support portable stop strings or lists of up to four strings. Adapters capture literal values and translate native fields while retaining output limits, IAM, audit and usage. Provider-specific longer lists and per-model stop capability metadata remain pending. See [contract](../contracts/client-stop-sequences.md).

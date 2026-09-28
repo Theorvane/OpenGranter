@@ -1,5 +1,5 @@
 import type { ChatRequest } from '../gateway/chat-handler.ts';
-import { resolveOutputTokenLimit } from '../gateway/chat-parameters.ts';
+import { resolveOutputTokenLimit, snapshotStopSequences } from '../gateway/chat-parameters.ts';
 import type { RouteCandidate } from '../routing/authorize-candidates.ts';
 import { DirectProviderFailure } from '../routing/invoke-jev-managed-route.ts';
 import { normalizeProviderUsage } from '../usage/normalize-provider-tokens.ts';
@@ -196,6 +196,7 @@ function prepare(
   request: ChatRequest,
   key: string,
   maxTokens: number | undefined,
+  stop: ReturnType<typeof snapshotStopSequences>,
 ): { url: string; headers: Record<string, string>; body: object } {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
   const outputLimit =
@@ -212,6 +213,7 @@ function prepare(
         messages: request.messages,
         stream: false,
         ...(outputLimit === undefined ? {} : { max_tokens: outputLimit }),
+        ...(stop === undefined ? {} : { stop }),
       },
     };
   }
@@ -236,6 +238,7 @@ function prepare(
       body: {
         model: candidate.upstreamModelId,
         max_tokens: outputLimit ?? registration.maxOutputTokens,
+        ...(stop === undefined ? {} : { stop_sequences: typeof stop === 'string' ? [stop] : stop }),
         ...(system.length ? { system: system.map((message) => message.content).join('\n') } : {}),
         messages,
       },
@@ -247,7 +250,16 @@ function prepare(
     url: `https://generativelanguage.googleapis.com/v1beta/models/${candidate.upstreamModelId}:generateContent`,
     headers,
     body: {
-      ...(outputLimit === undefined ? {} : { generationConfig: { maxOutputTokens: outputLimit } }),
+      ...(outputLimit === undefined && stop === undefined
+        ? {}
+        : {
+            generationConfig: {
+              ...(outputLimit === undefined ? {} : { maxOutputTokens: outputLimit }),
+              ...(stop === undefined
+                ? {}
+                : { stopSequences: typeof stop === 'string' ? [stop] : stop }),
+            },
+          }),
       ...(system.length
         ? {
             systemInstruction: {
@@ -281,6 +293,12 @@ export function createDirectChatInvoker(
     } catch {
       fail('other');
     }
+    let stop: ReturnType<typeof snapshotStopSequences>;
+    try {
+      stop = snapshotStopSequences(request.stop);
+    } catch {
+      fail('other');
+    }
     let key: string | undefined;
     try {
       key = await ports.resolveSecret(registration.credentialRef);
@@ -288,7 +306,7 @@ export function createDirectChatInvoker(
       fail('other');
     }
     if (!key) fail('other');
-    const prepared = prepare(registration, candidate, request, key, maxTokens);
+    const prepared = prepare(registration, candidate, request, key, maxTokens, stop);
     const timeout = AbortSignal.timeout(timeoutMs);
     let response: Response;
     try {

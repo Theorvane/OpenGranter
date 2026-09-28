@@ -28,7 +28,7 @@
 ## Delivery
 
 - No migration or live upstream calls. Reverting removes alias acceptance and leaves legacy max_tokens behavior intact.
-- Review independently of pending stop-sequence PR #125. Both add accepted request fields and require a small integration merge if #125 lands first.
+- PR #125 is merged. This branch integrates its stop-sequence support and verifies combined stop/output-limit requests across all four adapters.
 - Full OpenRouter compatibility remains incomplete under #116.
 
 ## Verification evidence
@@ -38,3 +38,10 @@
 - Full npm run check passed: strict TypeScript, lint, 545 passing tests, one optional external PostgreSQL test skipped, and planning/link/contract/fixture checks.
 - Focused Biome with --error-on-warnings passed without warnings; git diff --check passed and the CLAUDE.md symlink remains intact.
 - No live provider calls or credentials were used. Conflict handling and native reasoning-model gaps remain explicitly documented.
+
+## Integration verification after PR #125
+
+- A new combined HTTP case failed with HTTP 400 against stop-only main, demonstrating alias validation was still required after integration.
+- Both features were preserved during conflict resolution; all 23 completion-alias cases pass, including combined native stop and output settings for all four adapters.
+- Full npm run check passed with 564 tests passing and one optional external PostgreSQL test skipped, plus strict TypeScript, lint and document checks.
+- Focused warning-free Biome, diff checks, and the CLAUDE.md symlink checks passed. Updated PR #127 requires review of the integrated head.

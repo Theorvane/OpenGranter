@@ -280,3 +280,26 @@ test('upstream failures with completion aliases retain safe errors and accountin
     assert.equal(f.usage.length, 1);
   }
 });
+test('all adapters combine completion aliases with stop without losing either setting', async () => {
+  for (const kind of kinds) {
+    const f = httpFixture(kind);
+    const response = await f.handler(
+      httpRequest('/api/v1/chat/completions', {
+        max_completion_tokens: 17,
+        stop: ['finish marker'],
+      }),
+    );
+    assert.equal(response.status, 200);
+    const sent = f.sent[0];
+    assert.ok(sent);
+    assert.equal(nativeLimit(kind, sent), 17);
+    const stop =
+      kind === 'google'
+        ? (sent.generationConfig as Record<string, unknown>).stopSequences
+        : kind === 'anthropic'
+          ? sent.stop_sequences
+          : sent.stop;
+    assert.deepEqual(stop, ['finish marker']);
+    assert.equal(f.usage.length, 1);
+  }
+});

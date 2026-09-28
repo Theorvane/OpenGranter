@@ -322,6 +322,10 @@ All gateway errors and Node pre-header internal failures include fixed allowlist
 
 /api/v1/ failures use numeric status codes with fixed messages and allowlisted metadata.opengranter_code. Legacy /v1 codes, successful payloads and all security controls remain unchanged. Format selection does not expose additional endpoints. See [contract](../contracts/openrouter-error-schema.md).
 
+## Client stop sequences
+
+Both chat paths support literal stop strings or dense arrays of up to four strings, with null/omission preserved as no explicit condition. Adapters capture and map native stop fields while retaining output limits and existing security/accounting. Malformed values fail before external work. See [contract](../contracts/client-stop-sequences.md).
+
 ## Completion-token alias
 
 - Both chat paths and four adapters accept alias-only and equal paired positive safe-integer maxima; invalid or conflicting pairs fail before route/credential/transport work.
