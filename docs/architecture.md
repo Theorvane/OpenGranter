@@ -116,7 +116,7 @@ Fail closed when authentication, policy, route bounds, secrets, or required audi
 ## Decisions still needed
 
 1. Supported OpenRouter request options and first API capability set across all four adapters.
-2. OIDC identity binding and management authentication profile; human-only first management authentication and 30-day human/90-day service new-token lifetime caps are confirmed but not yet implemented.
+2. OIDC identity binding and management authentication profile. Human-only first management authentication is confirmed but pending implementation; internal owner-specific lifetime caps are implemented separately.
 3. Operational configuration, secret delivery, migration coordination, and process startup for the PostgreSQL driver and secret stores in AWS and on-premises deployments.
 4. Whether monthly limits warn or block, and how concurrent calls reserve capacity.
 5. Content-audit default, configuration scope, retention, reader permissions, and tamper-resistant export.
@@ -309,6 +309,10 @@ The JSON reader compares the normalized type segment exactly with application/js
 ## Agreed management foundation (implementation pending)
 
 OIDC is selected for company SSO. Only SSO human users authenticate to the first management API; new proxy-token lifetimes are capped by owner kind at 30 days for human principals and 90 days for service principals. The existing internal coordinator still requires a trusted authenticated actor and fresh IAM evaluation; no SSO adapter or management HTTP endpoint exists yet. Identity binding and JWT access-token versus browser-session authentication remain pending. See [planning contract](../contracts/sso-management-foundation.md).
+
+## Internal owner-specific lifetime guard
+
+The internal management service supplies a trusted target-kind resolver to the PostgreSQL coordinator's optional issuance guard. After IAM decision persistence, exact owner-kind lookup selects the fixed 30-day human or 90-day service cap. One captured timestamp drives both cap validation and credential creation. Guard failure yields existing safe unavailability with no credential/lifecycle mutation; existing revocation and trusted primitives remain available. See [contract](../contracts/proxy-token-lifetimes.md).
 
 ## Management operation snapshots
 

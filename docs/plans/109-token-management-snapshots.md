@@ -28,7 +28,7 @@
 
 - Issue/plan precede tests and code; report red/green and validation in the ready PR.
 - Copy/freeze adds small per-operation allocations. Trusted callbacks must honor existing readonly types. No migration; rollback restores reference rereads.
-- PR #108 remains a separate lifetime-cap change; integrate it after its required approval if it becomes mergeable during this work.
+- Approved PR #108 was merged and integrated before publishing this change; its lifetime caps remain enforced alongside operation snapshots.
 
 ## Verification evidence
 
@@ -36,3 +36,8 @@
 - Green: all eight coordinator/service cases passed after snapshots and immutable decision metadata were added.
 - Initial npm run check passed strict TypeScript, Biome, 439 tests, and planning/link/contract/fixture checks. One external PostgreSQL driver case was skipped locally without a database URL; CI supplies PostgreSQL.
 - git diff --check passed; CLAUDE.md remains a symbolic link to AGENTS.md. No schema or live external calls.
+
+## Integration verification
+
+- Integrated approved PR #108 from main. Resolved additive planning-document conflicts by preserving both lifetime-cap and operation-snapshot requirements.
+- Combined npm run check passed strict TypeScript, Biome, 448 tests, and planning/link/contract/fixture checks; one external PostgreSQL case was skipped locally without a database URL.
