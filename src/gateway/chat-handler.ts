@@ -233,7 +233,8 @@ function validateChat(value: unknown): ChatRequest | undefined {
 }
 
 async function readJsonBody(request: Request): Promise<unknown> {
-  if (!request.headers.get('content-type')?.toLowerCase().startsWith('application/json')) {
+  const mediaType = request.headers.get('content-type')?.split(';', 1)[0]?.trim().toLowerCase();
+  if (mediaType !== 'application/json') {
     return undefined;
   }
   const reader = request.body?.getReader();
