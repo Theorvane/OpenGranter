@@ -338,3 +338,86 @@ test('audit formats are explicit, bounded, and reject before storage when invali
   const { handler } = fixture();
   assert.equal((await handler(request('?format=json'))).status, 200);
 });
+
+test('exact model audit filters apply equally to authorized JSON and CSV pages', async () => {
+  const modelEvent = {
+    ...event,
+    kind: 'route-unavailable',
+    details: { modelAlias: 'chat', prompt: 'private prompt' },
+  };
+  for (const format of ['json', 'csv']) {
+    const { handler, state } = fixture({
+      listAudit: async () => ({ events: [modelEvent], nextCursor: '8' }),
+    });
+    const response = await handler(
+      request(`?model=chat&from_ms=1000&to_ms=1001&cursor=9&format=${format}`),
+    );
+    assert.equal(response.status, 200);
+    assert.deepEqual(state.queries, [
+      {
+        principalId: 'person-1',
+        limit: 50,
+        cursor: '9',
+        modelAlias: 'chat',
+        fromMs: 1000,
+        toMs: 1001,
+      },
+    ]);
+    const body = await response.text();
+    assert.ok(body.includes('chat'));
+    assert.ok(!body.includes('private'));
+    assert.equal((state.audit[0] as { kind: string }).kind, 'audit-history-read');
+    if (format === 'csv') assert.equal(response.headers.get('x-next-cursor'), '8');
+  }
+});
+
+test('invalid or duplicate model filters reject before storage', async () => {
+  for (const model of ['', '%20', '%00', 'a'.repeat(257), 'chat&model=other']) {
+    const { handler, state } = fixture();
+    assert.equal((await handler(request(`?model=${model}`))).status, 400);
+    assert.equal(state.queries.length, 0);
+  }
+});
+
+test('model filters cannot widen principal permissions or bypass required audit', async () => {
+  for (const statements of [
+    [],
+    [
+      { effect: 'Allow' as const, actions: ['audit:Read'], resources: ['principal:person-1'] },
+      { effect: 'Deny' as const, actions: ['audit:Read'], resources: ['principal:person-1'] },
+    ],
+  ]) {
+    const { handler, state } = fixture({ statements });
+    assert.equal((await handler(request('?model=chat'))).status, 403);
+    assert.equal(state.queries.length, 0);
+  }
+  const denied = fixture();
+  assert.equal((await denied.handler(request('?principal_id=person-2&model=chat'))).status, 403);
+  assert.equal(denied.state.queries.length, 0);
+  const { handler } = fixture({
+    listAudit: async () => ({ events: [], nextCursor: null }),
+    writeAudit: async () => {
+      throw new Error('private failure');
+    },
+  });
+  assert.equal((await handler(request('?model=chat'))).status, 503);
+});
+
+test('other, absent, or spoofed projected model aliases reject injected pages as safe JSON errors', async () => {
+  for (const candidate of [
+    event,
+    { ...event, details: { count: 1, modelAlias: 'chat' } },
+    { ...event, kind: 'route-unavailable', details: { modelAlias: 'other' } },
+  ]) {
+    for (const format of ['json', 'csv']) {
+      const { handler, state } = fixture({
+        listAudit: async () => ({ events: [candidate], nextCursor: null }),
+      });
+      const response = await handler(request(`?model=chat&format=${format}`));
+      assert.equal(response.status, 503);
+      assert.ok(response.headers.get('content-type')?.includes('application/json'));
+      assert.ok(!(await response.text()).includes('private'));
+      assert.equal((state.audit[0] as { kind: string }).kind, 'audit-history-read-unavailable');
+    }
+  }
+});

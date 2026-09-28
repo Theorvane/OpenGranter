@@ -34,3 +34,7 @@ Completed with the evidence below.
 - Green: the same direct commands passed all 18 HTTP and 11 SQL tests. The existing second-page fake was corrected to return an empty next page instead of repeating the first record; its continuation assertions remain intact.
 - `npm run check` passed TypeScript, Biome, 292 tests, and planning/link/contract/fixture validation. One real PostgreSQL integration test skipped locally without its explicit database URL; CI provisions PostgreSQL. This branch starts from main independently of pending PR #76.
 - `git diff --check` passed. Restart pagination at rollout/revert; benchmark the explicit C-collation sort before choosing a new index under a non-C database locale.
+
+### Integration after review
+
+PR #76 was approved and merged. Integrated its audit model filtering into this branch while preserving both sets of additive documentation and HTTP cases. The combined `npm run check` passed TypeScript, Biome, 299 tests, and planning/link/contract/fixture checks; one real PostgreSQL integration skipped locally without its explicit database URL. No additional production behavior was introduced by conflict resolution.

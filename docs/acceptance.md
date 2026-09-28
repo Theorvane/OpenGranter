@@ -167,6 +167,14 @@ The PostgreSQL migration runner applies versions `001` through `008` in order, r
 - Database-close failure returns a fixed safe shared rejection without automatic retry or nested driver causes. Failed startup cleanup leaves the public error safe and does not certify resource release.
 - Deployment owns trusted infrastructure configuration, TLS, serialized migrations, process signals, and any shutdown deadline. Existing HTTP permissions and request contracts remain unchanged.
 
+## Audit model-alias filters
+
+- Authorized JSON and CSV reads accept an exact `model` alias together with principal, occurrence-time range, limit, and cursor. Both formats enforce target-principal `audit:Read`, including self, and required read auditing.
+- SQL pages exclude other principals, other aliases, and events without a known alias; descending event-ID pagination and continuation remain stable within the combined filters. Hostile-looking values are literal bound parameters, never SQL or wildcard expressions.
+- Empty/blank, overlength, control-containing, or repeated model filters reject before storage. Unknown aliases produce empty authorized pages.
+- An out-of-model row, including lookahead, or an alias stripped during known-event projection rejects the entire SQL/HTTP page. JSON and CSV requests receive safe JSON availability errors without content or secrets.
+- Model filtering does not grant audit access or require inference permissions. Content auditing and token-management decision history remain separate contracts.
+
 ## Complete usage pagination boundaries
 
 - SQL and injected HTTP pages follow strictly descending occurrence time then UTF-8 attempt-ID order, including equal-time punctuation and non-BMP Unicode values.

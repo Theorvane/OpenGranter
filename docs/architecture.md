@@ -216,6 +216,14 @@ The result contains the actual bound address and `close()`, without exposing the
 
 This library starts plain Node HTTP, matching the existing bridge. Production TLS/reverse-proxy configuration remains required deployment work. Operators supply secret/limit/upstream ports and serialize migration runs. CLI/environment parsing, process signal handling, readiness probes, and bounded/forced shutdown policy remain open. A close may wait for a stalled active request; no arbitrary timeout or forced cancellation is introduced. Already committed migrations survive later startup failures. Lower-level factories preserve caller-owned lifecycle behavior.
 
+## Audit model-alias filtering
+
+`GET /v1/audit?model=<alias>` adds exact, case-sensitive filtering to JSON and CSV pages. The value is nonblank, at most 256 characters, and contains no control characters; it is not trimmed or interpreted as a wildcard. Unknown aliases return an empty authorized page. The filter matches only the known event projection's `details.modelAlias`. Events without a single model alias (including model lists and audit reads) are excluded when filtering; unfiltered behavior is unchanged.
+
+The PostgreSQL reader binds model equality alongside principal, event-ID cursor, and occurrence-time bounds. All rows, including lookahead, must match after known-field projection. An arbitrary stored field on an event whose contract has no alias cannot establish a match; it makes a filtered page unavailable. The HTTP boundary independently enforces this rule for injected readers, and CSV uses the same projection. Clients repeat model, principal, and time filters with each continuation cursor.
+
+Target-principal `audit:Read` and required attributed read audit remain mandatory. No model-invocation permission is added: an auditor may inspect a model they cannot invoke. Out-of-filter pages fail as safe JSON errors before success audit or CSV response. No schema/index change or content/token-management history is introduced; benchmark filtered queries before choosing indexes.
+
 ## Complete usage pagination validation
 
 Usage history uses strict descending occurrence-time and UTF-8 attempt-ID order. PostgreSQL applies `COLLATE "C"` to both tuple comparison and attempt-ID sorting; application validation compares UTF-8 buffers, so locale/UTF-16 differences cannot change tie ordering. See [ADR 0007](adr/0007-usage-pagination-order.md).
