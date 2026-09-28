@@ -181,3 +181,13 @@ The PostgreSQL migration runner applies versions `001` through `008` in order, r
 - Malformed internal cursor objects fail before SQL. All SQL rows including lookahead must precede the cursor and previous row; duplicate IDs and repeated cursor attempts fail even if timestamps differ.
 - Invalid injected JSON/CSV pages return safe JSON errors without partial history, continuation, or successful read audit. Required unavailable-read audit and existing principal/model/time permission checks remain in force.
 - Clients restart pagination at rollout/revert of the deterministic tie order; opaque encoding remains unchanged. Query-index performance needs deployment measurement under non-C database locales.
+
+## Current actor policies for token management
+
+- The internal PostgreSQL token-management service accepts an actor ID from prior trusted authentication and reloads the principal, direct policies, and role policies for every issue/revoke operation. Caller-supplied actor state or policy fields cannot affect decisions.
+- A persisted role grant permits issuance and revocation on its target principal. Persisted direct Deny overrides an inherited Allow. Policy version, attachment removal, and active-state changes affect the next operation without rebuilding the service.
+- Missing/inactive actors and active actors without grants produce required denied decisions without credential mutation. Missing/inactive actors have empty evaluated policy versions; inactive revocation does not resolve an owner.
+- Revocation evaluates only the immutable stored credential owner; caller-nominated targets cannot widen authority. Unknown credentials deny without mutation.
+- Malformed/incomplete or unavailable actor snapshots fail with a fixed availability error and no policy decision or mutation. Required decision-write failure also prevents mutation, leaving an existing token active.
+- Invalid actor/operation IDs or nonnegative-safe-integer expiry reject before database reads. Decision audits contain only resolved policy IDs/versions and nonsecret operation metadata.
+- Authentication and public management endpoints remain separate work. The consistent actor snapshot is read once per operation; concurrent changes after that read are not revalidated or locked across decision and mutation.
