@@ -293,3 +293,7 @@ Direct and OpenRouter adapters share the pure known-counter projector. Provider-
 ## Direct timeout boundary
 
 The direct invoker captures and validates the attempt timeout before asynchronous credential resolution. It uses the captured value for the upstream signal even if source configuration changes during lookup. Invalid durations fail through existing other-category metadata before secret or network access; delegated and direct bounds agree. See [contract](../contracts/direct-timeout-validation.md).
+
+## Delegated timeout capture
+
+The delegated invoker reads the optional timeout once, validates its resolved duration before credential lookup, and uses that local value for the upstream signal. Source configuration updates during lookup affect later attempts only. See [contract](../contracts/openrouter-timeout-snapshot.md).

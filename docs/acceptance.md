@@ -256,3 +256,9 @@ The PostgreSQL migration runner applies versions `001` through `008` in order, r
 - Each direct provider rejects zero, negative, fractional, overflow, non-finite, and nonnumeric supplied durations before secret lookup and fetch, using sanitized non-retryable, non-billable failure metadata.
 - Default, minimum, and maximum valid durations accept normal provider completions. Source configuration mutation during secret lookup does not alter the captured duration.
 - A managed gateway attempt with invalid timeout records a failed non-billable audit, performs no fallback or provider work, and creates no billable usage record.
+
+## OpenRouter timeout capture
+
+- Supplied and default delegated timeouts remain valid for the current attempt when source configuration changes during credential lookup.
+- A subsequent call rejects the now-invalid source configuration before another credential lookup or fetch, with safe non-billable configuration metadata.
+- Existing bounds, valid completions, credential failures, and upstream failures remain unchanged.
