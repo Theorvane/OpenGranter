@@ -309,3 +309,7 @@ The JSON reader compares the normalized type segment exactly with application/js
 ## Agreed management foundation (implementation pending)
 
 OIDC is selected for company SSO. Only SSO human users authenticate to the first management API; new proxy-token lifetimes are capped by owner kind at 30 days for human principals and 90 days for service principals. The existing internal coordinator still requires a trusted authenticated actor and fresh IAM evaluation; no SSO adapter or management HTTP endpoint exists yet. Identity binding and JWT access-token versus browser-session authentication remain pending. See [planning contract](../contracts/sso-management-foundation.md).
+
+## Management operation snapshots
+
+The service captures validated primitive request fields before loading the actor. The coordinator projects a deeply immutable known-field actor snapshot and captures operation fields before owner lookup or audit. Decision events are frozen at the audit boundary; audit exceptions retain existing safe failure behavior. This adds no cross-query transaction or persisted-policy revalidation guarantee. See [contract](../contracts/token-management-snapshots.md).

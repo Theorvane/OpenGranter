@@ -74,23 +74,25 @@ export function createPostgresTokenManagementService(ports: {
       ) {
         throw new InvalidTokenManagementInput();
       }
-      const actor = await resolveActor(input.authenticatedActorId);
+      const { authenticatedActorId, requestId, principalId, expiresAt } = input;
+      const actor = await resolveActor(authenticatedActorId);
       return coordinator.issue({
         actor,
-        requestId: input.requestId,
-        principalId: input.principalId,
-        expiresAt: input.expiresAt,
+        requestId,
+        principalId,
+        expiresAt,
       });
     },
     async revoke(input: RevokeRequest): Promise<boolean> {
       if (!validActorRequest(input) || !validId(input.credentialId)) {
         throw new InvalidTokenManagementInput();
       }
-      const actor = await resolveActor(input.authenticatedActorId);
+      const { authenticatedActorId, requestId, credentialId } = input;
+      const actor = await resolveActor(authenticatedActorId);
       return coordinator.revoke({
         actor,
-        requestId: input.requestId,
-        credentialId: input.credentialId,
+        requestId,
+        credentialId,
       });
     },
   };

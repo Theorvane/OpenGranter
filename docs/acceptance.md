@@ -280,3 +280,10 @@ The PostgreSQL migration runner applies versions `001` through `008` in order, r
 - OIDC-authenticated human management callers still pass existing iam:Manage policy checks; authentication does not grant management authority. Service-account management authentication is excluded from the first slice.
 - New human-owner proxy tokens cannot exceed 30 days; new service-owner tokens cannot exceed 90 days. Expiry remains mandatory.
 - Identity binding and management authentication scenarios await the remaining planning answers. These scenarios are release requirements pending implementation, not assertions that SSO or caps already work.
+
+## Token-management operation snapshots
+
+- Original service issue/revoke fields survive caller updates during actor lookup and reach storage/audit unchanged.
+- Coordinator targets, expiry, credential IDs, actor identity, active state, statements, and evaluated versions survive source updates during owner lookup and decision audit.
+- Inactive/default/explicit Deny remains effective; extra actor fields are omitted, snapshots/events are immutable, and audit failure prevents mutation.
+- Original caller objects remain mutable; later operations inspect current values. Existing success/denial/failure contracts remain unchanged.
