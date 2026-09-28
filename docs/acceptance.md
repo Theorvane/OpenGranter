@@ -127,3 +127,11 @@ The PostgreSQL migration runner applies versions `001` through `007` in order, r
 - Pagination is explicit through `X-Has-More` and optional `X-Next-Cursor`; an empty page has headers only. JSON stays the default, and invalid/repeated format values return 400 before storage.
 - Commas, quotes, and multiline text remain inside quoted cells. Formula-looking text receives a documented apostrophe prefix; unmodified machine-readable identifiers remain available through JSON.
 - Default/explicit Deny blocks storage. Storage failure, mixed-principal rows, and required audit failure return safe JSON errors rather than partial CSV. Successful downloads have a fixed filename and no-store cache policy.
+
+
+## Audit CSV page export
+
+- An authorized `format=csv` request exports only the same target-principal, occurrence-time range, event-ID page as JSON. It uses `audit:Read` with no administrator bypass.
+- CSV columns contain projected attributed metadata; extra content/key/token fields are removed, and policy versions/details remain quoted JSON cells. Usage export regression tests preserve its existing shared encoding behavior.
+- Continuation uses `X-Has-More` and optional `X-Next-Cursor`. Empty pages have headers only, attachment filenames are fixed, and responses use no-store caching.
+- Default/explicit Deny blocks storage. Invalid/repeated formats return 400. Storage failure, wrong principal/time/order, and required audit failure return safe JSON errors rather than partial CSV.
