@@ -1,6 +1,6 @@
 # SSO management foundation: planning status
 
-These are agreed requirements for a future management implementation, not an implemented public HTTP contract:
+SSO requirements remain pending implementation. The lifetime caps are now enforced at the existing internal service under the [lifetime contract](proxy-token-lifetimes.md). This is not an implemented public HTTP contract:
 
 - Company SSO uses OIDC.
 - The first management API authenticates SSO human users only. Service accounts continue using the LLM proxy; service management credentials require a later decision.
@@ -9,4 +9,4 @@ These are agreed requirements for a future management implementation, not an imp
 
 Pending decisions: pre-registration versus first-login identity creation; JWT access-token management authentication versus browser login/server sessions. HTTP paths, authentication profiles, migration handling for existing credentials, and implementation error contracts remain to be specified before their implementation. Recommendations are not requirements until confirmed.
 
-The current internal facade, opaque credential primitives, and proxy HTTP endpoints remain as documented in [token management](token-management.md). This planning record introduces no production capability.
+The current internal facade, opaque credential primitives, and proxy HTTP endpoints remain as documented in [token management](token-management.md). SSO and the public management API remain pending; internal lifetime enforcement is delivered separately.
