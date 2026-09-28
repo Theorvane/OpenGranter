@@ -158,3 +158,11 @@ The PostgreSQL migration runner applies versions `001` through `008` in order, r
 - Missing final files, unexpected/duplicate-version SQL, SQL symlinks/directories, whitespace-only SQL, and unavailable locations return a fixed safe error without filesystem paths or causes.
 - Bundled server construction migrates an empty schema before its first registration read. Sequential restart verifies and skips unchanged history; construction never retrieves secrets or calls providers.
 - Source-loading failure prevents any database or clock activity and returns no server. Caller owns the database, listening, shutdown, bundle integrity, and serialized migration execution.
+
+## Owned gateway runtime
+
+- Explicit valid bind configuration and the complete bundled schema produce a listening HTTP server. An unauthenticated model-list call returns 401 and persists its anonymous audit record; startup does not retrieve provider keys or call providers.
+- Invalid bind input or source-loading failure opens no database connection. Connection-opening, migration, and occupied-port failures expose fixed safe errors; closure is attempted for every returned connection on failed startup.
+- Shutdown stops accepting HTTP and waits for an active request's audit write before closing the database. Repeated/concurrent closes share one promise and close the connection once.
+- Database-close failure returns a fixed safe shared rejection without automatic retry or nested driver causes. Failed startup cleanup leaves the public error safe and does not certify resource release.
+- Deployment owns trusted infrastructure configuration, TLS, serialized migrations, process signals, and any shutdown deadline. Existing HTTP permissions and request contracts remain unchanged.
