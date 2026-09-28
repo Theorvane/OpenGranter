@@ -339,3 +339,9 @@ Both chat paths support literal stop strings or dense arrays of up to four strin
 - Malformed values reject with required audit before routes. Source mutation during credential lookup cannot change outgoing temperature.
 - Direct Anthropic temperature above one fails without secret lookup/transport and with safe non-billable failed-attempt audit without a usage ledger entry. Model-specific upstream restrictions remain documented.
 - IAM, request limits, required audit failure and upstream failure retain existing safe responses and usage semantics. See [contract](../contracts/client-temperature.md).
+
+## Client top_p sampling
+
+- Both chat paths and four real adapters preserve valid zero/one/fractional top_p and omit it when absent; malformed values reject before route/credential/transport work with required denial audit.
+- Mutation during credential resolution cannot change the outgoing primitive. Combining stop and output maxima retains all native settings and configured direct caps.
+- IAM denial, limits, required audit failures and upstream rejection retain safe errors and usage accounting. Model-specific limitations remain documented. See [contract](../contracts/client-top-p.md).

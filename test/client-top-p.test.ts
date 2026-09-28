@@ -41,7 +41,7 @@ function adapter(kind: Kind, cap?: number, mutate?: () => void, transportFails =
   const fetcher: typeof fetch = async (_, init) => {
     sent.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
     return transportFails
-      ? new Response('private fixture unsupported temperature error', { status: 400 })
+      ? new Response('private fixture unsupported top_p error', { status: 400 })
       : Response.json(body(kind));
   };
   const candidate = {
@@ -147,43 +147,43 @@ function httpFixture(
   });
   return { ...f, handler, audits, usage, routes: () => routes };
 }
-function temperatureRequest(value: unknown): ChatRequest {
+function samplingRequest(value: unknown): ChatRequest {
   return {
     ...request(),
-    ...(value === undefined ? {} : { temperature: value }),
+    ...(value === undefined ? {} : { top_p: value }),
   } as unknown as ChatRequest;
 }
-function nativeTemperature(kind: Kind, sent: Record<string, unknown> | undefined): unknown {
+function nativeTopP(kind: Kind, sent: Record<string, unknown> | undefined): unknown {
   assert.ok(sent, 'Expected a captured upstream request');
   return kind === 'google'
-    ? (sent.generationConfig as Record<string, unknown> | undefined)?.temperature
-    : sent.temperature;
+    ? (sent.generationConfig as Record<string, unknown> | undefined)?.topP
+    : sent.top_p;
 }
 function httpRequest(path: string, value: unknown) {
   return new Request(`http://localhost${path}`, {
     method: 'POST',
     headers: { authorization: 'Bearer fixture', 'content-type': 'application/json' },
     body: JSON.stringify({
-      ...temperatureRequest(value),
+      ...samplingRequest(value),
       max_completion_tokens: 17,
       stop: ['marker'],
     }),
   });
 }
 for (const kind of kinds) {
-  test(`${kind} preserves temperature bounds/fractions and omission`, async () => {
-    for (const value of [0, 0.37, 1, ...(kind === 'anthropic' ? [] : [2]), undefined]) {
+  test(`${kind} maps top_p bounds/fractions and leaves omission defaults untouched`, async () => {
+    for (const value of [0, 0.37, 1, undefined]) {
       const f = adapter(kind);
-      await f.call(temperatureRequest(value));
-      assert.equal(nativeTemperature(kind, f.sent[0]), value);
+      await f.call(samplingRequest(value));
+      assert.equal(nativeTopP(kind, f.sent[0]), value);
       if (value === undefined && kind === 'google')
         assert.equal(f.sent[0]?.generationConfig, undefined);
     }
   });
-  test(`${kind} rejects malformed temperature before credentials`, async () => {
-    for (const value of [-0.01, 2.01, NaN, Infinity, -Infinity, '0.7', null, true, {}, []]) {
+  test(`${kind} rejects malformed top_p before credential lookup`, async () => {
+    for (const invalid of [-0.01, 1.01, NaN, Infinity, -Infinity, '0.7', null, true, {}, []]) {
       const f = adapter(kind);
-      await assert.rejects(f.call(temperatureRequest(value)), (error: unknown) => {
+      await assert.rejects(f.call(samplingRequest(invalid)), (error: unknown) => {
         assert.equal((error as { possiblyBilled: boolean }).possiblyBilled, false);
         return true;
       });
@@ -191,84 +191,48 @@ for (const kind of kinds) {
       assert.deepEqual(f.sent, []);
     }
   });
-  test(`${kind} captures temperature before asynchronous secret lookup`, async () => {
+  test(`${kind} captures top_p before asynchronous secret lookup`, async () => {
     for (const value of [0, 0.37, 1]) {
-      const source = { ...request(), temperature: value };
+      const source = { ...request(), top_p: value };
       const f = adapter(kind, undefined, () => {
-        source.temperature = 99;
+        source.top_p = 99;
       });
       await f.call(source as ChatRequest);
-      assert.equal(nativeTemperature(kind, f.sent[0]), value);
+      assert.equal(nativeTopP(kind, f.sent[0]), value);
     }
   });
-  test(`${kind} combines temperature, stop and output maxima across both HTTP paths`, async () => {
+  test(`${kind} combines top_p, stop and output maxima across HTTP paths`, async () => {
     for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
-      for (const value of [0, 0.37, 1, ...(kind === 'anthropic' ? [] : [2])]) {
-        const f = httpFixture(kind);
-        assert.equal((await f.handler(httpRequest(path, value))).status, 200);
-        const sent = f.sent[0];
-        assert.ok(sent);
-        assert.equal(nativeTemperature(kind, sent), value);
-        assert.equal(nativeLimit(kind, sent), 17);
-        const stop =
-          kind === 'google'
-            ? (sent.generationConfig as Record<string, unknown>).stopSequences
-            : kind === 'anthropic'
-              ? sent.stop_sequences
-              : sent.stop;
-        assert.deepEqual(stop, ['marker']);
-        assert.equal(f.usage.length, 1);
-        assert.ok(f.audits.length > 0);
-        assert.doesNotMatch(JSON.stringify(f.audits), /marker|fixture-key/u);
-      }
+      const f = httpFixture(kind);
+      assert.equal((await f.handler(httpRequest(path, 0.37))).status, 200);
+      const sent = f.sent[0];
+      assert.ok(sent);
+      assert.equal(nativeTopP(kind, sent), 0.37);
+      assert.equal(nativeLimit(kind, sent), 17);
+      const stop =
+        kind === 'google'
+          ? (sent.generationConfig as Record<string, unknown>).stopSequences
+          : kind === 'anthropic'
+            ? sent.stop_sequences
+            : sent.stop;
+      assert.deepEqual(stop, ['marker']);
+      assert.equal(f.usage.length, 1);
+      assert.ok(f.audits.length > 0);
+      assert.doesNotMatch(JSON.stringify(f.audits), /marker|fixture-key/u);
     }
   });
   if (kind !== 'openrouter') {
-    test(`${kind} retains administrator output caps with temperature and stop`, async () => {
+    test(`${kind} retains administrator output cap alongside top_p and stop`, async () => {
       const f = adapter(kind, 32);
-      await f.call({
-        ...temperatureRequest(0.37),
-        max_tokens: 64,
-        stop: ['marker'],
-      } as ChatRequest);
-      assert.equal(nativeTemperature(kind, f.sent[0]), 0.37);
+      await f.call({ ...samplingRequest(0.37), max_tokens: 64, stop: ['marker'] } as ChatRequest);
+      assert.equal(nativeTopP(kind, f.sent[0]), 0.37);
       assert.equal(nativeLimit(kind, f.sent[0]), 32);
     });
   }
 }
-test('direct Anthropic range rejection is non-billable and makes no credential/transport calls', async () => {
-  for (const value of [1.01, 2]) {
-    const f = adapter('anthropic');
-    await assert.rejects(f.call(temperatureRequest(value)), (error: unknown) => {
-      assert.equal((error as { possiblyBilled: boolean }).possiblyBilled, false);
-      return true;
-    });
-    assert.equal(f.secrets(), 0);
-    assert.deepEqual(f.sent, []);
-    for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
-      const h = httpFixture('anthropic');
-      const response = await h.handler(httpRequest(path, value));
-      assert.equal(response.status, 502);
-      assert.match(await response.text(), /upstream_failed/u);
-      assert.equal(h.secrets(), 0);
-      assert.deepEqual(h.sent, []);
-      assert.equal(h.usage.length, 0, 'No ledger entry for an unstarted non-billable attempt');
-      assert.ok(
-        h.audits.some((event) => {
-          const attempt = event as { kind?: string; outcome?: string; possiblyBilled?: boolean };
-          return (
-            attempt.kind === 'attempt' &&
-            attempt.outcome === 'failed' &&
-            attempt.possiblyBilled === false
-          );
-        }),
-      );
-    }
-  }
-});
-test('globally invalid public temperature is audited before route work without leaking input', async () => {
+test('invalid public top_p is audited before routes without leaking input', async () => {
   for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
-    for (const value of [-0.01, 2.01, 'private fixture invalid temperature', null, true, {}, []]) {
+    for (const value of [-0.01, 1.01, 'private fixture invalid top_p', null, true, {}, []]) {
       const f = httpFixture('openrouter');
       const response = await f.handler(httpRequest(path, value));
       assert.equal(response.status, 400);
@@ -281,7 +245,7 @@ test('globally invalid public temperature is audited before route work without l
     }
   }
 });
-test('temperature preserves IAM, limits and required audit enforcement', async () => {
+test('top_p retains implicit/explicit denial, limits and required audit enforcement', async () => {
   for (const kind of ['openai', 'openrouter'] as const) {
     for (const [options, status] of [
       [{ deny: true }, 403],
@@ -296,7 +260,7 @@ test('temperature preserves IAM, limits and required audit enforcement', async (
     }
   }
 });
-test('model-specific rejection with temperature preserves safe errors and usage', async () => {
+test('model-specific top_p rejection preserves safe errors and per-attempt accounting', async () => {
   for (const kind of kinds) {
     const f = httpFixture(kind, { fail: true });
     const response = await f.handler(httpRequest('/api/v1/chat/completions', 0.37));
@@ -306,54 +270,5 @@ test('model-specific rejection with temperature preserves safe errors and usage'
     assert.match(message, /upstream_failed/u);
     assert.doesNotMatch(message, /private fixture|fixture-key/u);
     assert.doesNotMatch(JSON.stringify(f.audits), /private fixture|fixture-key/u);
-  }
-});
-test('four adapters retain temperature, top_p, stop and output maxima together', async () => {
-  for (const kind of kinds) {
-    for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
-      const f = httpFixture(kind);
-      const response = await f.handler(
-        new Request(`http://localhost${path}`, {
-          method: 'POST',
-          headers: { authorization: 'Bearer fixture', 'content-type': 'application/json' },
-          body: JSON.stringify({
-            ...request(),
-            temperature: 1,
-            top_p: 0.99,
-            stop: ['marker'],
-            max_completion_tokens: 17,
-          }),
-        }),
-      );
-      assert.equal(response.status, 200);
-      const sent = f.sent[0];
-      assert.ok(sent);
-      assert.equal(nativeTemperature(kind, sent), 1);
-      assert.equal(nativeLimit(kind, sent), 17);
-      const native = kind === 'google' ? (sent.generationConfig as Record<string, unknown>) : sent;
-      assert.equal(native[kind === 'google' ? 'topP' : 'top_p'], 0.99);
-      assert.deepEqual(
-        native[
-          kind === 'google' ? 'stopSequences' : kind === 'anthropic' ? 'stop_sequences' : 'stop'
-        ],
-        ['marker'],
-      );
-      assert.equal(f.usage.length, 1);
-    }
-  }
-});
-test('four adapters capture both sampling scalars before credential lookup', async () => {
-  for (const kind of kinds) {
-    const source = { ...request(), temperature: 1, top_p: 0.99 };
-    const f = adapter(kind, undefined, () => {
-      source.temperature = 99;
-      source.top_p = 99;
-    });
-    await f.call(source as ChatRequest);
-    const sent = f.sent[0];
-    assert.ok(sent);
-    assert.equal(nativeTemperature(kind, sent), 1);
-    const native = kind === 'google' ? (sent.generationConfig as Record<string, unknown>) : sent;
-    assert.equal(native[kind === 'google' ? 'topP' : 'top_p'], 0.99);
   }
 });
