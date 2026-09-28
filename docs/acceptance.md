@@ -73,7 +73,7 @@
 
 ## Harness connection
 
-The PostgreSQL migration runner applies versions `001` through `007` in order, records their checksums, and skips unchanged history on a second run. It refuses edited, missing, duplicate, skipped, and out-of-order versions before applying new SQL. A failing migration leaves neither its schema changes nor its history row, and driver errors expose no SQL text. Deployment connection provisioning and concurrent migrator coordination remain separate release work.
+The PostgreSQL migration runner applies versions `001` through `008` in order, records their checksums, and skips unchanged history on a second run. It refuses edited, missing, duplicate, skipped, and out-of-order versions before applying new SQL. A failing migration leaves neither its schema changes nor its history row, and driver errors expose no SQL text. Deployment connection provisioning and concurrent migrator coordination remain separate release work.
 
 `contracts/policy_cases.json` fixes policy-evaluator inputs and expected decisions. `contracts/attachment_cases.json` fixes principal and role policy resolution, including failure paths. `contracts/route_cases.json` fixes candidate authorization and model-specific provider bounds; these three contracts run against pure TypeScript functions. `contracts/gateway_cases.json` fixes expected HTTP behavior and still needs service-level tests against fake upstreams. `scripts/check.py` validates the original fixture structure and planning documents.
 
@@ -90,7 +90,7 @@ The PostgreSQL migration runner applies versions `001` through `007` in order, r
 - Pool queries bind values separately from SQL. Migration transactions execute BEGIN, callback queries, and COMMIT on one dedicated client, release it, and reject escaped transaction handles.
 - Application failures roll back and preserve their original error. Driver acquisition/query/begin/commit/rollback and shutdown failures expose fixed safe availability errors. Failed rollback, checked-out connection loss, and uncertain commit discard the connection; no retry occurs. Even a query failure caught by the callback prevents successful commit.
 - Idle pool failures notify with a safe error; a failing notification cannot crash the listener. Shutdown is idempotent, drains active clients, and rejects new queries and transactions.
-- An isolated real PostgreSQL database applies all seven migrations, skips unchanged history on the second run, binds hostile-looking literal values, and leaves no schema changes after a rolled-back transaction. CI supplies that database; local integration skips unless its explicit test database URL is set.
+- An isolated real PostgreSQL database applies all eight migrations, skips unchanged history on the second run, binds hostile-looking literal values, and leaves no schema changes after a rolled-back transaction. CI supplies that database; local integration skips unless its explicit test database URL is set.
 
 
 ## Persisted direct providers
@@ -135,3 +135,11 @@ The PostgreSQL migration runner applies versions `001` through `007` in order, r
 - CSV columns contain projected attributed metadata; extra content/key/token fields are removed, and policy versions/details remain quoted JSON cells. Usage export regression tests preserve its existing shared encoding behavior.
 - Continuation uses `X-Has-More` and optional `X-Next-Cursor`. Empty pages have headers only, attachment filenames are fixed, and responses use no-store caching.
 - Default/explicit Deny blocks storage. Invalid/repeated formats return 400. Storage failure, wrong principal/time/order, and required audit failure return safe JSON errors rather than partial CSV.
+
+## PostgreSQL token-management composition
+
+- An authorized internal issuance persists an IAM grant, returns a verifiable opaque token, and records one atomic issued lifecycle event. Owner-scoped revocation persists its grant and makes the token unusable with a revoked lifecycle event.
+- Default Deny, explicit Deny, inactive actors, and unknown credential owners persist denied decisions without credential changes. A denied revocation leaves an existing token active.
+- Required decision-storage failure prevents issuance and revocation with a fixed availability error. A mutation failure after a stored grant leaves the grant without a successful lifecycle event; a grant does not certify completion.
+- Decision storage binds values as SQL parameters, rejects malformed metadata or clocks before SQL, and projects only known fields. Tokens, digests, prompts/responses, and extra policy-statement fields never enter decision columns or driver errors.
+- The factory remains internal: callers must supply authenticated actor context and resolved policy versions. No public management authentication or decision-history HTTP contract is settled by this slice.
