@@ -258,6 +258,10 @@ export function createDirectChatInvoker(
   return async (candidate, request) => {
     const registration = registrations.find((item) => item.providerId === candidate.providerId);
     if (!registration || candidate.kind !== 'managed') fail('other');
+    const configuredTimeout = ports.timeoutMs;
+    const timeoutMs = configuredTimeout === undefined ? 30_000 : configuredTimeout;
+    if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > 2_147_483_647)
+      fail('other');
     let key: string | undefined;
     try {
       key = await ports.resolveSecret(registration.credentialRef);
@@ -266,7 +270,7 @@ export function createDirectChatInvoker(
     }
     if (!key) fail('other');
     const prepared = prepare(registration, candidate, request, key);
-    const timeout = AbortSignal.timeout(ports.timeoutMs ?? 30_000);
+    const timeout = AbortSignal.timeout(timeoutMs);
     let response: Response;
     try {
       response = await (ports.fetcher ?? fetch)(prepared.url, {

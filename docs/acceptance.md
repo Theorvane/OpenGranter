@@ -250,3 +250,9 @@ The PostgreSQL migration runner applies versions `001` through `008` in order, r
 - OpenRouter completions preserve partial and zero recognized counts through the gateway and ledger; all missing counts remain missing.
 - Invalid supplied counters and unsafe derived sums are sanitized to null and recorded as invalid without exposing raw values.
 - Complete valid counters and a safely derived missing total remain reported. Provider bounds, IAM denial, missing mappings, and upstream/secret failures retain their existing behavior.
+
+## Direct timeout validation
+
+- Each direct provider rejects zero, negative, fractional, overflow, non-finite, and nonnumeric supplied durations before secret lookup and fetch, using sanitized non-retryable, non-billable failure metadata.
+- Default, minimum, and maximum valid durations accept normal provider completions. Source configuration mutation during secret lookup does not alter the captured duration.
+- A managed gateway attempt with invalid timeout records a failed non-billable audit, performs no fallback or provider work, and creates no billable usage record.
