@@ -1,7 +1,9 @@
 import {
+  matchesUsageHistoryFilters,
   parseStoredUsageRecord,
   type UsageHistoryPage,
   type UsageHistoryQuery,
+  validUsageHistoryFilters,
 } from './history.ts';
 import { UsageLedgerUnavailable, type UsageSqlClient } from './postgres-ledger.ts';
 
@@ -20,7 +22,8 @@ export function createPostgresUsageReader(
       !query.principalId ||
       !Number.isSafeInteger(query.limit) ||
       query.limit < 1 ||
-      query.limit > 100
+      query.limit > 100 ||
+      !validUsageHistoryFilters(query)
     ) {
       throw new UsageLedgerUnavailable();
     }
@@ -30,6 +33,9 @@ export function createPostgresUsageReader(
          FROM usage_records
          WHERE principal_id = $1
            AND ($2::bigint IS NULL OR (occurred_at_ms, attempt_id) < ($2::bigint, $3::text))
+           AND ($5::text IS NULL OR record->>'modelAlias' = $5::text)
+           AND ($6::bigint IS NULL OR occurred_at_ms >= $6::bigint)
+           AND ($7::bigint IS NULL OR occurred_at_ms < $7::bigint)
          ORDER BY occurred_at_ms DESC, attempt_id DESC
          LIMIT $4`,
         [
@@ -37,6 +43,9 @@ export function createPostgresUsageReader(
           query.cursor?.occurredAt ?? null,
           query.cursor?.attemptId ?? null,
           query.limit + 1,
+          query.modelAlias ?? null,
+          query.fromMs ?? null,
+          query.toMs ?? null,
         ],
       );
       if (result.rows.length > query.limit + 1) throw new UsageLedgerUnavailable();
@@ -44,6 +53,7 @@ export function createPostgresUsageReader(
         const row = object(value);
         const stored = parseStoredUsageRecord(row?.record);
         if (
+          !matchesUsageHistoryFilters(stored, query) ||
           stored.principalId !== query.principalId ||
           row?.principal_id !== query.principalId ||
           row.attempt_id !== stored.attemptId ||

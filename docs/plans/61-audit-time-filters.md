@@ -31,3 +31,7 @@
 - Record red/green and check evidence in the PR.
 - This issue starts from main and is independent of pending PRs #58 and #60.
 - Timing filters operate on recorded occurrence timestamps, not a claim of upstream clock accuracy. Cursor positions never widen principal scope.
+
+## Integration update
+
+Merge current main after usage-filter PR #58 landed; retain usage and audit range contracts and revalidate the combined suite.
