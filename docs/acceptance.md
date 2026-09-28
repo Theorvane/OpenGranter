@@ -73,7 +73,7 @@
 
 ## Harness connection
 
-The PostgreSQL migration runner applies versions `001` through `006` in order, records their checksums, and skips unchanged history on a second run. It refuses edited, missing, duplicate, skipped, and out-of-order versions before applying new SQL. A failing migration leaves neither its schema changes nor its history row, and driver errors expose no SQL text. Deployment connection provisioning and concurrent migrator coordination remain separate release work.
+The PostgreSQL migration runner applies versions `001` through `007` in order, records their checksums, and skips unchanged history on a second run. It refuses edited, missing, duplicate, skipped, and out-of-order versions before applying new SQL. A failing migration leaves neither its schema changes nor its history row, and driver errors expose no SQL text. Deployment connection provisioning and concurrent migrator coordination remain separate release work.
 
 `contracts/policy_cases.json` fixes policy-evaluator inputs and expected decisions. `contracts/attachment_cases.json` fixes principal and role policy resolution, including failure paths. `contracts/route_cases.json` fixes candidate authorization and model-specific provider bounds; these three contracts run against pure TypeScript functions. `contracts/gateway_cases.json` fixes expected HTTP behavior and still needs service-level tests against fake upstreams. `scripts/check.py` validates the original fixture structure and planning documents.
 
@@ -90,4 +90,12 @@ The PostgreSQL migration runner applies versions `001` through `006` in order, r
 - Pool queries bind values separately from SQL. Migration transactions execute BEGIN, callback queries, and COMMIT on one dedicated client, release it, and reject escaped transaction handles.
 - Application failures roll back and preserve their original error. Driver acquisition/query/begin/commit/rollback and shutdown failures expose fixed safe availability errors. Failed rollback, checked-out connection loss, and uncertain commit discard the connection; no retry occurs. Even a query failure caught by the callback prevents successful commit.
 - Idle pool failures notify with a safe error; a failing notification cannot crash the listener. Shutdown is idempotent, drains active clients, and rejects new queries and transactions.
-- An isolated real PostgreSQL database applies all six migrations, skips unchanged history on the second run, binds hostile-looking literal values, and leaves no schema changes after a rolled-back transaction. CI supplies that database; local integration skips unless its explicit test database URL is set.
+- An isolated real PostgreSQL database applies all seven migrations, skips unchanged history on the second run, binds hostile-looking literal values, and leaves no schema changes after a rolled-back transaction. CI supplies that database; local integration skips unless its explicit test database URL is set.
+
+
+## Persisted direct providers
+
+- Enabled OpenAI, Anthropic, and Google registrations load from PostgreSQL in stable provider-ID order. Disabled rows are excluded. Returned snapshots contain only provider ID, kind, secret reference, and configured output limit; extra database fields and subsequent row mutations do not leak into them.
+- Unsupported kinds, invalid/duplicate IDs, malformed secret references, missing Anthropic limits, invalid numeric limits, non-row data, and SQL failures reject the entire snapshot with a fixed safe error. No partial configuration is returned.
+- A direct invoker built from the snapshot contacts only its fixed registered provider host and resolves the matching secret reference. Disabled and unknown providers reach neither the secret resolver nor the transport. Database constraints reject invalid Anthropic registrations, and PostgreSQL bigint limits decode without precision loss within the supported safe-integer range.
+- Configuration loading remains an explicit trusted operation; live reload, registration writes, and HTTP management are not provided by this reader.
