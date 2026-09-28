@@ -1,4 +1,5 @@
 import type { ChatRequest } from '../gateway/chat-handler.ts';
+import { normalizeProviderTokens } from '../usage/normalize-provider-tokens.ts';
 import type { ChatCompletion } from './direct-chat.ts';
 
 const OPENROUTER_CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
@@ -98,9 +99,11 @@ function normalize(
     fail('upstream', true, true);
 
   const usage = record(value.usage);
-  const promptTokens = count(usage?.prompt_tokens);
-  const completionTokens = count(usage?.completion_tokens);
-  const totalTokens = count(usage?.total_tokens);
+  const stats = normalizeProviderTokens(
+    usage?.prompt_tokens,
+    usage?.completion_tokens,
+    usage?.total_tokens,
+  );
   const finish =
     first.finish_reason === 'stop' || first.finish_reason === 'length' ? first.finish_reason : null;
   return {
@@ -111,15 +114,7 @@ function normalize(
     choices: [
       { index: 0, message: { role: 'assistant', content: message.content }, finish_reason: finish },
     ],
-    ...(promptTokens !== undefined && completionTokens !== undefined
-      ? {
-          usage: {
-            prompt_tokens: promptTokens,
-            completion_tokens: completionTokens,
-            total_tokens: totalTokens ?? promptTokens + completionTokens,
-          },
-        }
-      : {}),
+    ...(stats ? { usage: stats } : {}),
   };
 }
 

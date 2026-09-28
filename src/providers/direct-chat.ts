@@ -1,6 +1,7 @@
 import type { ChatRequest } from '../gateway/chat-handler.ts';
 import type { RouteCandidate } from '../routing/authorize-candidates.ts';
 import { DirectProviderFailure } from '../routing/invoke-jev-managed-route.ts';
+import { normalizeProviderTokens } from '../usage/normalize-provider-tokens.ts';
 
 export interface DirectProviderRegistration {
   readonly providerId: string;
@@ -99,23 +100,6 @@ function fail(
 ): never {
   throw new DirectProviderFailure(category, responseStarted, possiblyBilled);
 }
-function usage(prompt: unknown, completion: unknown, total: unknown): ChatCompletion['usage'] {
-  const p = count(prompt);
-  const c = count(completion);
-  const t =
-    total === undefined && p !== undefined && c !== undefined
-      ? (count(p + c) ?? null)
-      : total === undefined
-        ? undefined
-        : (count(total) ?? null);
-  if (prompt === undefined && completion === undefined && t === undefined) return undefined;
-  return {
-    ...(prompt === undefined ? {} : { prompt_tokens: p ?? null }),
-    ...(completion === undefined ? {} : { completion_tokens: c ?? null }),
-    ...(t === undefined ? {} : { total_tokens: t }),
-  };
-}
-
 function completion(
   id: unknown,
   created: unknown,
@@ -158,7 +142,7 @@ function normalize(
       model,
       message.content,
       finish,
-      usage(u?.prompt_tokens, u?.completion_tokens, u?.total_tokens),
+      normalizeProviderTokens(u?.prompt_tokens, u?.completion_tokens, u?.total_tokens),
     );
   }
   if (kind === 'anthropic') {
@@ -182,7 +166,7 @@ function normalize(
         : value.stop_reason === 'end_turn' || value.stop_reason === 'stop_sequence'
           ? 'stop'
           : null,
-      usage(u?.input_tokens, u?.output_tokens, undefined),
+      normalizeProviderTokens(u?.input_tokens, u?.output_tokens, undefined),
     );
   }
   const first = record(items(value.candidates)?.[0]);
@@ -200,7 +184,7 @@ function normalize(
       : first?.finishReason === 'STOP'
         ? 'stop'
         : null,
-    usage(u?.promptTokenCount, u?.candidatesTokenCount, u?.totalTokenCount),
+    normalizeProviderTokens(u?.promptTokenCount, u?.candidatesTokenCount, u?.totalTokenCount),
   );
 }
 
