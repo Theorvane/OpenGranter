@@ -123,13 +123,14 @@ export function createOpenRouterChatInvoker(
   ports: OpenRouterChatPorts,
 ): (attempt: OpenRouterChatAttempt, request: ChatRequest) => Promise<ChatCompletion> {
   return async (attempt, request) => {
+    const configuredTimeout = ports.timeoutMs;
+    const timeoutMs = configuredTimeout === undefined ? 30_000 : configuredTimeout;
     if (
       !validAttempt(attempt) ||
       !ports.credentialRef ||
-      (ports.timeoutMs !== undefined &&
-        (!Number.isSafeInteger(ports.timeoutMs) ||
-          ports.timeoutMs <= 0 ||
-          ports.timeoutMs > 2_147_483_647))
+      !Number.isSafeInteger(timeoutMs) ||
+      timeoutMs <= 0 ||
+      timeoutMs > 2_147_483_647
     )
       fail('configuration');
     let key: string | undefined;
@@ -140,7 +141,7 @@ export function createOpenRouterChatInvoker(
     }
     if (!key) fail('credential');
 
-    const timeout = AbortSignal.timeout(ports.timeoutMs ?? 30_000);
+    const timeout = AbortSignal.timeout(timeoutMs);
     let response: Response;
     try {
       response = await (ports.fetcher ?? fetch)(OPENROUTER_CHAT_URL, {

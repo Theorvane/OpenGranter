@@ -250,3 +250,9 @@ The PostgreSQL migration runner applies versions `001` through `008` in order, r
 - OpenRouter completions preserve partial and zero recognized counts through the gateway and ledger; all missing counts remain missing.
 - Invalid supplied counters and unsafe derived sums are sanitized to null and recorded as invalid without exposing raw values.
 - Complete valid counters and a safely derived missing total remain reported. Provider bounds, IAM denial, missing mappings, and upstream/secret failures retain their existing behavior.
+
+## OpenRouter timeout capture
+
+- Supplied and default delegated timeouts remain valid for the current attempt when source configuration changes during credential lookup.
+- A subsequent call rejects the now-invalid source configuration before another credential lookup or fetch, with safe non-billable configuration metadata.
+- Existing bounds, valid completions, credential failures, and upstream failures remain unchanged.

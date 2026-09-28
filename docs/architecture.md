@@ -289,3 +289,7 @@ Direct adapters normalize each recognized token counter independently. Valid sup
 ## Shared completion token projection
 
 Direct and OpenRouter adapters share the pure known-counter projector. Provider-specific field mapping precedes projection; gateway accounting classifies the projected counters with its existing availability labels. Missing and invalid supplied totals remain distinct, and no unsafe sum or raw invalid field enters normalized responses. Delegated provider bounds and failure metadata remain unchanged. See [contract](../contracts/delegated-usage-availability.md).
+
+## Delegated timeout capture
+
+The delegated invoker reads the optional timeout once, validates its resolved duration before credential lookup, and uses that local value for the upstream signal. Source configuration updates during lookup affect later attempts only. See [contract](../contracts/openrouter-timeout-snapshot.md).

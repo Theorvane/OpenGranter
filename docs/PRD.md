@@ -96,3 +96,7 @@ Preserve partial direct-provider token counts and distinguish invalid supplied c
 ## Delegated usage availability
 
 Preserve partial and invalid recognized token reporting from OpenRouter using the same sanitized projection as direct routes. Billing reconciliation remains separate. See [contract](../contracts/delegated-usage-availability.md).
+
+## Delegated timeout snapshot
+
+OpenRouter attempts use the timeout value validated before credential lookup, retaining it across asynchronous configuration changes. Subsequent calls validate the current setting. See [contract](../contracts/openrouter-timeout-snapshot.md).
