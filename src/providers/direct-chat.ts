@@ -1,7 +1,7 @@
 import type { ChatRequest } from '../gateway/chat-handler.ts';
 import type { RouteCandidate } from '../routing/authorize-candidates.ts';
 import { DirectProviderFailure } from '../routing/invoke-jev-managed-route.ts';
-import { normalizeProviderTokens } from '../usage/normalize-provider-tokens.ts';
+import { normalizeProviderUsage } from '../usage/normalize-provider-tokens.ts';
 
 export interface DirectProviderRegistration {
   readonly providerId: string;
@@ -129,7 +129,6 @@ function normalize(
     const first = record(items(value.choices)?.[0]);
     const message = record(first?.message);
     if (message?.role !== 'assistant') fail('other');
-    const u = record(value.usage);
     const finish =
       first?.finish_reason === 'stop'
         ? 'stop'
@@ -142,7 +141,7 @@ function normalize(
       model,
       message.content,
       finish,
-      normalizeProviderTokens(u?.prompt_tokens, u?.completion_tokens, u?.total_tokens),
+      normalizeProviderUsage(value.usage),
     );
   }
   if (kind === 'anthropic') {
@@ -155,7 +154,6 @@ function normalize(
       )
     )
       fail('other');
-    const u = record(value.usage);
     return completion(
       value.id,
       undefined,
@@ -166,14 +164,13 @@ function normalize(
         : value.stop_reason === 'end_turn' || value.stop_reason === 'stop_sequence'
           ? 'stop'
           : null,
-      normalizeProviderTokens(u?.input_tokens, u?.output_tokens, undefined),
+      normalizeProviderUsage(value.usage, ['input_tokens', 'output_tokens']),
     );
   }
   const first = record(items(value.candidates)?.[0]);
   const parts = items(record(first?.content)?.parts);
   if (!parts || parts.length === 0 || parts.some((part) => typeof record(part)?.text !== 'string'))
     fail('other');
-  const u = record(value.usageMetadata);
   return completion(
     value.responseId,
     undefined,
@@ -184,7 +181,11 @@ function normalize(
       : first?.finishReason === 'STOP'
         ? 'stop'
         : null,
-    normalizeProviderTokens(u?.promptTokenCount, u?.candidatesTokenCount, u?.totalTokenCount),
+    normalizeProviderUsage(value.usageMetadata, [
+      'promptTokenCount',
+      'candidatesTokenCount',
+      'totalTokenCount',
+    ]),
   );
 }
 

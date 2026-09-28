@@ -262,3 +262,9 @@ The PostgreSQL migration runner applies versions `001` through `008` in order, r
 - Supplied and default delegated timeouts remain valid for the current attempt when source configuration changes during credential lookup.
 - A subsequent call rejects the now-invalid source configuration before another credential lookup or fetch, with safe non-billable configuration metadata.
 - Existing bounds, valid completions, credential failures, and upstream failures remain unchanged.
+
+## Provider usage containers
+
+- Across all four adapters and the chat gateway, string/array/number/boolean containers yield sanitized invalid usage and successful completion outcomes without exposing raw values.
+- Absent/null/empty/unrecognized-only containers remain missing. Existing partial, valid, and invalid recognized-counter behavior is preserved.
+- No malformed usage data or unrelated object fields enter normal audit events or usage records.

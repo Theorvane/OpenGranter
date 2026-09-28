@@ -6,4 +6,4 @@ When a total is absent and both component counts are valid, derive their sum. If
 
 All absent counters omit the usage object. The existing usage ledger labels complete valid counters reported, incomplete valid counters partial, no counters missing, and any invalid counter invalid. Its invalid records keep token counts null. A successful text completion remains successful even when its usage is invalid or missing. No billing amounts are inferred.
 
-This change applies to recognized counter fields in the existing provider usage mappings. Validation of malformed usage containers, provider billing, quotas, and OpenRouter reconciliation remain separate concerns.
+This change applies to recognized counter fields in the existing provider usage mappings. The [container contract](provider-usage-containers.md) defines malformed-container handling. Provider billing, quotas, and OpenRouter reconciliation remain separate concerns.

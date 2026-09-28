@@ -104,3 +104,7 @@ Validate and capture direct-provider attempt timeouts before resolving secrets, 
 ## Delegated timeout snapshot
 
 OpenRouter attempts use the timeout value validated before credential lookup, retaining it across asynchronous configuration changes. Subsequent calls validate the current setting. See [contract](../contracts/openrouter-timeout-snapshot.md).
+
+## Provider usage container validation
+
+Distinguish malformed usage containers from absent reporting across all four adapters without storing their raw values. Preserve successful completion outcomes and existing ledger statuses. See [contract](../contracts/provider-usage-containers.md).
