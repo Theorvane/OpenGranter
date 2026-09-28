@@ -116,7 +116,7 @@ Fail closed when authentication, policy, route bounds, secrets, or required audi
 ## Decisions still needed
 
 1. Supported OpenRouter request options and first API capability set across all four adapters.
-2. Company SSO protocol, proxy-token maximum lifetime, and trusted management API for service-account credentials.
+2. OIDC identity binding and management authentication profile; human-only first management authentication and 30-day human/90-day service new-token lifetime caps are confirmed but not yet implemented.
 3. Operational configuration, secret delivery, migration coordination, and process startup for the PostgreSQL driver and secret stores in AWS and on-premises deployments.
 4. Whether monthly limits warn or block, and how concurrent calls reserve capacity.
 5. Content-audit default, configuration scope, retention, reader permissions, and tamper-resistant export.
@@ -305,3 +305,7 @@ A shared pure boundary validates the upstream usage container before provider-sp
 ## Chat media type boundary
 
 The JSON reader compares the normalized type segment exactly with application/json rather than matching a prefix. The existing authenticated invalid-request and audit-unavailable paths apply before body processing or downstream calls; UTF-8 and size bounds remain unchanged. See [contract](../contracts/chat-media-type.md).
+
+## Agreed management foundation (implementation pending)
+
+OIDC is selected for company SSO. Only SSO human users authenticate to the first management API; new proxy-token lifetimes are capped by owner kind at 30 days for human principals and 90 days for service principals. The existing internal coordinator still requires a trusted authenticated actor and fresh IAM evaluation; no SSO adapter or management HTTP endpoint exists yet. Identity binding and JWT access-token versus browser-session authentication remain pending. See [planning contract](../contracts/sso-management-foundation.md).

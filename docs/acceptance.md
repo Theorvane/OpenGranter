@@ -274,3 +274,9 @@ The PostgreSQL migration runner applies versions `001` through `008` in order, r
 - Unsupported JSON prefix lookalikes, suffix variants, comma-joined declarations, missing types, and unrelated types return invalid_request with metadata denial and no downstream work.
 - Normal, uppercase, parameterized, and whitespace-trimmed application/json requests remain accepted.
 - Authentication still precedes media validation; denial-audit failure retains audit_unavailable without exposing input.
+
+## Planned SSO management foundation (not yet implemented)
+
+- OIDC-authenticated human management callers still pass existing iam:Manage policy checks; authentication does not grant management authority. Service-account management authentication is excluded from the first slice.
+- New human-owner proxy tokens cannot exceed 30 days; new service-owner tokens cannot exceed 90 days. Expiry remains mandatory.
+- Identity binding and management authentication scenarios await the remaining planning answers. These scenarios are release requirements pending implementation, not assertions that SSO or caps already work.
