@@ -35,3 +35,5 @@
 ## Integration update
 
 Merge current main after usage-filter PR #58 landed; retain usage and audit range contracts and revalidate the combined suite.
+
+PR #60 also merged. Preserve the persisted-direct composition contract alongside audit/usage filters and verify all combined tests before refreshing PR #62.

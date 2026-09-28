@@ -157,6 +157,12 @@ Deployment code explicitly loads registrations and constructs the direct invoker
 
 The existing self/specified-principal IAM requirements apply to all filtered reads. PostgreSQL binds filter values alongside the principal predicate and descending keyset cursor, then validates all returned records against those filters. The HTTP boundary repeats this check for any injected ledger. Invalid queries return 400; out-of-filter pages fail with safe 503 and the required unavailable-read audit. No partial response is returned. Clients repeat the filters on subsequent pages; a cursor only sets a position and does not grant a different principal scope. The existing principal/time index supports narrowing; modelAlias uses JSONB extraction and has no dedicated index yet. CSV export and aggregation remain separate work.
 
+## Gateway composition with persisted direct registrations
+
+`createPostgresDirectChatHandler` loads one validated registration snapshot and supplies a direct invoker to the existing PostgreSQL HTTP handler. `createNodePostgresDirectChatServer` exposes that handler as an unbound Node server after the load succeeds. Both accept the caller's secret resolver, limits, clock, request IDs, and optional delegated/Jev ports. Direct transport and timeout options are forwarded to the existing adapter. Construction reads configuration only: no provider secret lookup, inference, migration, listening, or database shutdown occurs.
+
+Unavailable or malformed registration storage rejects construction with its fixed safe error; no server is returned. Empty registrations are valid for deployments that have only delegated routes or no published managed models. Registered direct calls still pass through token authentication, full IAM destination evaluation, limits, audit, and usage accounting. The configuration is a startup snapshot, so deployments rebuild the handler/server after changing registrations. Callers continue owning database and HTTP resource lifecycle. Existing custom-invoker factories retain their signatures.
+
 ## Audit occurrence-time filters
 
 `GET /v1/audit` accepts optional inclusive `from_ms` and exclusive `to_ms` occurrence-time bounds in epoch milliseconds. Values must be canonical nonnegative safe-integer decimals; when both are present, start must precede end. Duplicate and unknown query fields remain invalid. The target principal's `audit:Read` requirement applies to every range, including self reads.
