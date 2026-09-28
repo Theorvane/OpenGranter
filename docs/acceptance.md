@@ -332,3 +332,9 @@ Both chat paths support literal stop strings or dense arrays of up to four strin
 - Direct configured caps and omission defaults remain effective; input changes during credential lookup cannot change the maximum.
 - IAM denial, limits, required audit failures and upstream failures preserve safe errors and usage accounting. The alias adds no access or budget reservation.
 - Explicitly document the local conflict restriction and native reasoning-model capability gap. See [contract](../contracts/client-output-limits.md).
+
+## Client top_p sampling
+
+- Both chat paths and four real adapters preserve valid zero/one/fractional top_p and omit it when absent; malformed values reject before route/credential/transport work with required denial audit.
+- Mutation during credential resolution cannot change the outgoing primitive. Combining stop and output maxima retains all native settings and configured direct caps.
+- IAM denial, limits, required audit failures and upstream rejection retain safe errors and usage accounting. Model-specific limitations remain documented. See [contract](../contracts/client-top-p.md).

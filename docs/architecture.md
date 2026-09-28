@@ -350,3 +350,7 @@ Both chat paths support literal stop strings or dense arrays of up to four strin
 ## Completion-token alias normalization
 
 The HTTP decoder resolves max_tokens and max_completion_tokens to canonical max_tokens. The same pure resolver protects direct adapter callers before credential lookup. Each supplied field must be a positive safe integer; differing pairs reject, equal pairs remain valid. Native mappings and configured caps are unchanged. Native reasoning-model parameter selection remains pending. See [plan](plans/126-completion-token-alias.md).
+
+## Client top_p capture and mapping
+
+Shared scalar validation protects HTTP and adapters; the primitive is captured before credential lookup. OpenRouter/OpenAI/Anthropic receive top_p, while Gemini receives generationConfig.topP together with existing output/stop settings. Omission adds no default. Trusted model capability negotiation remains pending; supplied values are never silently clamped. See [plan](plans/128-client-top-p.md).
