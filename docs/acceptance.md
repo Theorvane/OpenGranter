@@ -294,3 +294,10 @@ The PostgreSQL migration runner applies versions `001` through `008` in order, r
 - Coordinator targets, expiry, credential IDs, actor identity, active state, statements, and evaluated versions survive source updates during owner lookup and decision audit.
 - Inactive/default/explicit Deny remains effective; extra actor fields are omitted, snapshots/events are immutable, and audit failure prevents mutation.
 - Original caller objects remain mutable; later operations inspect current values. Existing success/denial/failure contracts remain unchanged.
+
+## Gateway principal snapshots
+
+- Source updates during managed/delegated route or model-catalog lookup preserve initial Allow/default/explicit Deny.
+- Limit checks and all request attribution retain authenticated identity and versions; subsequent requests may observe source updates.
+- Malformed snapshot and required failure-audit errors stop downstream work with existing safe errors.
+See [contract](../contracts/gateway-principal-snapshots.md).

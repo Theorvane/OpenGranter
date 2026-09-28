@@ -317,3 +317,8 @@ The internal management service supplies a trusted target-kind resolver to the P
 ## Management operation snapshots
 
 The service captures validated primitive request fields before loading the actor. The coordinator projects a deeply immutable known-field actor snapshot and captures operation fields before owner lookup or audit. Decision events are frozen at the audit boundary; audit exceptions retain existing safe failure behavior. This adds no cross-query transaction or persisted-policy revalidation guarantee. See [contract](../contracts/token-management-snapshots.md).
+
+## Authenticated principal snapshots
+
+Capture immutable known-field principal and policy context immediately after authentication, retaining it through asynchronous HTTP request processing. No database policy revalidation is added.
+See [contract](../contracts/gateway-principal-snapshots.md).

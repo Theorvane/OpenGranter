@@ -158,6 +158,26 @@ export interface ChatHandlerPorts<T> {
   readonly fetchJev?: JevFetcher;
 }
 
+function snapshotPrincipal(principal: AuthenticatedPrincipal): AuthenticatedPrincipal {
+  return Object.freeze({
+    id: principal.id,
+    active: principal.active,
+    credentialId: principal.credentialId,
+    statements: Object.freeze(
+      principal.statements.map((statement) =>
+        Object.freeze({
+          effect: statement.effect,
+          actions: Object.freeze([...statement.actions]),
+          resources: Object.freeze([...statement.resources]),
+        }),
+      ),
+    ),
+    policyVersions: Object.freeze(
+      principal.policyVersions.map(({ id, version }) => Object.freeze({ id, version })),
+    ),
+  });
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -290,7 +310,8 @@ export function createChatHandler<T>(
     let principal: AuthenticatedPrincipal | undefined;
     if (token) {
       try {
-        principal = await ports.authenticate(token);
+        const authenticated = await ports.authenticate(token);
+        principal = authenticated?.active ? snapshotPrincipal(authenticated) : authenticated;
       } catch {
         try {
           await ports.writeAudit({ kind: 'auth-unavailable', requestId });

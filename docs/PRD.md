@@ -124,3 +124,8 @@ New issuance through the internal PostgreSQL management service now enforces the
 ## Internal management operation snapshots
 
 Capture each token-management operation and actor policy context before asynchronous work so decision audit and credential mutation retain the same values. Caller updates affect later operations. See [contract](../contracts/token-management-snapshots.md).
+
+## Gateway authenticated context
+
+Capture immutable known-field principal and policy context immediately after authentication, retaining it through asynchronous HTTP request processing. No database policy revalidation is added.
+See [contract](../contracts/gateway-principal-snapshots.md).
