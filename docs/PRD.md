@@ -92,3 +92,7 @@ Chat JSON must be well-formed UTF-8; reject malformed or incomplete byte sequenc
 ## Direct usage availability
 
 Preserve partial direct-provider token counts and distinguish invalid supplied counters from missing ones without retaining their raw values. See [usage availability contract](../contracts/direct-usage-availability.md).
+
+## Delegated usage availability
+
+Preserve partial and invalid recognized token reporting from OpenRouter using the same sanitized projection as direct routes. Billing reconciliation remains separate. See [contract](../contracts/delegated-usage-availability.md).

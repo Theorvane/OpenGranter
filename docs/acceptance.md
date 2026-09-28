@@ -244,3 +244,9 @@ The PostgreSQL migration runner applies versions `001` through `008` in order, r
 - Through each direct adapter and the chat gateway, prompt-only, completion-only, and total-only reporting remain partial with supplied values preserved, including zero.
 - Invalid supplied counters and unsafe derived totals produce sanitized null markers and invalid ledger availability; raw invalid strings/objects do not enter responses or records.
 - Complete valid counters remain reported; absent counters remain missing. These accounting states do not turn a successful text completion into a provider failure.
+
+## Delegated usage availability
+
+- OpenRouter completions preserve partial and zero recognized counts through the gateway and ledger; all missing counts remain missing.
+- Invalid supplied counters and unsafe derived sums are sanitized to null and recorded as invalid without exposing raw values.
+- Complete valid counters and a safely derived missing total remain reported. Provider bounds, IAM denial, missing mappings, and upstream/secret failures retain their existing behavior.
