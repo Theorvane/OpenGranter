@@ -1,6 +1,7 @@
 import { createServer, type Server } from 'node:http';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
+import { createClientErrorResponse } from './client-errors.ts';
 
 /** Adapt an already-composed Fetch-style request boundary to a Node HTTP socket server. */
 export function createNodeRequestServer(handle: (request: Request) => Promise<Response>): Server {
@@ -37,7 +38,7 @@ export function createNodeRequestServer(handle: (request: Request) => Promise<Re
       } else {
         outgoing.statusCode = 500;
         outgoing.setHeader('content-type', 'application/json');
-        outgoing.end(JSON.stringify({ error: { code: 'internal_error' } }));
+        outgoing.end(await createClientErrorResponse(500, 'internal_error').text());
       }
     }
   });

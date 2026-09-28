@@ -30,7 +30,7 @@ Tools with a hardcoded openrouter.ai host need a configurable endpoint or an int
 | Tool calling | Not implemented | Tool definitions, choice, assistant tool calls, tool results and provider mappings |
 | Rich inputs and outputs | Not implemented | Content parts, modality/capability checks, structured output and reasoning handling |
 | Client routing controls | Rejected today | Client preferences narrow approved model/provider scope; no arbitrary destinations or authority widening |
-| Errors | Safe string codes and request ID | Source-compatible safe message/status/schema handling, including streaming errors |
+| Errors | Safe symbolic codes, fixed messages and request ID | Numeric OpenRouter code/status conformance, typed metadata, retry hints and streaming errors |
 | Other model-use endpoints | Not implemented | Inventory completions, responses, embeddings and generation lookup against external-tool requirements and authorization |
 | Operational OpenGranter APIs | Usage/audit extensions on /v1 | Keep their authorization and contracts explicit during compatibility expansion |
 
@@ -51,3 +51,7 @@ OpenRouter documents /api/v1 with Bearer authentication and configurable SDK bas
 ## Output-token limit conformance
 
 The current adapters support max_tokens through both client paths, including direct registration caps, omission defaults, malformed-value rejection and captured values during asynchronous credential resolution. See [contract](../contracts/client-output-limits.md) and [plan](plans/118-client-output-limits.md). Full compatibility remains pending.
+
+## Error display conformance
+
+Fixed error.message is available for all gateway failures and the Node bridge fallback. Symbolic codes remain unchanged; numeric OpenRouter error schema conformance is still pending. See [contract](../contracts/safe-client-errors.md).

@@ -91,7 +91,7 @@ for (const [name, chunks] of [
     const response = await fixture.run();
     assert.equal(response.status, 400);
     assert.deepEqual(await response.json(), {
-      error: { code: 'invalid_request' },
+      error: { code: 'invalid_request', message: 'Invalid request.' },
       request_id: 'utf8-request',
     });
     assert.deepEqual(fixture.calls, []);
@@ -116,7 +116,10 @@ test('malformed input retains mandatory denial-audit failure response', async ()
   const response = await fixture.run();
   assert.equal(response.status, 503);
   assert.deepEqual(await response.json(), {
-    error: { code: 'audit_unavailable' },
+    error: {
+      code: 'audit_unavailable',
+      message: 'Required audit recording is temporarily unavailable.',
+    },
     request_id: 'utf8-request',
   });
   assert.deepEqual(fixture.calls, []);

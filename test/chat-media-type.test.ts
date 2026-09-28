@@ -79,7 +79,7 @@ for (const type of [
     const response = await fixture.run(type);
     assert.equal(response.status, 400);
     assert.deepEqual(await response.json(), {
-      error: { code: 'invalid_request' },
+      error: { code: 'invalid_request', message: 'Invalid request.' },
       request_id: 'media-request',
     });
     assert.deepEqual(fixture.calls, []);
@@ -107,7 +107,10 @@ test('unsupported type retains mandatory denial-audit failure response', async (
   const response = await fixture.run('application/jsonp');
   assert.equal(response.status, 503);
   assert.deepEqual(await response.json(), {
-    error: { code: 'audit_unavailable' },
+    error: {
+      code: 'audit_unavailable',
+      message: 'Required audit recording is temporarily unavailable.',
+    },
     request_id: 'media-request',
   });
   assert.deepEqual(fixture.calls, []);

@@ -110,7 +110,10 @@ for (const [name, build] of malformed) {
     const response = await f.handler(request('/v1/chat/completions'));
     assert.equal(response.status, 503);
     assert.deepEqual(await response.json(), {
-      error: { code: 'authentication_unavailable' },
+      error: {
+        code: 'authentication_unavailable',
+        message: 'Authentication is temporarily unavailable.',
+      },
       request_id: 'request',
     });
     assert.deepEqual(f.activity, []);
@@ -157,7 +160,10 @@ test('malformed authentication with failed required audit returns safe audit err
   const response = await f.handler(request('/v1/chat/completions'));
   assert.equal(response.status, 503);
   assert.deepEqual(await response.json(), {
-    error: { code: 'audit_unavailable' },
+    error: {
+      code: 'audit_unavailable',
+      message: 'Required audit recording is temporarily unavailable.',
+    },
     request_id: 'request',
   });
   assert.deepEqual(f.activity, []);
