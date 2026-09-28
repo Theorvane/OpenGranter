@@ -66,3 +66,7 @@ For provider fallback, each attempt event identifies its candidate and outcome; 
 - Metric freshness, health thresholds, and capability discovery.
 - First supported request fields beyond text chat and whether streaming is required at launch.
 - OpenRouter provider identity mapping across its endpoint slugs, BYOK routes, and the internal provider resource IDs.
+
+## Client output maximum
+
+Both compatible chat paths accept optional max_tokens. All four adapters preserve a captured positive safe-integer maximum through the native mapping, with configured direct registration caps bounding requests. Existing defaults remain on omission. This does not grant model/provider permissions, reserve a budget or implement reasoning/streaming support. See [contract](../contracts/client-output-limits.md).

@@ -1,4 +1,5 @@
 import type { ChatRequest } from '../gateway/chat-handler.ts';
+import { validOutputTokenLimit } from '../gateway/chat-parameters.ts';
 import type { RouteCandidate } from '../routing/authorize-candidates.ts';
 import { DirectProviderFailure } from '../routing/invoke-jev-managed-route.ts';
 import { normalizeProviderUsage } from '../usage/normalize-provider-tokens.ts';
@@ -194,14 +195,24 @@ function prepare(
   candidate: RouteCandidate,
   request: ChatRequest,
   key: string,
+  maxTokens: number | undefined,
 ): { url: string; headers: Record<string, string>; body: object } {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
+  const outputLimit =
+    maxTokens === undefined
+      ? undefined
+      : Math.min(maxTokens, registration.maxOutputTokens ?? maxTokens);
   if (registration.kind === 'openai') {
     headers.authorization = `Bearer ${key}`;
     return {
       url: 'https://api.openai.com/v1/chat/completions',
       headers,
-      body: { model: candidate.upstreamModelId, messages: request.messages, stream: false },
+      body: {
+        model: candidate.upstreamModelId,
+        messages: request.messages,
+        stream: false,
+        ...(outputLimit === undefined ? {} : { max_tokens: outputLimit }),
+      },
     };
   }
   const system = request.messages.filter((message) => message.role === 'system');
@@ -224,7 +235,7 @@ function prepare(
       headers,
       body: {
         model: candidate.upstreamModelId,
-        max_tokens: registration.maxOutputTokens,
+        max_tokens: outputLimit ?? registration.maxOutputTokens,
         ...(system.length ? { system: system.map((message) => message.content).join('\n') } : {}),
         messages,
       },
@@ -236,6 +247,7 @@ function prepare(
     url: `https://generativelanguage.googleapis.com/v1beta/models/${candidate.upstreamModelId}:generateContent`,
     headers,
     body: {
+      ...(outputLimit === undefined ? {} : { generationConfig: { maxOutputTokens: outputLimit } }),
       ...(system.length
         ? {
             systemInstruction: {
@@ -263,6 +275,8 @@ export function createDirectChatInvoker(
     const timeoutMs = configuredTimeout === undefined ? 30_000 : configuredTimeout;
     if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > 2_147_483_647)
       fail('other');
+    const maxTokens = request.max_tokens;
+    if (!validOutputTokenLimit(maxTokens)) fail('other');
     let key: string | undefined;
     try {
       key = await ports.resolveSecret(registration.credentialRef);
@@ -270,7 +284,7 @@ export function createDirectChatInvoker(
       fail('other');
     }
     if (!key) fail('other');
-    const prepared = prepare(registration, candidate, request, key);
+    const prepared = prepare(registration, candidate, request, key, maxTokens);
     const timeout = AbortSignal.timeout(timeoutMs);
     let response: Response;
     try {

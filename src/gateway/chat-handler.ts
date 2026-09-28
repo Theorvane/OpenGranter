@@ -31,6 +31,7 @@ import {
   validUsageHistoryOrder,
 } from '../usage/history.ts';
 import type { UsageRecord } from '../usage/record-usage.ts';
+import { validOutputTokenLimit } from './chat-parameters.ts';
 
 const MAX_BODY_BYTES = 1024 * 1024;
 
@@ -42,6 +43,7 @@ export interface ChatMessage {
 export interface ChatRequest {
   readonly model: string;
   readonly messages: readonly ChatMessage[];
+  readonly max_tokens?: number;
 }
 
 export interface AuthenticatedPrincipal {
@@ -276,10 +278,13 @@ function validCatalog(value: unknown): value is readonly PublishedModel[] {
 
 function validateChat(value: unknown): ChatRequest | undefined {
   if (!isRecord(value)) return undefined;
-  if (Object.keys(value).some((key) => !['model', 'messages', 'stream'].includes(key))) {
+  if (
+    Object.keys(value).some((key) => !['model', 'messages', 'stream', 'max_tokens'].includes(key))
+  ) {
     return undefined;
   }
   if (value.stream !== undefined && value.stream !== false) return undefined;
+  if (!validOutputTokenLimit(value.max_tokens)) return undefined;
   if (typeof value.model !== 'string' || !value.model || !Array.isArray(value.messages)) {
     return undefined;
   }
@@ -298,7 +303,11 @@ function validateChat(value: unknown): ChatRequest | undefined {
     if (typeof item.content !== 'string') return undefined;
     messages.push({ role: item.role, content: item.content });
   }
-  return { model: value.model, messages };
+  return {
+    model: value.model,
+    messages,
+    ...(value.max_tokens === undefined ? {} : { max_tokens: value.max_tokens }),
+  };
 }
 
 async function readJsonBody(request: Request): Promise<unknown> {
