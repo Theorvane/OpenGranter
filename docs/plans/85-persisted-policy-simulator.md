@@ -41,3 +41,7 @@
 - Green: the same command passed all 5 integration/boundary tests.
 - Initial `npm run check` passed strict TypeScript, Biome, 317 tests, and planning/link/contract/fixture checks. One external PostgreSQL test was skipped locally without a database URL; CI supplies PostgreSQL. Embedded PostgreSQL cases passed.
 - `git diff --check` passed. No schema change; `CLAUDE.md` remains a symlink to `AGENTS.md`.
+
+### Integration after dual-route review
+
+PR #84 became approved during implementation and was merged to main. Integrated its dual-route handler/server and retained both additive documentation sections. The combined `npm run check` passed strict TypeScript, Biome, 321 tests, and planning/link/contract/fixture checks; the same external PostgreSQL case remained locally skipped. No simulator behavior changed during integration.
