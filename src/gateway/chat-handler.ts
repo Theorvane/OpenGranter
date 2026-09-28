@@ -32,7 +32,11 @@ import {
 } from '../usage/history.ts';
 import type { UsageRecord } from '../usage/record-usage.ts';
 import { validOutputTokenLimit } from './chat-parameters.ts';
-import { createClientErrorResponse as errorResponse } from './client-errors.ts';
+import {
+  type ClientErrorCode,
+  clientErrorFormat,
+  createClientErrorResponse,
+} from './client-errors.ts';
 
 const MAX_BODY_BYTES = 1024 * 1024;
 
@@ -349,6 +353,9 @@ export function createChatHandler<T>(
   return async (request) => {
     const requestId = ports.newRequestId();
     const url = new URL(request.url);
+    const format = clientErrorFormat(url.pathname);
+    const errorResponse = (status: number, code: ClientErrorCode, id: string) =>
+      createClientErrorResponse(status, code, id, format);
     const chatRequest =
       request.method === 'POST' &&
       (url.pathname === '/v1/chat/completions' || url.pathname === '/api/v1/chat/completions');

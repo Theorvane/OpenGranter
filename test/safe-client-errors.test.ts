@@ -118,7 +118,12 @@ for (const [code, status, message] of cases) {
       assert.equal(response.status, status);
       const text = await response.text();
       assert.equal(text.includes(privateMarker), false);
-      assert.deepEqual(JSON.parse(text), { error: { code, message }, request_id: 'request' });
+      assert.deepEqual(JSON.parse(text), {
+        error: path.startsWith('/api/v1/')
+          ? { code: status, message, metadata: { opengranter_code: code } }
+          : { code, message },
+        request_id: 'request',
+      });
       assert.equal(response.headers.get('x-request-id'), 'request');
       assert.equal(JSON.stringify(f.audits).includes(privateMarker), false);
     }
@@ -142,14 +147,47 @@ test('Node pre-header fallback supplies a fixed internal message without excepti
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   try {
     const address = server.address() as AddressInfo;
-    const response = await fetch(`http://127.0.0.1:${address.port}/api/v1/models`);
-    assert.equal(response.status, 500);
-    assert.deepEqual(await response.json(), {
-      error: { code: 'internal_error', message: 'Internal server error.' },
-    });
+    for (const path of ['/v1/models', '/api/v1/models?probe=1', '/api/v10/models']) {
+      const response = await fetch(`http://127.0.0.1:${address.port}${path}`);
+      assert.equal(response.status, 500);
+      assert.deepEqual(await response.json(), {
+        error: path.startsWith('/api/v1/')
+          ? {
+              code: 500,
+              message: 'Internal server error.',
+              metadata: { opengranter_code: 'internal_error' },
+            }
+          : { code: 'internal_error', message: 'Internal server error.' },
+      });
+    }
   } finally {
     await new Promise<void>((resolve, reject) =>
       server.close((error) => (error ? reject(error) : resolve())),
+    );
+  }
+});
+
+test('error format selection does not expand paths and ignores query text', async () => {
+  for (const [path, method, status, reason] of [
+    ['/api/v1/models?probe=1', 'GET', 400, 'invalid_request'],
+    ['/api/v1/models', 'POST', 404, 'not_found'],
+    ['/api/v1/usage', 'GET', 404, 'not_found'],
+    ['/api/v1/audit', 'GET', 404, 'not_found'],
+    ['/api/v10/models', 'GET', 404, 'not_found'],
+    ['/api/v1models?path=/api/v1/', 'GET', 404, 'not_found'],
+  ] as const) {
+    const response = await fixture('success').handler(
+      new Request(`http://localhost${path}`, {
+        method,
+        headers: { authorization: 'Bearer fixture' },
+      }),
+    );
+    assert.equal(response.status, status);
+    const data = (await response.json()) as { error: { code: unknown; metadata?: unknown } };
+    assert.equal(data.error.code, path.startsWith('/api/v1/') ? status : reason);
+    assert.deepEqual(
+      data.error.metadata,
+      path.startsWith('/api/v1/') ? { opengranter_code: reason } : undefined,
     );
   }
 });
