@@ -88,3 +88,7 @@ The scenarios in [acceptance.md](acceptance.md) must pass, including unauthorize
 ## Chat input encoding
 
 Chat JSON must be well-formed UTF-8; reject malformed or incomplete byte sequences before routing and inference. Preserve valid Unicode across request chunks. See [encoding contract](../contracts/chat-utf8.md).
+
+## Direct usage availability
+
+Preserve partial direct-provider token counts and distinguish invalid supplied counters from missing ones without retaining their raw values. See [usage availability contract](../contracts/direct-usage-availability.md).

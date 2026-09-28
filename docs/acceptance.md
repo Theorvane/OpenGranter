@@ -238,3 +238,9 @@ The PostgreSQL migration runner applies versions `001` through `008` in order, r
 - Malformed bytes and incomplete trailing UTF-8 return `400 invalid_request`, record a metadata-only denial, and perform no route/limit/secret/usage/inference work.
 - Decoding errors cancel unread input; a cancellation error does not expose content or change the response. Audit failure returns `503 audit_unavailable`.
 - Valid multibyte characters split across chunks and literal U+FFFD reach inference unchanged.
+
+## Direct usage availability
+
+- Through each direct adapter and the chat gateway, prompt-only, completion-only, and total-only reporting remain partial with supplied values preserved, including zero.
+- Invalid supplied counters and unsafe derived totals produce sanitized null markers and invalid ledger availability; raw invalid strings/objects do not enter responses or records.
+- Complete valid counters remain reported; absent counters remain missing. These accounting states do not turn a successful text completion into a provider failure.
