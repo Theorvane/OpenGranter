@@ -17,3 +17,20 @@ export function snapshotStopSequences(value: unknown): string | readonly string[
   }
   return Object.freeze(captured);
 }
+
+/** Resolve equivalent client maxima without silently choosing a conflicting value. */
+export function resolveOutputTokenLimit(
+  maxTokens: unknown,
+  maxCompletionTokens: unknown,
+): number | undefined {
+  if (
+    !validOutputTokenLimit(maxTokens) ||
+    !validOutputTokenLimit(maxCompletionTokens) ||
+    (maxTokens !== undefined &&
+      maxCompletionTokens !== undefined &&
+      maxTokens !== maxCompletionTokens)
+  ) {
+    throw new TypeError('Invalid output token limit');
+  }
+  return maxCompletionTokens ?? maxTokens;
+}

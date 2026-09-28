@@ -1,5 +1,5 @@
 import type { ChatRequest } from '../gateway/chat-handler.ts';
-import { snapshotStopSequences, validOutputTokenLimit } from '../gateway/chat-parameters.ts';
+import { resolveOutputTokenLimit, snapshotStopSequences } from '../gateway/chat-parameters.ts';
 import type { RouteCandidate } from '../routing/authorize-candidates.ts';
 import { DirectProviderFailure } from '../routing/invoke-jev-managed-route.ts';
 import { normalizeProviderUsage } from '../usage/normalize-provider-tokens.ts';
@@ -287,8 +287,12 @@ export function createDirectChatInvoker(
     const timeoutMs = configuredTimeout === undefined ? 30_000 : configuredTimeout;
     if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > 2_147_483_647)
       fail('other');
-    const maxTokens = request.max_tokens;
-    if (!validOutputTokenLimit(maxTokens)) fail('other');
+    let maxTokens: number | undefined;
+    try {
+      maxTokens = resolveOutputTokenLimit(request.max_tokens, request.max_completion_tokens);
+    } catch {
+      fail('other');
+    }
     let stop: ReturnType<typeof snapshotStopSequences>;
     try {
       stop = snapshotStopSequences(request.stop);

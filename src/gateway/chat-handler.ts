@@ -31,7 +31,7 @@ import {
   validUsageHistoryOrder,
 } from '../usage/history.ts';
 import type { UsageRecord } from '../usage/record-usage.ts';
-import { snapshotStopSequences, validOutputTokenLimit } from './chat-parameters.ts';
+import { resolveOutputTokenLimit, snapshotStopSequences } from './chat-parameters.ts';
 import {
   type ClientErrorCode,
   clientErrorFormat,
@@ -49,6 +49,7 @@ export interface ChatRequest {
   readonly model: string;
   readonly messages: readonly ChatMessage[];
   readonly max_tokens?: number;
+  readonly max_completion_tokens?: number;
   readonly stop?: string | readonly string[] | null;
 }
 
@@ -286,13 +287,21 @@ function validateChat(value: unknown): ChatRequest | undefined {
   if (!isRecord(value)) return undefined;
   if (
     Object.keys(value).some(
-      (key) => !['model', 'messages', 'stream', 'max_tokens', 'stop'].includes(key),
+      (key) =>
+        !['model', 'messages', 'stream', 'max_tokens', 'max_completion_tokens', 'stop'].includes(
+          key,
+        ),
     )
   ) {
     return undefined;
   }
   if (value.stream !== undefined && value.stream !== false) return undefined;
-  if (!validOutputTokenLimit(value.max_tokens)) return undefined;
+  let maxTokens: number | undefined;
+  try {
+    maxTokens = resolveOutputTokenLimit(value.max_tokens, value.max_completion_tokens);
+  } catch {
+    return undefined;
+  }
   let stop: ReturnType<typeof snapshotStopSequences>;
   try {
     stop = snapshotStopSequences(value.stop);
@@ -320,7 +329,7 @@ function validateChat(value: unknown): ChatRequest | undefined {
   return {
     model: value.model,
     messages,
-    ...(value.max_tokens === undefined ? {} : { max_tokens: value.max_tokens }),
+    ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
     ...(stop === undefined ? {} : { stop }),
   };
 }

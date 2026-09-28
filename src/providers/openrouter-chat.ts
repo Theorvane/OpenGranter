@@ -1,5 +1,5 @@
 import type { ChatRequest } from '../gateway/chat-handler.ts';
-import { snapshotStopSequences, validOutputTokenLimit } from '../gateway/chat-parameters.ts';
+import { resolveOutputTokenLimit, snapshotStopSequences } from '../gateway/chat-parameters.ts';
 import { normalizeProviderUsage } from '../usage/normalize-provider-tokens.ts';
 import type { ChatCompletion } from './direct-chat.ts';
 
@@ -119,8 +119,12 @@ export function createOpenRouterChatInvoker(
   ports: OpenRouterChatPorts,
 ): (attempt: OpenRouterChatAttempt, request: ChatRequest) => Promise<ChatCompletion> {
   return async (attempt, request) => {
-    const maxTokens = request.max_tokens;
-    if (!validOutputTokenLimit(maxTokens)) fail('configuration');
+    let maxTokens: number | undefined;
+    try {
+      maxTokens = resolveOutputTokenLimit(request.max_tokens, request.max_completion_tokens);
+    } catch {
+      fail('configuration');
+    }
     let stop: ReturnType<typeof snapshotStopSequences>;
     try {
       stop = snapshotStopSequences(request.stop);
