@@ -99,3 +99,10 @@ The PostgreSQL migration runner applies versions `001` through `007` in order, r
 - Unsupported kinds, invalid/duplicate IDs, malformed secret references, missing Anthropic limits, invalid numeric limits, non-row data, and SQL failures reject the entire snapshot with a fixed safe error. No partial configuration is returned.
 - A direct invoker built from the snapshot contacts only its fixed registered provider host and resolves the matching secret reference. Disabled and unknown providers reach neither the secret resolver nor the transport. Database constraints reject invalid Anthropic registrations, and PostgreSQL bigint limits decode without precision loss within the supported safe-integer range.
 - Configuration loading remains an explicit trusted operation; live reload, registration writes, and HTTP management are not provided by this reader.
+
+## Usage history filters
+
+- Authorized self or specified-principal usage reads accept an exact `model` alias and inclusive `from_ms`/exclusive `to_ms` occurrence-time bounds. Equal-timestamp keyset pagination returns only matching records without gaps when clients repeat the filters.
+- A principal predicate always applies alongside all filter values. Hostile-looking aliases are bound as SQL literals; foreign-principal and other-model records remain excluded.
+- Default/explicit Deny still prevents storage access. Unknown/repeated parameters, malformed model aliases, noncanonical or unsafe timestamps, and reversed/empty two-bound ranges return 400 before storage.
+- Storage adapters reject malformed filter inputs before SQL and reject out-of-filter results. The HTTP boundary also rejects out-of-filter pages with a safe unavailable error and required audit. Successful filtered reads still require successful audit writes.

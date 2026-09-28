@@ -286,3 +286,67 @@ test('storage and required audit failures return safe service errors', async () 
     'audit_unavailable',
   );
 });
+
+test('model and time filters reach the authorized storage query', async () => {
+  const { handler, state } = fixture();
+  const response = await handler(request('?model=chat&from_ms=100&to_ms=101'));
+  assert.equal(response.status, 200);
+  assert.deepEqual(state.queries, [
+    {
+      principalId: 'person-1',
+      limit: 50,
+      cursor: null,
+      modelAlias: 'chat',
+      fromMs: 100,
+      toMs: 101,
+    },
+  ]);
+});
+
+test('out-of-filter storage records fail closed and create safe audit', async () => {
+  for (const query of ['?model=other', '?from_ms=101', '?to_ms=100']) {
+    const { handler, state } = fixture();
+    const response = await handler(request(query));
+    assert.equal(response.status, 503);
+    assert.equal((state.audit[0] as { kind: string }).kind, 'usage-read-unavailable');
+  }
+});
+
+test('invalid filter inputs reject before storage', async () => {
+  for (const query of [
+    '?model=',
+    '?model=%00chat',
+    `?model=${'x'.repeat(257)}`,
+    '?model=chat&model=other',
+    '?from_ms=-1',
+    '?from_ms=01',
+    '?from_ms=1.5',
+    '?to_ms=9007199254740992',
+    '?from_ms=100&to_ms=100',
+    '?from_ms=101&to_ms=100',
+  ]) {
+    const { handler, state } = fixture();
+    assert.equal((await handler(request(query))).status, 400);
+    assert.equal(state.queries.length, 0);
+  }
+});
+
+test('filtered reads still enforce default and explicit Deny and required audit', async () => {
+  for (const statements of [
+    [],
+    [
+      { effect: 'Allow' as const, actions: ['usage:ReadSelf'], resources: ['principal:person-1'] },
+      { effect: 'Deny' as const, actions: ['usage:ReadSelf'], resources: ['principal:person-1'] },
+    ],
+  ]) {
+    const { handler, state } = fixture({ statements });
+    assert.equal((await handler(request('?model=chat&from_ms=0'))).status, 403);
+    assert.equal(state.queries.length, 0);
+  }
+  const { handler } = fixture({
+    writeAudit: async () => {
+      throw new Error('secret failure');
+    },
+  });
+  assert.equal((await handler(request('?model=chat'))).status, 503);
+});

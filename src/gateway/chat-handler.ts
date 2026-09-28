@@ -21,6 +21,7 @@ import {
 import type { JevFetcher } from '../routing/jev-managed-routing.ts';
 import {
   encodeUsageCursor,
+  matchesUsageHistoryFilters,
   parseStoredUsageRecord,
   parseUsageHistoryQuery,
   type UsageHistoryPage,
@@ -455,6 +456,9 @@ export function createChatHandler<T>(
           principalId: targetPrincipalId,
           limit: parsed.limit,
           cursor: parsed.cursor,
+          ...(parsed.modelAlias === undefined ? {} : { modelAlias: parsed.modelAlias }),
+          ...(parsed.fromMs === undefined ? {} : { fromMs: parsed.fromMs }),
+          ...(parsed.toMs === undefined ? {} : { toMs: parsed.toMs }),
         });
         if (
           !page ||
@@ -466,7 +470,13 @@ export function createChatHandler<T>(
           throw new Error('invalid usage page');
         }
         data = page.records.map(parseStoredUsageRecord);
-        if (data.some((record) => record.principalId !== targetPrincipalId)) {
+        if (
+          data.some(
+            (record) =>
+              record.principalId !== targetPrincipalId ||
+              !matchesUsageHistoryFilters(record, parsed),
+          )
+        ) {
           throw new Error('cross-principal usage row');
         }
         const last = data.at(-1);

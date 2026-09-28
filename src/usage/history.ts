@@ -6,7 +6,13 @@ export interface UsageCursor {
   readonly attemptId: string;
 }
 
-export interface UsageHistoryQuery {
+export interface UsageHistoryFilters {
+  readonly modelAlias?: string;
+  readonly fromMs?: number;
+  readonly toMs?: number;
+}
+
+export interface UsageHistoryQuery extends UsageHistoryFilters {
   readonly principalId: string;
   readonly limit: number;
   readonly cursor: UsageCursor | null;
@@ -38,6 +44,35 @@ function count(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
 }
 
+export function validUsageHistoryFilters(filters: UsageHistoryFilters): boolean {
+  return (
+    (filters.modelAlias === undefined ||
+      (nonempty(filters.modelAlias) &&
+        filters.modelAlias.length <= 256 &&
+        !/[\p{Cc}]/u.test(filters.modelAlias))) &&
+    (filters.fromMs === undefined || count(filters.fromMs)) &&
+    (filters.toMs === undefined || count(filters.toMs)) &&
+    (filters.fromMs === undefined || filters.toMs === undefined || filters.fromMs < filters.toMs)
+  );
+}
+
+export function matchesUsageHistoryFilters(
+  record: UsageRecord,
+  filters: UsageHistoryFilters,
+): boolean {
+  return (
+    (filters.modelAlias === undefined || record.modelAlias === filters.modelAlias) &&
+    (filters.fromMs === undefined || record.occurredAt >= filters.fromMs) &&
+    (filters.toMs === undefined || record.occurredAt < filters.toMs)
+  );
+}
+
+function queryTime(value: string | null): number | undefined {
+  if (value === null) return undefined;
+  if (!/^(?:0|[1-9][0-9]*)$/u.test(value) || !count(Number(value))) throw new InvalidUsageQuery();
+  return Number(value);
+}
+
 export function parseUsageCursor(value: string): UsageCursor {
   if (value.length === 0 || value.length > 2048 || !/^[A-Za-z0-9_-]+$/u.test(value)) {
     throw new InvalidUsageQuery();
@@ -63,14 +98,17 @@ export function encodeUsageCursor(cursor: UsageCursor): string {
   return Buffer.from(JSON.stringify([cursor.occurredAt, cursor.attemptId])).toString('base64url');
 }
 
-export function parseUsageHistoryQuery(url: URL): {
+export function parseUsageHistoryQuery(url: URL): UsageHistoryFilters & {
   readonly requestedPrincipalId: string | null;
   readonly limit: number;
   readonly cursor: UsageCursor | null;
 } {
   const params = url.searchParams;
   for (const key of params.keys()) {
-    if (!['principal_id', 'limit', 'cursor'].includes(key) || params.getAll(key).length !== 1) {
+    if (
+      !['principal_id', 'limit', 'cursor', 'model', 'from_ms', 'to_ms'].includes(key) ||
+      params.getAll(key).length !== 1
+    ) {
       throw new InvalidUsageQuery();
     }
   }
@@ -91,8 +129,18 @@ export function parseUsageHistoryQuery(url: URL): {
     throw new InvalidUsageQuery();
   }
   const rawCursor = params.get('cursor');
+  const modelAlias = params.get('model');
+  const fromMs = queryTime(params.get('from_ms'));
+  const toMs = queryTime(params.get('to_ms'));
+  const filters = {
+    ...(modelAlias === null ? {} : { modelAlias }),
+    ...(fromMs === undefined ? {} : { fromMs }),
+    ...(toMs === undefined ? {} : { toMs }),
+  };
+  if (!validUsageHistoryFilters(filters)) throw new InvalidUsageQuery();
   return {
     requestedPrincipalId,
+    ...filters,
     limit: rawLimit === null ? 50 : Number(rawLimit),
     cursor: rawCursor === null ? null : parseUsageCursor(rawCursor),
   };
