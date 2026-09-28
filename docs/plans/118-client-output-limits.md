@@ -38,3 +38,13 @@
 - Green: all 22 cases passed with native mappings, omission/cap cases, malformed internal/public values, captured limits during secret lookup, both paths and security/failure checks.
 - npm run check passed strict TypeScript, Biome, 506 tests and planning/link/contract/fixture scanning. One external PostgreSQL driver case skipped locally without a database URL; CI supplies PostgreSQL.
 - git diff --check passed; CLAUDE.md remains linked to AGENTS.md. No migration or live upstream requests.
+
+## Review revision: checked test captures
+
+- PR #119 requests replacing four non-null assertions on captured provider requests.
+- Reproduce the four Biome warnings with the focused checker using --error-on-warnings, then narrow optional captures with assert.ok before reading native fields.
+- This revision changes test access only; production semantics and contract assertions remain unchanged. Run the focused check and the full required check after editing.
+
+- Review red: focused Biome check with --error-on-warnings reported four forbidden non-null assertion warnings.
+- Review green: the same focused command now passes with zero warnings; all 22 output-limit tests pass.
+- Full npm run check passes again: 506 tests, one external PostgreSQL skip, strict types, lint and document/contract checks. git diff --check passes.

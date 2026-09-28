@@ -85,7 +85,8 @@ function request(limit?: number): ChatRequest {
     ...(limit === undefined ? {} : { max_tokens: limit }),
   } as ChatRequest;
 }
-function nativeLimit(kind: Kind, sent: Record<string, unknown>): unknown {
+function nativeLimit(kind: Kind, sent: Record<string, unknown> | undefined): unknown {
+  assert.ok(sent, 'Expected a captured upstream request');
   return kind === 'google'
     ? (sent.generationConfig as Record<string, unknown> | undefined)?.maxOutputTokens
     : sent.max_tokens;
@@ -95,10 +96,7 @@ for (const kind of kinds) {
     for (const value of [1, 17, undefined]) {
       const f = adapter(kind);
       await f.call(request(value));
-      assert.equal(
-        nativeLimit(kind, f.sent[0]!),
-        value ?? (kind === 'anthropic' ? 128 : undefined),
-      );
+      assert.equal(nativeLimit(kind, f.sent[0]), value ?? (kind === 'anthropic' ? 128 : undefined));
     }
   });
   test(`${kind} rejects invalid internal limits before secret or transport work`, async () => {
@@ -131,7 +129,7 @@ for (const kind of kinds) {
       source.max_tokens = 0;
     });
     await f.call(source);
-    assert.equal(nativeLimit(kind, f.sent[0]!), 17);
+    assert.equal(nativeLimit(kind, f.sent[0]), 17);
   });
   if (kind !== 'openrouter') {
     test(`${kind} retains administrator cap on requested output`, async () => {
@@ -142,7 +140,7 @@ for (const kind of kinds) {
       ]) {
         const f = adapter(kind, 32);
         await f.call(request(supplied));
-        assert.equal(nativeLimit(kind, f.sent[0]!), expected);
+        assert.equal(nativeLimit(kind, f.sent[0]), expected);
       }
     });
   }
@@ -203,7 +201,7 @@ for (const kind of kinds) {
     for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
       const f = httpFixture(kind);
       assert.equal((await f.handler(httpRequest(path, 17))).status, 200);
-      assert.equal(nativeLimit(kind, f.sent[0]!), 17);
+      assert.equal(nativeLimit(kind, f.sent[0]), 17);
       assert.equal(f.usage.length, 1);
       assert.ok(f.audits.length > 0);
     }
