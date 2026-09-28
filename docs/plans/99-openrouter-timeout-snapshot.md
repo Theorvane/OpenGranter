@@ -34,3 +34,7 @@
 - Green: all three focused cases passed after timeout capture.
 - Initial `npm run check` passed strict TypeScript, Biome, all local runnable tests, and planning/link/contract/fixture checks. One external PostgreSQL driver test was skipped locally without a database URL; CI supplies PostgreSQL.
 - `git diff --check` passed; `CLAUDE.md` remains linked to `AGENTS.md`. No migration or live provider call.
+
+### Integration with the approved direct timeout change
+
+PR #98 became approved during independent implementation and was merged to main. Integrated its direct timeout validation and preserved both additive documentation sections. The combined `npm run check` passed strict TypeScript, Biome, 387 tests, and planning/link/contract/fixture checks. The same external PostgreSQL driver case remained locally skipped; CI supplies PostgreSQL. The delegated production change was unchanged during integration.

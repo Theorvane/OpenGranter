@@ -97,6 +97,10 @@ Preserve partial direct-provider token counts and distinguish invalid supplied c
 
 Preserve partial and invalid recognized token reporting from OpenRouter using the same sanitized projection as direct routes. Billing reconciliation remains separate. See [contract](../contracts/delegated-usage-availability.md).
 
+## Direct timeout configuration validation
+
+Validate and capture direct-provider attempt timeouts before resolving secrets, rejecting invalid durations through the existing non-retryable, non-billable failure contract. See [contract](../contracts/direct-timeout-validation.md).
+
 ## Delegated timeout snapshot
 
 OpenRouter attempts use the timeout value validated before credential lookup, retaining it across asynchronous configuration changes. Subsequent calls validate the current setting. See [contract](../contracts/openrouter-timeout-snapshot.md).
