@@ -70,7 +70,7 @@ Unrestricted cross-mode fallback, credit resale, every provider-specific API par
 | Jev-assisted managed selection | Optional TypeSafe Jev decision over already eligible direct candidates; OpenGranter validates the choice and makes the provider call. The authorized fallback policy is confirmed; the TypeSafe integration target and prompt-disclosure default remain provisional in [the routing contract](routing.md). |
 | Delegated IAM | Require permission for the model and every eligible final inference provider; restrict OpenRouter to the authorized provider set before sending |
 | Fallback boundary | Within delegated routes or within managed routes, never silently between the two kinds |
-| Human sign-in | Company SSO; protocol TBD |
+| Human sign-in | OIDC company SSO; identity binding and management authentication profile pending |
 | Deployment | AWS and on-premises support; release order TBD |
 | Content audit | Configurable; default, scope, retention, and readers TBD |
 | Streaming and monthly limits | Awaiting planning decisions |
@@ -112,3 +112,7 @@ Distinguish malformed usage containers from absent reporting across all four ada
 ## Chat JSON media type
 
 Require the exact case-insensitive application/json type, preserving existing parameter handling. Unsupported prefix lookalikes fail through existing request denial before downstream work. See [contract](../contracts/chat-media-type.md).
+
+## Agreed SSO management foundation (implementation pending)
+
+Company SSO uses OIDC. The first management API authenticates SSO human users only; services remain proxy users. New proxy-token lifetime caps are 30 days for human owners and 90 days for service owners, with expiry mandatory. SSO identity binding and management API authentication remain pending decisions. Existing IAM and mandatory decision audit apply. See [planning contract](../contracts/sso-management-foundation.md) and [plan](plans/105-sso-management-foundation.md).
