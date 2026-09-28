@@ -174,3 +174,10 @@ The PostgreSQL migration runner applies versions `001` through `008` in order, r
 - Empty/blank, overlength, control-containing, or repeated model filters reject before storage. Unknown aliases produce empty authorized pages.
 - An out-of-model row, including lookahead, or an alias stripped during known-event projection rejects the entire SQL/HTTP page. JSON and CSV requests receive safe JSON availability errors without content or secrets.
 - Model filtering does not grant audit access or require inference permissions. Content auditing and token-management decision history remain separate contracts.
+
+## Complete usage pagination boundaries
+
+- SQL and injected HTTP pages follow strictly descending occurrence time then UTF-8 attempt-ID order, including equal-time punctuation and non-BMP Unicode values.
+- Malformed internal cursor objects fail before SQL. All SQL rows including lookahead must precede the cursor and previous row; duplicate IDs and repeated cursor attempts fail even if timestamps differ.
+- Invalid injected JSON/CSV pages return safe JSON errors without partial history, continuation, or successful read audit. Required unavailable-read audit and existing principal/model/time permission checks remain in force.
+- Clients restart pagination at rollout/revert of the deterministic tie order; opaque encoding remains unchanged. Query-index performance needs deployment measurement under non-C database locales.

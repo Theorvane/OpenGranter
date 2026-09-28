@@ -218,3 +218,72 @@ test('reader rejects out-of-filter data even if SQL returns it', async () => {
     );
   }
 });
+
+test('SQL reader rejects duplicate, ascending, and cursor-equal/newer rows including lookahead', async () => {
+  const row = (id: string, time: number) => ({
+    principal_id: 'person-1',
+    attempt_id: id,
+    occurred_at_ms: String(time),
+    record: record('person-1', id, time),
+  });
+  for (const rows of [
+    [row('b', 100), row('b', 100)],
+    [row('b', 100), row('c', 100)],
+    [row('b', 100), row('a', 101)],
+  ]) {
+    const reader = createPostgresUsageReader({ query: async () => ({ rows }) });
+    await assert.rejects(
+      reader({ principalId: 'person-1', limit: 1, cursor: null }),
+      UsageLedgerUnavailable,
+    );
+  }
+  for (const candidate of [row('b', 100), row('c', 100), row('a', 101), row('b', 99)]) {
+    const reader = createPostgresUsageReader({ query: async () => ({ rows: [candidate] }) });
+    await assert.rejects(
+      reader({ principalId: 'person-1', limit: 1, cursor: { occurredAt: 100, attemptId: 'b' } }),
+      UsageLedgerUnavailable,
+    );
+  }
+});
+
+test('malformed internal usage cursor objects reject before SQL', async () => {
+  let calls = 0;
+  const reader = createPostgresUsageReader({
+    query: async () => {
+      calls++;
+      return { rows: [] };
+    },
+  });
+  for (const cursor of [
+    { occurredAt: -1, attemptId: 'a' },
+    { occurredAt: 1.5, attemptId: 'a' },
+    { occurredAt: Number.MAX_SAFE_INTEGER + 1, attemptId: 'a' },
+    { occurredAt: 100, attemptId: '' },
+    { occurredAt: 100, attemptId: 'a'.repeat(513) },
+  ])
+    await assert.rejects(
+      reader({ principalId: 'person-1', limit: 1, cursor }),
+      UsageLedgerUnavailable,
+    );
+  assert.equal(calls, 0);
+});
+
+test('real PostgreSQL equal-time pages follow UTF-8 order with punctuation and non-BMP IDs', async () => {
+  const { db, writeUsage, readUsage } = await fixture();
+  try {
+    for (const id of ['a', 'Z', '_', '\uE000', '😀']) await writeUsage(record('person-1', id, 100));
+    const ids: string[] = [];
+    let cursor: { occurredAt: number; attemptId: string } | null = null;
+    for (let index = 0; index < 5; index++) {
+      const page = await readUsage({ principalId: 'person-1', limit: 1, cursor });
+      const item = page.records[0];
+      assert.ok(item);
+      ids.push(item.attemptId);
+      cursor = { occurredAt: item.occurredAt, attemptId: item.attemptId };
+      assert.equal(page.hasMore, index < 4);
+    }
+    assert.deepEqual(ids, ['😀', '\uE000', 'a', '_', 'Z']);
+  } finally {
+    await db.close();
+  }
+});

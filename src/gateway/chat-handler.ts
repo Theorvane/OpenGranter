@@ -28,6 +28,7 @@ import {
   parseUsageHistoryQuery,
   type UsageHistoryPage,
   type UsageHistoryQuery,
+  validUsageHistoryOrder,
 } from '../usage/history.ts';
 import type { UsageRecord } from '../usage/record-usage.ts';
 
@@ -501,6 +502,7 @@ export function createChatHandler<T>(
         ) {
           throw new Error('cross-principal usage row');
         }
+        if (!validUsageHistoryOrder(data, parsed.cursor)) throw new Error('invalid usage order');
         const last = data.at(-1);
         if (page.hasMore && (!last || last.attemptId.length > 512)) {
           throw new Error('invalid usage cursor');

@@ -36,6 +36,7 @@
     {"id": "base64url-credential-audit", "request": "POST /v1/chat/completions", "condition": "An authorized issued token has a canonical credential ID starting with - or _; required audit succeeds", "route_kind": "managed", "expected_status": 200, "upstream_called": true, "audit_action": "llm.invoked"},
     {"id":"model-filtered-audit-read","request":"GET /v1/audit","condition":"With model=chat, an authorized JSON or CSV reader receives only target-principal events whose known projection has that exact model alias, with time/cursor bounds retained","expected_status":200,"upstream_called":false,"audit_action":"audit.history.read"},
     {"id":"out-of-model-audit-row","request":"GET /v1/audit","condition":"A reader returns another alias, no alias, or an alias field that the known event projection strips","expected_status":503,"upstream_called":false,"audit_action":"audit.history.read.unavailable"},
-    {"id":"model-filtered-audit-denied","request":"GET /v1/audit","condition":"A model filter with absent or explicit-denied audit:Read on the target principal stops before storage","expected_status":403,"upstream_called":false,"audit_action":"audit.history.read.denied"}
+    {"id":"model-filtered-audit-denied","request":"GET /v1/audit","condition":"A model filter with absent or explicit-denied audit:Read on the target principal stops before storage","expected_status":403,"upstream_called":false,"audit_action":"audit.history.read.denied"},
+    {"id":"invalid-usage-pagination","request":"GET /v1/usage","condition":"An injected JSON/CSV reader returns duplicate, ascending, cursor-equal/newer, or repeated cursor-attempt records","expected_status":503,"upstream_called":false,"audit_action":"usage.read.unavailable"}
   ]
 }

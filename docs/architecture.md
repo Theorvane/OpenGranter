@@ -223,3 +223,11 @@ This library starts plain Node HTTP, matching the existing bridge. Production TL
 The PostgreSQL reader binds model equality alongside principal, event-ID cursor, and occurrence-time bounds. All rows, including lookahead, must match after known-field projection. An arbitrary stored field on an event whose contract has no alias cannot establish a match; it makes a filtered page unavailable. The HTTP boundary independently enforces this rule for injected readers, and CSV uses the same projection. Clients repeat model, principal, and time filters with each continuation cursor.
 
 Target-principal `audit:Read` and required attributed read audit remain mandatory. No model-invocation permission is added: an auditor may inspect a model they cannot invoke. Out-of-filter pages fail as safe JSON errors before success audit or CSV response. No schema/index change or content/token-management history is introduced; benchmark filtered queries before choosing indexes.
+
+## Complete usage pagination validation
+
+Usage history uses strict descending occurrence-time and UTF-8 attempt-ID order. PostgreSQL applies `COLLATE "C"` to both tuple comparison and attempt-ID sorting; application validation compares UTF-8 buffers, so locale/UTF-16 differences cannot change tie ordering. See [ADR 0007](adr/0007-usage-pagination-order.md).
+
+Internal cursor objects must contain a nonnegative safe-integer timestamp and a nonblank attempt ID of at most 512 characters before SQL runs. SQL validates every normalized row, including lookahead, against the cursor and previous key; duplicate attempt IDs are invalid even if timestamps differ. The HTTP boundary independently checks injected pages before continuation, success audit, or JSON/CSV output. A repeated cursor attempt, equal/newer position, duplicate, or ascending sequence fails the entire page as a safe availability error. Principal/model/time scope and metadata projection remain enforced separately.
+
+Cursor encoding stays unchanged, but clients restart pagination when deploying or reverting this tie-ordering contract. No schema/index change is introduced. Under a non-C default database locale, the existing index may require an additional sort; benchmark before adding a matching index. No ledger mutation, new permission, inference replay, or usage aggregation is introduced.
