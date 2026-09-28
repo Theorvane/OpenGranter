@@ -1,4 +1,5 @@
 import type { ChatRequest } from '../gateway/chat-handler.ts';
+import { validOutputTokenLimit } from '../gateway/chat-parameters.ts';
 import { normalizeProviderUsage } from '../usage/normalize-provider-tokens.ts';
 import type { ChatCompletion } from './direct-chat.ts';
 
@@ -118,6 +119,8 @@ export function createOpenRouterChatInvoker(
   ports: OpenRouterChatPorts,
 ): (attempt: OpenRouterChatAttempt, request: ChatRequest) => Promise<ChatCompletion> {
   return async (attempt, request) => {
+    const maxTokens = request.max_tokens;
+    if (!validOutputTokenLimit(maxTokens)) fail('configuration');
     const configuredTimeout = ports.timeoutMs;
     const timeoutMs = configuredTimeout === undefined ? 30_000 : configuredTimeout;
     if (
@@ -146,6 +149,7 @@ export function createOpenRouterChatInvoker(
           model: attempt.upstreamModelId,
           messages: request.messages,
           stream: false,
+          ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
           provider: { only: attempt.authorizedProviderSlugs },
         }),
         redirect: 'error',

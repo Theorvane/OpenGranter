@@ -15,7 +15,7 @@ For tools supporting a configurable OpenRouter/OpenAI-compatible endpoint:
 - Base URL: `https://<gateway-host>/api/v1` (existing `/v1` also remains available).
 - API key: the user's OpenGranter proxy token; provider keys stay server held.
 - Model: an administrator-published alias visible to that token. An OpenRouter-style alias such as `openai/example-model` must be explicitly published; arbitrary model IDs do not become eligible.
-- Current text-chat request: model plus string-content messages, optional stream false. Discovery uses GET models; chat uses POST chat/completions relative to the base.
+- Current text-chat request: model plus string-content messages, optional stream false and positive-integer max_tokens. Discovery uses GET models; chat uses POST chat/completions relative to the base.
 
 Tools with a hardcoded openrouter.ai host need a configurable endpoint or an integration change. Path aliases alone do not make tools needing streaming, function calls or advanced parameters work.
 
@@ -25,7 +25,7 @@ Tools with a hardcoded openrouter.ai host need a configurable endpoint or an int
 | --- | --- | --- |
 | Base paths and Bearer token | /api/v1 chat/models aliases; shared proxy authorization | SDK and named external-tool registration tests |
 | Model discovery | Authorized alias IDs and basic model fields | Context window, capability, supported-parameter and price metadata from trusted catalog sources |
-| Non-streaming text chat | Minimal messages and one normalized text choice | Full supported request/response schema, sampling and output limits |
+| Non-streaming text chat | Text messages, one normalized text choice and max_tokens across four adapters | Remaining request/response schema, sampling, max_completion_tokens and capability metadata |
 | Streaming | Not implemented | SSE framing, termination, usage, backpressure, cancellation, safe interruption/failure audit |
 | Tool calling | Not implemented | Tool definitions, choice, assistant tool calls, tool results and provider mappings |
 | Rich inputs and outputs | Not implemented | Content parts, modality/capability checks, structured output and reasoning handling |
@@ -47,3 +47,7 @@ Every feature needs its own issue, English plan and red/green contract cases. Ro
 ## Sources checked 2026-09-28
 
 OpenRouter documents /api/v1 with Bearer authentication and configurable SDK base URLs: [authentication](https://openrouter.ai/docs/api_reference/authentication). Its unified chat schema includes additional parameters, tools, richer messages and response fields: [API overview](https://openrouter.ai/docs/api_reference/overview). Streaming uses SSE and has distinct pre-stream and mid-stream errors: [streaming](https://openrouter.ai/docs/api_reference/streaming). The [official OpenAPI specification](https://openrouter.ai/openapi.json) is the future conformance input; schema version capture and drift checks remain to implement.
+
+## Output-token limit conformance
+
+The current adapters support max_tokens through both client paths, including direct registration caps, omission defaults, malformed-value rejection and captured values during asynchronous credential resolution. See [contract](../contracts/client-output-limits.md) and [plan](plans/118-client-output-limits.md). Full compatibility remains pending.
