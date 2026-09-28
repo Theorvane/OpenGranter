@@ -281,3 +281,7 @@ Managed selectors/limits/fallback and delegated mapping callbacks therefore reta
 ## Strict chat input decoding
 
 The chat boundary incrementally decodes UTF-8 with fatal errors and flushes at end of input to detect incomplete sequences. Invalid encoding follows the existing metadata denial audit and invalid-request response before route, limit, secret, usage, or inference work. Cancel unread input on decoding failure and always release the reader lock. Valid split Unicode and literal replacement characters are preserved; the byte-size cap remains unchanged. See [contract](../contracts/chat-utf8.md).
+
+## Direct usage projection
+
+Direct adapters normalize each recognized token counter independently. Valid supplied integers survive partial reporting; invalid values become null and absent fields remain absent. Derive a missing total only from two valid components and a safe sum. The existing gateway ledger then retains reported/partial/missing/invalid availability without raw upstream error values. See [contract](../contracts/direct-usage-availability.md).

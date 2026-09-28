@@ -75,9 +75,9 @@ export interface ChatCompletion {
     },
   ];
   readonly usage?: {
-    readonly prompt_tokens: number;
-    readonly completion_tokens: number;
-    readonly total_tokens: number;
+    readonly prompt_tokens?: number | null;
+    readonly completion_tokens?: number | null;
+    readonly total_tokens?: number | null;
   };
 }
 
@@ -100,13 +100,22 @@ function fail(
   throw new DirectProviderFailure(category, responseStarted, possiblyBilled);
 }
 function usage(prompt: unknown, completion: unknown, total: unknown): ChatCompletion['usage'] {
-  const p = count(prompt),
-    c = count(completion),
-    t = count(total);
-  return p !== undefined && c !== undefined
-    ? { prompt_tokens: p, completion_tokens: c, total_tokens: t ?? p + c }
-    : undefined;
+  const p = count(prompt);
+  const c = count(completion);
+  const t =
+    total === undefined && p !== undefined && c !== undefined
+      ? (count(p + c) ?? null)
+      : total === undefined
+        ? undefined
+        : (count(total) ?? null);
+  if (prompt === undefined && completion === undefined && t === undefined) return undefined;
+  return {
+    ...(prompt === undefined ? {} : { prompt_tokens: p ?? null }),
+    ...(completion === undefined ? {} : { completion_tokens: c ?? null }),
+    ...(t === undefined ? {} : { total_tokens: t }),
+  };
 }
+
 function completion(
   id: unknown,
   created: unknown,
