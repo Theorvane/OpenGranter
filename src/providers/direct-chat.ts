@@ -16,9 +16,7 @@ export class InvalidDirectProviderConfiguration extends Error {
   }
 }
 
-function registrationSnapshot(
-  input: readonly DirectProviderRegistration[],
-): DirectProviderRegistration[] {
+export function snapshotDirectProviderRegistrations(input: unknown): DirectProviderRegistration[] {
   if (!Array.isArray(input)) throw new InvalidDirectProviderConfiguration();
   const ids = new Set<string>();
   return input.map((value: unknown) => {
@@ -263,7 +261,7 @@ function prepare(
 export function createDirectChatInvoker(
   ports: DirectChatPorts,
 ): (candidate: RouteCandidate, request: ChatRequest) => Promise<ChatCompletion> {
-  const registrations = registrationSnapshot(ports.registrations);
+  const registrations = snapshotDirectProviderRegistrations(ports.registrations);
   return async (candidate, request) => {
     const registration = registrations.find((item) => item.providerId === candidate.providerId);
     if (!registration || candidate.kind !== 'managed') fail('other');

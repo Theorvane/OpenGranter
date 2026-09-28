@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
 import { test } from 'node:test';
+import { createPostgresDirectProviderRegistrationReader } from '../src/providers/postgres-direct-providers.ts';
 import {
   createPostgresConnection,
   PostgresUnavailable,
@@ -36,6 +37,25 @@ test('real PostgreSQL migrations, binding, rollback, and shutdown', {
       sources.map((source) => source.version),
     );
     assert.deepEqual(await applyPostgresMigrations(connection, sources, () => 2), []);
+    await connection.query(
+      'INSERT INTO direct_provider_registrations (provider_id, kind, credential_ref, enabled, max_output_tokens) VALUES ($1, $2, $3, $4, $5)',
+      ['anthropic', 'anthropic', 'secret/anthropic', true, 9007199254740991],
+    );
+    assert.deepEqual(await createPostgresDirectProviderRegistrationReader(connection)(), [
+      {
+        providerId: 'anthropic',
+        kind: 'anthropic',
+        credentialRef: 'secret/anthropic',
+        maxOutputTokens: 9007199254740991,
+      },
+    ]);
+    await assert.rejects(
+      connection.query(
+        'INSERT INTO direct_provider_registrations (provider_id, kind, credential_ref, enabled) VALUES ($1, $2, $3, $4)',
+        ['invalid', 'anthropic', 'secret/invalid', true],
+      ),
+      PostgresUnavailable,
+    );
     const value = "literal'; DROP TABLE schema_migrations; --";
     assert.deepEqual((await connection.query('SELECT $1::text AS value', [value])).rows, [
       { value },

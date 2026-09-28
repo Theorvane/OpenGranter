@@ -31,3 +31,7 @@
 
 - Record red/green evidence, full checks, and query-performance limitations in the PR.
 - Model filtering uses JSONB extraction and may need a dedicated index after measured workload evidence. Existing calls remain compatible.
+
+## Integration update
+
+Merged current main after PR #56 landed. Preserve both the persisted-provider and usage-filter contracts; verify the combined migration set and tests before refreshing the PR.
