@@ -108,3 +108,7 @@ OpenRouter attempts use the timeout value validated before credential lookup, re
 ## Provider usage container validation
 
 Distinguish malformed usage containers from absent reporting across all four adapters without storing their raw values. Preserve successful completion outcomes and existing ledger statuses. See [contract](../contracts/provider-usage-containers.md).
+
+## Chat JSON media type
+
+Require the exact case-insensitive application/json type, preserving existing parameter handling. Unsupported prefix lookalikes fail through existing request denial before downstream work. See [contract](../contracts/chat-media-type.md).

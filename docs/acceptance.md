@@ -268,3 +268,9 @@ The PostgreSQL migration runner applies versions `001` through `008` in order, r
 - Across all four adapters and the chat gateway, string/array/number/boolean containers yield sanitized invalid usage and successful completion outcomes without exposing raw values.
 - Absent/null/empty/unrecognized-only containers remain missing. Existing partial, valid, and invalid recognized-counter behavior is preserved.
 - No malformed usage data or unrelated object fields enter normal audit events or usage records.
+
+## Chat media type validation
+
+- Unsupported JSON prefix lookalikes, suffix variants, comma-joined declarations, missing types, and unrelated types return invalid_request with metadata denial and no downstream work.
+- Normal, uppercase, parameterized, and whitespace-trimmed application/json requests remain accepted.
+- Authentication still precedes media validation; denial-audit failure retains audit_unavailable without exposing input.
