@@ -166,3 +166,10 @@ The PostgreSQL migration runner applies versions `001` through `008` in order, r
 - Shutdown stops accepting HTTP and waits for an active request's audit write before closing the database. Repeated/concurrent closes share one promise and close the connection once.
 - Database-close failure returns a fixed safe shared rejection without automatic retry or nested driver causes. Failed startup cleanup leaves the public error safe and does not certify resource release.
 - Deployment owns trusted infrastructure configuration, TLS, serialized migrations, process signals, and any shutdown deadline. Existing HTTP permissions and request contracts remain unchanged.
+
+## Complete usage pagination boundaries
+
+- SQL and injected HTTP pages follow strictly descending occurrence time then UTF-8 attempt-ID order, including equal-time punctuation and non-BMP Unicode values.
+- Malformed internal cursor objects fail before SQL. All SQL rows including lookahead must precede the cursor and previous row; duplicate IDs and repeated cursor attempts fail even if timestamps differ.
+- Invalid injected JSON/CSV pages return safe JSON errors without partial history, continuation, or successful read audit. Required unavailable-read audit and existing principal/model/time permission checks remain in force.
+- Clients restart pagination at rollout/revert of the deterministic tie order; opaque encoding remains unchanged. Query-index performance needs deployment measurement under non-C database locales.

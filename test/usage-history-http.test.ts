@@ -200,7 +200,10 @@ test('invalid query and forged cursor cannot widen the principal read', async ()
 
 test('usage history returns an opaque cursor for the last item on a full page', async () => {
   const { handler, state } = fixture({
-    listUsage: async (query) => ({ records: [ownRecord], hasMore: query.cursor === null }),
+    listUsage: async (query) => ({
+      records: query.cursor === null ? [ownRecord] : [],
+      hasMore: query.cursor === null,
+    }),
   });
   const first = await handler(request('?limit=1'));
   assert.equal(first.status, 200);
@@ -436,4 +439,58 @@ test('unsupported or repeated export formats reject before storage', async () =>
   }
   const { handler } = fixture();
   assert.equal((await handler(request('?format=json'))).status, 200);
+});
+
+test('injected duplicate, ascending, and already-seen usage pages fail safely for JSON and CSV', async () => {
+  const cursor = encodeUsageCursor({ occurredAt: 100, attemptId: 'b' });
+  for (const format of ['json', 'csv']) {
+    for (const [records, query] of [
+      [
+        [
+          { ...ownRecord, attemptId: 'b' },
+          { ...ownRecord, attemptId: 'b' },
+        ],
+        '',
+      ],
+      [
+        [
+          { ...ownRecord, attemptId: 'b' },
+          { ...ownRecord, attemptId: 'c' },
+        ],
+        '',
+      ],
+      [[ownRecord, { ...ownRecord, attemptId: 'newer', occurredAt: 101 }], ''],
+      [[{ ...ownRecord, attemptId: 'b' }], `&cursor=${cursor}`],
+      [[{ ...ownRecord, attemptId: 'b', occurredAt: 99 }], `&cursor=${cursor}`],
+      [[{ ...ownRecord, attemptId: 'c' }], `&cursor=${cursor}`],
+    ] as const) {
+      const { handler, state } = fixture({ listUsage: async () => ({ records, hasMore: false }) });
+      const response = await handler(request(`?format=${format}${query}`));
+      assert.equal(response.status, 503);
+      assert.ok(response.headers.get('content-type')?.includes('application/json'));
+      assert.equal(response.headers.get('x-next-cursor'), null);
+      assert.equal((state.audit[0] as { kind: string }).kind, 'usage-read-unavailable');
+    }
+  }
+});
+
+test('valid injected equal-time UTF-8 pages support JSON and CSV continuation', async () => {
+  for (const format of ['json', 'csv']) {
+    const { handler } = fixture({
+      listUsage: async () => ({
+        records: [
+          { ...ownRecord, attemptId: '😀' },
+          { ...ownRecord, attemptId: '\uE000' },
+        ],
+        hasMore: true,
+      }),
+    });
+    const response = await handler(
+      request(`?format=${format}&cursor=${encodeUsageCursor({ occurredAt: 101, attemptId: 'a' })}`),
+    );
+    assert.equal(response.status, 200);
+    const expected = encodeUsageCursor({ occurredAt: 100, attemptId: '\uE000' });
+    if (format === 'csv') assert.equal(response.headers.get('x-next-cursor'), expected);
+    else assert.equal(((await response.json()) as { next_cursor: string }).next_cursor, expected);
+  }
 });

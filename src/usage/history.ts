@@ -73,22 +73,54 @@ function queryTime(value: string | null): number | undefined {
   return Number(value);
 }
 
+export function validUsageCursor(value: unknown): value is UsageCursor {
+  const cursor = object(value);
+  return (
+    cursor !== undefined &&
+    count(cursor.occurredAt) &&
+    nonempty(cursor.attemptId) &&
+    cursor.attemptId.length <= 512
+  );
+}
+
+/** Validate the entire sequence, including hidden lookahead, against the shared UTF-8 key order. */
+export function validUsageHistoryOrder(
+  records: readonly UsageRecord[],
+  cursor: UsageCursor | null,
+): boolean {
+  if (cursor !== null && !validUsageCursor(cursor)) return false;
+  let previous = cursor;
+  const seen = new Set<string>(cursor === null ? [] : [cursor.attemptId]);
+  for (const record of records) {
+    if (seen.has(record.attemptId)) return false;
+    seen.add(record.attemptId);
+    if (
+      previous !== null &&
+      (record.occurredAt > previous.occurredAt ||
+        (record.occurredAt === previous.occurredAt &&
+          Buffer.compare(
+            Buffer.from(record.attemptId, 'utf8'),
+            Buffer.from(previous.attemptId, 'utf8'),
+          ) >= 0))
+    )
+      return false;
+    previous = record;
+  }
+  return true;
+}
+
 export function parseUsageCursor(value: string): UsageCursor {
   if (value.length === 0 || value.length > 2048 || !/^[A-Za-z0-9_-]+$/u.test(value)) {
     throw new InvalidUsageQuery();
   }
   try {
     const parsed: unknown = JSON.parse(Buffer.from(value, 'base64url').toString('utf8'));
-    if (
-      !Array.isArray(parsed) ||
-      parsed.length !== 2 ||
-      !count(parsed[0]) ||
-      !nonempty(parsed[1]) ||
-      parsed[1].length > 512
-    ) {
-      throw new InvalidUsageQuery();
-    }
-    return { occurredAt: parsed[0], attemptId: parsed[1] };
+    const cursor: unknown =
+      Array.isArray(parsed) && parsed.length === 2
+        ? { occurredAt: parsed[0], attemptId: parsed[1] }
+        : null;
+    if (!validUsageCursor(cursor)) throw new InvalidUsageQuery();
+    return cursor;
   } catch {
     throw new InvalidUsageQuery();
   }
