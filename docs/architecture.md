@@ -254,7 +254,7 @@ Deployment code supplies this resolver explicitly after migrations. The existing
 
 `createNodePostgresDualRouteChatServer` wraps this handler with the existing request bridge and returns an unbound server. Construction loads enabled direct registrations but retrieves no secrets or upstream data; an empty registration set supports delegated-only installations. The caller applies migrations and owns listening and DB shutdown. Existing direct/custom factories remain available.
 
-Both route kinds keep current token/attachment authentication, model/final-provider IAM, limits, sanitized audit, and per-attempt usage. Delegated mapping/configuration failures return existing safe errors before inference; upstream failures never switch to direct routes. Direct registrations remain a construction snapshot, while mappings read per lookup; concurrent changes after those reads are not revalidated. Runtime integration, SSO, management endpoints, live reload, and secret/limit implementations remain separate work. See the [composition contract](../contracts/persisted-dual-gateway.md).
+Both route kinds keep current token/attachment authentication, model/final-provider IAM, limits, sanitized audit, and per-attempt usage. Delegated mapping/configuration failures return existing safe errors before inference; upstream failures never switch to direct routes. Direct registrations remain a construction snapshot, while mappings read per lookup; concurrent changes after those reads are not revalidated. CLI/environment wiring, SSO, management endpoints, live reload, and secret/limit implementations remain separate work. See the [composition contract](../contracts/persisted-dual-gateway.md).
 
 ## Persisted policy simulation
 
@@ -263,3 +263,11 @@ Both route kinds keep current token/attachment authentication, model/final-provi
 Results contain only effect, existing reason, and evaluated policy IDs/versions. No statements, secrets, content, credential writes, inference, audit append, or usage append are involved. This is IAM simulation only: it does not authenticate credentials, check catalog/provider readiness or limits, or guarantee a successful invocation. The caller restricts access to this internal read capability. Public simulator authentication, reader scope, read audit, and hypothetical policy editing remain open.
 
 One snapshot is consistent at its read; later concurrent changes are not revalidated. Using the same evaluator aligns simulation and gateway IAM for the same persisted state. Tests compare current model/provider simulation to live PostgreSQL HTTP gateway Allow/Deny behavior. See the [simulator contract](../contracts/persisted-policy-simulator.md).
+
+## Owned dual-route runtime
+
+`startPostgresDualRouteGateway` owns connection opening, complete bundled schema verification/application, persisted dual server construction, listening, and shutdown. A private lifecycle helper is shared with `startPostgresGateway`; the public wrappers select fixed server compositions rather than exposing a caller-supplied server builder. Schema application now occurs in the shared lifecycle before either composition, preserving the prior direct startup order.
+
+Both wrappers validate bind input before source/DB work, load SQL before opening a connection, and listen only after migrations and registrations succeed. They return a copied address and one shared shutdown promise. Shutdown drains active HTTP work before DB close; startup failures attempt cleanup and expose fixed errors. Cleanup is not automatically retried and carries no raw infrastructure cause.
+
+The dual wrapper supplies generated direct/OpenRouter invokers and the persisted verified mapping reader, with unchanged token/IAM/limit/audit/usage paths. Shared lifecycle tests run against both wrappers; a fresh-schema socket test calls both route kinds and inspects stored history. No new schema, CLI/environment parser, process signal handling, TLS, shutdown deadline, or live reload is supplied. Operators still serialize migration startup and provide secret/limit implementations. See the [runtime contract](../contracts/dual-gateway-runtime.md).

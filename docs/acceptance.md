@@ -217,3 +217,11 @@ The PostgreSQL migration runner applies versions `001` through `008` in order, r
 - Invalid bounded inputs reject before SQL. Malformed/incomplete/unavailable snapshots fail safely without partial grants or driver details.
 - Simulation and the live PostgreSQL gateway agree on model/provider IAM for the same persisted state. Simulation produces no inference, credential mutation, usage record, or decision audit; it does not certify catalog/credential/limit readiness.
 - This remains a trusted internal diagnostic. Public authentication, reader scope, simulation-access audit, and hypothetical-policy editing remain open.
+
+## Owned dual-route runtime
+
+- `startPostgresDualRouteGateway` loads the complete trusted migration bundle before opening DB, applies/verifies schema before registration loading, and listens only after persisted dual composition succeeds.
+- One owned socket supports allowed managed and OpenRouter-delegated routes without manually supplied invocation/mapping ports, with existing sanitized audit and per-attempt usage.
+- Both runtime wrappers reject invalid bind/source configuration before DB opening, expose fixed safe startup errors, and clean up after migration/configuration/listen failures without secret/upstream activity.
+- Shutdown returns one shared promise, waits for active HTTP work before DB close, and attempts DB cleanup exactly once; shutdown errors remain fixed and are not retried automatically.
+- Existing direct/custom runtime behavior remains available. Network defaults, CLI/env parsing, signals, TLS, shutdown deadlines, migration serialization, secret/limit implementation, and live reload remain deployment responsibilities.
