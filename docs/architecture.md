@@ -350,3 +350,7 @@ Both chat paths support literal stop strings or dense arrays of up to four strin
 ## Completion-token alias normalization
 
 The HTTP decoder resolves max_tokens and max_completion_tokens to canonical max_tokens. The same pure resolver protects direct adapter callers before credential lookup. Each supplied field must be a positive safe integer; differing pairs reject, equal pairs remain valid. Native mappings and configured caps are unchanged. Native reasoning-model parameter selection remains pending. See [plan](plans/126-completion-token-alias.md).
+
+## Client temperature capture
+
+Shared scalar validation enforces the client 0..2 range and direct Anthropic 0..1 range. Capture occurs before credential lookup; native temperature fields coexist with output/stop settings. Omission adds no default. Provider-range failure uses existing non-billable adapter failures and failed-attempt audit without an unstarted usage ledger entry; globally malformed values fail at HTTP decoding. See [plan](plans/130-client-temperature.md).

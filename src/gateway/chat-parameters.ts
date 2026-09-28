@@ -34,3 +34,11 @@ export function resolveOutputTokenLimit(
   }
   return maxCompletionTokens ?? maxTokens;
 }
+
+/** Optional temperature; direct Anthropic uses its narrower native range. */
+export function validTemperature(value: unknown, maximum: 1 | 2 = 2): value is number | undefined {
+  return (
+    value === undefined ||
+    (typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= maximum)
+  );
+}
