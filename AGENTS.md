@@ -8,6 +8,8 @@ Pull requests to `main` require CI and at least one approval. The repository tri
 
 Changes must follow the scope in `docs/PRD.md` and the acceptance criteria in `docs/acceptance.md`. Do not implement unresolved options in `docs/architecture.md` as settled requirements.
 
+External-tool OpenRouter compatibility is a release requirement. For client API, model discovery, or provider adapter changes, review and update `docs/openrouter-compatibility.md` and the relevant conformance tests. Preserve the same IAM, limits, audit, and usage controls across compatible paths and fields. Do not claim complete compatibility while required request, response, streaming, tool-call, or external-client cases remain unimplemented.
+
 For every implementation issue, write or update an English plan in `docs/plans/<issue-number>-<topic>.md` before coding. Use [the plan template](docs/plans/TEMPLATE.md), link the plan in the pull request, and update the relevant PRD, architecture, acceptance, and contract documents when their behavior changes. Keep unresolved decisions explicit.
 
 Implement the product in TypeScript. Follow [the coding rules](docs/coding.md), keep the TypeScript strictness settings enabled, and use `CONTEXT.md` names in code. Python is limited to the existing planning-document checker until it is replaced.

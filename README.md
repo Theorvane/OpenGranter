@@ -14,6 +14,7 @@ Contributions follow the [issue, branch, and pull-request workflow](CONTRIBUTING
 - [Architecture and open decisions](docs/architecture.md)
 - [Acceptance scenarios](docs/acceptance.md)
 - [Roadmap](docs/roadmap.md)
+- [OpenRouter client compatibility and setup](docs/openrouter-compatibility.md)
 - [Engineering harness](docs/harness.md)
 - [TypeScript coding rules](docs/coding.md)
 - [Name decision](docs/naming.md)

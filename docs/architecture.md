@@ -120,7 +120,7 @@ Fail closed when authentication, policy, route bounds, secrets, or required audi
 3. Operational configuration, secret delivery, migration coordination, and process startup for the PostgreSQL driver and secret stores in AWS and on-premises deployments.
 4. Whether monthly limits warn or block, and how concurrent calls reserve capacity.
 5. Content-audit default, configuration scope, retention, reader permissions, and tamper-resistant export.
-6. Whether streaming is part of the initial release.
+6. Streaming interruption, cancellation and usage accounting contracts for required external-client compatibility.
 7. Exact managed-route score, metric freshness, and retry triggers.
 8. OpenRouter provider-ID mapping and verification of provider restrictions for delegated routes.
 
@@ -326,3 +326,7 @@ See [contract](../contracts/gateway-principal-snapshots.md).
 ## Authenticated policy data validation
 
 Malformed active authentication fails before routing, catalog, history, limits and inference, with required anonymous safe failure audit. Valid Allow/Deny, wildcard, empty-policy and inactive behavior remains unchanged. See [contract](../contracts/gateway-policy-validation.md).
+
+## OpenRouter client paths and compatibility gate
+
+Exact /api/v1 chat/models aliases use the same security and execution pipeline as /v1. Managed/delegated chat, filtered discovery, denial, limit and required audit failures agree across paths; wrong methods and near-miss paths remain 404. Full external-tool compatibility requires the pending schema, streaming, tool-call and integration cases in the [compatibility matrix](openrouter-compatibility.md). See [path contract](../contracts/openrouter-client-paths.md).

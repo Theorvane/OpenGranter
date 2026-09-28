@@ -14,6 +14,9 @@ An external company or internal platform that supplies model inference to the or
 **Upstream**:
 A service OpenGranter calls to fulfill a model request. An upstream may be OpenRouter or a direct provider.
 
+**OpenRouter client compatibility**:
+The ability of an external model client to use OpenGranter with OpenRouter request and response conventions while organizational access controls remain enforced.
+
 **Proxy gateway**:
 The OpenGranter API boundary that authenticates a proxy token and routes an authorized model request to an approved upstream.
 
