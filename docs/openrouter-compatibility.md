@@ -15,7 +15,7 @@ For tools supporting a configurable OpenRouter/OpenAI-compatible endpoint:
 - Base URL: `https://<gateway-host>/api/v1` (existing `/v1` also remains available).
 - API key: the user's OpenGranter proxy token; provider keys stay server held.
 - Model: an administrator-published alias visible to that token. An OpenRouter-style alias such as `openai/example-model` must be explicitly published; arbitrary model IDs do not become eligible.
-- Current text-chat request: model plus string-content messages, optional stream false and positive-integer max_tokens. Discovery uses GET models; chat uses POST chat/completions relative to the base.
+- Current text-chat request: model plus string-content messages, optional stream false and positive-integer max_tokens and optional stop (string or up to four strings). Discovery uses GET models; chat uses POST chat/completions relative to the base.
 
 Tools with a hardcoded openrouter.ai host need a configurable endpoint or an integration change. Path aliases alone do not make tools needing streaming, function calls or advanced parameters work.
 
@@ -25,7 +25,7 @@ Tools with a hardcoded openrouter.ai host need a configurable endpoint or an int
 | --- | --- | --- |
 | Base paths and Bearer token | /api/v1 chat/models aliases; shared proxy authorization | SDK and named external-tool registration tests |
 | Model discovery | Authorized alias IDs and basic model fields | Context window, capability, supported-parameter and price metadata from trusted catalog sources |
-| Non-streaming text chat | Text messages, one normalized text choice and max_tokens across four adapters | Remaining request/response schema, sampling, max_completion_tokens and capability metadata |
+| Non-streaming text chat | Text messages, one normalized text choice with max_tokens and portable stop across four adapters | Remaining request/response schema, sampling, max_completion_tokens and capability metadata |
 | Streaming | Not implemented | SSE framing, termination, usage, backpressure, cancellation, safe interruption/failure audit |
 | Tool calling | Not implemented | Tool definitions, choice, assistant tool calls, tool results and provider mappings |
 | Rich inputs and outputs | Not implemented | Content parts, modality/capability checks, structured output and reasoning handling |
@@ -57,3 +57,7 @@ The current adapters support max_tokens through both client paths, including dir
 Fixed error.message is available for all gateway failures and the Node bridge fallback. Legacy /v1 symbolic codes remain unchanged; /api/v1 uses numeric HTTP status and metadata.opengranter_code. Standard error_type metadata, retry hints and streaming errors remain pending. See [contract](../contracts/safe-client-errors.md).
 
 Numeric error envelope conformance is tracked in [plan](plans/122-openrouter-error-schema.md) and [contract](../contracts/openrouter-error-schema.md).
+
+## Stop-sequence conformance
+
+Portable stop strings/lists map across all four adapters without exposing their contents in metadata. Null/omission, bounded dense lists, immutable capture and combined output settings are covered. Provider-specific longer lists and per-model capability handling remain open. See [contract](../contracts/client-stop-sequences.md).

@@ -31,7 +31,7 @@ import {
   validUsageHistoryOrder,
 } from '../usage/history.ts';
 import type { UsageRecord } from '../usage/record-usage.ts';
-import { validOutputTokenLimit } from './chat-parameters.ts';
+import { snapshotStopSequences, validOutputTokenLimit } from './chat-parameters.ts';
 import {
   type ClientErrorCode,
   clientErrorFormat,
@@ -49,6 +49,7 @@ export interface ChatRequest {
   readonly model: string;
   readonly messages: readonly ChatMessage[];
   readonly max_tokens?: number;
+  readonly stop?: string | readonly string[] | null;
 }
 
 export interface AuthenticatedPrincipal {
@@ -284,12 +285,20 @@ function validCatalog(value: unknown): value is readonly PublishedModel[] {
 function validateChat(value: unknown): ChatRequest | undefined {
   if (!isRecord(value)) return undefined;
   if (
-    Object.keys(value).some((key) => !['model', 'messages', 'stream', 'max_tokens'].includes(key))
+    Object.keys(value).some(
+      (key) => !['model', 'messages', 'stream', 'max_tokens', 'stop'].includes(key),
+    )
   ) {
     return undefined;
   }
   if (value.stream !== undefined && value.stream !== false) return undefined;
   if (!validOutputTokenLimit(value.max_tokens)) return undefined;
+  let stop: ReturnType<typeof snapshotStopSequences>;
+  try {
+    stop = snapshotStopSequences(value.stop);
+  } catch {
+    return undefined;
+  }
   if (typeof value.model !== 'string' || !value.model || !Array.isArray(value.messages)) {
     return undefined;
   }
@@ -312,6 +321,7 @@ function validateChat(value: unknown): ChatRequest | undefined {
     model: value.model,
     messages,
     ...(value.max_tokens === undefined ? {} : { max_tokens: value.max_tokens }),
+    ...(stop === undefined ? {} : { stop }),
   };
 }
 
