@@ -19,6 +19,7 @@ import {
   type ManagedRouteAuditEvent,
 } from '../routing/invoke-jev-managed-route.ts';
 import type { JevFetcher } from '../routing/jev-managed-routing.ts';
+import { serializeUsageCsv } from '../usage/csv.ts';
 import {
   encodeUsageCursor,
   matchesUsageHistoryFilters,
@@ -453,6 +454,7 @@ export function createChatHandler<T>(
       let data: UsageRecord[];
       let hasMore: boolean;
       let nextCursor: string | null;
+      let csv: string | null = null;
       try {
         if (!ports.listUsage) throw new Error('usage reader unavailable');
         const page = await ports.listUsage({
@@ -491,6 +493,7 @@ export function createChatHandler<T>(
             ? encodeUsageCursor({ occurredAt: last.occurredAt, attemptId: last.attemptId })
             : null;
         hasMore = page.hasMore;
+        if (parsed.format === 'csv') csv = serializeUsageCsv(data);
       } catch {
         try {
           await ports.writeAudit({
@@ -516,6 +519,19 @@ export function createChatHandler<T>(
         });
       } catch {
         return errorResponse(503, 'audit_unavailable', requestId);
+      }
+      if (csv !== null) {
+        return new Response(csv, {
+          status: 200,
+          headers: {
+            'content-type': 'text/csv; charset=utf-8',
+            'content-disposition': 'attachment; filename="opengranter-usage.csv"',
+            'cache-control': 'no-store',
+            'x-request-id': requestId,
+            'x-has-more': String(hasMore),
+            ...(nextCursor === null ? {} : { 'x-next-cursor': nextCursor }),
+          },
+        });
       }
       return Response.json(
         { object: 'list', data, has_more: hasMore, next_cursor: nextCursor },

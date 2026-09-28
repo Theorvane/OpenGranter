@@ -120,3 +120,10 @@ The PostgreSQL migration runner applies versions `001` through `007` in order, r
 - Principal and cursor predicates remain bound alongside the range. Other principals' events never enter results, and default/explicit Deny prevents storage access.
 - Noncanonical, unsafe, repeated, or reversed/empty two-bound time inputs return 400 before storage. Invalid direct reader range inputs reject before SQL.
 - SQL and injected reader pages containing out-of-range records fail as a whole with safe errors and required unavailable-read audit. Successful filtered reads still require successful audit writes.
+
+## Usage CSV page export
+
+- An authorized `format=csv` read uses the same principal, model/time filters, bounded page, and IAM actions as JSON. The file contains only allowlisted metadata and keeps unknown usage/cost distinct from zero and estimated cost distinct from billed cost.
+- Pagination is explicit through `X-Has-More` and optional `X-Next-Cursor`; an empty page has headers only. JSON stays the default, and invalid/repeated format values return 400 before storage.
+- Commas, quotes, and multiline text remain inside quoted cells. Formula-looking text receives a documented apostrophe prefix; unmodified machine-readable identifiers remain available through JSON.
+- Default/explicit Deny blocks storage. Storage failure, mixed-principal rows, and required audit failure return safe JSON errors rather than partial CSV. Successful downloads have a fixed filename and no-store cache policy.

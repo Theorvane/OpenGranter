@@ -350,3 +350,90 @@ test('filtered reads still enforce default and explicit Deny and required audit'
   });
   assert.equal((await handler(request('?model=chat'))).status, 503);
 });
+
+test('authorized filtered CSV uses identical storage scope and exposes page continuation', async () => {
+  const { handler, state } = fixture({
+    listUsage: async () => ({ records: [ownRecord], hasMore: true }),
+  });
+  const response = await handler(request('?format=csv&model=chat&from_ms=100&to_ms=101'));
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('content-type'), 'text/csv; charset=utf-8');
+  assert.equal(
+    response.headers.get('content-disposition'),
+    'attachment; filename="opengranter-usage.csv"',
+  );
+  assert.equal(response.headers.get('x-has-more'), 'true');
+  assert.equal(
+    response.headers.get('x-next-cursor'),
+    encodeUsageCursor({ occurredAt: 100, attemptId: ownRecord.attemptId }),
+  );
+  assert.deepEqual(state.queries, [
+    {
+      principalId: 'person-1',
+      limit: 50,
+      cursor: null,
+      modelAlias: 'chat',
+      fromMs: 100,
+      toMs: 101,
+    },
+  ]);
+  assert.ok((await response.text()).includes('"chat-1/managed/1"'));
+  assert.equal((state.audit[0] as { kind: string }).kind, 'usage-read');
+});
+
+test('CSV format cannot bypass denial, storage validation, or required audit', async () => {
+  for (const statements of [
+    [],
+    [
+      { effect: 'Allow' as const, actions: ['usage:ReadSelf'], resources: ['principal:person-1'] },
+      { effect: 'Deny' as const, actions: ['usage:ReadSelf'], resources: ['principal:person-1'] },
+    ],
+  ]) {
+    const { handler, state } = fixture({ statements });
+    assert.equal((await handler(request('?format=csv'))).status, 403);
+    assert.equal(state.queries.length, 0);
+  }
+  for (const options of [
+    {
+      listUsage: async () => {
+        throw new Error('private storage');
+      },
+    },
+    {
+      listUsage: async () => ({
+        records: [{ ...ownRecord, principalId: 'other' }],
+        hasMore: false,
+      }),
+    },
+    {
+      writeAudit: async () => {
+        throw new Error('private audit');
+      },
+    },
+  ]) {
+    const { handler } = fixture(options);
+    const response = await handler(request('?format=csv'));
+    assert.equal(response.status, 503);
+    assert.ok(response.headers.get('content-type')?.includes('application/json'));
+    assert.ok(!(await response.text()).includes('private'));
+  }
+});
+
+test('empty CSV pages provide column headers and explicit completion', async () => {
+  const { handler } = fixture({ listUsage: async () => ({ records: [], hasMore: false }) });
+  const response = await handler(request('?format=csv'));
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('x-has-more'), 'false');
+  assert.equal(response.headers.get('x-next-cursor'), null);
+  assert.equal((await response.text()).split('\r\n').length, 2);
+});
+
+test('unsupported or repeated export formats reject before storage', async () => {
+  for (const query of ['?format=', '?format=xml', '?format=CSV', '?format=csv&format=json']) {
+    const { handler, state } = fixture();
+    assert.equal((await handler(request(query))).status, 400);
+    assert.equal(state.queries.length, 0);
+  }
+  const { handler } = fixture();
+  assert.equal((await handler(request('?format=json'))).status, 200);
+});

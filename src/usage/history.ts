@@ -100,13 +100,14 @@ export function encodeUsageCursor(cursor: UsageCursor): string {
 
 export function parseUsageHistoryQuery(url: URL): UsageHistoryFilters & {
   readonly requestedPrincipalId: string | null;
+  readonly format: 'json' | 'csv';
   readonly limit: number;
   readonly cursor: UsageCursor | null;
 } {
   const params = url.searchParams;
   for (const key of params.keys()) {
     if (
-      !['principal_id', 'limit', 'cursor', 'model', 'from_ms', 'to_ms'].includes(key) ||
+      !['principal_id', 'limit', 'cursor', 'model', 'from_ms', 'to_ms', 'format'].includes(key) ||
       params.getAll(key).length !== 1
     ) {
       throw new InvalidUsageQuery();
@@ -124,6 +125,8 @@ export function parseUsageHistoryQuery(url: URL): UsageHistoryFilters & {
   ) {
     throw new InvalidUsageQuery();
   }
+  const format = params.get('format') ?? 'json';
+  if (format !== 'json' && format !== 'csv') throw new InvalidUsageQuery();
   const rawLimit = params.get('limit');
   if (rawLimit !== null && !/^(?:[1-9]|[1-9][0-9]|100)$/u.test(rawLimit)) {
     throw new InvalidUsageQuery();
@@ -140,6 +143,7 @@ export function parseUsageHistoryQuery(url: URL): UsageHistoryFilters & {
   if (!validUsageHistoryFilters(filters)) throw new InvalidUsageQuery();
   return {
     requestedPrincipalId,
+    format,
     ...filters,
     limit: rawLimit === null ? 50 : Number(rawLimit),
     cursor: rawCursor === null ? null : parseUsageCursor(rawCursor),
