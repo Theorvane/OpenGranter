@@ -342,3 +342,7 @@ All gateway errors and Node pre-header internal failures include fixed allowlist
 ## OpenRouter numeric errors
 
 /api/v1/ failures use numeric status codes with fixed messages and allowlisted metadata.opengranter_code. Legacy /v1 codes, successful payloads and all security controls remain unchanged. Format selection does not expose additional endpoints. See [contract](../contracts/openrouter-error-schema.md).
+
+## Completion-token alias normalization
+
+The HTTP decoder resolves max_tokens and max_completion_tokens to canonical max_tokens. The same pure resolver protects direct adapter callers before credential lookup. Each supplied field must be a positive safe integer; differing pairs reject, equal pairs remain valid. Native mappings and configured caps are unchanged. Native reasoning-model parameter selection remains pending. See [plan](plans/126-completion-token-alias.md).

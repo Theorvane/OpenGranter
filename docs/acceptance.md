@@ -321,3 +321,10 @@ All gateway errors and Node pre-header internal failures include fixed allowlist
 ## OpenRouter numeric errors
 
 /api/v1/ failures use numeric status codes with fixed messages and allowlisted metadata.opengranter_code. Legacy /v1 codes, successful payloads and all security controls remain unchanged. Format selection does not expose additional endpoints. See [contract](../contracts/openrouter-error-schema.md).
+
+## Completion-token alias
+
+- Both chat paths and four adapters accept alias-only and equal paired positive safe-integer maxima; invalid or conflicting pairs fail before route/credential/transport work.
+- Direct configured caps and omission defaults remain effective; input changes during credential lookup cannot change the maximum.
+- IAM denial, limits, required audit failures and upstream failures preserve safe errors and usage accounting. The alias adds no access or budget reservation.
+- Explicitly document the local conflict restriction and native reasoning-model capability gap. See [contract](../contracts/client-output-limits.md).
