@@ -84,3 +84,7 @@ The scenarios in [acceptance.md](acceptance.md) must pass, including unauthorize
 - [AWS IAM default denial and explicit Deny](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic_policy-eval-denyallow.html)
 - [OpenRouter's unified API format](https://openrouter.ai/docs/quickstart)
 - [AWS Secrets Manager's credential storage and rotation](https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html)
+
+## Chat input encoding
+
+Chat JSON must be well-formed UTF-8; reject malformed or incomplete byte sequences before routing and inference. Preserve valid Unicode across request chunks. See [encoding contract](../contracts/chat-utf8.md).
