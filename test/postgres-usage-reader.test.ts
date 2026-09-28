@@ -144,3 +144,77 @@ test('reader maps database failure to a safe availability error', async () => {
     UsageLedgerUnavailable,
   );
 });
+
+test('model/time filters preserve principal scope and keyset pagination', async () => {
+  const { db, writeUsage, readUsage } = await fixture();
+  try {
+    for (const [id, time] of [
+      ['a', 99],
+      ['b', 100],
+      ['c', 100],
+      ['d', 101],
+    ] as const) {
+      await writeUsage(record('person-1', id, time));
+    }
+    await writeUsage({ ...record('person-1', 'other-model', 100), modelAlias: 'other' });
+    await writeUsage(record('person-2', 'foreign', 100));
+    const query = { principalId: 'person-1', limit: 1, modelAlias: 'chat', fromMs: 100, toMs: 101 };
+    const first = await readUsage({ ...query, cursor: null });
+    assert.deepEqual(
+      first.records.map((row) => row.attemptId),
+      ['c'],
+    );
+    assert.equal(first.hasMore, true);
+    const second = await readUsage({ ...query, cursor: { occurredAt: 100, attemptId: 'c' } });
+    assert.deepEqual(
+      second.records.map((row) => row.attemptId),
+      ['b'],
+    );
+    assert.equal(second.hasMore, false);
+    assert.deepEqual(
+      (await readUsage({ ...query, cursor: null, modelAlias: "chat' OR true --" })).records,
+      [],
+    );
+  } finally {
+    await db.close();
+  }
+});
+
+test('reader rejects malformed filter ports before SQL', async () => {
+  let queries = 0;
+  const reader = createPostgresUsageReader({
+    query: async () => {
+      queries += 1;
+      return { rows: [] };
+    },
+  });
+  for (const filter of [{ fromMs: -1 }, { fromMs: 10, toMs: 10 }, { modelAlias: '' }]) {
+    await assert.rejects(
+      reader({ principalId: 'person-1', limit: 10, cursor: null, ...filter }),
+      UsageLedgerUnavailable,
+    );
+  }
+  assert.equal(queries, 0);
+});
+
+test('reader rejects out-of-filter data even if SQL returns it', async () => {
+  const stored = record('person-1', 'attempt', 100);
+  const reader = createPostgresUsageReader({
+    query: async () => ({
+      rows: [
+        {
+          principal_id: stored.principalId,
+          attempt_id: stored.attemptId,
+          occurred_at_ms: String(stored.occurredAt),
+          record: stored,
+        },
+      ],
+    }),
+  });
+  for (const filter of [{ modelAlias: 'other' }, { fromMs: 101 }, { toMs: 100 }]) {
+    await assert.rejects(
+      reader({ principalId: 'person-1', limit: 10, cursor: null, ...filter }),
+      UsageLedgerUnavailable,
+    );
+  }
+});

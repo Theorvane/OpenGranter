@@ -91,3 +91,11 @@ The PostgreSQL migration runner applies versions `001` through `006` in order, r
 - Application failures roll back and preserve their original error. Driver acquisition/query/begin/commit/rollback and shutdown failures expose fixed safe availability errors. Failed rollback, checked-out connection loss, and uncertain commit discard the connection; no retry occurs. Even a query failure caught by the callback prevents successful commit.
 - Idle pool failures notify with a safe error; a failing notification cannot crash the listener. Shutdown is idempotent, drains active clients, and rejects new queries and transactions.
 - An isolated real PostgreSQL database applies all six migrations, skips unchanged history on the second run, binds hostile-looking literal values, and leaves no schema changes after a rolled-back transaction. CI supplies that database; local integration skips unless its explicit test database URL is set.
+
+
+## Usage history filters
+
+- Authorized self or specified-principal usage reads accept an exact `model` alias and inclusive `from_ms`/exclusive `to_ms` occurrence-time bounds. Equal-timestamp keyset pagination returns only matching records without gaps when clients repeat the filters.
+- A principal predicate always applies alongside all filter values. Hostile-looking aliases are bound as SQL literals; foreign-principal and other-model records remain excluded.
+- Default/explicit Deny still prevents storage access. Unknown/repeated parameters, malformed model aliases, noncanonical or unsafe timestamps, and reversed/empty two-bound ranges return 400 before storage.
+- Storage adapters reject malformed filter inputs before SQL and reject out-of-filter results. The HTTP boundary also rejects out-of-filter pages with a safe unavailable error and required audit. Successful filtered reads still require successful audit writes.
