@@ -82,3 +82,5 @@ The PostgreSQL migration runner applies versions `001` through `006` in order, r
 - Applying all migrations and issuing an opaque token allows an authorized principal to list stored aliases, invoke an ordered managed route, and inspect attributed audit and usage metadata through the composed HTTP handler. Prompts, responses, and raw tokens remain absent from metadata history.
 - Generated credential IDs beginning with `-` or `_` remain valid audit attribution. Stored explicit/default Deny and token revocation stop inference.
 - Unavailable IAM and required audit storage return safe service errors before inference. A usage handoff failure after inference returns unavailable without replaying the provider call.
+
+- A real local HTTP socket served by the PostgreSQL factory authenticates an issued token, lists stored aliases, invokes a registered direct adapter, and returns persisted attributed usage/audit metadata. Revocation returns 401 before any second upstream call. The factory leaves listening and connection lifecycle to its caller, and tests close both resources.
