@@ -143,3 +143,11 @@ The PostgreSQL migration runner applies versions `001` through `008` in order, r
 - Required decision-storage failure prevents issuance and revocation with a fixed availability error. A mutation failure after a stored grant leaves the grant without a successful lifecycle event; a grant does not certify completion.
 - Decision storage binds values as SQL parameters, rejects malformed metadata or clocks before SQL, and projects only known fields. Tokens, digests, prompts/responses, and extra policy-statement fields never enter decision columns or driver errors.
 - The factory remains internal: callers must supply authenticated actor context and resolved policy versions. No public management authentication or decision-history HTTP contract is settled by this slice.
+
+## Migration-gated startup
+
+- A fresh database applies the complete trusted migration source set before the first direct-registration read. The factory returns an unbound server; a real socket still rejects an unauthenticated model-list request with an anonymous audit record.
+- Sequential reconstruction verifies history and skips unchanged migrations while loading a fresh registration snapshot.
+- Edited/missing historical sources and invalid migration sets prevent configuration reads and server construction. Failed SQL rolls back that migration's schema/history together, retains earlier committed migrations, and never retrieves a provider key or calls a provider.
+- Registration-storage failure after migration success returns a safe error while leaving migration history and the caller-owned connection intact.
+- Trusted deployment code supplies the complete sources and serializes migration runs. Listening, shutdown, process configuration, and concurrent migration coordination remain deployment responsibilities.
