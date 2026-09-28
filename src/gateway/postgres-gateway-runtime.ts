@@ -2,14 +2,27 @@ import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import type { PostgresConnection } from '../storage/postgres-connection.ts';
 import { loadPostgresMigrationSources } from '../storage/postgres-migration-sources.ts';
+import { applyPostgresMigrations } from '../storage/postgres-migrations.ts';
 import type { BundledPostgresServerPorts } from './bundled-postgres-server.ts';
-import { createMigratedNodePostgresDirectChatServer } from './migrated-postgres-server.ts';
+import { createNodePostgresDirectChatServer } from './node-postgres-chat-server.ts';
+import { createNodePostgresDualRouteChatServer } from './node-postgres-dual-chat-server.ts';
+import type { PostgresDualRouteChatHandlerPorts } from './postgres-dual-chat-handler.ts';
 
-export interface PostgresGatewayRuntimePorts extends Omit<BundledPostgresServerPorts, 'client'> {
+interface GatewayRuntimeInfrastructure {
   readonly host: string;
   readonly port: number;
+  readonly now: () => number;
   readonly openConnection: () => PostgresConnection | Promise<PostgresConnection>;
+  readonly migrationDirectory?: URL;
 }
+
+export interface PostgresGatewayRuntimePorts
+  extends Omit<BundledPostgresServerPorts, 'client'>,
+    GatewayRuntimeInfrastructure {}
+
+export interface PostgresDualRouteGatewayRuntimePorts
+  extends Omit<PostgresDualRouteChatHandlerPorts, 'client'>,
+    GatewayRuntimeInfrastructure {}
 
 export class InvalidGatewayRuntimeInput extends Error {
   constructor() {
@@ -51,8 +64,11 @@ async function closeResources(server: Server | undefined, connection: PostgresCo
   if (failed) throw new GatewayShutdownUnavailable();
 }
 
-/** Own the opened connection and HTTP listener. Deployment supplies trusted infrastructure ports. */
-export async function startPostgresGateway(ports: PostgresGatewayRuntimePorts): Promise<{
+/** Shared private ownership boundary; public wrappers choose the trusted server composition. */
+async function startOwnedPostgresGateway(
+  ports: GatewayRuntimeInfrastructure,
+  buildServer: (client: PostgresConnection) => Promise<Server>,
+): Promise<{
   readonly address: Readonly<AddressInfo>;
   readonly close: () => Promise<void>;
 }> {
@@ -71,14 +87,11 @@ export async function startPostgresGateway(ports: PostgresGatewayRuntimePorts): 
   let connection: PostgresConnection | undefined;
   let server: Server | undefined;
   try {
-    const { openConnection, host, port, migrationDirectory, ...gatewayPorts } = ports;
+    const { openConnection, host, port, migrationDirectory } = ports;
     const migrations = await loadPostgresMigrationSources(migrationDirectory);
     connection = await openConnection();
-    server = await createMigratedNodePostgresDirectChatServer({
-      ...gatewayPorts,
-      client: connection,
-      migrations,
-    });
+    await applyPostgresMigrations(connection, migrations, ports.now);
+    server = await buildServer(connection);
     const listeningServer = server;
     await new Promise<void>((resolve, reject) => {
       const onError = () => {
@@ -114,4 +127,32 @@ export async function startPostgresGateway(ports: PostgresGatewayRuntimePorts): 
     }
     throw new GatewayStartupUnavailable();
   }
+}
+
+/** Own a migrated direct gateway with optional custom delegated ports. */
+export async function startPostgresGateway(ports: PostgresGatewayRuntimePorts) {
+  const {
+    openConnection: _open,
+    host: _host,
+    port: _port,
+    migrationDirectory: _directory,
+    ...gatewayPorts
+  } = ports;
+  return startOwnedPostgresGateway(ports, (client) =>
+    createNodePostgresDirectChatServer({ ...gatewayPorts, client }),
+  );
+}
+
+/** Own a migrated gateway with persisted direct and OpenRouter adapters. */
+export async function startPostgresDualRouteGateway(ports: PostgresDualRouteGatewayRuntimePorts) {
+  const {
+    openConnection: _open,
+    host: _host,
+    port: _port,
+    migrationDirectory: _directory,
+    ...gatewayPorts
+  } = ports;
+  return startOwnedPostgresGateway(ports, (client) =>
+    createNodePostgresDualRouteChatServer({ ...gatewayPorts, client }),
+  );
 }

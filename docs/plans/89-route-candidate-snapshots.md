@@ -37,3 +37,7 @@
 - Green: regression/route-contract/selector/ordered/Jev/delegated suites passed all 46 cases after the shared copy/freeze implementation.
 - Initial `npm run check` passed strict TypeScript, Biome, 327 tests, and planning/link/contract/fixture checks. One external PostgreSQL case was skipped locally without a DB URL; CI provides PostgreSQL. Embedded PostgreSQL cases passed.
 - `git diff --check` passed; no schema change; `CLAUDE.md` symlink preserved.
+
+### Integration after runtime review
+
+PR #88 became approved and was merged to main during implementation. Integrated its owned dual runtime and preserved both additive documentation sections. The combined `npm run check` passed strict TypeScript, Biome, 338 tests, and planning/link/contract/fixture checks; the same external PostgreSQL case remained locally skipped. Candidate authorization production code was unchanged during integration.
