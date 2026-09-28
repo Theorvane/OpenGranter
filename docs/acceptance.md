@@ -151,3 +151,10 @@ The PostgreSQL migration runner applies versions `001` through `008` in order, r
 - Edited/missing historical sources and invalid migration sets prevent configuration reads and server construction. Failed SQL rolls back that migration's schema/history together, retains earlier committed migrations, and never retrieves a provider key or calls a provider.
 - Registration-storage failure after migration success returns a safe error while leaving migration history and the caller-owned connection intact.
 - Trusted deployment code supplies the complete sources and serializes migration runs. Listening, shutdown, process configuration, and concurrent migration coordination remain deployment responsibilities.
+
+## Bundled migration loading
+
+- Default loading returns every shipped manifest version in order, retaining each SQL file's original UTF-8 text for checksum verification. A trusted alternate directory preserves comments and line endings and ignores non-SQL notes.
+- Missing final files, unexpected/duplicate-version SQL, SQL symlinks/directories, whitespace-only SQL, and unavailable locations return a fixed safe error without filesystem paths or causes.
+- Bundled server construction migrates an empty schema before its first registration read. Sequential restart verifies and skips unchanged history; construction never retrieves secrets or calls providers.
+- Source-loading failure prevents any database or clock activity and returns no server. Caller owns the database, listening, shutdown, bundle integrity, and serialized migration execution.
