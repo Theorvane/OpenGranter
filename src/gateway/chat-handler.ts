@@ -238,24 +238,27 @@ async function readJsonBody(request: Request): Promise<unknown> {
   }
   const reader = request.body?.getReader();
   if (!reader) return undefined;
-  const decoder = new TextDecoder();
+  const decoder = new TextDecoder('utf-8', { fatal: true });
   let size = 0;
   let body = '';
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    size += value.byteLength;
-    if (size > MAX_BODY_BYTES) {
-      await reader.cancel();
-      return undefined;
-    }
-    body += decoder.decode(value, { stream: true });
-  }
-  body += decoder.decode();
   try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > MAX_BODY_BYTES) {
+        await reader.cancel();
+        return undefined;
+      }
+      body += decoder.decode(value, { stream: true });
+    }
+    body += decoder.decode();
     return JSON.parse(body) as unknown;
   } catch {
+    await reader.cancel().catch(() => undefined);
     return undefined;
+  } finally {
+    reader.releaseLock();
   }
 }
 

@@ -232,3 +232,9 @@ The PostgreSQL migration runner applies versions `001` through `008` in order, r
 - Later source configuration mutation during async selection, limits, mapping, audit, or fallback cannot change evaluated candidate/provider/model IDs or invocation/audit attribution.
 - Existing default/explicit Deny, route-kind isolation, order, and no-candidate behavior remain unchanged. New source values apply only on a new authorization call.
 - This does not add live reload or cross-operation DB locking; returned readonly snapshots must not be mutated by consumers.
+
+## Chat UTF-8 validation
+
+- Malformed bytes and incomplete trailing UTF-8 return `400 invalid_request`, record a metadata-only denial, and perform no route/limit/secret/usage/inference work.
+- Decoding errors cancel unread input; a cancellation error does not expose content or change the response. Audit failure returns `503 audit_unavailable`.
+- Valid multibyte characters split across chunks and literal U+FFFD reach inference unchanged.
