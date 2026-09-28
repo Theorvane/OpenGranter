@@ -225,3 +225,10 @@ The PostgreSQL migration runner applies versions `001` through `008` in order, r
 - Both runtime wrappers reject invalid bind/source configuration before DB opening, expose fixed safe startup errors, and clean up after migration/configuration/listen failures without secret/upstream activity.
 - Shutdown returns one shared promise, waits for active HTTP work before DB close, and attempts DB cleanup exactly once; shutdown errors remain fixed and are not retried automatically.
 - Existing direct/custom runtime behavior remains available. Network defaults, CLI/env parsing, signals, TLS, shutdown deadlines, migration serialization, secret/limit implementation, and live reload remain deployment responsibilities.
+
+## Evaluated route candidate snapshots
+
+- Authorization returns immutable copies of known candidate fields and an immutable ordered candidate array/result. Source objects/arrays remain mutable; extra runtime fields are stripped.
+- Later source configuration mutation during async selection, limits, mapping, audit, or fallback cannot change evaluated candidate/provider/model IDs or invocation/audit attribution.
+- Existing default/explicit Deny, route-kind isolation, order, and no-candidate behavior remain unchanged. New source values apply only on a new authorization call.
+- This does not add live reload or cross-operation DB locking; returned readonly snapshots must not be mutated by consumers.

@@ -30,22 +30,26 @@ export function authorizeCandidates(input: CandidateAuthorizationInput): Authori
     statements: input.statements,
   });
   if (modelDecision.effect === 'Deny') {
-    return { candidates: [] };
+    return Object.freeze({ candidates: Object.freeze([]) });
   }
 
-  const candidates = input.candidates.filter((candidate) => {
-    if (candidate.kind !== input.routeKind) return false;
-    return (
-      evaluate({
-        principalActive: input.principalActive,
-        action: 'llm:UseProvider',
-        resource: `provider:${candidate.providerId}`,
-        statements: input.statements,
-      }).effect === 'Allow'
-    );
-  });
+  const candidates = input.candidates
+    .map(({ id, kind, upstreamModelId, providerId }) =>
+      Object.freeze({ id, kind, upstreamModelId, providerId }),
+    )
+    .filter((candidate) => {
+      if (candidate.kind !== input.routeKind) return false;
+      return (
+        evaluate({
+          principalActive: input.principalActive,
+          action: 'llm:UseProvider',
+          resource: `provider:${candidate.providerId}`,
+          statements: input.statements,
+        }).effect === 'Allow'
+      );
+    });
 
-  return { candidates };
+  return Object.freeze({ candidates: Object.freeze(candidates) });
 }
 
 /** Keep provider bounds separate for each upstream model attempt. */
