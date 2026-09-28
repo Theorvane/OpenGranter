@@ -32,3 +32,7 @@
 
 - Report red/green commands and remaining startup/reload responsibilities in the PR.
 - Production provider accounts and secret managers remain outside this test fixture. No live provider calls.
+
+## Integration update
+
+Refresh from main after usage-filter PR #58 merged, preserving both contracts. Revalidate the combined suite before pushing the resolved merge.
