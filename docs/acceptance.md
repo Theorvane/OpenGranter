@@ -113,3 +113,10 @@ The PostgreSQL migration runner applies versions `001` through `007` in order, r
 - Explicit model Deny and credential revocation stop requests before any additional secret lookup or provider call. Tokens, keys, prompts, and responses remain absent from history metadata.
 - Unavailable or malformed registration storage rejects construction safely without secret lookup or transport. Empty registration snapshots still permit construction for delegated-only configurations.
 - Callers supply connection, migrations, limits, secret resolution, transport options, and optional delegated/Jev ports, and own listening/shutdown. Configuration changes require rebuilding this snapshot; no live reload or process startup is provided.
+
+## Audit occurrence-time filters
+
+- Authorized audit readers can restrict attributed metadata by inclusive `from_ms` and exclusive `to_ms`. Boundary events and equal-time pagination remain correct under the existing descending event-ID order.
+- Principal and cursor predicates remain bound alongside the range. Other principals' events never enter results, and default/explicit Deny prevents storage access.
+- Noncanonical, unsafe, repeated, or reversed/empty two-bound time inputs return 400 before storage. Invalid direct reader range inputs reject before SQL.
+- SQL and injected reader pages containing out-of-range records fail as a whole with safe errors and required unavailable-read audit. Successful filtered reads still require successful audit writes.
