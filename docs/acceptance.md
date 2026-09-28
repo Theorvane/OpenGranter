@@ -217,3 +217,10 @@ The PostgreSQL migration runner applies versions `001` through `008` in order, r
 - Invalid bounded inputs reject before SQL. Malformed/incomplete/unavailable snapshots fail safely without partial grants or driver details.
 - Simulation and the live PostgreSQL gateway agree on model/provider IAM for the same persisted state. Simulation produces no inference, credential mutation, usage record, or decision audit; it does not certify catalog/credential/limit readiness.
 - This remains a trusted internal diagnostic. Public authentication, reader scope, simulation-access audit, and hypothetical-policy editing remain open.
+
+## Evaluated route candidate snapshots
+
+- Authorization returns immutable copies of known candidate fields and an immutable ordered candidate array/result. Source objects/arrays remain mutable; extra runtime fields are stripped.
+- Later source configuration mutation during async selection, limits, mapping, audit, or fallback cannot change evaluated candidate/provider/model IDs or invocation/audit attribution.
+- Existing default/explicit Deny, route-kind isolation, order, and no-candidate behavior remain unchanged. New source values apply only on a new authorization call.
+- This does not add live reload or cross-operation DB locking; returned readonly snapshots must not be mutated by consumers.

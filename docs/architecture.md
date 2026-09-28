@@ -263,3 +263,9 @@ Both route kinds keep current token/attachment authentication, model/final-provi
 Results contain only effect, existing reason, and evaluated policy IDs/versions. No statements, secrets, content, credential writes, inference, audit append, or usage append are involved. This is IAM simulation only: it does not authenticate credentials, check catalog/provider readiness or limits, or guarantee a successful invocation. The caller restricts access to this internal read capability. Public simulator authentication, reader scope, read audit, and hypothetical policy editing remain open.
 
 One snapshot is consistent at its read; later concurrent changes are not revalidated. Using the same evaluator aligns simulation and gateway IAM for the same persisted state. Tests compare current model/provider simulation to live PostgreSQL HTTP gateway Allow/Deny behavior. See the [simulator contract](../contracts/persisted-policy-simulator.md).
+
+## Evaluated route candidate snapshots
+
+`authorizeCandidates` copies only candidate ID, route kind, upstream model ID, and provider ID before evaluating provider permission. Eligible objects, the ordered array, and the result are frozen; unrelated runtime fields are stripped. Source configuration remains caller-owned and mutable, but later updates cannot change the already evaluated destination or audit attribution.
+
+Managed selectors/limits/fallback and delegated mapping callbacks therefore retain the evaluated candidate snapshot across async work. New source values affect a new authorization call only. This changes neither policy matching nor route order/kind isolation and does not add live reload, cross-operation DB locking, or policy snapshot revalidation. Consumers already receive readonly TypeScript values; attempted snapshot mutation now follows standard frozen-object behavior, with existing callback-exception handling unchanged. See the [snapshot contract](../contracts/route-candidate-snapshots.md).
