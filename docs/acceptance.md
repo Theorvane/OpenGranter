@@ -113,3 +113,11 @@ The PostgreSQL migration runner applies versions `001` through `007` in order, r
 - Explicit model Deny and credential revocation stop requests before any additional secret lookup or provider call. Tokens, keys, prompts, and responses remain absent from history metadata.
 - Unavailable or malformed registration storage rejects construction safely without secret lookup or transport. Empty registration snapshots still permit construction for delegated-only configurations.
 - Callers supply connection, migrations, limits, secret resolution, transport options, and optional delegated/Jev ports, and own listening/shutdown. Configuration changes require rebuilding this snapshot; no live reload or process startup is provided.
+
+
+## Usage CSV page export
+
+- An authorized `format=csv` read uses the same principal, model/time filters, bounded page, and IAM actions as JSON. The file contains only allowlisted metadata and keeps unknown usage/cost distinct from zero and estimated cost distinct from billed cost.
+- Pagination is explicit through `X-Has-More` and optional `X-Next-Cursor`; an empty page has headers only. JSON stays the default, and invalid/repeated format values return 400 before storage.
+- Commas, quotes, and multiline text remain inside quoted cells. Formula-looking text receives a documented apostrophe prefix; unmodified machine-readable identifiers remain available through JSON.
+- Default/explicit Deny blocks storage. Storage failure, mixed-principal rows, and required audit failure return safe JSON errors rather than partial CSV. Successful downloads have a fixed filename and no-store cache policy.
