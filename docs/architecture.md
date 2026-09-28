@@ -313,3 +313,7 @@ OIDC is selected for company SSO. Only SSO human users authenticate to the first
 ## Internal owner-specific lifetime guard
 
 The internal management service supplies a trusted target-kind resolver to the PostgreSQL coordinator's optional issuance guard. After IAM decision persistence, exact owner-kind lookup selects the fixed 30-day human or 90-day service cap. One captured timestamp drives both cap validation and credential creation. Guard failure yields existing safe unavailability with no credential/lifecycle mutation; existing revocation and trusted primitives remain available. See [contract](../contracts/proxy-token-lifetimes.md).
+
+## Management operation snapshots
+
+The service captures validated primitive request fields before loading the actor. The coordinator projects a deeply immutable known-field actor snapshot and captures operation fields before owner lookup or audit. Decision events are frozen at the audit boundary; audit exceptions retain existing safe failure behavior. This adds no cross-query transaction or persisted-policy revalidation guarantee. See [contract](../contracts/token-management-snapshots.md).

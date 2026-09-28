@@ -76,6 +76,30 @@ function validActor(value: unknown): value is TokenManagementActor {
   );
 }
 
+function snapshotActor(actor: TokenManagementActor): TokenManagementActor {
+  return Object.freeze({
+    id: actor.id,
+    active: actor.active,
+    statements: Object.freeze(
+      actor.statements.map((statement) =>
+        Object.freeze({
+          effect: statement.effect,
+          actions: Object.freeze([...statement.actions]),
+          resources: Object.freeze([...statement.resources]),
+        }),
+      ),
+    ),
+    policyVersions: Object.freeze(
+      actor.policyVersions.map((policy) =>
+        Object.freeze({
+          id: policy.id,
+          version: policy.version,
+        }),
+      ),
+    ),
+  });
+}
+
 /** A trusted caller supplies authenticated actor context; it never comes from the request body. */
 export function createTokenManagementCoordinator(ports: {
   readonly findOwner: (credentialId: string) => Promise<string | undefined>;
@@ -94,7 +118,7 @@ export function createTokenManagementCoordinator(ports: {
 }) {
   async function audit(event: TokenManagementAuditEvent): Promise<void> {
     try {
-      await ports.writeAudit(event);
+      await ports.writeAudit(Object.freeze(event));
     } catch {
       throw new TokenManagementUnavailable();
     }
@@ -143,13 +167,15 @@ export function createTokenManagementCoordinator(ports: {
       ) {
         throw new InvalidTokenManagementInput();
       }
-      await decide(input.actor, input.requestId, 'issue', input.principalId);
+      const actor = snapshotActor(input.actor);
+      const { requestId, principalId, expiresAt } = input;
+      await decide(actor, requestId, 'issue', principalId);
       try {
         return await ports.issueToken({
-          principalId: input.principalId,
-          actorId: input.actor.id,
-          requestId: input.requestId,
-          expiresAt: input.expiresAt,
+          principalId,
+          actorId: actor.id,
+          requestId,
+          expiresAt,
         });
       } catch {
         throw new TokenManagementUnavailable();
@@ -163,21 +189,23 @@ export function createTokenManagementCoordinator(ports: {
       if (!validActor(input.actor) || !validId(input.requestId) || !validId(input.credentialId)) {
         throw new InvalidTokenManagementInput();
       }
+      const actor = snapshotActor(input.actor);
+      const { requestId, credentialId } = input;
       let owner: string | undefined;
-      if (input.actor.active) {
+      if (actor.active) {
         try {
-          owner = await ports.findOwner(input.credentialId);
+          owner = await ports.findOwner(credentialId);
         } catch {
           throw new TokenManagementUnavailable();
         }
         if (owner !== undefined && !validId(owner)) throw new TokenManagementUnavailable();
       }
-      await decide(input.actor, input.requestId, 'revoke', owner ?? null, input.credentialId);
+      await decide(actor, requestId, 'revoke', owner ?? null, credentialId);
       try {
         return await ports.revokeToken({
-          credentialId: input.credentialId,
-          actorId: input.actor.id,
-          requestId: input.requestId,
+          credentialId,
+          actorId: actor.id,
+          requestId,
         });
       } catch {
         throw new TokenManagementUnavailable();

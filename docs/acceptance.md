@@ -287,3 +287,10 @@ The PostgreSQL migration runner applies versions `001` through `008` in order, r
 - Policy Deny and decision-audit failure stop before target-kind lookup. Missing/malformed/duplicate/unavailable owner data fails safely after authorized decision persistence.
 - Cap validation and credential creation use one issuance timestamp. Previously issued long-lived credentials remain revocable.
 - These scenarios concern the trusted internal service; SSO identity binding and public management authentication remain pending.
+
+## Token-management operation snapshots
+
+- Original service issue/revoke fields survive caller updates during actor lookup and reach storage/audit unchanged.
+- Coordinator targets, expiry, credential IDs, actor identity, active state, statements, and evaluated versions survive source updates during owner lookup and decision audit.
+- Inactive/default/explicit Deny remains effective; extra actor fields are omitted, snapshots/events are immutable, and audit failure prevents mutation.
+- Original caller objects remain mutable; later operations inspect current values. Existing success/denial/failure contracts remain unchanged.

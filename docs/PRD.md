@@ -120,3 +120,7 @@ Company SSO uses OIDC. The first management API authenticates SSO human users on
 ## Internal proxy-token lifetime enforcement
 
 New issuance through the internal PostgreSQL management service now enforces the agreed owner limits: human 30 days, service 90 days. Trusted owner-kind lookup follows IAM and required audit; the cap uses the same timestamp as credential creation. Existing credentials are not retroactively changed. SSO and public management authentication remain pending. See [contract](../contracts/proxy-token-lifetimes.md).
+
+## Internal management operation snapshots
+
+Capture each token-management operation and actor policy context before asynchronous work so decision audit and credential mutation retain the same values. Caller updates affect later operations. See [contract](../contracts/token-management-snapshots.md).
