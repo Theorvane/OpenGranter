@@ -1,6 +1,6 @@
 # OpenGranter
 
-OpenGranter is a planned gateway for controlling LLM access by user and role and reviewing usage and audit records. It supports an OpenRouter-delegated route for existing OpenRouter users and a managed route to registered direct providers. This repository currently contains **planning documents and an engineering harness**; the service is not implemented yet.
+OpenGranter is a planned gateway for controlling LLM access by user and role and reviewing usage and audit records. It supports an OpenRouter-delegated route for existing OpenRouter users and a managed route to registered direct providers. This repository contains planning documents, an engineering harness, gateway modules, and PostgreSQL adapters. Deployment startup, management APIs, and other release gates remain under development.
 
 The repository includes [grill-with-docs](skills/grill-with-docs/SKILL.md) and its two required skills. They are also installed in the Codex user skill directory. Planning interviews resolve decisions in rounds, capture agreed terms in [CONTEXT.md](CONTEXT.md), and record qualifying architectural decisions in `docs/adr/`. The skills come from [mattpocock/skills](https://github.com/mattpocock/skills); their license is preserved in [skills/LICENSE](skills/LICENSE).
 
@@ -33,3 +33,16 @@ npm run check
 ```
 
 The command checks TypeScript types, formatting, linting, policy and route-authorization contract tests, document links, contract structure, and common credential patterns in fixtures. More service tests will be added as implementation proceeds.
+
+
+## PostgreSQL integration checks
+
+CI runs the complete checks against a disposable PostgreSQL 17 service. To run the same driver integration locally, supply a test database URL to the check process:
+
+```sh
+OPENGRANTER_TEST_DATABASE_URL=postgresql://postgres@127.0.0.1:5432/postgres npm run check
+```
+
+Use only a disposable database; the integration test creates a uniquely named schema, applies the migrations there, and removes it afterward. The example assumes a localhost test database configured without a password. Never use that authentication configuration for production. Without the explicit test URL, the real PostgreSQL integration test skips; unit and embedded database tests still run.
+
+`createPostgresConnection` in `src/storage/postgres-connection.ts` accepts trusted node-postgres configuration and returns query, transaction, and close ports. Pass it to the PostgreSQL gateway factory and migration runner; it does not run migrations or start HTTP automatically. Close HTTP before awaiting database `close()` so active requests can finish. See [driver ownership](docs/architecture.md#postgresql-driver-ownership) for failure handling and deployment responsibilities.

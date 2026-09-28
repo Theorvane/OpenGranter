@@ -84,3 +84,10 @@ The PostgreSQL migration runner applies versions `001` through `006` in order, r
 - Unavailable IAM and required audit storage return safe service errors before inference. A usage handoff failure after inference returns unavailable without replaying the provider call.
 
 - A real local HTTP socket served by the PostgreSQL factory authenticates an issued token, lists stored aliases, invokes a registered direct adapter, and returns persisted attributed usage/audit metadata. Revocation returns 401 before any second upstream call. The factory leaves listening and connection lifecycle to its caller, and tests close both resources.
+
+## PostgreSQL driver connection
+
+- Pool queries bind values separately from SQL. Migration transactions execute BEGIN, callback queries, and COMMIT on one dedicated client, release it, and reject escaped transaction handles.
+- Application failures roll back and preserve their original error. Driver acquisition/query/begin/commit/rollback and shutdown failures expose fixed safe availability errors. Failed rollback, checked-out connection loss, and uncertain commit discard the connection; no retry occurs. Even a query failure caught by the callback prevents successful commit.
+- Idle pool failures notify with a safe error; a failing notification cannot crash the listener. Shutdown is idempotent, drains active clients, and rejects new queries and transactions.
+- An isolated real PostgreSQL database applies all six migrations, skips unchanged history on the second run, binds hostile-looking literal values, and leaves no schema changes after a rolled-back transaction. CI supplies that database; local integration skips unless its explicit test database URL is set.
