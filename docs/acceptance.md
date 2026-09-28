@@ -316,4 +316,8 @@ Both chat paths accept positive safe-integer max_tokens. Native adapters map a c
 
 ## Safe external-client errors
 
-All gateway errors and Node pre-header internal failures include fixed allowlisted English messages, preserving existing codes/statuses and required audit behavior without exposing private details. See [contract](../contracts/safe-client-errors.md).
+All gateway errors and Node pre-header internal failures include fixed allowlisted English messages, preserving status/reason semantics and required audit behavior without exposing private details. See [contract](../contracts/safe-client-errors.md).
+
+## OpenRouter numeric errors
+
+/api/v1/ failures use numeric status codes with fixed messages and allowlisted metadata.opengranter_code. Legacy /v1 codes, successful payloads and all security controls remain unchanged. Format selection does not expose additional endpoints. See [contract](../contracts/openrouter-error-schema.md).

@@ -168,7 +168,10 @@ for (const [options, status, code, message] of [
     const f = fixture(options);
     const response = await createChatHandler(f.ports)(clientRequest('/api/v1/chat/completions'));
     assert.equal(response.status, status);
-    assert.deepEqual(await response.json(), { error: { code, message }, request_id: 'request' });
+    assert.deepEqual(await response.json(), {
+      error: { code: status, message, metadata: { opengranter_code: code } },
+      request_id: 'request',
+    });
     assert.equal(f.activity.includes('direct'), false);
     assert.equal(f.activity.includes('delegated'), false);
     assert.equal(f.activity.includes('usage'), false);

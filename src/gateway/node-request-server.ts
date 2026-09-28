@@ -1,11 +1,16 @@
 import { createServer, type Server } from 'node:http';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
-import { createClientErrorResponse } from './client-errors.ts';
+import {
+  type ClientErrorFormat,
+  clientErrorFormat,
+  createClientErrorResponse,
+} from './client-errors.ts';
 
 /** Adapt an already-composed Fetch-style request boundary to a Node HTTP socket server. */
 export function createNodeRequestServer(handle: (request: Request) => Promise<Response>): Server {
   return createServer(async (incoming, outgoing) => {
+    let errorFormat: ClientErrorFormat = 'opengranter';
     try {
       const headers = new Headers();
       for (let index = 0; index < incoming.rawHeaders.length; index += 2) {
@@ -22,6 +27,7 @@ export function createNodeRequestServer(handle: (request: Request) => Promise<Re
           ? {}
           : { body: Readable.toWeb(incoming), duplex: 'half' as const }),
       } as RequestInit & { duplex?: 'half' });
+      errorFormat = clientErrorFormat(new URL(request.url).pathname);
       const response = await handle(request);
       outgoing.statusCode = response.status;
       response.headers.forEach((value, name) => {
@@ -38,7 +44,9 @@ export function createNodeRequestServer(handle: (request: Request) => Promise<Re
       } else {
         outgoing.statusCode = 500;
         outgoing.setHeader('content-type', 'application/json');
-        outgoing.end(await createClientErrorResponse(500, 'internal_error').text());
+        outgoing.end(
+          await createClientErrorResponse(500, 'internal_error', undefined, errorFormat).text(),
+        );
       }
     }
   });

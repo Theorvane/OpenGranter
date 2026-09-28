@@ -17,16 +17,25 @@ const messages = {
 } as const;
 
 export type ClientErrorCode = keyof typeof messages;
+export type ClientErrorFormat = 'opengranter' | 'openrouter';
+
+export function clientErrorFormat(pathname: string): ClientErrorFormat {
+  return pathname.startsWith('/api/v1/') ? 'openrouter' : 'opengranter';
+}
 
 /** Fixed messages only: never accept upstream or caller content as error text. */
 export function createClientErrorResponse(
   status: number,
   code: ClientErrorCode,
   requestId?: string,
+  format: ClientErrorFormat = 'opengranter',
 ): Response {
   return Response.json(
     {
-      error: { code, message: messages[code] },
+      error:
+        format === 'openrouter'
+          ? { code: status, message: messages[code], metadata: { opengranter_code: code } }
+          : { code, message: messages[code] },
       ...(requestId === undefined ? {} : { request_id: requestId }),
     },
     { status, ...(requestId === undefined ? {} : { headers: { 'x-request-id': requestId } }) },
