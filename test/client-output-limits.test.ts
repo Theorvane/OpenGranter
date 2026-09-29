@@ -100,17 +100,7 @@ for (const kind of kinds) {
     }
   });
   test(`${kind} rejects invalid internal limits before secret or transport work`, async () => {
-    for (const invalid of [
-      0,
-      -1,
-      1.5,
-      Number.MAX_SAFE_INTEGER + 1,
-      NaN,
-      Infinity,
-      '10',
-      null,
-      true,
-    ]) {
+    for (const invalid of [0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1, NaN, Infinity, '10', true]) {
       const f = adapter(kind);
       await assert.rejects(
         f.call({ ...request(), max_tokens: invalid } as unknown as ChatRequest),
@@ -208,7 +198,7 @@ for (const kind of kinds) {
   });
 }
 test('invalid public max_tokens rejects with required metadata audit before route lookup', async () => {
-  for (const invalid of [0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1, '10', null, true]) {
+  for (const invalid of [0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1, '10', true]) {
     const f = httpFixture('openrouter');
     const response = await f.handler(httpRequest('/api/v1/chat/completions', invalid));
     assert.equal(response.status, 400);

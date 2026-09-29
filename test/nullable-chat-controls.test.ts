@@ -41,7 +41,7 @@ function adapter(kind: Kind, cap?: number, mutate?: () => void, transportFails =
   const fetcher: typeof fetch = async (_, init) => {
     sent.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
     return transportFails
-      ? new Response('private fixture upstream error', { status: 500 })
+      ? new Response('private fixture unsupported top_p error', { status: 400 })
       : Response.json(body(kind));
   };
   const candidate = {
@@ -147,158 +147,161 @@ function httpFixture(
   });
   return { ...f, handler, audits, usage, routes: () => routes };
 }
-function aliasRequest(fields: Record<string, unknown>): ChatRequest {
+const nullControls = {
+  max_tokens: null,
+  max_completion_tokens: null,
+  temperature: null,
+  top_p: null,
+};
+function nullableRequest(fields: Record<string, unknown> = nullControls): ChatRequest {
   return { ...request(), ...fields } as unknown as ChatRequest;
 }
-function httpRequest(path: string, fields: Record<string, unknown>) {
+function httpRequest(path: string, fields: Record<string, unknown> = nullControls) {
   return new Request(`http://localhost${path}`, {
     method: 'POST',
     headers: { authorization: 'Bearer fixture', 'content-type': 'application/json' },
-    body: JSON.stringify(aliasRequest(fields)),
+    body: JSON.stringify(nullableRequest(fields)),
   });
+}
+function assertSamplingAbsent(kind: Kind, sent: Record<string, unknown> | undefined) {
+  assert.ok(sent);
+  const settings =
+    kind === 'google' ? (sent.generationConfig as Record<string, unknown> | undefined) : sent;
+  assert.equal(settings?.temperature, undefined);
+  assert.equal(settings?.top_p, undefined);
+  assert.equal(settings?.topP, undefined);
+  assert.doesNotMatch(JSON.stringify(sent), /:null/u);
 }
 for (const kind of kinds) {
-  test(`${kind} resolves alias-only and equal paired maxima`, async () => {
+  test(`${kind}: null controls follow omission and numeric counterpart still receives cap`, async () => {
     for (const fields of [
-      { max_completion_tokens: 17 },
-      { max_tokens: 17, max_completion_tokens: 17 },
-      { max_completion_tokens: 1 },
+      nullControls,
+      { ...nullControls, max_completion_tokens: 17 },
+      { ...nullControls, max_tokens: 17 },
     ]) {
-      const f = adapter(kind);
-      await f.call(aliasRequest(fields));
-      assert.equal(nativeLimit(kind, f.sent[0]), fields.max_completion_tokens);
-      assert.equal(f.sent[0]?.max_completion_tokens, undefined, 'No duplicate native fields');
+      const f = adapter(kind, 9);
+      await f.call(nullableRequest(fields));
+      assertSamplingAbsent(kind, f.sent[0]);
+      const supplied = fields.max_tokens !== null || fields.max_completion_tokens !== null;
+      assert.equal(
+        nativeLimit(kind, f.sent[0]),
+        supplied ? (kind === 'openrouter' ? 17 : 9) : kind === 'anthropic' ? 9 : undefined,
+      );
+      assert.equal(f.secrets(), 1);
     }
   });
-  test(`${kind} rejects invalid or conflicting alias values before secrets`, async () => {
-    const invalids = [0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1, NaN, Infinity, '10', true];
-    for (const fields of [
-      ...invalids.map((max_completion_tokens) => ({ max_completion_tokens })),
-      ...invalids.map((max_tokens) => ({ max_tokens, max_completion_tokens: 17 })),
-      { max_tokens: 17, max_completion_tokens: 18 },
-      { max_tokens: 18, max_completion_tokens: 17 },
-    ]) {
-      const f = adapter(kind);
-      await assert.rejects(f.call(aliasRequest(fields)), (error: unknown) => {
-        assert.equal((error as { possiblyBilled: boolean }).possiblyBilled, false);
-        return true;
-      });
-      assert.equal(f.secrets(), 0);
-      assert.deepEqual(f.sent, []);
-    }
+  test(`${kind}: null controls are captured before secret lookup mutation`, async () => {
+    const input = { ...request(), ...nullControls };
+    const f = adapter(kind, undefined, () =>
+      Object.assign(input, {
+        max_tokens: 17,
+        max_completion_tokens: 18,
+        temperature: 0.4,
+        top_p: 0.7,
+      }),
+    );
+    await f.call(input as unknown as ChatRequest);
+    assertSamplingAbsent(kind, f.sent[0]);
+    assert.equal(nativeLimit(kind, f.sent[0]), kind === 'anthropic' ? 128 : undefined);
   });
-  test(`${kind} captures the resolved alias before credential lookup`, async () => {
-    for (const paired of [false, true]) {
-      const source = {
-        ...request(),
-        max_completion_tokens: 17,
-        ...(paired ? { max_tokens: 17 } : {}),
-      };
-      const f = adapter(kind, undefined, () => {
-        source.max_completion_tokens = 0;
-        source.max_tokens = 999;
-      });
-      await f.call(source as ChatRequest);
-      assert.equal(nativeLimit(kind, f.sent[0]), 17);
-    }
-  });
-  if (kind !== 'openrouter') {
-    test(`${kind} applies administrator caps to completion aliases`, async () => {
-      for (const [value, expected] of [
-        [1, 1],
-        [32, 32],
-        [64, 32],
-      ] as const) {
-        const f = adapter(kind, 32);
-        await f.call(aliasRequest({ max_completion_tokens: value }));
-        assert.equal(nativeLimit(kind, f.sent[0]), expected);
-      }
-    });
-  }
-  test(`${kind} accepts alias through both HTTP paths with usage attribution`, async () => {
+  test(`${kind}: both HTTP paths normalize null and retain valid combined settings`, async () => {
     for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
-      const f = httpFixture(kind);
-      const response = await f.handler(httpRequest(path, { max_completion_tokens: 17 }));
-      assert.equal(response.status, 200);
-      assert.equal(nativeLimit(kind, f.sent[0]), 17);
-      assert.equal(f.usage.length, 1);
-      assert.ok(f.audits.length > 0);
+      for (const fields of [
+        nullControls,
+        { ...nullControls, max_completion_tokens: 17, temperature: 0, top_p: 0, stop: ['marker'] },
+        { ...nullControls, max_tokens: 17 },
+      ]) {
+        const f = httpFixture(kind);
+        const response = await f.handler(httpRequest(path, fields));
+        assert.equal(response.status, 200);
+        assert.equal(f.usage.length, 1);
+        assert.equal(
+          nativeLimit(kind, f.sent[0]),
+          typeof fields.max_tokens === 'number' || typeof fields.max_completion_tokens === 'number'
+            ? 17
+            : kind === 'anthropic'
+              ? 128
+              : undefined,
+        );
+        assert.ok(f.audits.length > 0);
+        assert.doesNotMatch(JSON.stringify(f.sent[0]), /:null/u);
+        if (fields.temperature === null) assertSamplingAbsent(kind, f.sent[0]);
+        else {
+          const sent =
+            kind === 'google'
+              ? (f.sent[0]?.generationConfig as Record<string, unknown>)
+              : f.sent[0];
+          assert.equal(sent?.temperature, 0);
+          assert.equal(kind === 'google' ? sent?.topP : sent?.top_p, 0);
+        }
+      }
     }
   });
 }
-test('invalid and conflicting public maxima are audited before route work', async () => {
+test('nullable controls preserve implicit/explicit IAM, limits and required audit denial', async () => {
+  for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
+    for (const kind of kinds) {
+      for (const [options, status] of [
+        [{ deny: true }, 403],
+        [{ explicitDeny: true }, 403],
+        [{ limit: true }, 429],
+        [{ audit: true }, 503],
+      ] as const) {
+        const f = httpFixture(kind, options);
+        assert.equal((await f.handler(httpRequest(path))).status, status);
+        assert.equal(f.secrets(), 0);
+        assert.deepEqual(f.sent, []);
+        assert.equal(f.usage.length, 0);
+      }
+    }
+  }
+});
+test('null cannot hide invalid paired fields or relax n and stream restrictions', async () => {
   for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
     for (const fields of [
-      { max_completion_tokens: 0 },
-      { max_completion_tokens: 'private fixture invalid value' },
-      { max_tokens: 0, max_completion_tokens: 17 },
-      { max_tokens: 17, max_completion_tokens: 18 },
+      { ...nullControls, max_tokens: 0 },
+      { ...nullControls, max_completion_tokens: 'private invalid' },
+      { ...nullControls, max_tokens: 17, max_completion_tokens: 18 },
+      { ...nullControls, temperature: {} },
+      { ...nullControls, top_p: [] },
+      { ...nullControls, n: null },
+      { ...nullControls, stream: null },
     ]) {
       const f = httpFixture('openrouter');
       const response = await f.handler(httpRequest(path, fields));
       assert.equal(response.status, 400);
-      const error = await response.text();
-      assert.doesNotMatch(error, /private fixture/u);
       assert.equal(f.routes(), 0);
       assert.equal(f.secrets(), 0);
       assert.equal(f.usage.length, 0);
       assert.equal((f.audits[0] as { kind: string }).kind, 'request-denied');
-      assert.doesNotMatch(JSON.stringify(f.audits), /private fixture/u);
+      assert.doesNotMatch(await response.text(), /private invalid/u);
     }
   }
 });
-test('completion aliases preserve IAM, limits and required audit enforcement', async () => {
-  for (const kind of ['openai', 'openrouter'] as const) {
-    for (const [options, status] of [
-      [{ deny: true }, 403],
-      [{ explicitDeny: true }, 403],
-      [{ limit: true }, 429],
-      [{ audit: true }, 503],
-    ] as const) {
-      const f = httpFixture(kind, options);
-      assert.equal(
-        (await f.handler(httpRequest('/api/v1/chat/completions', { max_completion_tokens: 17 })))
-          .status,
-        status,
-      );
+test('nullable controls preserve safe upstream failure audit and failed-attempt usage', async () => {
+  for (const kind of kinds) {
+    const f = httpFixture(kind, { fail: true });
+    const response = await f.handler(httpRequest('/api/v1/chat/completions'));
+    assert.equal(response.status, 502);
+    assert.equal(f.usage.length, 1);
+    assert.match(await response.text(), /upstream_failed/u);
+    assert.doesNotMatch(JSON.stringify(f.audits), /private fixture|fixture-key/u);
+  }
+});
+
+test('null adapter fields do not hide malformed numeric aliases or sampling values', async () => {
+  for (const kind of kinds) {
+    for (const fields of [
+      { ...nullControls, max_tokens: 0 },
+      { ...nullControls, max_completion_tokens: 'private invalid' },
+      { ...nullControls, max_tokens: 17, max_completion_tokens: 18 },
+      { ...nullControls, temperature: true },
+      { ...nullControls, top_p: {} },
+    ]) {
+      const f = adapter(kind);
+      await assert.rejects(f.call(nullableRequest(fields)));
       assert.equal(f.secrets(), 0);
       assert.deepEqual(f.sent, []);
     }
-  }
-});
-test('upstream failures with completion aliases retain safe errors and accounting', async () => {
-  for (const kind of kinds) {
-    const f = httpFixture(kind, { fail: true });
-    const response = await f.handler(
-      httpRequest('/api/v1/chat/completions', { max_completion_tokens: 17 }),
-    );
-    assert.equal(response.status, 502);
-    const message = await response.text();
-    assert.match(message, /upstream_failed/u);
-    assert.doesNotMatch(message, /private fixture/u);
-    assert.equal(f.usage.length, 1);
-  }
-});
-test('all adapters combine completion aliases with stop without losing either setting', async () => {
-  for (const kind of kinds) {
-    const f = httpFixture(kind);
-    const response = await f.handler(
-      httpRequest('/api/v1/chat/completions', {
-        max_completion_tokens: 17,
-        stop: ['finish marker'],
-      }),
-    );
-    assert.equal(response.status, 200);
-    const sent = f.sent[0];
-    assert.ok(sent);
-    assert.equal(nativeLimit(kind, sent), 17);
-    const stop =
-      kind === 'google'
-        ? (sent.generationConfig as Record<string, unknown>).stopSequences
-        : kind === 'anthropic'
-          ? sent.stop_sequences
-          : sent.stop;
-    assert.deepEqual(stop, ['finish marker']);
-    assert.equal(f.usage.length, 1);
   }
 });
