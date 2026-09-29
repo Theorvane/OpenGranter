@@ -2,6 +2,7 @@ import type { ChatRequest } from '../gateway/chat-handler.ts';
 import {
   resolveOutputTokenLimit,
   snapshotStopSequences,
+  validSingleChoice,
   validTemperature,
   validTopP,
 } from '../gateway/chat-parameters.ts';
@@ -124,6 +125,8 @@ export function createOpenRouterChatInvoker(
   ports: OpenRouterChatPorts,
 ): (attempt: OpenRouterChatAttempt, request: ChatRequest) => Promise<ChatCompletion> {
   return async (attempt, request) => {
+    const n = request.n;
+    if (!validSingleChoice(n)) fail('configuration');
     const topP = request.top_p;
     if (!validTopP(topP)) fail('configuration');
     const temperature = request.temperature;
@@ -168,6 +171,7 @@ export function createOpenRouterChatInvoker(
           model: attempt.upstreamModelId,
           messages: request.messages,
           stream: false,
+          ...(n === undefined ? {} : { n }),
           ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
           ...(temperature === undefined ? {} : { temperature }),
           ...(topP === undefined ? {} : { top_p: topP }),
