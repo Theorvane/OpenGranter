@@ -384,3 +384,10 @@ Four-provider HTTP/SDK cases verify user text-array concatenation through both p
 ## Developer instruction prefix
 
 Both chat paths and four adapters accept the developer instruction prefix, preserve ordering/native text and snapshot before secret lookup. Malformed or late instructions reject without credential/transport activity; IAM/limits/audit denials and upstream failures retain safe records. SDK cases verify the same public path. See [plan](plans/142-developer-messages.md) and [contract](../contracts/client-developer-messages.md).
+
+## Non-streaming refusal outcomes
+
+- Through both client prefixes, direct OpenAI and delegated OpenRouter return HTTP 200 with preserved null/string content, optional string/null refusal and content_filter where supplied. The actual SDK reads the same fields.
+- A valid refusal/filter response retains provider usage with one upstream invocation and no fallback. IAM implicit/explicit Deny, limits and required audit still block invocation.
+- Malformed refusal types, missing content and null content without nonempty refusal/filter signal produce safe 502 failures with possible billing recorded. Response/refusal text and credentials do not enter metadata audit, usage or errors.
+- Native Anthropic/Gemini refusal mappings, streaming and tool lifecycles remain incomplete. See [contract](../contracts/refusal-outcomes.md).
