@@ -81,6 +81,7 @@ export interface ChatCompletion {
   readonly object: 'chat.completion';
   readonly created: number;
   readonly model: string;
+  readonly system_fingerprint?: string | null;
   readonly choices: readonly [
     {
       readonly index: 0;
@@ -147,6 +148,9 @@ function normalize(
   const value = record(body);
   if (!value) fail('other');
   if (kind === 'openai') {
+    const fingerprint = value.system_fingerprint;
+    if (fingerprint !== undefined && fingerprint !== null && typeof fingerprint !== 'string')
+      fail('other');
     const choices = items(value.choices);
     const first = record(choices?.[0]);
     if (choices?.length !== 1 || first?.index !== 0) fail('other');
@@ -158,15 +162,18 @@ function normalize(
       first.finish_reason === 'content_filter'
         ? first.finish_reason
         : null;
-    return completion(
-      value.id,
-      value.created,
-      model,
-      message.content,
-      finish,
-      normalizeProviderUsage(value.usage),
-      message,
-    );
+    return {
+      ...completion(
+        value.id,
+        value.created,
+        model,
+        message.content,
+        finish,
+        normalizeProviderUsage(value.usage),
+        message,
+      ),
+      ...(fingerprint === undefined ? {} : { system_fingerprint: fingerprint }),
+    };
   }
   if (kind === 'anthropic') {
     const refusal = value.stop_reason === 'refusal';

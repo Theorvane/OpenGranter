@@ -229,3 +229,7 @@ Both chat bases accept optional string names on the four supported text roles. O
 ### Referenced name drift subset
 
 The version-3 official schema pin tracks name constraints and name-required status for four supported text-message definitions. This quality gate changes no runtime API or security controls and does not certify full message/client conformance. See [plan](plans/168-message-name-schema.md).
+
+### Non-streaming backend fingerprints
+
+Compatible OpenAI/OpenRouter responses retain optional string/null system_fingerprint so clients can observe upstream backend changes. No identity or deterministic-output guarantee follows from it. Native Anthropic/Gemini omit the field. See [plan](plans/170-system-fingerprint.md).
