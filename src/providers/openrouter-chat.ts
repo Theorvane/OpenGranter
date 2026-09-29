@@ -114,12 +114,9 @@ function normalize(
     fail('upstream', true, true);
 
   const stats = normalizeProviderUsage(value.usage);
-  const finish =
-    first.finish_reason === 'stop' ||
-    first.finish_reason === 'length' ||
-    first.finish_reason === 'content_filter'
-      ? first.finish_reason
-      : null;
+  const finish = first.finish_reason;
+  if (finish !== 'stop' && finish !== 'length' && finish !== 'content_filter' && finish !== null)
+    fail('upstream', true, true);
   return {
     id: value.id,
     object: 'chat.completion',

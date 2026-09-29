@@ -87,7 +87,9 @@ test('caller mutation cannot change a validated invoker registration', async () 
       contacts.push(String(url));
       return Response.json({
         id: 'completion',
-        choices: [{ index: 0, message: { role: 'assistant', content: 'hello' } }],
+        choices: [
+          { index: 0, message: { role: 'assistant', content: 'hello' }, finish_reason: 'stop' },
+        ],
       });
     },
   });

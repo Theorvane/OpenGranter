@@ -430,3 +430,7 @@ OpenAI/OpenRouter normalizers validate and preserve the optional string/null ups
 ### Text-only response invocation guard
 
 The shared assistant normalizer rejects populated/malformed modern tool fields, non-null legacy calls and invocation finish reasons before content normalization. Existing adapters translate rejection into safe post-response failure/accounting. No input-tool or native mapping change is made. See [contract](../contracts/unsupported-tool-output.md).
+
+### Validated text completion finish reasons
+
+Compatible adapter normalizers validate stop/length/content_filter/null explicitly. Other or missing reasons use existing safe post-response failure/accounting; native provider mapping and routing policy remain unchanged. See [contract](../contracts/upstream-finish-reasons.md).

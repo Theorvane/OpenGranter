@@ -481,3 +481,10 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Preserve ordinary text/refusal/filter outcomes with omitted/null/empty modern fields and omitted/null legacy fields.
 - Keep possibly-billed failure accounting and prevent function names/arguments/content in errors or metadata; IAM, limits and audit denials never call upstream.
 - Full tool workflows remain open under #116. See [plan](plans/172-unsupported-tool-output.md).
+
+### Upstream finish reason validation
+
+- Preserve stop/length/content_filter/explicit null across both OpenAI/OpenRouter bases and SDK paths.
+- Reject error, invocation/unknown, malformed and missing reasons safely with possibly-billed failure accounting and no reason/body leakage.
+- Preserve ordinary/refusal/filter message validation and IAM/limit/audit denial gates before upstream transport.
+- Streaming/tools, full response schema and precise retry categories remain open. See [plan](plans/174-upstream-finish-reasons.md).
