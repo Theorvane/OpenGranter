@@ -31,6 +31,7 @@ import {
   validUsageHistoryOrder,
 } from '../usage/history.ts';
 import type { UsageRecord } from '../usage/record-usage.ts';
+import { type ChatMessage, snapshotChatMessages } from './chat-messages.ts';
 import {
   resolveOutputTokenLimit,
   snapshotStopSequences,
@@ -46,10 +47,7 @@ import {
 
 const MAX_BODY_BYTES = 1024 * 1024;
 
-export interface ChatMessage {
-  readonly role: 'system' | 'user' | 'assistant';
-  readonly content: string;
-}
+export type { ChatMessage } from './chat-messages.ts';
 
 export interface ChatRequest {
   readonly model: string;
@@ -330,23 +328,12 @@ function validateChat(value: unknown): ChatRequest | undefined {
   } catch {
     return undefined;
   }
-  if (typeof value.model !== 'string' || !value.model || !Array.isArray(value.messages)) {
+  if (typeof value.model !== 'string' || !value.model) return undefined;
+  let messages: readonly ChatMessage[];
+  try {
+    messages = snapshotChatMessages(value.messages);
+  } catch {
     return undefined;
-  }
-  if (value.messages.length === 0) return undefined;
-  const messages: ChatMessage[] = [];
-  let nonSystemSeen = false;
-  for (const item of value.messages) {
-    if (!isRecord(item) || Object.keys(item).some((key) => !['role', 'content'].includes(key))) {
-      return undefined;
-    }
-    if (item.role !== 'system' && item.role !== 'user' && item.role !== 'assistant') {
-      return undefined;
-    }
-    if (item.role === 'system' && nonSystemSeen) return undefined;
-    if (item.role !== 'system') nonSystemSeen = true;
-    if (typeof item.content !== 'string') return undefined;
-    messages.push({ role: item.role, content: item.content });
   }
   return {
     model: value.model,
