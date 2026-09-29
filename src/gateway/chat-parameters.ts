@@ -56,6 +56,14 @@ export function validSingleChoice(value: unknown): value is 1 | undefined {
   return value === undefined || value === 1;
 }
 
+/** Bounded portable frequency/presence penalty; omission preserves native defaults. */
+export function validPenalty(value: unknown): value is number | undefined {
+  return (
+    value === undefined ||
+    (typeof value === 'number' && Number.isFinite(value) && value >= -2 && value <= 2)
+  );
+}
+
 export interface ResponseFormat {
   readonly type: 'text' | 'json_object';
 }

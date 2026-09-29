@@ -118,6 +118,9 @@ Explicit non-streaming Anthropic refusal with valid empty/text-only content maps
 
 Empty direct Gemini SAFETY prompt/candidate blocks map to null-content/content_filter with success-delivery accounting and no fallback. Both prefixes, actual SDK, usage/missing/invalid accounting, malformed-block and security gate cases are covered. Other native reasons, Anthropic refusals, populated block shapes and tool/stream workflows remain pending. See [plan](plans/150-gemini-safety.md) and [contract](../contracts/gemini-safety.md).
 
+## Frequency and presence penalty subset
+
+Optional nullable penalties in [-2,2] map to OpenAI/OpenRouter native names and Gemini camelCase fields with exact values and omission defaults. Direct Anthropic non-null values fail before credentials/transport. Both paths, SDK, scalar capture, Google standalone settings and security/accounting cases are covered. Per-model support, capability-aware selection and broader sampling/tool/stream conformance remain pending. See [plan](plans/156-penalty-controls.md) and [contract](../contracts/client-penalties.md).
 ## Portable response-format subset
 
 Exact text/json_object controls are captured and mapped across both paths. OpenAI/OpenRouter forward the format; Gemini maps MIME; Anthropic text uses its default and JSON fails before secret/transport. SDK, omission/capture, combined controls and security/accounting cases are covered. Per-model support, local output validation/repair, JSON schema, native Anthropic JSON, capability selection and full tool/stream conformance remain pending. See [plan](plans/154-response-formats.md) and [contract](../contracts/client-response-formats.md).
