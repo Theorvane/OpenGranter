@@ -125,6 +125,10 @@ Optional nullable penalties in [-2,2] map to OpenAI/OpenRouter native names and 
 
 Exact text/json_object controls are captured and mapped across both paths. OpenAI/OpenRouter forward the format; Gemini maps MIME; Anthropic text uses its default and JSON fails before secret/transport. SDK, omission/capture, combined controls and security/accounting cases are covered. Per-model support, local output validation/repair, JSON schema, native Anthropic JSON, capability selection and full tool/stream conformance remain pending. See [plan](plans/154-response-formats.md) and [contract](../contracts/client-response-formats.md).
 
+## Client top-k subset
+
+Nullable nonnegative safe-integer top_k preserves supplied values/defaults on both bases and SDK serialization. OpenRouter/Anthropic retain the external field; Gemini uses int32-bounded generationConfig.topK and direct OpenAI rejects supplied controls before secrets. Capture, settings-only configuration, malformed inputs and shared security/accounting are covered. Newer Anthropic and model-specific Gemini restrictions remain upstream/model dependent; capability routing and full tool/stream/client conformance remain incomplete. top_k is included in the reviewed thirteen-field source projection; native schema/capability validation remains open. See [plan](plans/162-top-k.md) and [contract](../contracts/client-top-k.md).
+
 ## Client seed subset
 
 Nullable safe-integer seed controls preserve omission defaults and values across both client bases and SDK requests. OpenAI/OpenRouter forward seed; Gemini generationConfig.seed is bounded by native signed int32, while Anthropic supplied seeds reject before credentials. Native capture, settings-only configuration and security/accounting paths are covered. Model-dependent support, deterministic output, provider fingerprint metadata and full client/tool/stream workflows remain open. Seed and top_k are now included in the reviewed source-drift allowlist; this does not guarantee runtime model support. See [plan](plans/160-client-seed.md) and [contract](../contracts/client-seed.md).

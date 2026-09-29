@@ -38,3 +38,12 @@
 - `npm run check`: 785 tests pass and 1 optional PostgreSQL integration is skipped locally. Typecheck, lint, planning/link/contract/fixture-secret checks and offline source integrity pass.
 - Touched-file warnings-as-errors lint and diff whitespace validation pass.
 - Based on main with merged schema PR #159 and seed PR #161. Runtime top_k PR #163 is independently updated and awaits its latest checks/review; combined source/runtime validation must follow merge, including removing its obsolete not-yet-tracked documentation statements.
+
+## Approved runtime top-k integration
+
+- PR #163 is merged. Integrate its runtime controls with the thirteen-field source projection and keep both acceptance/compatibility scenarios.
+- Remove obsolete source-coverage statements from the current top-k contract and compatibility inventory. Historical plans keep their delivery-time evidence; this section supersedes earlier pending-runtime statements.
+- Revalidate all tests on the combined branch before publication. Source comparison still does not guarantee model support, native provider ranges or complete client/tool/stream conformance.
+
+- Combined full `npm run check`: 799 tests pass and 1 optional PostgreSQL integration is skipped locally. Typecheck, lint, planning/link/contract/fixture-secret checks and offline thirteen-field pin integrity pass.
+- Strict touched-file lint and diff whitespace validation pass. Both source tracking and runtime top-k cases are included; current contract/inventory statements now reflect the tracked fields.

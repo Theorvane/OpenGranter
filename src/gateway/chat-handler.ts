@@ -41,6 +41,7 @@ import {
   validSeed,
   validSingleChoice,
   validTemperature,
+  validTopK,
   validTopP,
 } from './chat-parameters.ts';
 import {
@@ -67,6 +68,7 @@ export interface ChatRequest {
   readonly presence_penalty?: number;
   readonly response_format?: ResponseFormat;
   readonly top_p?: number;
+  readonly top_k?: number;
   readonly stop?: string | readonly string[] | null;
 }
 
@@ -314,6 +316,7 @@ function validateChat(value: unknown): ChatRequest | undefined {
           'stop',
           'temperature',
           'top_p',
+          'top_k',
           'n',
           'seed',
           'frequency_penalty',
@@ -333,6 +336,8 @@ function validateChat(value: unknown): ChatRequest | undefined {
   const frequencyPenalty = value.frequency_penalty ?? undefined;
   const presencePenalty = value.presence_penalty ?? undefined;
   if (!validPenalty(frequencyPenalty) || !validPenalty(presencePenalty)) return undefined;
+  const topK = value.top_k ?? undefined;
+  if (!validTopK(topK)) return undefined;
   const topP = value.top_p ?? undefined;
   if (!validTopP(topP)) return undefined;
   let maxTokens: number | undefined;
@@ -366,6 +371,7 @@ function validateChat(value: unknown): ChatRequest | undefined {
     ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
     ...(temperature === undefined ? {} : { temperature }),
     ...(topP === undefined ? {} : { top_p: topP }),
+    ...(topK === undefined ? {} : { top_k: topK }),
     ...(value.n === undefined ? {} : { n: value.n }),
     ...(stop === undefined ? {} : { stop }),
   };
