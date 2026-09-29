@@ -366,3 +366,7 @@ Shared literal validation captures n=1 before credentials. OpenRouter/OpenAI sen
 ## Allowlisted typed error projection
 
 The shared client-error serializer maps every local reason through a compile-time checked fixed table to metadata.error_type on /api/v1 paths. Node fallback uses the same table. No raw errors or arbitrary metadata are accepted; upstream_failed remains unmapped because provider causes have already been collapsed. See [plan](plans/132-typed-client-errors.md).
+
+## Native choice count boundary
+
+Adapters validate collection cardinality before projecting one choice. OpenAI/OpenRouter require index 0; Gemini permits an omitted index but enforces 0 when supplied. Existing failure wrappers preserve post-response billing uncertainty. Anthropic multiple text blocks remain one message. See [plan](plans/136-upstream-choice-count.md).

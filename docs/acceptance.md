@@ -359,3 +359,10 @@ Both chat paths support literal stop strings or dense arrays of up to four strin
 - Node internal fallback uses server without exception content; errors, audits and histories do not acquire raw upstream data, prompts or keys.
 - Query text and numeric envelope selection do not expand endpoint eligibility. History reasons are validated through the serializer without adding history aliases.
 - Unknown provider causes remain unmapped and do not invent retryability. See [contract](../contracts/openrouter-error-schema.md).
+
+## Upstream single-choice responses
+
+- Valid native singleton responses normalize unchanged; OpenAI/OpenRouter index is 0 and optional Gemini index is either omitted or 0.
+- Extra/sparse/empty/malformed alternatives and wrong indices fail safely without content disclosure or silent truncation.
+- Failed response validation retains possibly-billed failed-attempt usage and audit through managed/delegated paths; IAM, limits and required audit still prevent unauthorized transport.
+- Anthropic multi-text-block messages remain supported. See [contract](../contracts/upstream-single-choice.md).

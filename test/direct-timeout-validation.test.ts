@@ -12,7 +12,9 @@ const candidate = {
 };
 const request = { model: 'chat', messages: [{ role: 'user' as const, content: 'Hello' }] };
 const bodies = {
-  openai: { choices: [{ message: { role: 'assistant', content: 'Hi' }, finish_reason: 'stop' }] },
+  openai: {
+    choices: [{ index: 0, message: { role: 'assistant', content: 'Hi' }, finish_reason: 'stop' }],
+  },
   anthropic: { content: [{ type: 'text', text: 'Hi' }], stop_reason: 'end_turn' },
   google: { candidates: [{ content: { parts: [{ text: 'Hi' }] }, finishReason: 'STOP' }] },
 };
