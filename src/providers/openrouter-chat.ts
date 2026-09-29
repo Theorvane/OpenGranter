@@ -95,6 +95,7 @@ function normalize(
   const first = record(choices?.[0]);
   const message = record(first?.message);
   if (
+    choices?.length !== 1 ||
     typeof value?.id !== 'string' ||
     !value.id ||
     count(value.created) === undefined ||

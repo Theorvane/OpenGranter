@@ -363,3 +363,10 @@ Both chat paths support literal stop strings or dense arrays of up to four strin
 ## Nullable optional chat controls
 
 Both chat paths and four adapters normalize optional null token/sampling controls to omission. Null+numeric aliases preserve the numeric maximum and configured caps; mutation cannot add fields after capture. IAM/limits/audit denials prevent transport and upstream failures retain safe accounting. See [plan](plans/140-nullable-chat-controls.md) and [output contract](../contracts/client-output-limits.md).
+
+## Upstream single-choice responses
+
+- Valid native singleton responses normalize unchanged; OpenAI/OpenRouter index is 0 and optional Gemini index is either omitted or 0.
+- Extra/sparse/empty/malformed alternatives and wrong indices fail safely without content disclosure or silent truncation.
+- Failed response validation retains possibly-billed failed-attempt usage and audit through managed/delegated paths; IAM, limits and required audit still prevent unauthorized transport.
+- Anthropic multi-text-block messages remain supported. See [contract](../contracts/upstream-single-choice.md).

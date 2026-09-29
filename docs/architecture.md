@@ -370,3 +370,7 @@ The shared client-error serializer maps every local reason through a compile-tim
 ## Nullable optional chat controls
 
 HTTP and adapter boundaries normalize nullable sampling fields before validation/capture. Shared token resolution normalizes both aliases before comparison. Internal ChatRequest and native payloads remain number-only; omission behavior is preserved. See [plan](plans/140-nullable-chat-controls.md) and [output contract](../contracts/client-output-limits.md).
+
+## Native choice count boundary
+
+Adapters validate collection cardinality before projecting one choice. OpenAI/OpenRouter require index 0; Gemini permits an omitted index but enforces 0 when supplied. Existing failure wrappers preserve post-response billing uncertainty. Anthropic multiple text blocks remain one message. See [plan](plans/136-upstream-choice-count.md).

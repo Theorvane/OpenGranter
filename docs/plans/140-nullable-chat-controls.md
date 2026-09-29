@@ -37,3 +37,4 @@
 - Green: sixteen cases pass after minimal normalization, including native omission/defaults, numeric caps and alias pairs, pre-secret capture, both HTTP paths, unchanged denials and safe failure accounting.
 - Four prior control suites no longer classify null as invalid; all non-null malformed/range/conflict cases are preserved.
 - Focused Biome with `--error-on-warnings`, strict TypeScript and diff checks passed. Before latest-main integration, npm run check passed with 645 tests and one optional external PostgreSQL case skipped; planning/link/contract/fixture checks passed.
+- Integrate merged PR #137 from latest main, preserving both appended requirements. The final npm run check passes with 654 tests and one optional external PostgreSQL skip; strict TypeScript/lint and planning/link/contract/fixture checks pass. Native response validation and nullable request controls coexist.

@@ -57,7 +57,9 @@ test('persisted enabled registrations load all three kinds and invoke only regis
         urls.push(String(url));
         return Response.json({
           id: 'completion',
-          choices: [{ message: { role: 'assistant', content: 'answer' }, finish_reason: 'stop' }],
+          choices: [
+            { index: 0, message: { role: 'assistant', content: 'answer' }, finish_reason: 'stop' },
+          ],
         });
       },
     });

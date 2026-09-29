@@ -177,3 +177,7 @@ Compatible /api/v1 failures expose fixed metadata.error_type alongside local ope
 ## Nullable optional chat controls
 
 Optional max_tokens, max_completion_tokens, temperature and top_p accept explicit null as omission. Existing numeric validation, alias conflict handling, native mappings and security/accounting remain effective. See [plan](plans/140-nullable-chat-controls.md) and [output contract](../contracts/client-output-limits.md).
+
+## Native single-choice response enforcement
+
+The current response contract rejects OpenAI/OpenRouter/Gemini responses with unexpected alternative counts or indices rather than silently selecting their first result. Anthropic multi-text-block messages remain one response. Post-response rejection preserves safe audit and possibly-billed usage without exposing content. See [contract](../contracts/upstream-single-choice.md).

@@ -85,3 +85,7 @@ Fixed metadata.error_type is available alongside numeric codes and local reasons
 ## Nullable optional chat controls
 
 The four nullable token/sampling controls now enter the existing omission path across both client paths and four adapters. No native null/default is injected. Official model omission, other fields, streaming/tools and complete external-client conformance remain open. See [plan](plans/140-nullable-chat-controls.md) and [output contract](../contracts/client-output-limits.md).
+
+## Upstream single-choice conformance
+
+OpenAI/OpenRouter/Gemini normalize only a validated native singleton rather than truncating alternatives. OpenAI/OpenRouter index must be 0; optional Gemini index is validated. Anthropic multi-block text remains one message. Safe post-response failure accounting remains effective. Multichoice and complete response conformance remain open. See [contract](../contracts/upstream-single-choice.md) and [plan](plans/136-upstream-choice-count.md).
