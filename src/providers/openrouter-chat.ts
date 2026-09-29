@@ -1,4 +1,5 @@
 import type { ChatRequest } from '../gateway/chat-handler.ts';
+import { type ChatMessage, snapshotChatMessages } from '../gateway/chat-messages.ts';
 import {
   resolveOutputTokenLimit,
   snapshotStopSequences,
@@ -154,6 +155,12 @@ export function createOpenRouterChatInvoker(
       timeoutMs > 2_147_483_647
     )
       fail('configuration');
+    let messages: readonly ChatMessage[];
+    try {
+      messages = snapshotChatMessages(request.messages);
+    } catch {
+      fail('configuration');
+    }
     let key: string | undefined;
     try {
       key = await ports.resolveSecret(ports.credentialRef);
@@ -170,7 +177,7 @@ export function createOpenRouterChatInvoker(
         headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
         body: JSON.stringify({
           model: attempt.upstreamModelId,
-          messages: request.messages,
+          messages,
           stream: false,
           ...(n === undefined ? {} : { n }),
           ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),

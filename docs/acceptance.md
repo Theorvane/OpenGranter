@@ -370,3 +370,7 @@ Both chat paths and four adapters normalize optional null token/sampling control
 - Extra/sparse/empty/malformed alternatives and wrong indices fail safely without content disclosure or silent truncation.
 - Failed response validation retains possibly-billed failed-attempt usage and audit through managed/delegated paths; IAM, limits and required audit still prevent unauthorized transport.
 - Anthropic multi-text-block messages remain supported. See [contract](../contracts/upstream-single-choice.md).
+
+## Developer instruction prefix
+
+Both chat paths and four adapters accept the developer instruction prefix, preserve ordering/native text and snapshot before secret lookup. Malformed or late instructions reject without credential/transport activity; IAM/limits/audit denials and upstream failures retain safe records. SDK cases verify the same public path. See [plan](plans/142-developer-messages.md) and [contract](../contracts/client-developer-messages.md).

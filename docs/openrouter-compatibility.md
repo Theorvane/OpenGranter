@@ -89,3 +89,7 @@ The four nullable token/sampling controls now enter the existing omission path a
 ## Upstream single-choice conformance
 
 OpenAI/OpenRouter/Gemini normalize only a validated native singleton rather than truncating alternatives. OpenAI/OpenRouter index must be 0; optional Gemini index is validated. Anthropic multi-block text remains one message. Safe post-response failure accounting remains effective. Multichoice and complete response conformance remain open. See [contract](../contracts/upstream-single-choice.md) and [plan](plans/136-upstream-choice-count.md).
+
+## Developer instruction prefix
+
+Leading developer text instructions are supported with immutable capture. OpenAI/OpenRouter preserve roles; Anthropic/Gemini use a combined native instruction field without separate role priority. Mid-conversation instructions, rich/tool messages and full external-client workflows remain open. See [plan](plans/142-developer-messages.md) and [contract](../contracts/client-developer-messages.md).
