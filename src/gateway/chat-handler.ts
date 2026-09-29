@@ -37,6 +37,7 @@ import {
   resolveOutputTokenLimit,
   snapshotResponseFormat,
   snapshotStopSequences,
+  validPenalty,
   validSingleChoice,
   validTemperature,
   validTopP,
@@ -60,6 +61,8 @@ export interface ChatRequest {
   readonly max_completion_tokens?: number;
   readonly temperature?: number;
   readonly n?: 1;
+  readonly frequency_penalty?: number;
+  readonly presence_penalty?: number;
   readonly response_format?: ResponseFormat;
   readonly top_p?: number;
   readonly stop?: string | readonly string[] | null;
@@ -310,6 +313,8 @@ function validateChat(value: unknown): ChatRequest | undefined {
           'temperature',
           'top_p',
           'n',
+          'frequency_penalty',
+          'presence_penalty',
           'response_format',
         ].includes(key),
     )
@@ -320,6 +325,9 @@ function validateChat(value: unknown): ChatRequest | undefined {
   const temperature = value.temperature ?? undefined;
   if (!validTemperature(temperature)) return undefined;
   if (!validSingleChoice(value.n)) return undefined;
+  const frequencyPenalty = value.frequency_penalty ?? undefined;
+  const presencePenalty = value.presence_penalty ?? undefined;
+  if (!validPenalty(frequencyPenalty) || !validPenalty(presencePenalty)) return undefined;
   const topP = value.top_p ?? undefined;
   if (!validTopP(topP)) return undefined;
   let maxTokens: number | undefined;
@@ -346,6 +354,8 @@ function validateChat(value: unknown): ChatRequest | undefined {
   return {
     model: value.model,
     messages,
+    ...(frequencyPenalty === undefined ? {} : { frequency_penalty: frequencyPenalty }),
+    ...(presencePenalty === undefined ? {} : { presence_penalty: presencePenalty }),
     ...(responseFormat === undefined ? {} : { response_format: responseFormat }),
     ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
     ...(temperature === undefined ? {} : { temperature }),

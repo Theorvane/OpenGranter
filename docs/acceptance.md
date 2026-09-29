@@ -411,6 +411,12 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Multi-candidates, bad indexes, populated/malformed content, contradictory prompt block/candidates and empty no-signal responses fail safely with possible billing. Other native reasons remain deferred.
 - IAM implicit/explicit Deny, limits and required audit prevent upstream calls. No feedback/content/keys enter metadata audit, usage or errors. See [contract](../contracts/gemini-safety.md).
 
+## Frequency and presence penalties
+
+- Both prefixes and SDK preserve independent/combined negative/zero/positive values, null/omission defaults and native field mapping. Google penalty-only calls create only requested generation settings.
+- Malformed HTTP values reject before routes; native invalid/nonfinite values and unsupported Anthropic controls reject before secrets. Scalar capture prevents secret-await mutations from changing native payloads.
+- IAM, limits and required audit block invocation; provider failures preserve safe usage and metadata. Model-dependent support and capability selection remain pending. See [contract](../contracts/client-penalties.md).
+
 ## Portable response formats
 
 - Both prefixes and actual SDK map text/JSON on supported adapters with omission parity and immutable capture during credentials; combined controls remain intact.
@@ -423,3 +429,9 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - The selected official projection includes all eleven declared request fields plus the exact text/json_object format definitions; changing a selected field or either supported definition must fail comparison even if request references are unchanged.
 - Annotation-only or unrelated-definition changes do not produce drift. Missing/malformed selected definitions and rehashed malformed definition maps fail safely; stale version-1 pins reject.
 - Offline checks never download a source or rewrite pins; explicit live comparison retains the fixed official host and bounded credential-free transport. Other referenced definitions and full instance/response/tool/stream conformance remain open.
+
+### Combined format and penalty controls
+
+- Given supported OpenAI/OpenRouter/Gemini routes, when an SDK sends text/json_object response format with frequency and presence penalties through either client base path, then all supplied controls reach the native payload and normal usage accounting remains effective.
+- Credential resolution must not permit caller mutations to replace any validated format or penalty.
+- Direct Anthropic text format with null/omitted penalties succeeds; JSON format or supplied non-null penalties fail before credentials with no provider usage record.

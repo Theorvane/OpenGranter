@@ -39,3 +39,9 @@
 - Full `npm run check`: 748 tests pass and 1 optional PostgreSQL integration test is skipped locally; typecheck, lint, planning/link/contract/fixture-secret checks and offline schema integrity pass.
 - Touched-file lint with warnings treated as errors and `git diff --check` pass.
 - Based on main with merged PR #155. Separate runtime penalty PR #157 is still awaiting approval; its implementation and combined tests are not part of this branch. Comparing its official declared fields does not add runtime capability guarantees.
+
+## Approved penalty integration
+
+- PR #157 is merged. Preserve both schema-drift and combined-format/penalty acceptance scenarios when integrating current main.
+- Integrated `npm run check`: 765 tests pass and 1 optional PostgreSQL integration test is skipped locally; typecheck, lint, document/link/contract/fixture-secret checks and offline schema integrity pass.
+- Original current-main-based evidence above remains historical; pending-runtime statements are superseded by this integration. The eleven-field structural subset and two selected definitions are unchanged.
