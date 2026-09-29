@@ -45,3 +45,9 @@
 - Combined seed/top-k public-boundary suites: 28 tests pass. Updated full `npm run check`: 783 tests pass and 1 optional PostgreSQL integration is skipped locally; typecheck, lint, planning/link/contract/fixture-secret checks and offline schema integrity pass.
 - Strict touched-file lint and diff whitespace validation pass. Original evidence above is historical; merged seed support is included in this delivery.
 - Schema PR #159 is updated separately with current main and awaits its latest checks/review. No new capability policy or full-compatibility claim is introduced.
+
+## Approved schema-harness integration
+
+- PR #159 is merged. Integrate its eleven-field/two-definition source pin and structural drift harness while retaining all top-k and seed runtime acceptance cases.
+- Full integrated `npm run check`: 793 tests pass and 1 optional PostgreSQL integration is skipped locally. Typecheck, lint, planning/link/contract/fixture-secret checks and offline source-pin integrity pass. Diff whitespace validation passes.
+- Earlier pending-schema statements are historical and superseded. Additional seed/top_k source tracking is a separate issue #164; native support and full client/tool/stream conformance remain open.

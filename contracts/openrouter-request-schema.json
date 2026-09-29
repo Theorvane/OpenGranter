@@ -1,23 +1,19 @@
 {
-  "version": 1,
+  "version": 2,
   "source": "https://openrouter.ai/openapi.json",
   "retrievedAt": "2026-09-29",
   "sourceSha256": "d2352bf0d6587821a453e8e06906fb1a6e85d6e146f8ed706156d582b1029f5c",
-  "projectionSha256": "603e549316d2504a798938e547d89ef4c101a641263cbd7c952563d680dcd8fd",
+  "projectionSha256": "d0a90271949190eb2534375c66a704360c1781bc923498d3a00bb799c7225322",
   "projection": {
+    "openapi": "3.1.0",
     "documentVersion": "1.0.0",
+    "requestRef": "#/components/schemas/ChatRequest",
+    "required": [
+      "messages"
+    ],
     "fields": {
-      "max_completion_tokens": {
-        "type": [
-          "integer",
-          "null"
-        ]
-      },
-      "max_tokens": {
-        "type": [
-          "integer",
-          "null"
-        ]
+      "model": {
+        "$ref": "#/components/schemas/ModelName"
       },
       "messages": {
         "items": {
@@ -26,8 +22,21 @@
         "minItems": 1,
         "type": "array"
       },
-      "model": {
-        "$ref": "#/components/schemas/ModelName"
+      "stream": {
+        "default": false,
+        "type": "boolean"
+      },
+      "max_tokens": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      },
+      "max_completion_tokens": {
+        "type": [
+          "integer",
+          "null"
+        ]
       },
       "stop": {
         "anyOf": [
@@ -46,10 +55,6 @@
           }
         ]
       },
-      "stream": {
-        "default": false,
-        "type": "boolean"
-      },
       "temperature": {
         "format": "double",
         "type": [
@@ -63,12 +68,80 @@
           "number",
           "null"
         ]
+      },
+      "response_format": {
+        "discriminator": {
+          "mapping": {
+            "grammar": "#/components/schemas/ChatFormatGrammarConfig",
+            "json_object": "#/components/schemas/ChatFormatJsonObjectConfig",
+            "json_schema": "#/components/schemas/ChatFormatJsonSchemaConfig",
+            "python": "#/components/schemas/ChatFormatPythonConfig",
+            "text": "#/components/schemas/ChatFormatTextConfig"
+          },
+          "propertyName": "type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ChatFormatTextConfig"
+          },
+          {
+            "$ref": "#/components/schemas/ChatFormatJsonObjectConfig"
+          },
+          {
+            "$ref": "#/components/schemas/ChatFormatJsonSchemaConfig"
+          },
+          {
+            "$ref": "#/components/schemas/ChatFormatGrammarConfig"
+          },
+          {
+            "$ref": "#/components/schemas/ChatFormatPythonConfig"
+          }
+        ]
+      },
+      "frequency_penalty": {
+        "format": "double",
+        "type": [
+          "number",
+          "null"
+        ]
+      },
+      "presence_penalty": {
+        "format": "double",
+        "type": [
+          "number",
+          "null"
+        ]
       }
     },
-    "openapi": "3.1.0",
-    "requestRef": "#/components/schemas/ChatRequest",
-    "required": [
-      "messages"
-    ]
+    "definitions": {
+      "ChatFormatTextConfig": {
+        "properties": {
+          "type": {
+            "enum": [
+              "text"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "ChatFormatJsonObjectConfig": {
+        "properties": {
+          "type": {
+            "enum": [
+              "json_object"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      }
+    }
   }
 }

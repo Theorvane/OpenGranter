@@ -11,7 +11,11 @@ const FIELD_NAMES = [
   'stop',
   'temperature',
   'top_p',
+  'response_format',
+  'frequency_penalty',
+  'presence_penalty',
 ] as const;
+const DEFINITION_NAMES = ['ChatFormatTextConfig', 'ChatFormatJsonObjectConfig'] as const;
 const ANNOTATIONS = new Set([
   'description',
   'example',
@@ -27,6 +31,7 @@ export interface SchemaProjection {
   requestRef: string;
   required: readonly string[];
   fields: Record<string, unknown>;
+  definitions: Record<string, unknown>;
 }
 function record(value: unknown): Record<string, unknown> | undefined {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -72,6 +77,7 @@ function digest(value: string): string {
 function projection(value: unknown): SchemaProjection {
   const data = record(value);
   const fields = record(data?.fields);
+  const definitions = record(data?.definitions);
   const required = data?.required;
   if (
     data?.openapi !== '3.1.0' ||
@@ -83,7 +89,10 @@ function projection(value: unknown): SchemaProjection {
     new Set(required).size !== required.length ||
     !fields ||
     Object.keys(fields).length !== FIELD_NAMES.length ||
-    FIELD_NAMES.some((name) => !record(fields[name]))
+    FIELD_NAMES.some((name) => !record(fields[name])) ||
+    !definitions ||
+    Object.keys(definitions).length !== DEFINITION_NAMES.length ||
+    DEFINITION_NAMES.some((name) => !record(definitions[name]))
   )
     throw new TypeError('Invalid official schema');
   return {
@@ -92,6 +101,9 @@ function projection(value: unknown): SchemaProjection {
     requestRef: data.requestRef,
     required: [...required],
     fields: Object.fromEntries(FIELD_NAMES.map((name) => [name, ordered(fields[name], true)])),
+    definitions: Object.fromEntries(
+      DEFINITION_NAMES.map((name) => [name, ordered(definitions[name], true)]),
+    ),
   };
 }
 export function projectOfficialSchema(value: unknown): SchemaProjection {
@@ -111,13 +123,14 @@ export function projectOfficialSchema(value: unknown): SchemaProjection {
     requestRef: ref,
     required: request?.required,
     fields: Object.fromEntries(FIELD_NAMES.map((name) => [name, properties[name]])),
+    definitions: Object.fromEntries(DEFINITION_NAMES.map((name) => [name, schemas?.[name]])),
   });
 }
 export function validateSchemaPin(value: unknown): { projection: SchemaProjection } {
   try {
     const data = record(value);
     if (
-      data?.version !== 1 ||
+      data?.version !== 2 ||
       data.source !== OFFICIAL_SCHEMA_URL ||
       typeof data.retrievedAt !== 'string' ||
       !/^\d{4}-\d{2}-\d{2}$/.test(data.retrievedAt) ||
