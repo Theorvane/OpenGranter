@@ -358,3 +358,7 @@ Shared scalar validation enforces the client 0..2 range and direct Anthropic 0..
 ## Client top_p capture and mapping
 
 Shared scalar validation protects HTTP and adapters; the primitive is captured before credential lookup. OpenRouter/OpenAI/Anthropic receive top_p, while Gemini receives generationConfig.topP together with existing output/stop settings. Omission adds no default. Trusted model capability negotiation remains pending; supplied values are never silently clamped. See [plan](plans/128-client-top-p.md).
+
+## Allowlisted typed error projection
+
+The shared client-error serializer maps every local reason through a compile-time checked fixed table to metadata.error_type on /api/v1 paths. Node fallback uses the same table. No raw errors or arbitrary metadata are accepted; upstream_failed remains unmapped because provider causes have already been collapsed. See [plan](plans/132-typed-client-errors.md).

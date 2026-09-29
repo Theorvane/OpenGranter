@@ -165,3 +165,7 @@ The chat subset accepts optional finite temperature in 0..2 and maps native fiel
 ## Client top_p sampling
 
 The current chat subset accepts optional top_p as a finite number in 0..1 and maps it across four adapters without injecting an omission default. Existing stop/output settings and authorization, limits, audit and usage controls remain effective. Per-model parameter restrictions remain open; unsupported upstream values use safe provider failure handling. See [contract](../contracts/client-top-p.md).
+
+## Typed compatible client errors
+
+Compatible /api/v1 failures expose fixed metadata.error_type alongside local opengranter_code. Known local causes use the documented vocabulary; dependency/internal failures use server and undifferentiated upstream failures use unmapped. Statuses, messages, legacy errors and security/accounting remain unchanged. Precise provider diagnostics and streaming remain open. See [contract](../contracts/openrouter-error-schema.md).
