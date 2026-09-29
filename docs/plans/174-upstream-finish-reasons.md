@@ -40,3 +40,8 @@
 
 - Integrated merged fingerprint PR #171 from main. Resolve the direct-normalizer conflict by preserving both validated finish reasons and fingerprint forwarding; keep both document sections.
 - Integrated npm run check passes: 840 tests pass, one optional external PostgreSQL test skips; all other gates pass. Updated-head CI and review remain required.
+
+### Tool-output main integration
+
+- Integrated merged tool-output PR #173 from main and preserved both document sections. The assistant invocation guard and validated finish reasons remain independent and jointly enforced.
+- Integrated npm run check passes: 848 tests pass, one optional external PostgreSQL test skips; all other gates pass. Updated-head CI/review remain required.
