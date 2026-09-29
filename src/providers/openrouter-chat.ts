@@ -8,6 +8,7 @@ import {
   validTopP,
 } from '../gateway/chat-parameters.ts';
 import { normalizeProviderUsage } from '../usage/normalize-provider-tokens.ts';
+import { normalizeAssistantResponse } from './assistant-response.ts';
 import type { ChatCompletion } from './direct-chat.ts';
 
 const OPENROUTER_CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
@@ -94,7 +95,7 @@ function normalize(
   const value = record(body);
   const choices = Array.isArray(value?.choices) ? value.choices : undefined;
   const first = record(choices?.[0]);
-  const message = record(first?.message);
+  const message = normalizeAssistantResponse(record(first?.message), first?.finish_reason);
   if (
     choices?.length !== 1 ||
     typeof value?.id !== 'string' ||
@@ -102,22 +103,23 @@ function normalize(
     count(value.created) === undefined ||
     value.model !== attempt.upstreamModelId ||
     first?.index !== 0 ||
-    message?.role !== 'assistant' ||
-    typeof message.content !== 'string'
+    !message
   )
     fail('upstream', true, true);
 
   const stats = normalizeProviderUsage(value.usage);
   const finish =
-    first.finish_reason === 'stop' || first.finish_reason === 'length' ? first.finish_reason : null;
+    first.finish_reason === 'stop' ||
+    first.finish_reason === 'length' ||
+    first.finish_reason === 'content_filter'
+      ? first.finish_reason
+      : null;
   return {
     id: value.id,
     object: 'chat.completion',
     created: value.created as number,
     model: request.model,
-    choices: [
-      { index: 0, message: { role: 'assistant', content: message.content }, finish_reason: finish },
-    ],
+    choices: [{ index: 0, message, finish_reason: finish }],
     ...(stats ? { usage: stats } : {}),
   };
 }

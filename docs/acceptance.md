@@ -391,3 +391,10 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Empty/sparse/malformed/mixed/refusal arrays, unknown keys/roles and late instruction arrays reject before routing or secret resolution.
 - Implicit/explicit IAM Deny, limits and required audit prevent invocation; transport failures retain safe usage accounting. No content or credentials appear in metadata audit, usage or errors.
 - Native block/cache semantics, multimodal and tool/stream workflows remain open. See [contract](../contracts/client-user-text-parts.md).
+
+## Non-streaming refusal outcomes
+
+- Through both client prefixes, direct OpenAI and delegated OpenRouter return HTTP 200 with preserved null/string content, optional string/null refusal and content_filter where supplied. The actual SDK reads the same fields.
+- A valid refusal/filter response retains provider usage with one upstream invocation and no fallback. IAM implicit/explicit Deny, limits and required audit still block invocation.
+- Malformed refusal types, missing content and null content without nonempty refusal/filter signal produce safe 502 failures with possible billing recorded. Response/refusal text and credentials do not enter metadata audit, usage or errors.
+- Native Anthropic/Gemini refusal mappings, streaming and tool lifecycles remain incomplete. See [contract](../contracts/refusal-outcomes.md).

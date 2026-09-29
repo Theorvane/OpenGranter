@@ -37,3 +37,9 @@
 - Green: same command: 22 passes.
 - `npm run check`: 706 passes, 1 optional external PostgreSQL integration skipped, 0 failures. Typecheck, lint, document/link/contract/fixture checks and pinned schema integrity passed.
 - Touched-file Biome with warnings as errors and whitespace checks passed. One formatting gate failure was fixed before the successful complete run.
+
+### Integration after PR #147
+
+- Merged approved refusal-response support from main and preserved both additive document sections to resolve four merge conflicts.
+- Recovered the resolution after an execution-environment restart and reran `npm run check`: 714 passes, 1 optional external PostgreSQL integration skipped, 0 failures; all other gates passed.
+- Message-array production code and original red/green evidence are unchanged. Updated head requires current CI and review before merge.

@@ -105,3 +105,7 @@ Leading developer text instructions are supported with immutable capture. OpenAI
 ## Instruction and assistant-history text parts
 
 Both prefixes accept exact text arrays on all four supported roles using literal concatenation. Leading instruction order, immutable capture, strict keys, IAM/limits/audit and safe usage remain enforced across four adapters and actual SDK cases. Native string contracts remain unchanged; block/cache semantics, multimodal/refusal/tool arrays and stream workflows remain open. See [plan](plans/148-message-text-parts.md) and [contract](../contracts/client-user-text-parts.md).
+
+## Non-streaming refusal/filter response subset
+
+OpenAI and delegated OpenRouter preserve optional string/null refusal and content_filter, including null content only when refusal/filter signals justify it. SDK and both-prefix coverage retains security/accounting controls and safe malformed-response failures. Valid refusals are successful deliveries; metadata audit does not record their text. Native Anthropic/Gemini blocked outcomes, tool/stream workflows and complete response-schema coverage remain open. See [plan](plans/146-refusal-outcomes.md) and [contract](../contracts/refusal-outcomes.md).

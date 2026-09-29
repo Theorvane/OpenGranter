@@ -386,3 +386,7 @@ A shared pure message snapshot validates and copies text roles/content at gatewa
 ### Message text-part decoding
 
 HTTP text-part normalization applies to all supported roles before the shared immutable message validator. The validator retains exact message keys, supported roles and leading-only system/developer instructions. Provider adapters retain string contracts and existing instruction/history mapping; concatenation does not preserve native block/cache boundaries. See [plan](plans/148-message-text-parts.md).
+
+### Refusal response normalization
+
+OpenAI and OpenRouter share bounded assistant-output validation. Preserve string/null content, optional string/null refusal and content_filter while retaining singleton validation and existing post-response failure accounting. Null content without a refusal/filter signal and malformed refusal fail safely. Delivered refusals do not trigger fallback; audit attempt success means delivery success. No refusal/content is copied into metadata audit or usage. See [plan](plans/146-refusal-outcomes.md) and [contract](../contracts/refusal-outcomes.md). Richer outcome metadata and native Anthropic/Gemini refusal mappings remain deferred.

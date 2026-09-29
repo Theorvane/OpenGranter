@@ -1,0 +1,7 @@
+# Non-streaming Refusal Outcomes
+
+OpenAI and delegated OpenRouter responses contain exactly one choice at index zero with assistant role. String content is retained. Null content is accepted only with a nonempty string refusal or a content_filter finish reason. Missing content is invalid. If present, refusal must be string or null and is retained, including explicit null. Empty refusal alone cannot justify null content.
+
+The gateway preserves stop, length and content_filter finish reasons. Other reasons retain the existing null mapping; tool-call support remains incomplete. This contract does not implement native Anthropic/Gemini refusal mappings.
+
+Valid refusal/filter completions are delivered with HTTP 200 through both prefixes and retain provider usage. Delivery counts as a successful attempt and never triggers fallback. IAM, limits and required audit still apply before invocation. Refusal/content stays in the API response and out of metadata audit, usage and error payloads. Malformed responses fail safely after the upstream response with possible billing recorded.
