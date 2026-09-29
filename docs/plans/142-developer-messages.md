@@ -36,3 +36,4 @@
 - Red: nineteen new public adapter/HTTP/actual-SDK cases produced sixteen failures and three passes against the prior implementation, reproducing rejected developer calls and caller-owned message mutation.
 - Green: all nineteen cases pass after the shared snapshot and native instruction mapping, including four providers, both SDK base paths, malformed/late instruction denial before secrets, immutable role/text capture and unchanged IAM/limits/audit/failed-usage behavior.
 - Strict TypeScript, focused Biome with --error-on-warnings and diff checks pass. Final integrated npm run check remains the delivery gate before PR publication.
+- Integrate reviewed schema-drift PR #139 from latest main without conflicts. Final npm run check passes: 684 tests pass, one optional external PostgreSQL case skipped, strict TypeScript/lint/planning/link/contract/fixture checks and offline schema integrity pass. No live provider inference or real credential was used.

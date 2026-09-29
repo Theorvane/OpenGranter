@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "source": "https://openrouter.ai/openapi.json",
+  "retrievedAt": "2026-09-29",
+  "sourceSha256": "d2352bf0d6587821a453e8e06906fb1a6e85d6e146f8ed706156d582b1029f5c",
+  "projectionSha256": "603e549316d2504a798938e547d89ef4c101a641263cbd7c952563d680dcd8fd",
+  "projection": {
+    "documentVersion": "1.0.0",
+    "fields": {
+      "max_completion_tokens": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      },
+      "max_tokens": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      },
+      "messages": {
+        "items": {
+          "$ref": "#/components/schemas/ChatMessages"
+        },
+        "minItems": 1,
+        "type": "array"
+      },
+      "model": {
+        "$ref": "#/components/schemas/ModelName"
+      },
+      "stop": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 4,
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "stream": {
+        "default": false,
+        "type": "boolean"
+      },
+      "temperature": {
+        "format": "double",
+        "type": [
+          "number",
+          "null"
+        ]
+      },
+      "top_p": {
+        "format": "double",
+        "type": [
+          "number",
+          "null"
+        ]
+      }
+    },
+    "openapi": "3.1.0",
+    "requestRef": "#/components/schemas/ChatRequest",
+    "required": [
+      "messages"
+    ]
+  }
+}
