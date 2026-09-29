@@ -417,3 +417,9 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Malformed/null/extra-key/unsupported formats reject before routing; native invalid formats reject before secrets. Anthropic JSON fails before secret/transport, with possiblyBilled=false and no fabricated usage row.
 - IAM/limits/required audit continue to block invocation. Upstream failures retain safe usage accounting and no content/key exposure.
 - Model-dependent native generation, JSON schemas, Anthropic JSON and capability-aware selection remain incomplete. See [contract](../contracts/client-response-formats.md).
+
+### Supported-format schema drift
+
+- The selected official projection includes all eleven declared request fields plus the exact text/json_object format definitions; changing a selected field or either supported definition must fail comparison even if request references are unchanged.
+- Annotation-only or unrelated-definition changes do not produce drift. Missing/malformed selected definitions and rehashed malformed definition maps fail safely; stale version-1 pins reject.
+- Offline checks never download a source or rewrite pins; explicit live comparison retains the fixed official host and bounded credential-free transport. Other referenced definitions and full instance/response/tool/stream conformance remain open.
