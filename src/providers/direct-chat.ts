@@ -194,16 +194,15 @@ function normalize(
         { role: 'assistant', content: null, refusal: null },
       );
     }
+    const stopReason = value.stop_reason;
+    if (stopReason !== 'max_tokens' && stopReason !== 'end_turn' && stopReason !== 'stop_sequence')
+      fail('other');
     return completion(
       value.id,
       undefined,
       model,
       blocks.map((block) => record(block)?.text).join(''),
-      value.stop_reason === 'max_tokens'
-        ? 'length'
-        : value.stop_reason === 'end_turn' || value.stop_reason === 'stop_sequence'
-          ? 'stop'
-          : null,
+      stopReason === 'max_tokens' ? 'length' : 'stop',
       normalizeProviderUsage(value.usage, ['input_tokens', 'output_tokens']),
     );
   }
@@ -234,6 +233,7 @@ function normalize(
     }
     return completion(value.responseId, undefined, model, null, 'content_filter', googleUsage);
   }
+  if (first.finishReason !== 'MAX_TOKENS' && first.finishReason !== 'STOP') fail('other');
   const parts = items(record(first?.content)?.parts);
   if (!parts || parts.length === 0 || parts.some((part) => typeof record(part)?.text !== 'string'))
     fail('other');
@@ -242,11 +242,7 @@ function normalize(
     undefined,
     model,
     parts.map((part) => record(part)?.text).join(''),
-    first?.finishReason === 'MAX_TOKENS'
-      ? 'length'
-      : first?.finishReason === 'STOP'
-        ? 'stop'
-        : null,
+    first.finishReason === 'MAX_TOKENS' ? 'length' : 'stop',
     googleUsage,
   );
 }

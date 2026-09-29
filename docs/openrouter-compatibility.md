@@ -156,3 +156,7 @@ OpenAI/OpenRouter tool-bearing text responses now fail safely rather than silent
 ## Non-streaming finish reason validation
 
 OpenAI/OpenRouter preserve stop/length/content_filter/explicit null. Unsupported/error/malformed/missing reasons now fail safely instead of being collapsed into successful null outcomes. Both SDK bases, ordinary/refusal/filter responses, shared denial controls and failed-attempt accounting are covered. Native mappings, full response-schema validation, tool/stream support and precise upstream error categories remain separate. See [plan](plans/174-upstream-finish-reasons.md) and [contract](../contracts/upstream-finish-reasons.md).
+
+## Direct native stop reason validation
+
+Anthropic end_turn/stop_sequence/max_tokens and Gemini STOP/MAX_TOKENS map to the supported stop/length text subset. Existing bounded refusal/SAFETY mappings stay intact. Other, malformed or missing native reasons now fail safely rather than reporting successful null-finish text. HTTP/SDK bases, failed-attempt accounting and shared security gates are covered. Other native blocked outcomes, tools, streams and complete response/client conformance remain open. See [plan](plans/176-native-stop-reasons.md) and [contract](../contracts/native-stop-reasons.md).

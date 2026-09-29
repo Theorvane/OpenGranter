@@ -434,3 +434,7 @@ The shared assistant normalizer rejects populated/malformed modern tool fields, 
 ### Validated text completion finish reasons
 
 Compatible adapter normalizers validate stop/length/content_filter/null explicitly. Other or missing reasons use existing safe post-response failure/accounting; native provider mapping and routing policy remain unchanged. See [contract](../contracts/upstream-finish-reasons.md).
+
+### Native text stop validation
+
+The direct Anthropic/Gemini normalizer accepts only explicit text completion/truncation reasons after existing refusal/SAFETY special cases. Unsupported or missing reasons use safe post-response failure/accounting, keeping route authorization and native adapter contracts intact. See [contract](../contracts/native-stop-reasons.md).

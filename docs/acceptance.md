@@ -488,3 +488,10 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Reject error, invocation/unknown, malformed and missing reasons safely with possibly-billed failure accounting and no reason/body leakage.
 - Preserve ordinary/refusal/filter message validation and IAM/limit/audit denial gates before upstream transport.
 - Streaming/tools, full response schema and precise retry categories remain open. See [plan](plans/174-upstream-finish-reasons.md).
+
+### Direct native stop reasons
+
+- Anthropic end_turn/stop_sequence/max_tokens and Gemini STOP/MAX_TOKENS retain stop/length semantics on both compatible paths and SDK bases.
+- Existing bounded Anthropic refusal and Gemini SAFETY outcomes retain content_filter.
+- Reject unsupported/malformed/missing native reasons, including tool, paused-turn, recitation and invalid-function outcomes, even when text is present; record possibly billed failures without exposing reason/body.
+- IAM/limit/audit denial gates remain ahead of transport; full native blocked/tool/stream mappings remain open. See [plan](plans/176-native-stop-reasons.md).
