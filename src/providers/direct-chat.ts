@@ -152,12 +152,9 @@ function normalize(
     if (choices?.length !== 1 || first?.index !== 0) fail('other');
     const message = normalizeAssistantResponse(record(first.message), first.finish_reason);
     if (!message) fail('other');
-    const finish =
-      first.finish_reason === 'stop' ||
-      first.finish_reason === 'length' ||
-      first.finish_reason === 'content_filter'
-        ? first.finish_reason
-        : null;
+    const finish = first.finish_reason;
+    if (finish !== 'stop' && finish !== 'length' && finish !== 'content_filter' && finish !== null)
+      fail('other');
     return completion(
       value.id,
       value.created,

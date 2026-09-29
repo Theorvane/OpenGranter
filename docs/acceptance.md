@@ -467,3 +467,10 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Reject missing/malformed names, message containers, required lists and stale/rehashed malformed message maps with fixed diagnostics.
 - Ignore annotations and unrelated message fields; retain thirteen request fields and two selected format definitions.
 - Preserve credential-free bounded fixed-host retrieval, runtime IAM/usage/audit semantics and the explicit limits of structural subset coverage. See [plan](plans/168-message-name-schema.md).
+
+### Upstream finish reason validation
+
+- Preserve stop/length/content_filter/explicit null across both OpenAI/OpenRouter bases and SDK paths.
+- Reject error, invocation/unknown, malformed and missing reasons safely with possibly-billed failure accounting and no reason/body leakage.
+- Preserve ordinary/refusal/filter message validation and IAM/limit/audit denial gates before upstream transport.
+- Streaming/tools, full response schema and precise retry categories remain open. See [plan](plans/174-upstream-finish-reasons.md).

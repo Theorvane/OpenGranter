@@ -229,3 +229,7 @@ Both chat bases accept optional string names on the four supported text roles. O
 ### Referenced name drift subset
 
 The version-3 official schema pin tracks name constraints and name-required status for four supported text-message definitions. This quality gate changes no runtime API or security controls and does not certify full message/client conformance. See [plan](plans/168-message-name-schema.md).
+
+### Upstream termination semantics
+
+Non-streaming OpenAI/OpenRouter preserve supported finish reasons and explicit null; error/unsupported/malformed/missing reasons fail instead of becoming successful null outcomes. Full response/tool/stream conformance remains open. See [plan](plans/174-upstream-finish-reasons.md).

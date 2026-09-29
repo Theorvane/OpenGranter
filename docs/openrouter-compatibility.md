@@ -144,3 +144,7 @@ String name is supported on all four existing text roles and normalized text arr
 ## Referenced message-name source drift
 
 The version-3 pin tracks structural name schemas and name-required status for the four supported text-role definitions while retaining thirteen request fields and two format definitions. Malformed source containers, required lists and rehashed maps fail safely. Annotation and unrelated message-field changes are ignored. Full ChatMessages traversal, other fields and instance/tool/stream/response conformance remain open. See [plan](plans/168-message-name-schema.md) and [contract](../contracts/openrouter-schema-drift.md).
+
+## Non-streaming finish reason validation
+
+OpenAI/OpenRouter preserve stop/length/content_filter/explicit null. Unsupported/error/malformed/missing reasons now fail safely instead of being collapsed into successful null outcomes. Both SDK bases, ordinary/refusal/filter responses, shared denial controls and failed-attempt accounting are covered. Native mappings, full response-schema validation, tool/stream support and precise upstream error categories remain separate. See [plan](plans/174-upstream-finish-reasons.md) and [contract](../contracts/upstream-finish-reasons.md).

@@ -422,3 +422,7 @@ The existing HTTP text-array normalization retains message keys; the shared snap
 ### Selected message-name schema projection
 
 The version-3 projector selects four message definitions and captures only their structural name properties and name-required booleans. Exact map validation rejects stale/rehashed malformed pins; fixed-host bounded fetching and safe diagnostics remain unchanged. Other message fields and full reference traversal are unimplemented. See [plan](plans/168-message-name-schema.md).
+
+### Validated text completion finish reasons
+
+Compatible adapter normalizers validate stop/length/content_filter/null explicitly. Other or missing reasons use existing safe post-response failure/accounting; native provider mapping and routing policy remain unchanged. See [contract](../contracts/upstream-finish-reasons.md).
