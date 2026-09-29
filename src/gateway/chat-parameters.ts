@@ -23,16 +23,16 @@ export function resolveOutputTokenLimit(
   maxTokens: unknown,
   maxCompletionTokens: unknown,
 ): number | undefined {
+  const tokens = maxTokens ?? undefined;
+  const completion = maxCompletionTokens ?? undefined;
   if (
-    !validOutputTokenLimit(maxTokens) ||
-    !validOutputTokenLimit(maxCompletionTokens) ||
-    (maxTokens !== undefined &&
-      maxCompletionTokens !== undefined &&
-      maxTokens !== maxCompletionTokens)
+    !validOutputTokenLimit(tokens) ||
+    !validOutputTokenLimit(completion) ||
+    (tokens !== undefined && completion !== undefined && tokens !== completion)
   ) {
     throw new TypeError('Invalid output token limit');
   }
-  return maxCompletionTokens ?? maxTokens;
+  return completion ?? tokens;
 }
 
 /** Optional temperature; direct Anthropic uses its narrower native range. */

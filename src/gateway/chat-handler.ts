@@ -313,9 +313,11 @@ function validateChat(value: unknown): ChatRequest | undefined {
     return undefined;
   }
   if (value.stream !== undefined && value.stream !== false) return undefined;
-  if (!validTemperature(value.temperature)) return undefined;
+  const temperature = value.temperature ?? undefined;
+  if (!validTemperature(temperature)) return undefined;
   if (!validSingleChoice(value.n)) return undefined;
-  if (!validTopP(value.top_p)) return undefined;
+  const topP = value.top_p ?? undefined;
+  if (!validTopP(topP)) return undefined;
   let maxTokens: number | undefined;
   try {
     maxTokens = resolveOutputTokenLimit(value.max_tokens, value.max_completion_tokens);
@@ -350,8 +352,8 @@ function validateChat(value: unknown): ChatRequest | undefined {
     model: value.model,
     messages,
     ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
-    ...(value.temperature === undefined ? {} : { temperature: value.temperature }),
-    ...(value.top_p === undefined ? {} : { top_p: value.top_p }),
+    ...(temperature === undefined ? {} : { temperature }),
+    ...(topP === undefined ? {} : { top_p: topP }),
     ...(value.n === undefined ? {} : { n: value.n }),
     ...(stop === undefined ? {} : { stop }),
   };

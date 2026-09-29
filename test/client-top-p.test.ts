@@ -181,7 +181,7 @@ for (const kind of kinds) {
     }
   });
   test(`${kind} rejects malformed top_p before credential lookup`, async () => {
-    for (const invalid of [-0.01, 1.01, NaN, Infinity, -Infinity, '0.7', null, true, {}, []]) {
+    for (const invalid of [-0.01, 1.01, NaN, Infinity, -Infinity, '0.7', true, {}, []]) {
       const f = adapter(kind);
       await assert.rejects(f.call(samplingRequest(invalid)), (error: unknown) => {
         assert.equal((error as { possiblyBilled: boolean }).possiblyBilled, false);
@@ -232,7 +232,7 @@ for (const kind of kinds) {
 }
 test('invalid public top_p is audited before routes without leaking input', async () => {
   for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
-    for (const value of [-0.01, 1.01, 'private fixture invalid top_p', null, true, {}, []]) {
+    for (const value of [-0.01, 1.01, 'private fixture invalid top_p', true, {}, []]) {
       const f = httpFixture('openrouter');
       const response = await f.handler(httpRequest(path, value));
       assert.equal(response.status, 400);

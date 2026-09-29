@@ -81,3 +81,7 @@ Optional n=1 maps to the current one-choice contract across four adapters; other
 ## Local typed error conformance
 
 Fixed metadata.error_type is available alongside numeric codes and local reasons on compatible paths. Known local causes map to documented vocabulary; dependency failures use server and collapsed provider failures remain unmapped. Precise upstream cause propagation, retry hints and streaming remain open. See [plan](plans/132-typed-client-errors.md) and [contract](../contracts/openrouter-error-schema.md).
+
+## Nullable optional chat controls
+
+The four nullable token/sampling controls now enter the existing omission path across both client paths and four adapters. No native null/default is injected. Official model omission, other fields, streaming/tools and complete external-client conformance remain open. See [plan](plans/140-nullable-chat-controls.md) and [output contract](../contracts/client-output-limits.md).

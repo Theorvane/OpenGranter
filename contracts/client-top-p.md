@@ -2,11 +2,11 @@
 
 ## Accepted values and capture
 
-Both chat paths and all four adapter boundaries accept omitted top_p or a finite number in the inclusive 0..1 range. Zero, one and fractional values are preserved. Null, nonnumeric, non-finite, negative and values above one reject before route/credential/provider work, using existing safe failures and required HTTP denial audit. Adapters capture the validated primitive before asynchronous credential lookup; later changes to the request object do not alter it.
+Both chat paths and all four adapter boundaries accept omitted/null top_p or a finite number in the inclusive 0..1 range. Zero, one and fractional values are preserved. Nonnumeric (other than null), non-finite, negative and values above one reject before route/credential/provider work, using existing safe failures and required HTTP denial audit. Adapters capture the validated primitive before asynchronous credential lookup; later changes to the request object do not alter it.
 
 ## Native mapping
 
-OpenRouter, OpenAI and Anthropic send top_p unchanged. Gemini sends generationConfig.topP alongside any stopSequences and maxOutputTokens. Omission sends no sampling default, including when generationConfig is absent. Supplied stop and output limits keep their existing validation, immutable capture and administrator caps.
+OpenRouter, OpenAI and Anthropic send top_p unchanged. Gemini sends generationConfig.topP alongside any stopSequences and maxOutputTokens. Null normalizes to omission before capture and sends no native null. Omission sends no sampling default, including when generationConfig is absent. Supplied stop and output limits keep their existing validation, immutable capture and administrator caps.
 
 ## Security and model restrictions
 

@@ -127,9 +127,9 @@ export function createOpenRouterChatInvoker(
   return async (attempt, request) => {
     const n = request.n;
     if (!validSingleChoice(n)) fail('configuration');
-    const topP = request.top_p;
+    const topP = request.top_p ?? undefined;
     if (!validTopP(topP)) fail('configuration');
-    const temperature = request.temperature;
+    const temperature = request.temperature ?? undefined;
     if (!validTemperature(temperature)) fail('configuration');
     let maxTokens: number | undefined;
     try {

@@ -2,9 +2,9 @@
 
 ## Values and capture
 
-Both chat paths accept omitted temperature or a finite number in the inclusive 0..2 range. Null, nonnumeric, non-finite, negative and values above two reject before route/credential/provider work with required denial audit. OpenRouter/OpenAI/Gemini adapters enforce the same range. Direct Anthropic enforces its native inclusive 0..1 range before credential lookup and transport. No clamping, rescaling or sampling default is injected.
+Both chat paths accept omitted/null temperature or a finite number in the inclusive 0..2 range. Nonnumeric (other than null), non-finite, negative and values above two reject before route/credential/provider work with required denial audit. OpenRouter/OpenAI/Gemini adapters enforce the same range. Direct Anthropic enforces its native inclusive 0..1 range before credential lookup and transport. No clamping, rescaling or sampling default is injected.
 
-Capture the validated primitive before asynchronous credential lookup. Later request-object mutation cannot alter it. Preserve stop and output maxima, their validation/snapshots, and configured output caps.
+Normalize null to omission without sending a native null, then capture the validated primitive before asynchronous credential lookup. Later request-object mutation cannot alter it. Preserve stop and output maxima, their validation/snapshots, and configured output caps.
 
 ## Native fields and failures
 

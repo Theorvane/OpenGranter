@@ -359,3 +359,7 @@ Both chat paths support literal stop strings or dense arrays of up to four strin
 - Node internal fallback uses server without exception content; errors, audits and histories do not acquire raw upstream data, prompts or keys.
 - Query text and numeric envelope selection do not expand endpoint eligibility. History reasons are validated through the serializer without adding history aliases.
 - Unknown provider causes remain unmapped and do not invent retryability. See [contract](../contracts/openrouter-error-schema.md).
+
+## Nullable optional chat controls
+
+Both chat paths and four adapters normalize optional null token/sampling controls to omission. Null+numeric aliases preserve the numeric maximum and configured caps; mutation cannot add fields after capture. IAM/limits/audit denials prevent transport and upstream failures retain safe accounting. See [plan](plans/140-nullable-chat-controls.md) and [output contract](../contracts/client-output-limits.md).
