@@ -6,4 +6,4 @@ The shared immutable snapshot captures role/content/name before awaits. OpenAI/O
 
 Names are untrusted prompt protocol data, never authenticated principal identifiers. IAM, limits, usage/audit attribution and proxy-token authority remain based on the authenticated principal. Do not record names in metadata audit/errors or operational logs. Safe transport failure accounting remains unchanged.
 
-Provider-specific named-speaker mappings, mid-conversation instructions, tool/multimodal messages, streaming and complete external-client conformance remain open. The reviewed source-drift projection does not traverse message definitions; name-specific referenced-schema drift remains outside that gate.
+Provider-specific named-speaker mappings, mid-conversation instructions, tool/multimodal messages, streaming and complete external-client conformance remain open. The version-3 source projection tracks name constraints and name-required status on the four selected message definitions; other message fields and instance validation remain outside that gate.

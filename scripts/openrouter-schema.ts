@@ -18,6 +18,12 @@ const FIELD_NAMES = [
   'top_k',
 ] as const;
 const DEFINITION_NAMES = ['ChatFormatTextConfig', 'ChatFormatJsonObjectConfig'] as const;
+const MESSAGE_NAMES = [
+  'ChatSystemMessage',
+  'ChatDeveloperMessage',
+  'ChatUserMessage',
+  'ChatAssistantMessage',
+] as const;
 const ANNOTATIONS = new Set([
   'description',
   'example',
@@ -34,6 +40,7 @@ export interface SchemaProjection {
   required: readonly string[];
   fields: Record<string, unknown>;
   definitions: Record<string, unknown>;
+  messageNames: Record<string, unknown>;
 }
 function record(value: unknown): Record<string, unknown> | undefined {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -80,6 +87,7 @@ function projection(value: unknown): SchemaProjection {
   const data = record(value);
   const fields = record(data?.fields);
   const definitions = record(data?.definitions);
+  const messageNames = record(data?.messageNames);
   const required = data?.required;
   if (
     data?.openapi !== '3.1.0' ||
@@ -94,7 +102,18 @@ function projection(value: unknown): SchemaProjection {
     FIELD_NAMES.some((name) => !record(fields[name])) ||
     !definitions ||
     Object.keys(definitions).length !== DEFINITION_NAMES.length ||
-    DEFINITION_NAMES.some((name) => !record(definitions[name]))
+    DEFINITION_NAMES.some((name) => !record(definitions[name])) ||
+    !messageNames ||
+    Object.keys(messageNames).length !== MESSAGE_NAMES.length ||
+    MESSAGE_NAMES.some((name) => {
+      const entry = record(messageNames[name]);
+      return (
+        !entry ||
+        Object.keys(entry).length !== 2 ||
+        !record(entry.schema) ||
+        typeof entry.required !== 'boolean'
+      );
+    })
   )
     throw new TypeError('Invalid official schema');
   return {
@@ -105,6 +124,9 @@ function projection(value: unknown): SchemaProjection {
     fields: Object.fromEntries(FIELD_NAMES.map((name) => [name, ordered(fields[name], true)])),
     definitions: Object.fromEntries(
       DEFINITION_NAMES.map((name) => [name, ordered(definitions[name], true)]),
+    ),
+    messageNames: Object.fromEntries(
+      MESSAGE_NAMES.map((name) => [name, ordered(messageNames[name], true)]),
     ),
   };
 }
@@ -126,13 +148,29 @@ export function projectOfficialSchema(value: unknown): SchemaProjection {
     required: request?.required,
     fields: Object.fromEntries(FIELD_NAMES.map((name) => [name, properties[name]])),
     definitions: Object.fromEntries(DEFINITION_NAMES.map((name) => [name, schemas?.[name]])),
+    messageNames: Object.fromEntries(
+      MESSAGE_NAMES.map((name) => {
+        const message = record(schemas?.[name]);
+        const required = message?.required === undefined ? [] : message.required;
+        const schema = record(record(message?.properties)?.name);
+        if (
+          message?.type !== 'object' ||
+          !schema ||
+          !Array.isArray(required) ||
+          required.some((field) => typeof field !== 'string' || !field) ||
+          new Set(required).size !== required.length
+        )
+          throw new TypeError('Invalid official schema');
+        return [name, { schema, required: required.includes('name') }];
+      }),
+    ),
   });
 }
 export function validateSchemaPin(value: unknown): { projection: SchemaProjection } {
   try {
     const data = record(value);
     if (
-      data?.version !== 2 ||
+      data?.version !== 3 ||
       data.source !== OFFICIAL_SCHEMA_URL ||
       typeof data.retrievedAt !== 'string' ||
       !/^\d{4}-\d{2}-\d{2}$/.test(data.retrievedAt) ||
