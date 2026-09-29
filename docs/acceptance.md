@@ -380,3 +380,7 @@ Both chat paths and four adapters normalize optional null token/sampling control
 ## User text content parts
 
 Four-provider HTTP/SDK cases verify user text-array concatenation through both paths, string parity and combined controls. Malformed/mixed/non-user arrays reject before routes with safe audit; IAM/limits/audit denial and failed-attempt usage remain intact. See [plan](plans/144-user-text-parts.md) and [contract](../contracts/client-user-text-parts.md).
+
+## Developer instruction prefix
+
+Both chat paths and four adapters accept the developer instruction prefix, preserve ordering/native text and snapshot before secret lookup. Malformed or late instructions reject without credential/transport activity; IAM/limits/audit denials and upstream failures retain safe records. SDK cases verify the same public path. See [plan](plans/142-developer-messages.md) and [contract](../contracts/client-developer-messages.md).

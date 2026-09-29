@@ -185,3 +185,7 @@ The current response contract rejects OpenAI/OpenRouter/Gemini responses with un
 ## User text content parts
 
 Both chat paths accept user text-part arrays and normalize their ordered text into the existing string-content native path. All security/accounting controls remain effective; this is a text-only subset. See [plan](plans/144-user-text-parts.md) and [contract](../contracts/client-user-text-parts.md).
+
+## Developer instruction prefix
+
+The text subset accepts leading string-content developer instructions alongside system instructions. Four adapters preserve or explicitly translate them while authorization and accounting remain shared. See [plan](plans/142-developer-messages.md) and [contract](../contracts/client-developer-messages.md).

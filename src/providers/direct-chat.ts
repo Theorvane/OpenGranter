@@ -1,4 +1,5 @@
 import type { ChatRequest } from '../gateway/chat-handler.ts';
+import { type ChatMessage, snapshotChatMessages } from '../gateway/chat-messages.ts';
 import {
   resolveOutputTokenLimit,
   snapshotStopSequences,
@@ -204,7 +205,7 @@ function normalize(
 function prepare(
   registration: DirectProviderRegistration,
   candidate: RouteCandidate,
-  request: ChatRequest,
+  inputMessages: readonly ChatMessage[],
   key: string,
   maxTokens: number | undefined,
   stop: ReturnType<typeof snapshotStopSequences>,
@@ -224,7 +225,7 @@ function prepare(
       headers,
       body: {
         model: candidate.upstreamModelId,
-        messages: request.messages,
+        messages: inputMessages,
         stream: false,
         ...(n === undefined ? {} : { n }),
         ...(outputLimit === undefined ? {} : { max_tokens: outputLimit }),
@@ -234,11 +235,17 @@ function prepare(
       },
     };
   }
-  const system = request.messages.filter((message) => message.role === 'system');
-  const messages = request.messages.filter((message) => message.role !== 'system');
+  const system = inputMessages.filter(
+    (message) => message.role === 'system' || message.role === 'developer',
+  );
+  const messages = inputMessages.filter(
+    (message) => message.role !== 'system' && message.role !== 'developer',
+  );
   if (
     messages.length === 0 ||
-    request.messages.slice(system.length).some((message) => message.role === 'system')
+    inputMessages
+      .slice(system.length)
+      .some((message) => message.role === 'system' || message.role === 'developer')
   )
     fail('other');
   if (registration.kind === 'anthropic') {
@@ -331,6 +338,12 @@ export function createDirectChatInvoker(
     } catch {
       fail('other');
     }
+    let messages: readonly ChatMessage[];
+    try {
+      messages = snapshotChatMessages(request.messages);
+    } catch {
+      fail('other');
+    }
     let key: string | undefined;
     try {
       key = await ports.resolveSecret(registration.credentialRef);
@@ -341,7 +354,7 @@ export function createDirectChatInvoker(
     const prepared = prepare(
       registration,
       candidate,
-      request,
+      messages,
       key,
       maxTokens,
       stop,

@@ -36,3 +36,5 @@
 - Red: eleven new public HTTP/actual-SDK cases produced ten failures and one pass against the prior implementation, reproducing text-array rejection.
 - Green: all eleven cases pass after normalization, covering both paths/four providers, literal concatenation and string parity, empty text segments, combined controls, malformed/mixed/other-role denial before routes, IAM/limits/required audit and safe failed-attempt usage.
 - Strict TypeScript, focused warning-free Biome and diff checks pass. Final integrated npm run check is required before PR publication.
+- Integrated merged PR #143, preserving both documentation sections and layering HTTP part normalization before its shared immutable protocol validator. Actual SDK coverage includes developer instructions combined with user arrays.
+- Final npm run check passes: 695 tests pass, one optional external PostgreSQL case skipped, strict TypeScript/lint/planning/link/contract/fixture checks and offline schema integrity pass. No real keys or provider inference calls were used.

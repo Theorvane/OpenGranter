@@ -378,3 +378,7 @@ Adapters validate collection cardinality before projecting one choice. OpenAI/Op
 ## User text content parts
 
 HTTP message decoding concatenates validated user text parts without separators into copied string content before routing. Native adapters retain their typed string contract; no unsupported object is forwarded or discarded. See [plan](plans/144-user-text-parts.md) and [contract](../contracts/client-user-text-parts.md).
+
+## Developer instruction prefix
+
+A shared pure message snapshot validates and copies text roles/content at gateway and adapter boundaries before async work. Native OpenAI/OpenRouter preserve roles; Anthropic/Gemini combine the leading instruction prefix in their native instruction field. Separate instruction priority and mid-conversation semantics remain unsupported. See [plan](plans/142-developer-messages.md) and [contract](../contracts/client-developer-messages.md).
