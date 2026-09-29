@@ -84,7 +84,7 @@ Fixed metadata.error_type is available alongside numeric codes and local reasons
 
 ## Official request schema drift coverage
 
-A provenance-checked structural pin covers thirteen source-declared chat request fields and the two supported text/json_object format definitions, required fields and request reference/document versions. The offline gate checks integrity; an explicit fixed-host network command detects selected structural drift without auto-updating the pin. Other referenced definitions and full schema instance validation remain uncovered. Version-2 pin integrity rejects stale or malformed definition maps. The retrieved ChatRequest does not declare n; local n=1 is SDK support. The four nullable token/sampling controls are supported; optional model and other broader source behaviors remain gaps. See [plan](plans/138-openrouter-schema-drift.md) and [contract](../contracts/openrouter-schema-drift.md).
+A provenance-checked structural pin covers thirteen source-declared chat request fields and the two supported text/json_object format definitions, required fields and request reference/document versions. The offline gate checks integrity; an explicit fixed-host network command detects selected structural drift without auto-updating the pin. Other referenced definitions and full schema instance validation remain uncovered. Version-3 pin integrity rejects stale or malformed definition maps. The retrieved ChatRequest does not declare n; local n=1 is SDK support. The four nullable token/sampling controls are supported; optional model and other broader source behaviors remain gaps. See [plan](plans/138-openrouter-schema-drift.md) and [contract](../contracts/openrouter-schema-drift.md).
 
 ## Nullable optional chat controls
 
@@ -135,11 +135,15 @@ Nullable safe-integer seed controls preserve omission defaults and values across
 
 ## Sampling-field source drift
 
-The thirteen-field source projection includes seed/top_k integer/nullability structure and constraints, with missing/malformed/rehashed-map and annotation/unrelated-change coverage. Version-2 projection format and two selected format definitions remain unchanged. Native provider schemas, runtime model support, other references and full instance/response/tool/stream/client conformance remain open. See [plan](plans/164-sampling-schema.md) and [contract](../contracts/openrouter-schema-drift.md).
+The thirteen-field source projection includes seed/top_k integer/nullability structure and constraints, with missing/malformed/rehashed-map and annotation/unrelated-change coverage. The selected request fields and two format definitions are retained in version 3. Native provider schemas, runtime model support, other references and full instance/response/tool/stream/client conformance remain open. See [plan](plans/164-sampling-schema.md) and [contract](../contracts/openrouter-schema-drift.md).
 
 ## Optional text speaker names
 
-String name is supported on all four existing text roles and normalized text arrays. Both bases and SDK preserve exact OpenAI/OpenRouter names with immutable capture; direct Anthropic/Gemini reject supplied names before credentials. Names cannot override authenticated authority or accounting identity and stay out of metadata audit/errors. Native named-speaker semantics, referenced-message schema drift and full tool/multimodal/stream/client workflows remain open. See [plan](plans/166-message-names.md) and [contract](../contracts/client-message-names.md).
+String name is supported on all four existing text roles and normalized text arrays. Both bases and SDK preserve exact OpenAI/OpenRouter names with immutable capture; direct Anthropic/Gemini reject supplied names before credentials. Names cannot override authenticated authority or accounting identity and stay out of metadata audit/errors. Native named-speaker semantics, other referenced-message fields and full tool/multimodal/stream/client workflows remain open. See [plan](plans/166-message-names.md) and [contract](../contracts/client-message-names.md).
+
+## Referenced message-name source drift
+
+The version-3 pin tracks structural name schemas and name-required status for the four supported text-role definitions while retaining thirteen request fields and two format definitions. Malformed source containers, required lists and rehashed maps fail safely. Annotation and unrelated message-field changes are ignored. Full ChatMessages traversal, other fields and instance/tool/stream/response conformance remain open. See [plan](plans/168-message-name-schema.md) and [contract](../contracts/openrouter-schema-drift.md).
 
 ## Non-streaming system fingerprint subset
 

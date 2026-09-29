@@ -1,9 +1,9 @@
 {
-  "version": 2,
+  "version": 3,
   "source": "https://openrouter.ai/openapi.json",
   "retrievedAt": "2026-09-29",
   "sourceSha256": "d2352bf0d6587821a453e8e06906fb1a6e85d6e146f8ed706156d582b1029f5c",
-  "projectionSha256": "f8f5827dc430b7a99ef345b44e4ecaa105de54eabafca9fb0d953ee62dcf9e01",
+  "projectionSha256": "acc53f23470c42374022abcc34bab6e766f608098e36e477f19d79e8ea0ea687",
   "projection": {
     "openapi": "3.1.0",
     "documentVersion": "1.0.0",
@@ -153,6 +153,32 @@
           "type"
         ],
         "type": "object"
+      }
+    },
+    "messageNames": {
+      "ChatSystemMessage": {
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "ChatDeveloperMessage": {
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "ChatUserMessage": {
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "ChatAssistantMessage": {
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
       }
     }
   }

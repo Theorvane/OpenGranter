@@ -35,3 +35,7 @@
 - Green: all ten focused HTTP/SDK/native/security tests pass; failed upstream responses retain possiblyBilled accounting without metadata leakage.
 - Final npm run check passes: 822 tests pass, one optional external PostgreSQL integration test skips. Type checking, lint, planning validation and pinned integrity pass; local PGlite tests run. The literal-role fixture typing was corrected without relaxing compiler settings.
 - Git diff whitespace checks pass. Complete external-client compatibility and streaming remain open.
+
+### Main integration
+
+- Integrated approved schema PR #169 from main and preserved both appended document sections. Integrated npm run check passes: 832 tests pass, one optional external PostgreSQL test skips; all other gates pass.
