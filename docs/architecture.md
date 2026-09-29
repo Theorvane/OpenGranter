@@ -406,3 +406,7 @@ HTTP and native adapters normalize null to omission, validate finite penalty ran
 ### Response-format capture and mapping
 
 A shared pure snapshot validates and freezes the bounded format at HTTP and native adapter boundaries. OpenAI/OpenRouter forward it, Gemini maps native MIME, and Anthropic rejects JSON before credential resolution; text uses its default. Keep permission/limit/audit ordering and existing safe failures. No provider usage is fabricated for a pre-transport rejection. No prompt rewriting, output repair or capability-based route selection is introduced. See [plan](plans/154-response-formats.md).
+
+### Top-k capture and mapping
+
+HTTP and native boundaries normalize null to omission and validate/capture nonnegative safe integers before awaits. OpenRouter/Anthropic forward top_k; Gemini emits generationConfig.topK even without other settings and validates its int32 upper bound. Direct OpenAI rejects supplied values before secrets/transport. Existing IAM, limits, audit, scoped fallback and accounting remain shared; model-specific restrictions are not guessed or silently clamped. See [plan](plans/162-top-k.md).

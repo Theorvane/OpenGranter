@@ -82,3 +82,10 @@ export function snapshotResponseFormat(value: unknown): ResponseFormat | undefin
     throw new TypeError('Invalid response format');
   return Object.freeze({ type: format.type });
 }
+
+/** Nonnegative exact top-k values; omission preserves provider defaults. */
+export function validTopK(value: unknown): value is number | undefined {
+  return (
+    value === undefined || (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0)
+  );
+}

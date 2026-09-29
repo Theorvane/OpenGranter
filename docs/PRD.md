@@ -213,3 +213,7 @@ Both client paths accept nullable penalty controls in [-2,2]. OpenAI/OpenRouter 
 ### Portable response formats
 
 Both client paths support exact text/json_object format controls. OpenAI/OpenRouter forward them; Gemini maps native MIME; direct Anthropic supports text only and rejects JSON before credential/transport. Native output generation is model-dependent; strict schemas and capability selection remain pending. See [contract](../contracts/client-response-formats.md).
+
+### Nullable top-k sampling
+
+Both chat prefixes accept nullable nonnegative safe-integer top_k. OpenRouter/Anthropic preserve supplied values, Gemini maps native topK with int32 bounds, and direct OpenAI rejects supplied values before credentials. Omission preserves defaults; model-dependent support remains explicit. See [contract](../contracts/client-top-k.md).

@@ -429,3 +429,9 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Given supported OpenAI/OpenRouter/Gemini routes, when an SDK sends text/json_object response format with frequency and presence penalties through either client base path, then all supplied controls reach the native payload and normal usage accounting remains effective.
 - Credential resolution must not permit caller mutations to replace any validated format or penalty.
 - Direct Anthropic text format with null/omitted penalties succeeds; JSON format or supplied non-null penalties fail before credentials with no provider usage record.
+
+### Nullable top-k control
+
+- Both compatible bases and SDK serialization preserve null/omission defaults and exact zero/positive safe integers across supported native mappings, retaining output-token, temperature, top_p, stop and text-format controls.
+- Invalid client inputs reject before routing; direct OpenAI controls and out-of-int32 Gemini values reject before credentials/transport with no fabricated usage record.
+- Native credential-await mutation cannot replace captured values. Gemini settings-only requests create generationConfig without other defaults. IAM implicit/explicit denial, limits and required audit still prevent provider calls; upstream failures preserve safe accounting.
