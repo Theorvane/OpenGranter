@@ -352,3 +352,10 @@ Both chat paths support literal stop strings or dense arrays of up to four strin
 - Actual pinned OpenAI SDK discovers authorized models and consumes one normalized text choice through local managed/delegated gateway sockets.
 - SDK-denied/failed calls preserve authentication, IAM, limits, required audit, safe request IDs and existing usage accounting without content/key exposure. No live upstream call occurs.
 - Streaming, tools, broader response conformance and named external-tool workflows remain release gaps. See [contract](../contracts/client-single-choice.md).
+
+## Typed compatible errors
+
+- Every compatible local error reason includes the documented fixed error_type and preserves status, message, local reason and request ID. Legacy /v1 shape remains identical.
+- Node internal fallback uses server without exception content; errors, audits and histories do not acquire raw upstream data, prompts or keys.
+- Query text and numeric envelope selection do not expand endpoint eligibility. History reasons are validated through the serializer without adding history aliases.
+- Unknown provider causes remain unmapped and do not invent retryability. See [contract](../contracts/openrouter-error-schema.md).

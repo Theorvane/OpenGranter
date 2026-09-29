@@ -38,3 +38,9 @@
 - npm run check passed: strict TypeScript, lint, 628 passing tests, one optional external PostgreSQL test skipped, and planning/link/contract/fixture checks.
 - Focused warning-free Biome and diff checks passed; CLAUDE.md remains an AGENTS.md symlink. OpenAI SDK 7.23.0 is exactly pinned in the lockfile as development-only.
 - No live upstream, OpenAI host, or real key was used. Full response conformance, streaming/tools and named external application workflows remain open.
+
+## Main integration
+
+- Preserve both single-choice/SDK and typed-error documentation when merging main after PR #133. The conflict affected only appended document sections; neither requirement was discarded.
+- Validate the combined implementation with the full repository gate before publishing the refreshed head. CI and reviewer approval must apply to that head before merge.
+- Integrated `npm run check` passed: strict TypeScript, lint, 629 passing tests, one optional external PostgreSQL test skipped, and planning/link/contract/fixture checks.

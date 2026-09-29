@@ -30,7 +30,7 @@ Tools with a hardcoded openrouter.ai host need a configurable endpoint or an int
 | Tool calling | Not implemented | Tool definitions, choice, assistant tool calls, tool results and provider mappings |
 | Rich inputs and outputs | Not implemented | Content parts, modality/capability checks, structured output and reasoning handling |
 | Client routing controls | Rejected today | Client preferences narrow approved model/provider scope; no arbitrary destinations or authority widening |
-| Errors | /api/v1 numeric status codes, fixed messages, safe local reason metadata and request ID; legacy /v1 symbolic codes | Standard error_type metadata, retry hints and streaming errors |
+| Errors | /api/v1 numeric status codes, fixed messages, safe local reason/typed metadata and request ID; legacy /v1 symbolic codes | Precise upstream error_type propagation, retry hints and streaming errors |
 | Other model-use endpoints | Not implemented | Inventory completions, responses, embeddings and generation lookup against external-tool requirements and authorization |
 | Operational OpenGranter APIs | Usage/audit extensions on /v1 | Keep their authorization and contracts explicit during compatibility expansion |
 
@@ -54,7 +54,7 @@ The current adapters support max_tokens through both client paths, including dir
 
 ## Error display conformance
 
-Fixed error.message is available for all gateway failures and the Node bridge fallback. Legacy /v1 symbolic codes remain unchanged; /api/v1 uses numeric HTTP status and metadata.opengranter_code. Standard error_type metadata, retry hints and streaming errors remain pending. See [contract](../contracts/safe-client-errors.md).
+Fixed error.message is available for all gateway failures and the Node bridge fallback. Legacy /v1 symbolic codes remain unchanged; /api/v1 uses numeric HTTP status, metadata.opengranter_code and allowlisted metadata.error_type. Precise upstream error_type propagation, retry hints and streaming errors remain pending. See [contract](../contracts/safe-client-errors.md).
 
 Numeric error envelope conformance is tracked in [plan](plans/122-openrouter-error-schema.md) and [contract](../contracts/openrouter-error-schema.md).
 
@@ -77,3 +77,7 @@ The portable 0..1 top_p field maps across four adapters with omission, captured-
 ## Single-choice and SDK smoke conformance
 
 Optional n=1 maps to the current one-choice contract across four adapters; other counts reject explicitly. Pinned development-only OpenAI SDK 7.23.0 exercises configured baseURL/proxy token, model discovery, text chat and safe failures on loopback gateway sockets. This is partial SDK coverage: streaming, tool workflows, official-schema drift, full response validation and named external applications remain open. See [plan](plans/134-single-choice-sdk.md) and [contract](../contracts/client-single-choice.md).
+
+## Local typed error conformance
+
+Fixed metadata.error_type is available alongside numeric codes and local reasons on compatible paths. Known local causes map to documented vocabulary; dependency failures use server and collapsed provider failures remain unmapped. Precise upstream cause propagation, retry hints and streaming remain open. See [plan](plans/132-typed-client-errors.md) and [contract](../contracts/openrouter-error-schema.md).

@@ -169,3 +169,7 @@ The current chat subset accepts optional top_p as a finite number in 0..1 and ma
 ## Explicit single-choice client requests
 
 The text-chat subset accepts optional n=1; other counts reject clearly until multi-choice response/accounting behavior is implemented. Four adapters retain the one-choice contract and native settings. Pinned OpenAI SDK smoke tests cover local discovery/chat/error handling; they do not establish full external-tool compatibility. See [contract](../contracts/client-single-choice.md).
+
+## Typed compatible client errors
+
+Compatible /api/v1 failures expose fixed metadata.error_type alongside local opengranter_code. Known local causes use the documented vocabulary; dependency/internal failures use server and undifferentiated upstream failures use unmapped. Statuses, messages, legacy errors and security/accounting remain unchanged. Precise provider diagnostics and streaming remain open. See [contract](../contracts/openrouter-error-schema.md).

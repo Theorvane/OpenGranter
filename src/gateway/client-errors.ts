@@ -19,6 +19,33 @@ const messages = {
 export type ClientErrorCode = keyof typeof messages;
 export type ClientErrorFormat = 'opengranter' | 'openrouter';
 
+type CompatibleErrorType =
+  | 'not_found'
+  | 'authentication'
+  | 'invalid_request'
+  | 'permission_denied'
+  | 'rate_limit_exceeded'
+  | 'server'
+  | 'unmapped';
+
+const errorTypes = {
+  not_found: 'not_found',
+  unauthorized: 'authentication',
+  authentication_unavailable: 'server',
+  invalid_request: 'invalid_request',
+  forbidden: 'permission_denied',
+  audit_history_unavailable: 'server',
+  usage_unavailable: 'server',
+  catalog_unavailable: 'server',
+  route_unavailable: 'server',
+  unknown_model: 'not_found',
+  limit_exceeded: 'rate_limit_exceeded',
+  credential_unavailable: 'server',
+  upstream_failed: 'unmapped',
+  audit_unavailable: 'server',
+  internal_error: 'server',
+} as const satisfies Record<ClientErrorCode, CompatibleErrorType>;
+
 export function clientErrorFormat(pathname: string): ClientErrorFormat {
   return pathname.startsWith('/api/v1/') ? 'openrouter' : 'opengranter';
 }
@@ -34,7 +61,11 @@ export function createClientErrorResponse(
     {
       error:
         format === 'openrouter'
-          ? { code: status, message: messages[code], metadata: { opengranter_code: code } }
+          ? {
+              code: status,
+              message: messages[code],
+              metadata: { opengranter_code: code, error_type: errorTypes[code] },
+            }
           : { code, message: messages[code] },
       ...(requestId === undefined ? {} : { request_id: requestId }),
     },

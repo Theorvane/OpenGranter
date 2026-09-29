@@ -362,3 +362,7 @@ Shared scalar validation protects HTTP and adapters; the primitive is captured b
 ## Single-choice projection and SDK harness
 
 Shared literal validation captures n=1 before credentials. OpenRouter/OpenAI send n, Gemini sends generationConfig.candidateCount, and Anthropic retains its one-message native contract. Development-only SDK socket tests bind loopback, use explicit local baseURL/token and disable retries; fake upstreams preserve normal gateway IAM/audit/usage execution. See [plan](plans/134-single-choice-sdk.md).
+
+## Allowlisted typed error projection
+
+The shared client-error serializer maps every local reason through a compile-time checked fixed table to metadata.error_type on /api/v1 paths. Node fallback uses the same table. No raw errors or arbitrary metadata are accepted; upstream_failed remains unmapped because provider causes have already been collapsed. See [plan](plans/132-typed-client-errors.md).

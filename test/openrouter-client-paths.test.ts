@@ -153,15 +153,16 @@ for (const denied of [false, true]) {
     assert.deepEqual(f.activity, ['authenticate', 'catalog']);
   });
 }
-for (const [options, status, code, message] of [
-  [{ authenticated: false }, 401, 'unauthorized', 'Authentication is required.'],
-  [{ denied: true }, 403, 'forbidden', 'Access is denied.'],
-  [{ limited: true }, 429, 'limit_exceeded', 'Request limit exceeded.'],
+for (const [options, status, code, message, errorType] of [
+  [{ authenticated: false }, 401, 'unauthorized', 'Authentication is required.', 'authentication'],
+  [{ denied: true }, 403, 'forbidden', 'Access is denied.', 'permission_denied'],
+  [{ limited: true }, 429, 'limit_exceeded', 'Request limit exceeded.', 'rate_limit_exceeded'],
   [
     { auditFails: true },
     503,
     'audit_unavailable',
     'Required audit recording is temporarily unavailable.',
+    'server',
   ],
 ] as const) {
   test(`OpenRouter chat path preserves ${code} and stops inference`, async () => {
@@ -169,7 +170,7 @@ for (const [options, status, code, message] of [
     const response = await createChatHandler(f.ports)(clientRequest('/api/v1/chat/completions'));
     assert.equal(response.status, status);
     assert.deepEqual(await response.json(), {
-      error: { code: status, message, metadata: { opengranter_code: code } },
+      error: { code: status, message, metadata: { opengranter_code: code, error_type: errorType } },
       request_id: 'request',
     });
     assert.equal(f.activity.includes('direct'), false);
@@ -187,9 +188,9 @@ test('exact dispatch rejects near misses, wrong methods and unrelated OpenRouter
     ['/api/v1/usage', 'GET'],
     ['/api/v1/audit', 'GET'],
     ['/api/v1/credits', 'GET'],
-  ]) {
+  ] as const) {
     const f = fixture();
-    assert.equal((await createChatHandler(f.ports)(clientRequest(path!, method!))).status, 404);
+    assert.equal((await createChatHandler(f.ports)(clientRequest(path, method))).status, 404);
     assert.deepEqual(f.activity, []);
   }
 });
