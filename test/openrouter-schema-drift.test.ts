@@ -54,6 +54,8 @@ function source(): Record<string, unknown> {
             top_p: { type: ['number', 'null'], format: 'double' },
             frequency_penalty: { type: ['number', 'null'], format: 'double' },
             presence_penalty: { type: ['number', 'null'], format: 'double' },
+            seed: { type: ['integer', 'null'] },
+            top_k: { type: ['integer', 'null'] },
             response_format: {
               discriminator: {
                 mapping: {
@@ -100,9 +102,11 @@ test('official projection and reviewed pin agree; key order is immaterial', () =
     'model',
     'presence_penalty',
     'response_format',
+    'seed',
     'stop',
     'stream',
     'temperature',
+    'top_k',
     'top_p',
   ]);
 });
@@ -297,4 +301,63 @@ test('rehashed pin rejects missing, extra and malformed selected definition maps
       /Invalid schema pin/,
     );
   }
+});
+
+for (const field of ['seed', 'top_k']) {
+  test(`${field}: integer/nullability/constraint drift is detected`, () => {
+    for (const replacement of [
+      { type: 'integer' },
+      { type: ['number', 'null'] },
+      { type: ['integer', 'null'], minimum: 0 },
+    ]) {
+      const data = source();
+      const schemas = (
+        data.components as { schemas: Record<string, { properties: Record<string, unknown> }> }
+      ).schemas;
+      assert.ok(schemas.ChatRequest);
+      schemas.ChatRequest.properties[field] = replacement;
+      assert.equal(compareOfficialSchema(data, pinned), false);
+    }
+  });
+  test(`${field}: missing or malformed selected field fails safely`, () => {
+    for (const replacement of [undefined, null, [], 'private value']) {
+      const data = source();
+      const schemas = (
+        data.components as { schemas: Record<string, { properties: Record<string, unknown> }> }
+      ).schemas;
+      assert.ok(schemas.ChatRequest);
+      schemas.ChatRequest.properties[field] = replacement;
+      assert.throws(() => projectOfficialSchema(data), /Invalid official schema/);
+    }
+  });
+}
+
+test('sampling field maps reject stale or malformed rehashed projections', () => {
+  for (const field of ['seed', 'top_k'])
+    for (const operation of ['missing', 'malformed', 'extra']) {
+      const fields = { ...pinned.projection.fields };
+      if (operation === 'missing') delete fields[field];
+      else if (operation === 'malformed') fields[field] = null;
+      else fields.unselected = { type: 'string' };
+      const projection = { ...pinned.projection, fields };
+      const hash = createHash('sha256').update(canonicalSchema(projection)).digest('hex');
+      assert.throws(
+        () => validateSchemaPin({ ...pinned, projection, projectionSha256: hash }),
+        /Invalid schema pin/,
+      );
+    }
+});
+test('sampling field annotations are ignored while literal constraints remain data', () => {
+  const data = source();
+  const schemas = (
+    data.components as { schemas: Record<string, { properties: Record<string, unknown> }> }
+  ).schemas;
+  assert.ok(schemas.ChatRequest);
+  for (const field of ['seed', 'top_k'])
+    schemas.ChatRequest.properties[field] = {
+      type: ['integer', 'null'],
+      description: 'editorial',
+      example: 42,
+    };
+  assert.equal(compareOfficialSchema(data, pinned), true);
 });
