@@ -10,6 +10,7 @@ import {
 import type { RouteCandidate } from '../routing/authorize-candidates.ts';
 import { DirectProviderFailure } from '../routing/invoke-jev-managed-route.ts';
 import { normalizeProviderUsage } from '../usage/normalize-provider-tokens.ts';
+import { type AssistantResponse, normalizeAssistantResponse } from './assistant-response.ts';
 
 export interface DirectProviderRegistration {
   readonly providerId: string;
@@ -79,8 +80,8 @@ export interface ChatCompletion {
   readonly choices: readonly [
     {
       readonly index: 0;
-      readonly message: { readonly role: 'assistant'; readonly content: string };
-      readonly finish_reason: 'stop' | 'length' | null;
+      readonly message: AssistantResponse;
+      readonly finish_reason: 'stop' | 'length' | 'content_filter' | null;
     },
   ];
   readonly usage?: {
@@ -113,16 +114,24 @@ function completion(
   created: unknown,
   model: string,
   content: unknown,
-  finish: 'stop' | 'length' | null,
+  finish: 'stop' | 'length' | 'content_filter' | null,
   stats?: ChatCompletion['usage'],
+  assistant?: AssistantResponse,
 ): ChatCompletion {
-  if (typeof content !== 'string') fail('other');
+  const message = assistant ?? normalizeAssistantResponse({ role: 'assistant', content }, finish);
+  if (!message) fail('other');
   return {
     id: typeof id === 'string' && id ? id : `direct-${crypto.randomUUID()}`,
     object: 'chat.completion',
     created: count(created) ?? Math.floor(Date.now() / 1000),
     model,
-    choices: [{ index: 0, message: { role: 'assistant', content }, finish_reason: finish }],
+    choices: [
+      {
+        index: 0,
+        message,
+        finish_reason: finish,
+      },
+    ],
     ...(stats ? { usage: stats } : {}),
   };
 }
@@ -137,14 +146,14 @@ function normalize(
     const choices = items(value.choices);
     const first = record(choices?.[0]);
     if (choices?.length !== 1 || first?.index !== 0) fail('other');
-    const message = record(first.message);
-    if (message?.role !== 'assistant') fail('other');
+    const message = normalizeAssistantResponse(record(first.message), first.finish_reason);
+    if (!message) fail('other');
     const finish =
-      first?.finish_reason === 'stop'
-        ? 'stop'
-        : first?.finish_reason === 'length'
-          ? 'length'
-          : null;
+      first.finish_reason === 'stop' ||
+      first.finish_reason === 'length' ||
+      first.finish_reason === 'content_filter'
+        ? first.finish_reason
+        : null;
     return completion(
       value.id,
       value.created,
@@ -152,6 +161,7 @@ function normalize(
       message.content,
       finish,
       normalizeProviderUsage(value.usage),
+      message,
     );
   }
   if (kind === 'anthropic') {

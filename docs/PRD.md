@@ -189,3 +189,7 @@ Both chat paths accept user text-part arrays and normalize their ordered text in
 ## Developer instruction prefix
 
 The text subset accepts leading string-content developer instructions alongside system instructions. Four adapters preserve or explicitly translate them while authorization and accounting remain shared. See [plan](plans/142-developer-messages.md) and [contract](../contracts/client-developer-messages.md).
+
+### Non-streaming provider refusals
+
+OpenAI and delegated OpenRouter preserve optional refusal text/null and content_filter finish reasons through both client prefixes. Assistant null content requires a nonempty refusal or content_filter. These are successful response deliveries with provider usage, not IAM denials. See [contract](../contracts/refusal-outcomes.md). Native Anthropic/Gemini blocked-outcome mappings remain pending.

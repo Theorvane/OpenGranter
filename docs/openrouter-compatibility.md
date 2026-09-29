@@ -101,3 +101,7 @@ User text-only content arrays are normalized to strings across both external pat
 ## Developer instruction prefix
 
 Leading developer text instructions are supported with immutable capture. OpenAI/OpenRouter preserve roles; Anthropic/Gemini use a combined native instruction field without separate role priority. Mid-conversation instructions, rich/tool messages and full external-client workflows remain open. See [plan](plans/142-developer-messages.md) and [contract](../contracts/client-developer-messages.md).
+
+## Non-streaming refusal/filter response subset
+
+OpenAI and delegated OpenRouter preserve optional string/null refusal and content_filter, including null content only when refusal/filter signals justify it. SDK and both-prefix coverage retains security/accounting controls and safe malformed-response failures. Valid refusals are successful deliveries; metadata audit does not record their text. Native Anthropic/Gemini blocked outcomes, tool/stream workflows and complete response-schema coverage remain open. See [plan](plans/146-refusal-outcomes.md) and [contract](../contracts/refusal-outcomes.md).

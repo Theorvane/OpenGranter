@@ -382,3 +382,7 @@ HTTP message decoding concatenates validated user text parts without separators 
 ## Developer instruction prefix
 
 A shared pure message snapshot validates and copies text roles/content at gateway and adapter boundaries before async work. Native OpenAI/OpenRouter preserve roles; Anthropic/Gemini combine the leading instruction prefix in their native instruction field. Separate instruction priority and mid-conversation semantics remain unsupported. See [plan](plans/142-developer-messages.md) and [contract](../contracts/client-developer-messages.md).
+
+### Refusal response normalization
+
+OpenAI and OpenRouter share bounded assistant-output validation. Preserve string/null content, optional string/null refusal and content_filter while retaining singleton validation and existing post-response failure accounting. Null content without a refusal/filter signal and malformed refusal fail safely. Delivered refusals do not trigger fallback; audit attempt success means delivery success. No refusal/content is copied into metadata audit or usage. See [plan](plans/146-refusal-outcomes.md) and [contract](../contracts/refusal-outcomes.md). Richer outcome metadata and native Anthropic/Gemini refusal mappings remain deferred.
