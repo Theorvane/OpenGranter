@@ -5,6 +5,7 @@ import {
   snapshotResponseFormat,
   snapshotStopSequences,
   validPenalty,
+  validSeed,
   validSingleChoice,
   validTemperature,
   validTopP,
@@ -258,6 +259,7 @@ function prepare(
   frequencyPenalty: number | undefined,
   presencePenalty: number | undefined,
   responseFormat: ReturnType<typeof snapshotResponseFormat>,
+  seed: number | undefined,
 ): { url: string; headers: Record<string, string>; body: object } {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
   const outputLimit =
@@ -274,6 +276,7 @@ function prepare(
         messages: inputMessages,
         stream: false,
         ...(n === undefined ? {} : { n }),
+        ...(seed === undefined ? {} : { seed }),
         ...(frequencyPenalty === undefined ? {} : { frequency_penalty: frequencyPenalty }),
         ...(presencePenalty === undefined ? {} : { presence_penalty: presencePenalty }),
         ...(responseFormat === undefined ? {} : { response_format: responseFormat }),
@@ -332,10 +335,12 @@ function prepare(
       n === undefined &&
       frequencyPenalty === undefined &&
       presencePenalty === undefined &&
-      responseFormat === undefined
+      responseFormat === undefined &&
+      seed === undefined
         ? {}
         : {
             generationConfig: {
+              ...(seed === undefined ? {} : { seed }),
               ...(frequencyPenalty === undefined ? {} : { frequencyPenalty }),
               ...(presencePenalty === undefined ? {} : { presencePenalty }),
               ...(responseFormat === undefined
@@ -379,6 +384,14 @@ export function createDirectChatInvoker(
     const configuredTimeout = ports.timeoutMs;
     const timeoutMs = configuredTimeout === undefined ? 30_000 : configuredTimeout;
     if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > 2_147_483_647)
+      fail('other');
+    const seed = request.seed ?? undefined;
+    if (
+      !validSeed(seed) ||
+      (seed !== undefined &&
+        (registration.kind === 'anthropic' ||
+          (registration.kind === 'google' && (seed < -2147483648 || seed > 2147483647))))
+    )
       fail('other');
     const frequencyPenalty = request.frequency_penalty ?? undefined;
     const presencePenalty = request.presence_penalty ?? undefined;
@@ -440,6 +453,7 @@ export function createDirectChatInvoker(
       frequencyPenalty,
       presencePenalty,
       responseFormat,
+      seed,
     );
     const timeout = AbortSignal.timeout(timeoutMs);
     let response: Response;

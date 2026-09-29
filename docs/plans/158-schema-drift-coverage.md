@@ -45,3 +45,9 @@
 - PR #157 is merged. Preserve both schema-drift and combined-format/penalty acceptance scenarios when integrating current main.
 - Integrated `npm run check`: 765 tests pass and 1 optional PostgreSQL integration test is skipped locally; typecheck, lint, document/link/contract/fixture-secret checks and offline schema integrity pass.
 - Original current-main-based evidence above remains historical; pending-runtime statements are superseded by this integration. The eleven-field structural subset and two selected definitions are unchanged.
+
+## Approved seed integration
+
+- PR #161 is merged. Integrate current main before publishing an up-to-date schema branch; both sets of acceptance and compatibility cases are preserved.
+- Full integrated `npm run check`: 779 tests pass and 1 optional PostgreSQL integration is skipped locally. Typecheck, lint, planning/link/contract/fixture-secret checks and offline schema integrity pass.
+- The source projection remains the bounded eleven-field/two-definition subset. Seed/top_k source-drift coverage and full instance/tool/stream/client conformance remain open.

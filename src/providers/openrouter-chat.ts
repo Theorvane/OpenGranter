@@ -5,6 +5,7 @@ import {
   snapshotResponseFormat,
   snapshotStopSequences,
   validPenalty,
+  validSeed,
   validSingleChoice,
   validTemperature,
   validTopP,
@@ -131,6 +132,8 @@ export function createOpenRouterChatInvoker(
   ports: OpenRouterChatPorts,
 ): (attempt: OpenRouterChatAttempt, request: ChatRequest) => Promise<ChatCompletion> {
   return async (attempt, request) => {
+    const seed = request.seed ?? undefined;
+    if (!validSeed(seed)) fail('configuration');
     const frequencyPenalty = request.frequency_penalty ?? undefined;
     const presencePenalty = request.presence_penalty ?? undefined;
     if (!validPenalty(frequencyPenalty) || !validPenalty(presencePenalty)) fail('configuration');
@@ -193,6 +196,7 @@ export function createOpenRouterChatInvoker(
           messages,
           stream: false,
           ...(n === undefined ? {} : { n }),
+          ...(seed === undefined ? {} : { seed }),
           ...(frequencyPenalty === undefined ? {} : { frequency_penalty: frequencyPenalty }),
           ...(presencePenalty === undefined ? {} : { presence_penalty: presencePenalty }),
           ...(responseFormat === undefined ? {} : { response_format: responseFormat }),
