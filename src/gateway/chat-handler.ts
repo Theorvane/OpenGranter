@@ -31,7 +31,12 @@ import {
   validUsageHistoryOrder,
 } from '../usage/history.ts';
 import type { UsageRecord } from '../usage/record-usage.ts';
-import { resolveOutputTokenLimit, snapshotStopSequences, validTopP } from './chat-parameters.ts';
+import {
+  resolveOutputTokenLimit,
+  snapshotStopSequences,
+  validTemperature,
+  validTopP,
+} from './chat-parameters.ts';
 import {
   type ClientErrorCode,
   clientErrorFormat,
@@ -50,6 +55,7 @@ export interface ChatRequest {
   readonly messages: readonly ChatMessage[];
   readonly max_tokens?: number;
   readonly max_completion_tokens?: number;
+  readonly temperature?: number;
   readonly top_p?: number;
   readonly stop?: string | readonly string[] | null;
 }
@@ -296,6 +302,7 @@ function validateChat(value: unknown): ChatRequest | undefined {
           'max_tokens',
           'max_completion_tokens',
           'stop',
+          'temperature',
           'top_p',
         ].includes(key),
     )
@@ -303,6 +310,7 @@ function validateChat(value: unknown): ChatRequest | undefined {
     return undefined;
   }
   if (value.stream !== undefined && value.stream !== false) return undefined;
+  if (!validTemperature(value.temperature)) return undefined;
   if (!validTopP(value.top_p)) return undefined;
   let maxTokens: number | undefined;
   try {
@@ -338,6 +346,7 @@ function validateChat(value: unknown): ChatRequest | undefined {
     model: value.model,
     messages,
     ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
+    ...(value.temperature === undefined ? {} : { temperature: value.temperature }),
     ...(value.top_p === undefined ? {} : { top_p: value.top_p }),
     ...(stop === undefined ? {} : { stop }),
   };

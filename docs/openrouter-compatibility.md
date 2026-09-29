@@ -15,7 +15,7 @@ For tools supporting a configurable OpenRouter/OpenAI-compatible endpoint:
 - Base URL: `https://<gateway-host>/api/v1` (existing `/v1` also remains available).
 - API key: the user's OpenGranter proxy token; provider keys stay server held.
 - Model: an administrator-published alias visible to that token. An OpenRouter-style alias such as `openai/example-model` must be explicitly published; arbitrary model IDs do not become eligible.
-- Current text-chat request: model plus string-content messages, optional stream false and positive-integer max_tokens or max_completion_tokens and optional stop (string or up to four strings), and optional top_p (finite number in 0..1). Discovery uses GET models; chat uses POST chat/completions relative to the base.
+- Current text-chat request: model plus string-content messages, optional stream false and positive-integer max_tokens or max_completion_tokens and optional stop (string or up to four strings), optional top_p (finite number in 0..1), and optional temperature (finite number in 0..2; direct Anthropic 0..1). Discovery uses GET models; chat uses POST chat/completions relative to the base.
 
 Tools with a hardcoded openrouter.ai host need a configurable endpoint or an integration change. Path aliases alone do not make tools needing streaming, function calls or advanced parameters work.
 
@@ -25,7 +25,7 @@ Tools with a hardcoded openrouter.ai host need a configurable endpoint or an int
 | --- | --- | --- |
 | Base paths and Bearer token | /api/v1 chat/models aliases; shared proxy authorization | SDK and named external-tool registration tests |
 | Model discovery | Authorized alias IDs and basic model fields | Context window, capability, supported-parameter and price metadata from trusted catalog sources |
-| Non-streaming text chat | Text messages, one normalized text choice with max_tokens/max_completion_tokens and portable stop/top_p across four adapters | Remaining request/response schema, other sampling fields and capability metadata |
+| Non-streaming text chat | Text messages, one normalized text choice with max_tokens/max_completion_tokens and portable stop/top_p/temperature across four adapters | Remaining request/response schema, sampling and capability metadata |
 | Streaming | Not implemented | SSE framing, termination, usage, backpressure, cancellation, safe interruption/failure audit |
 | Tool calling | Not implemented | Tool definitions, choice, assistant tool calls, tool results and provider mappings |
 | Rich inputs and outputs | Not implemented | Content parts, modality/capability checks, structured output and reasoning handling |
@@ -65,6 +65,10 @@ Portable stop strings/lists map across all four adapters without exposing their 
 ## Completion-token alias conformance
 
 max_completion_tokens maps to the existing output-maximum pipeline across both paths and four adapters. Equal simultaneous maxima are accepted; differing pairs reject as an explicit local restriction rather than claiming undocumented OpenRouter precedence. Native reasoning-model field selection and broader request/model capabilities remain open. See [plan](plans/126-completion-token-alias.md) and [contract](../contracts/client-output-limits.md).
+
+## Temperature conformance
+
+Client temperature maps to native fields across four adapters with omission/capture, combined-stop/output and security/accounting coverage. Client range is 0..2; direct Anthropic enforces 0..1 without clamping. Per-model and paired sampling support remain compatibility gaps. See [contract](../contracts/client-temperature.md) and [plan](plans/130-client-temperature.md).
 
 ## top_p conformance
 

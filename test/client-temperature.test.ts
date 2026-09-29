@@ -1,0 +1,359 @@
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import { type ChatRequest, createChatHandler } from '../src/gateway/chat-handler.ts';
+import { createDirectChatInvoker } from '../src/providers/direct-chat.ts';
+import { createOpenRouterChatInvoker } from '../src/providers/openrouter-chat.ts';
+
+const kinds = ['openai', 'anthropic', 'google', 'openrouter'] as const;
+type Kind = (typeof kinds)[number];
+function body(kind: Kind) {
+  if (kind === 'anthropic')
+    return {
+      id: 'completion',
+      content: [{ type: 'text', text: 'reply' }],
+      stop_reason: 'end_turn',
+      usage: { input_tokens: 2, output_tokens: 1 },
+    };
+  if (kind === 'google')
+    return {
+      responseId: 'completion',
+      candidates: [{ content: { parts: [{ text: 'reply' }] }, finishReason: 'STOP' }],
+      usageMetadata: { promptTokenCount: 2, candidatesTokenCount: 1 },
+    };
+  return {
+    id: 'completion',
+    created: 1,
+    model: 'model',
+    choices: [
+      { index: 0, message: { role: 'assistant', content: 'reply' }, finish_reason: 'stop' },
+    ],
+    usage: { prompt_tokens: 2, completion_tokens: 1 },
+  };
+}
+function adapter(kind: Kind, cap?: number, mutate?: () => void, transportFails = false) {
+  const sent: Record<string, unknown>[] = [];
+  let secrets = 0;
+  const resolveSecret = async () => {
+    secrets++;
+    mutate?.();
+    return 'fixture-key';
+  };
+  const fetcher: typeof fetch = async (_, init) => {
+    sent.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+    return transportFails
+      ? new Response('private fixture unsupported temperature error', { status: 400 })
+      : Response.json(body(kind));
+  };
+  const candidate = {
+    id: 'candidate',
+    kind: kind === 'openrouter' ? ('delegated' as const) : ('managed' as const),
+    providerId: 'provider',
+    upstreamModelId: 'model',
+  };
+  const invoke =
+    kind === 'openrouter'
+      ? createOpenRouterChatInvoker({ credentialRef: 'secret/reference', resolveSecret, fetcher })
+      : createDirectChatInvoker({
+          registrations: [
+            {
+              providerId: 'provider',
+              kind,
+              credentialRef: 'secret/reference',
+              ...(cap !== undefined || kind === 'anthropic' ? { maxOutputTokens: cap ?? 128 } : {}),
+            },
+          ],
+          resolveSecret,
+          fetcher,
+        });
+  return {
+    candidate,
+    sent,
+    secrets: () => secrets,
+    call: (request: ChatRequest) =>
+      kind === 'openrouter'
+        ? (invoke as ReturnType<typeof createOpenRouterChatInvoker>)(
+            { upstreamModelId: 'model', authorizedProviderSlugs: ['provider'] },
+            request,
+          )
+        : (invoke as ReturnType<typeof createDirectChatInvoker>)(candidate, request),
+  };
+}
+function request(limit?: number): ChatRequest {
+  return {
+    model: 'chat',
+    messages: [{ role: 'user', content: 'fixture' }],
+    ...(limit === undefined ? {} : { max_tokens: limit }),
+  } as ChatRequest;
+}
+function nativeLimit(kind: Kind, sent: Record<string, unknown> | undefined): unknown {
+  assert.ok(sent, 'Expected a captured upstream request');
+  return kind === 'google'
+    ? (sent.generationConfig as Record<string, unknown> | undefined)?.maxOutputTokens
+    : sent.max_tokens;
+}
+function httpFixture(
+  kind: Kind,
+  options: {
+    deny?: boolean;
+    explicitDeny?: boolean;
+    limit?: boolean;
+    audit?: boolean;
+    fail?: boolean;
+  } = {},
+) {
+  const f = adapter(kind, undefined, undefined, options.fail);
+  const audits: unknown[] = [];
+  const usage: unknown[] = [];
+  let routes = 0;
+  const handler = createChatHandler({
+    newRequestId: () => 'request',
+    authenticate: async () => ({
+      id: 'user',
+      active: true,
+      credentialId: 'credential',
+      policyVersions: [],
+      statements: options.deny
+        ? []
+        : [
+            { effect: 'Allow', actions: ['*'], resources: ['*'] },
+            ...(options.explicitDeny
+              ? [{ effect: 'Deny' as const, actions: ['*'], resources: ['*'] }]
+              : []),
+          ],
+    }),
+    resolveRoute: async () => {
+      routes++;
+      return kind === 'openrouter'
+        ? {
+            kind: 'delegated',
+            version: 'v1',
+            credentialRef: 'secret/reference',
+            candidates: [f.candidate],
+          }
+        : { version: 'v1', candidates: [f.candidate] };
+    },
+    checkLimit: async () => !options.limit,
+    resolveSecret: async () => 'unused',
+    writeAudit: async (event) => {
+      if (options.audit) throw new Error('private fixture');
+      audits.push(event);
+    },
+    writeUsage: async (record) => {
+      usage.push(record);
+    },
+    invokeDirect: async (_, chat) => f.call(chat),
+    invokeOpenRouter: async (_, __, chat) => f.call(chat),
+    resolveVerifiedProviderSlug: async () => 'provider',
+  });
+  return { ...f, handler, audits, usage, routes: () => routes };
+}
+function temperatureRequest(value: unknown): ChatRequest {
+  return {
+    ...request(),
+    ...(value === undefined ? {} : { temperature: value }),
+  } as unknown as ChatRequest;
+}
+function nativeTemperature(kind: Kind, sent: Record<string, unknown> | undefined): unknown {
+  assert.ok(sent, 'Expected a captured upstream request');
+  return kind === 'google'
+    ? (sent.generationConfig as Record<string, unknown> | undefined)?.temperature
+    : sent.temperature;
+}
+function httpRequest(path: string, value: unknown) {
+  return new Request(`http://localhost${path}`, {
+    method: 'POST',
+    headers: { authorization: 'Bearer fixture', 'content-type': 'application/json' },
+    body: JSON.stringify({
+      ...temperatureRequest(value),
+      max_completion_tokens: 17,
+      stop: ['marker'],
+    }),
+  });
+}
+for (const kind of kinds) {
+  test(`${kind} preserves temperature bounds/fractions and omission`, async () => {
+    for (const value of [0, 0.37, 1, ...(kind === 'anthropic' ? [] : [2]), undefined]) {
+      const f = adapter(kind);
+      await f.call(temperatureRequest(value));
+      assert.equal(nativeTemperature(kind, f.sent[0]), value);
+      if (value === undefined && kind === 'google')
+        assert.equal(f.sent[0]?.generationConfig, undefined);
+    }
+  });
+  test(`${kind} rejects malformed temperature before credentials`, async () => {
+    for (const value of [-0.01, 2.01, NaN, Infinity, -Infinity, '0.7', null, true, {}, []]) {
+      const f = adapter(kind);
+      await assert.rejects(f.call(temperatureRequest(value)), (error: unknown) => {
+        assert.equal((error as { possiblyBilled: boolean }).possiblyBilled, false);
+        return true;
+      });
+      assert.equal(f.secrets(), 0);
+      assert.deepEqual(f.sent, []);
+    }
+  });
+  test(`${kind} captures temperature before asynchronous secret lookup`, async () => {
+    for (const value of [0, 0.37, 1]) {
+      const source = { ...request(), temperature: value };
+      const f = adapter(kind, undefined, () => {
+        source.temperature = 99;
+      });
+      await f.call(source as ChatRequest);
+      assert.equal(nativeTemperature(kind, f.sent[0]), value);
+    }
+  });
+  test(`${kind} combines temperature, stop and output maxima across both HTTP paths`, async () => {
+    for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
+      for (const value of [0, 0.37, 1, ...(kind === 'anthropic' ? [] : [2])]) {
+        const f = httpFixture(kind);
+        assert.equal((await f.handler(httpRequest(path, value))).status, 200);
+        const sent = f.sent[0];
+        assert.ok(sent);
+        assert.equal(nativeTemperature(kind, sent), value);
+        assert.equal(nativeLimit(kind, sent), 17);
+        const stop =
+          kind === 'google'
+            ? (sent.generationConfig as Record<string, unknown>).stopSequences
+            : kind === 'anthropic'
+              ? sent.stop_sequences
+              : sent.stop;
+        assert.deepEqual(stop, ['marker']);
+        assert.equal(f.usage.length, 1);
+        assert.ok(f.audits.length > 0);
+        assert.doesNotMatch(JSON.stringify(f.audits), /marker|fixture-key/u);
+      }
+    }
+  });
+  if (kind !== 'openrouter') {
+    test(`${kind} retains administrator output caps with temperature and stop`, async () => {
+      const f = adapter(kind, 32);
+      await f.call({
+        ...temperatureRequest(0.37),
+        max_tokens: 64,
+        stop: ['marker'],
+      } as ChatRequest);
+      assert.equal(nativeTemperature(kind, f.sent[0]), 0.37);
+      assert.equal(nativeLimit(kind, f.sent[0]), 32);
+    });
+  }
+}
+test('direct Anthropic range rejection is non-billable and makes no credential/transport calls', async () => {
+  for (const value of [1.01, 2]) {
+    const f = adapter('anthropic');
+    await assert.rejects(f.call(temperatureRequest(value)), (error: unknown) => {
+      assert.equal((error as { possiblyBilled: boolean }).possiblyBilled, false);
+      return true;
+    });
+    assert.equal(f.secrets(), 0);
+    assert.deepEqual(f.sent, []);
+    for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
+      const h = httpFixture('anthropic');
+      const response = await h.handler(httpRequest(path, value));
+      assert.equal(response.status, 502);
+      assert.match(await response.text(), /upstream_failed/u);
+      assert.equal(h.secrets(), 0);
+      assert.deepEqual(h.sent, []);
+      assert.equal(h.usage.length, 0, 'No ledger entry for an unstarted non-billable attempt');
+      assert.ok(
+        h.audits.some((event) => {
+          const attempt = event as { kind?: string; outcome?: string; possiblyBilled?: boolean };
+          return (
+            attempt.kind === 'attempt' &&
+            attempt.outcome === 'failed' &&
+            attempt.possiblyBilled === false
+          );
+        }),
+      );
+    }
+  }
+});
+test('globally invalid public temperature is audited before route work without leaking input', async () => {
+  for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
+    for (const value of [-0.01, 2.01, 'private fixture invalid temperature', null, true, {}, []]) {
+      const f = httpFixture('openrouter');
+      const response = await f.handler(httpRequest(path, value));
+      assert.equal(response.status, 400);
+      assert.equal(f.routes(), 0);
+      assert.equal(f.secrets(), 0);
+      assert.equal(f.usage.length, 0);
+      assert.equal((f.audits[0] as { kind: string }).kind, 'request-denied');
+      assert.doesNotMatch(await response.text(), /private fixture/u);
+      assert.doesNotMatch(JSON.stringify(f.audits), /private fixture/u);
+    }
+  }
+});
+test('temperature preserves IAM, limits and required audit enforcement', async () => {
+  for (const kind of ['openai', 'openrouter'] as const) {
+    for (const [options, status] of [
+      [{ deny: true }, 403],
+      [{ explicitDeny: true }, 403],
+      [{ limit: true }, 429],
+      [{ audit: true }, 503],
+    ] as const) {
+      const f = httpFixture(kind, options);
+      assert.equal((await f.handler(httpRequest('/api/v1/chat/completions', 0.37))).status, status);
+      assert.equal(f.secrets(), 0);
+      assert.deepEqual(f.sent, []);
+    }
+  }
+});
+test('model-specific rejection with temperature preserves safe errors and usage', async () => {
+  for (const kind of kinds) {
+    const f = httpFixture(kind, { fail: true });
+    const response = await f.handler(httpRequest('/api/v1/chat/completions', 0.37));
+    assert.equal(response.status, 502);
+    assert.equal(f.usage.length, 1);
+    const message = await response.text();
+    assert.match(message, /upstream_failed/u);
+    assert.doesNotMatch(message, /private fixture|fixture-key/u);
+    assert.doesNotMatch(JSON.stringify(f.audits), /private fixture|fixture-key/u);
+  }
+});
+test('four adapters retain temperature, top_p, stop and output maxima together', async () => {
+  for (const kind of kinds) {
+    for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
+      const f = httpFixture(kind);
+      const response = await f.handler(
+        new Request(`http://localhost${path}`, {
+          method: 'POST',
+          headers: { authorization: 'Bearer fixture', 'content-type': 'application/json' },
+          body: JSON.stringify({
+            ...request(),
+            temperature: 1,
+            top_p: 0.99,
+            stop: ['marker'],
+            max_completion_tokens: 17,
+          }),
+        }),
+      );
+      assert.equal(response.status, 200);
+      const sent = f.sent[0];
+      assert.ok(sent);
+      assert.equal(nativeTemperature(kind, sent), 1);
+      assert.equal(nativeLimit(kind, sent), 17);
+      const native = kind === 'google' ? (sent.generationConfig as Record<string, unknown>) : sent;
+      assert.equal(native[kind === 'google' ? 'topP' : 'top_p'], 0.99);
+      assert.deepEqual(
+        native[
+          kind === 'google' ? 'stopSequences' : kind === 'anthropic' ? 'stop_sequences' : 'stop'
+        ],
+        ['marker'],
+      );
+      assert.equal(f.usage.length, 1);
+    }
+  }
+});
+test('four adapters capture both sampling scalars before credential lookup', async () => {
+  for (const kind of kinds) {
+    const source = { ...request(), temperature: 1, top_p: 0.99 };
+    const f = adapter(kind, undefined, () => {
+      source.temperature = 99;
+      source.top_p = 99;
+    });
+    await f.call(source as ChatRequest);
+    const sent = f.sent[0];
+    assert.ok(sent);
+    assert.equal(nativeTemperature(kind, sent), 1);
+    const native = kind === 'google' ? (sent.generationConfig as Record<string, unknown>) : sent;
+    assert.equal(native[kind === 'google' ? 'topP' : 'top_p'], 0.99);
+  }
+});

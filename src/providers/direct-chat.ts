@@ -2,6 +2,7 @@ import type { ChatRequest } from '../gateway/chat-handler.ts';
 import {
   resolveOutputTokenLimit,
   snapshotStopSequences,
+  validTemperature,
   validTopP,
 } from '../gateway/chat-parameters.ts';
 import type { RouteCandidate } from '../routing/authorize-candidates.ts';
@@ -201,6 +202,7 @@ function prepare(
   key: string,
   maxTokens: number | undefined,
   stop: ReturnType<typeof snapshotStopSequences>,
+  temperature: number | undefined,
   topP: number | undefined,
 ): { url: string; headers: Record<string, string>; body: object } {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
@@ -218,6 +220,7 @@ function prepare(
         messages: request.messages,
         stream: false,
         ...(outputLimit === undefined ? {} : { max_tokens: outputLimit }),
+        ...(temperature === undefined ? {} : { temperature }),
         ...(topP === undefined ? {} : { top_p: topP }),
         ...(stop === undefined ? {} : { stop }),
       },
@@ -244,6 +247,7 @@ function prepare(
       body: {
         model: candidate.upstreamModelId,
         max_tokens: outputLimit ?? registration.maxOutputTokens,
+        ...(temperature === undefined ? {} : { temperature }),
         ...(topP === undefined ? {} : { top_p: topP }),
         ...(stop === undefined ? {} : { stop_sequences: typeof stop === 'string' ? [stop] : stop }),
         ...(system.length ? { system: system.map((message) => message.content).join('\n') } : {}),
@@ -257,11 +261,15 @@ function prepare(
     url: `https://generativelanguage.googleapis.com/v1beta/models/${candidate.upstreamModelId}:generateContent`,
     headers,
     body: {
-      ...(outputLimit === undefined && stop === undefined && topP === undefined
+      ...(outputLimit === undefined &&
+      stop === undefined &&
+      temperature === undefined &&
+      topP === undefined
         ? {}
         : {
             generationConfig: {
               ...(topP === undefined ? {} : { topP }),
+              ...(temperature === undefined ? {} : { temperature }),
               ...(outputLimit === undefined ? {} : { maxOutputTokens: outputLimit }),
               ...(stop === undefined
                 ? {}
@@ -297,6 +305,8 @@ export function createDirectChatInvoker(
       fail('other');
     const topP = request.top_p;
     if (!validTopP(topP)) fail('other');
+    const temperature = request.temperature;
+    if (!validTemperature(temperature, registration.kind === 'anthropic' ? 1 : 2)) fail('other');
     let maxTokens: number | undefined;
     try {
       maxTokens = resolveOutputTokenLimit(request.max_tokens, request.max_completion_tokens);
@@ -316,7 +326,16 @@ export function createDirectChatInvoker(
       fail('other');
     }
     if (!key) fail('other');
-    const prepared = prepare(registration, candidate, request, key, maxTokens, stop, topP);
+    const prepared = prepare(
+      registration,
+      candidate,
+      request,
+      key,
+      maxTokens,
+      stop,
+      temperature,
+      topP,
+    );
     const timeout = AbortSignal.timeout(timeoutMs);
     let response: Response;
     try {

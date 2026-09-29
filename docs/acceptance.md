@@ -333,6 +333,13 @@ Both chat paths support literal stop strings or dense arrays of up to four strin
 - IAM denial, limits, required audit failures and upstream failures preserve safe errors and usage accounting. The alias adds no access or budget reservation.
 - Explicitly document the local conflict restriction and native reasoning-model capability gap. See [contract](../contracts/client-output-limits.md).
 
+## Client temperature sampling
+
+- Both client paths and four adapters preserve valid bounds/fractions, omit defaults, and retain combined stop/output settings and configured direct caps.
+- Malformed values reject with required audit before routes. Source mutation during credential lookup cannot change outgoing temperature.
+- Direct Anthropic temperature above one fails without secret lookup/transport and with safe non-billable failed-attempt audit without a usage ledger entry. Model-specific upstream restrictions remain documented.
+- IAM, request limits, required audit failure and upstream failure retain existing safe responses and usage semantics. See [contract](../contracts/client-temperature.md).
+
 ## Client top_p sampling
 
 - Both chat paths and four real adapters preserve valid zero/one/fractional top_p and omit it when absent; malformed values reject before route/credential/transport work with required denial audit.

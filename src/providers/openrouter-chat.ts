@@ -2,6 +2,7 @@ import type { ChatRequest } from '../gateway/chat-handler.ts';
 import {
   resolveOutputTokenLimit,
   snapshotStopSequences,
+  validTemperature,
   validTopP,
 } from '../gateway/chat-parameters.ts';
 import { normalizeProviderUsage } from '../usage/normalize-provider-tokens.ts';
@@ -125,6 +126,8 @@ export function createOpenRouterChatInvoker(
   return async (attempt, request) => {
     const topP = request.top_p;
     if (!validTopP(topP)) fail('configuration');
+    const temperature = request.temperature;
+    if (!validTemperature(temperature)) fail('configuration');
     let maxTokens: number | undefined;
     try {
       maxTokens = resolveOutputTokenLimit(request.max_tokens, request.max_completion_tokens);
@@ -166,6 +169,7 @@ export function createOpenRouterChatInvoker(
           messages: request.messages,
           stream: false,
           ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
+          ...(temperature === undefined ? {} : { temperature }),
           ...(topP === undefined ? {} : { top_p: topP }),
           ...(stop === undefined ? {} : { stop }),
           provider: { only: attempt.authorizedProviderSlugs },
