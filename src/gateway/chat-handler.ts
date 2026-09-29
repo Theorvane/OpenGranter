@@ -33,7 +33,9 @@ import {
 import type { UsageRecord } from '../usage/record-usage.ts';
 import { type ChatMessage, snapshotChatMessages } from './chat-messages.ts';
 import {
+  type ResponseFormat,
   resolveOutputTokenLimit,
+  snapshotResponseFormat,
   snapshotStopSequences,
   validSingleChoice,
   validTemperature,
@@ -58,6 +60,7 @@ export interface ChatRequest {
   readonly max_completion_tokens?: number;
   readonly temperature?: number;
   readonly n?: 1;
+  readonly response_format?: ResponseFormat;
   readonly top_p?: number;
   readonly stop?: string | readonly string[] | null;
 }
@@ -307,6 +310,7 @@ function validateChat(value: unknown): ChatRequest | undefined {
           'temperature',
           'top_p',
           'n',
+          'response_format',
         ].includes(key),
     )
   ) {
@@ -319,7 +323,9 @@ function validateChat(value: unknown): ChatRequest | undefined {
   const topP = value.top_p ?? undefined;
   if (!validTopP(topP)) return undefined;
   let maxTokens: number | undefined;
+  let responseFormat: ResponseFormat | undefined;
   try {
+    responseFormat = snapshotResponseFormat(value.response_format);
     maxTokens = resolveOutputTokenLimit(value.max_tokens, value.max_completion_tokens);
   } catch {
     return undefined;
@@ -340,6 +346,7 @@ function validateChat(value: unknown): ChatRequest | undefined {
   return {
     model: value.model,
     messages,
+    ...(responseFormat === undefined ? {} : { response_format: responseFormat }),
     ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
     ...(temperature === undefined ? {} : { temperature }),
     ...(topP === undefined ? {} : { top_p: topP }),

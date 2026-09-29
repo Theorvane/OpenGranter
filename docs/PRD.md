@@ -201,3 +201,7 @@ OpenAI and delegated OpenRouter preserve optional refusal text/null and content_
 ### Gemini SAFETY completions
 
 Direct Gemini SAFETY prompt/singleton candidate blocks without output are compatible null-content/content_filter completions with existing usage accounting and no fallback. Contradictory/malformed block data remains safe failure. Other filtering/refusal mappings remain incomplete. See [contract](../contracts/gemini-safety.md).
+
+### Portable response formats
+
+Both client paths support exact text/json_object format controls. OpenAI/OpenRouter forward them; Gemini maps native MIME; direct Anthropic supports text only and rejects JSON before credential/transport. Native output generation is model-dependent; strict schemas and capability selection remain pending. See [contract](../contracts/client-response-formats.md).

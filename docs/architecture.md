@@ -394,3 +394,7 @@ OpenAI and OpenRouter share bounded assistant-output validation. Preserve string
 ### Gemini safety normalization
 
 Before normal text validation, bounded Gemini SAFETY prompt blocks without candidates and singleton SAFETY candidate blocks without content map to content_filter/null-content. Preserve alias and usage; metadata excludes provider feedback. Contradictory/populated/malformed data fails with possible billing. This is compatible response mapping, not IAM denial, and successful delivery does not invoke fallback. See [plan](plans/150-gemini-safety.md).
+
+### Response-format capture and mapping
+
+A shared pure snapshot validates and freezes the bounded format at HTTP and native adapter boundaries. OpenAI/OpenRouter forward it, Gemini maps native MIME, and Anthropic rejects JSON before credential resolution; text uses its default. Keep permission/limit/audit ordering and existing safe failures. No provider usage is fabricated for a pre-transport rejection. No prompt rewriting, output repair or capability-based route selection is introduced. See [plan](plans/154-response-formats.md).

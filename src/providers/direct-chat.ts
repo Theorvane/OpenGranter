@@ -2,6 +2,7 @@ import type { ChatRequest } from '../gateway/chat-handler.ts';
 import { type ChatMessage, snapshotChatMessages } from '../gateway/chat-messages.ts';
 import {
   resolveOutputTokenLimit,
+  snapshotResponseFormat,
   snapshotStopSequences,
   validSingleChoice,
   validTemperature,
@@ -241,6 +242,7 @@ function prepare(
   temperature: number | undefined,
   topP: number | undefined,
   n: 1 | undefined,
+  responseFormat: ReturnType<typeof snapshotResponseFormat>,
 ): { url: string; headers: Record<string, string>; body: object } {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
   const outputLimit =
@@ -257,6 +259,7 @@ function prepare(
         messages: inputMessages,
         stream: false,
         ...(n === undefined ? {} : { n }),
+        ...(responseFormat === undefined ? {} : { response_format: responseFormat }),
         ...(outputLimit === undefined ? {} : { max_tokens: outputLimit }),
         ...(temperature === undefined ? {} : { temperature }),
         ...(topP === undefined ? {} : { top_p: topP }),
@@ -309,10 +312,17 @@ function prepare(
       stop === undefined &&
       temperature === undefined &&
       topP === undefined &&
-      n === undefined
+      n === undefined &&
+      responseFormat === undefined
         ? {}
         : {
             generationConfig: {
+              ...(responseFormat === undefined
+                ? {}
+                : {
+                    responseMimeType:
+                      responseFormat.type === 'text' ? 'text/plain' : 'application/json',
+                  }),
               ...(n === undefined ? {} : { candidateCount: n }),
               ...(topP === undefined ? {} : { topP }),
               ...(temperature === undefined ? {} : { temperature }),
@@ -349,6 +359,13 @@ export function createDirectChatInvoker(
     const timeoutMs = configuredTimeout === undefined ? 30_000 : configuredTimeout;
     if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > 2_147_483_647)
       fail('other');
+    let responseFormat: ReturnType<typeof snapshotResponseFormat>;
+    try {
+      responseFormat = snapshotResponseFormat(request.response_format);
+    } catch {
+      fail('other');
+    }
+    if (registration.kind === 'anthropic' && responseFormat?.type === 'json_object') fail('other');
     const n = request.n;
     if (!validSingleChoice(n)) fail('other');
     const topP = request.top_p ?? undefined;
@@ -390,6 +407,7 @@ export function createDirectChatInvoker(
       temperature,
       topP,
       n,
+      responseFormat,
     );
     const timeout = AbortSignal.timeout(timeoutMs);
     let response: Response;

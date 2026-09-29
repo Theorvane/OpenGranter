@@ -2,6 +2,7 @@ import type { ChatRequest } from '../gateway/chat-handler.ts';
 import { type ChatMessage, snapshotChatMessages } from '../gateway/chat-messages.ts';
 import {
   resolveOutputTokenLimit,
+  snapshotResponseFormat,
   snapshotStopSequences,
   validSingleChoice,
   validTemperature,
@@ -129,6 +130,12 @@ export function createOpenRouterChatInvoker(
   ports: OpenRouterChatPorts,
 ): (attempt: OpenRouterChatAttempt, request: ChatRequest) => Promise<ChatCompletion> {
   return async (attempt, request) => {
+    let responseFormat: ReturnType<typeof snapshotResponseFormat>;
+    try {
+      responseFormat = snapshotResponseFormat(request.response_format);
+    } catch {
+      fail('configuration');
+    }
     const n = request.n;
     if (!validSingleChoice(n)) fail('configuration');
     const topP = request.top_p ?? undefined;
@@ -182,6 +189,7 @@ export function createOpenRouterChatInvoker(
           messages,
           stream: false,
           ...(n === undefined ? {} : { n }),
+          ...(responseFormat === undefined ? {} : { response_format: responseFormat }),
           ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
           ...(temperature === undefined ? {} : { temperature }),
           ...(topP === undefined ? {} : { top_p: topP }),
