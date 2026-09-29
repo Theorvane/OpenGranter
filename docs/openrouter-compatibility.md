@@ -105,3 +105,7 @@ Leading developer text instructions are supported with immutable capture. OpenAI
 ## Non-streaming refusal/filter response subset
 
 OpenAI and delegated OpenRouter preserve optional string/null refusal and content_filter, including null content only when refusal/filter signals justify it. SDK and both-prefix coverage retains security/accounting controls and safe malformed-response failures. Valid refusals are successful deliveries; metadata audit does not record their text. Native Anthropic/Gemini blocked outcomes, tool/stream workflows and complete response-schema coverage remain open. See [plan](plans/146-refusal-outcomes.md) and [contract](../contracts/refusal-outcomes.md).
+
+## Direct Gemini SAFETY subset
+
+Empty direct Gemini SAFETY prompt/candidate blocks map to null-content/content_filter with success-delivery accounting and no fallback. Both prefixes, actual SDK, usage/missing/invalid accounting, malformed-block and security gate cases are covered. Other native reasons, Anthropic refusals, populated block shapes and tool/stream workflows remain pending. See [plan](plans/150-gemini-safety.md) and [contract](../contracts/gemini-safety.md).
