@@ -50,3 +50,8 @@ export function validTopP(value: unknown): value is number | undefined {
     (typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1)
   );
 }
+
+/** The current response/accounting contract supports one choice only. */
+export function validSingleChoice(value: unknown): value is 1 | undefined {
+  return value === undefined || value === 1;
+}

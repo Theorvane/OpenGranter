@@ -15,7 +15,7 @@ For tools supporting a configurable OpenRouter/OpenAI-compatible endpoint:
 - Base URL: `https://<gateway-host>/api/v1` (existing `/v1` also remains available).
 - API key: the user's OpenGranter proxy token; provider keys stay server held.
 - Model: an administrator-published alias visible to that token. An OpenRouter-style alias such as `openai/example-model` must be explicitly published; arbitrary model IDs do not become eligible.
-- Current text-chat request: model plus string-content messages, optional stream false and positive-integer max_tokens or max_completion_tokens and optional stop (string or up to four strings), optional top_p (finite number in 0..1), and optional temperature (finite number in 0..2; direct Anthropic 0..1). Discovery uses GET models; chat uses POST chat/completions relative to the base.
+- Current text-chat request: model plus string-content messages, optional stream false, optional n=1 and positive-integer max_tokens or max_completion_tokens and optional stop (string or up to four strings), optional top_p (finite number in 0..1), and optional temperature (finite number in 0..2; direct Anthropic 0..1). Discovery uses GET models; chat uses POST chat/completions relative to the base.
 
 Tools with a hardcoded openrouter.ai host need a configurable endpoint or an integration change. Path aliases alone do not make tools needing streaming, function calls or advanced parameters work.
 
@@ -23,9 +23,9 @@ Tools with a hardcoded openrouter.ai host need a configurable endpoint or an int
 
 | Area | Current state | Remaining acceptance gate |
 | --- | --- | --- |
-| Base paths and Bearer token | /api/v1 chat/models aliases; shared proxy authorization | SDK and named external-tool registration tests |
+| Base paths and Bearer token | /api/v1 chat/models aliases; shared proxy authorization; pinned OpenAI SDK smoke tests | Streaming/tool SDK workflows and named external-tool registration tests |
 | Model discovery | Authorized alias IDs and basic model fields | Context window, capability, supported-parameter and price metadata from trusted catalog sources |
-| Non-streaming text chat | Text messages, one normalized text choice with max_tokens/max_completion_tokens and portable stop/top_p/temperature across four adapters | Remaining request/response schema, sampling and capability metadata |
+| Non-streaming text chat | Text messages, one normalized text choice with max_tokens/max_completion_tokens and portable stop/top_p/temperature/n=1 across four adapters | Remaining request/response schema, sampling and capability metadata |
 | Streaming | Not implemented | SSE framing, termination, usage, backpressure, cancellation, safe interruption/failure audit |
 | Tool calling | Not implemented | Tool definitions, choice, assistant tool calls, tool results and provider mappings |
 | Rich inputs and outputs | Not implemented | Content parts, modality/capability checks, structured output and reasoning handling |
@@ -73,3 +73,7 @@ Client temperature maps to native fields across four adapters with omission/capt
 ## top_p conformance
 
 The portable 0..1 top_p field maps across four adapters with omission, captured-value, combined-stop/output and security/accounting cases. Model-dependent sampling restrictions remain open, particularly current Anthropic restrictions; native mapping does not imply universal model support. See [contract](../contracts/client-top-p.md) and [plan](plans/128-client-top-p.md).
+
+## Single-choice and SDK smoke conformance
+
+Optional n=1 maps to the current one-choice contract across four adapters; other counts reject explicitly. Pinned development-only OpenAI SDK 7.23.0 exercises configured baseURL/proxy token, model discovery, text chat and safe failures on loopback gateway sockets. This is partial SDK coverage: streaming, tool workflows, official-schema drift, full response validation and named external applications remain open. See [plan](plans/134-single-choice-sdk.md) and [contract](../contracts/client-single-choice.md).

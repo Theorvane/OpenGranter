@@ -358,3 +358,7 @@ Shared scalar validation enforces the client 0..2 range and direct Anthropic 0..
 ## Client top_p capture and mapping
 
 Shared scalar validation protects HTTP and adapters; the primitive is captured before credential lookup. OpenRouter/OpenAI/Anthropic receive top_p, while Gemini receives generationConfig.topP together with existing output/stop settings. Omission adds no default. Trusted model capability negotiation remains pending; supplied values are never silently clamped. See [plan](plans/128-client-top-p.md).
+
+## Single-choice projection and SDK harness
+
+Shared literal validation captures n=1 before credentials. OpenRouter/OpenAI send n, Gemini sends generationConfig.candidateCount, and Anthropic retains its one-message native contract. Development-only SDK socket tests bind loopback, use explicit local baseURL/token and disable retries; fake upstreams preserve normal gateway IAM/audit/usage execution. See [plan](plans/134-single-choice-sdk.md).

@@ -345,3 +345,10 @@ Both chat paths support literal stop strings or dense arrays of up to four strin
 - Both chat paths and four real adapters preserve valid zero/one/fractional top_p and omit it when absent; malformed values reject before route/credential/transport work with required denial audit.
 - Mutation during credential resolution cannot change the outgoing primitive. Combining stop and output maxima retains all native settings and configured direct caps.
 - IAM denial, limits, required audit failures and upstream rejection retain safe errors and usage accounting. Model-specific limitations remain documented. See [contract](../contracts/client-top-p.md).
+
+## Single-choice SDK requests
+
+- Both paths and four adapters accept omitted/numeric n=1, reject malformed or unsupported counts before credentials/transport, and preserve captured count plus all native settings.
+- Actual pinned OpenAI SDK discovers authorized models and consumes one normalized text choice through local managed/delegated gateway sockets.
+- SDK-denied/failed calls preserve authentication, IAM, limits, required audit, safe request IDs and existing usage accounting without content/key exposure. No live upstream call occurs.
+- Streaming, tools, broader response conformance and named external-tool workflows remain release gaps. See [contract](../contracts/client-single-choice.md).
