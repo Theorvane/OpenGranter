@@ -189,3 +189,7 @@ Both chat paths accept user text-part arrays and normalize their ordered text in
 ## Developer instruction prefix
 
 The text subset accepts leading string-content developer instructions alongside system instructions. Four adapters preserve or explicitly translate them while authorization and accounting remain shared. See [plan](plans/142-developer-messages.md) and [contract](../contracts/client-developer-messages.md).
+
+### Instruction and history text arrays
+
+Both client prefixes accept exact text-only arrays on system/developer/user/assistant roles, normalized to literal strings for the existing four provider mappings. Leading instruction order, IAM and metadata secrecy remain enforced. Native block/cache semantics and mixed modalities are not implemented. See [contract](../contracts/client-user-text-parts.md).

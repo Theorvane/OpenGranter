@@ -382,3 +382,7 @@ HTTP message decoding concatenates validated user text parts without separators 
 ## Developer instruction prefix
 
 A shared pure message snapshot validates and copies text roles/content at gateway and adapter boundaries before async work. Native OpenAI/OpenRouter preserve roles; Anthropic/Gemini combine the leading instruction prefix in their native instruction field. Separate instruction priority and mid-conversation semantics remain unsupported. See [plan](plans/142-developer-messages.md) and [contract](../contracts/client-developer-messages.md).
+
+### Message text-part decoding
+
+HTTP text-part normalization applies to all supported roles before the shared immutable message validator. The validator retains exact message keys, supported roles and leading-only system/developer instructions. Provider adapters retain string contracts and existing instruction/history mapping; concatenation does not preserve native block/cache boundaries. See [plan](plans/148-message-text-parts.md).

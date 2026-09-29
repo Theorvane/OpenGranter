@@ -94,9 +94,10 @@ function httpFixture(
     limit?: boolean;
     audit?: boolean;
     fail?: boolean;
+    mutate?: () => void;
   } = {},
 ) {
-  const f = adapter(kind, undefined, undefined, options.fail);
+  const f = adapter(kind, undefined, options.mutate, options.fail);
   const audits: unknown[] = [];
   const usage: unknown[] = [];
   let routes = 0;
@@ -247,7 +248,7 @@ for (const kind of kinds) {
     }
   });
 }
-test('mixed/malformed/non-user parts reject before routing with safe denial audit', async () => {
+test('mixed/malformed/unsupported-role parts reject before routing with safe denial audit', async () => {
   const invalids: unknown[] = [
     [],
     [null],
@@ -274,8 +275,8 @@ test('mixed/malformed/non-user parts reject before routing with safe denial audi
   for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
     for (const [role, content] of [
       ...invalids.map((content) => ['user', content] as const),
-      ['assistant', textParts] as const,
-      ['system', textParts] as const,
+      ['tool', textParts] as const,
+      ['unknown', textParts] as const,
     ]) {
       const f = httpFixture('openrouter');
       const response = await f.handler(httpRequest(path, content, role));
@@ -315,5 +316,190 @@ test('user text arrays preserve safe failed-attempt audit and usage', async () =
     assert.equal(f.usage.length, 1);
     assert.doesNotMatch(await response.text(), /private first|fixture-key/u);
     assert.doesNotMatch(JSON.stringify(f.audits), /private first|fixture-key/u);
+  }
+});
+
+function conversation(parts = true) {
+  const encode = (text: string) =>
+    parts
+      ? [
+          { type: 'text', text: '' },
+          { type: 'text', text },
+          { type: 'text', text: ' Ω ' },
+        ]
+      : `${text} Ω `;
+  return {
+    ...input(),
+    messages: [
+      { role: 'system', content: encode('private system') },
+      { role: 'developer', content: encode('private developer') },
+      { role: 'user', content: encode('private user') },
+      { role: 'assistant', content: encode('private history') },
+      { role: 'user', content: encode('private followup') },
+    ],
+  };
+}
+function conversationRequest(path: string, payload: unknown = conversation()) {
+  return new Request(`http://localhost${path}`, {
+    method: 'POST',
+    headers: { authorization: 'Bearer fixture', 'content-type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+function assertConversation(kind: Kind, sent: Record<string, unknown> | undefined) {
+  assert.ok(sent);
+  const expected = conversation(false).messages;
+  const instructions = `${expected[0]?.content}\n${expected[1]?.content}`;
+  if (kind === 'google') {
+    assert.deepEqual(sent.systemInstruction, { parts: [{ text: instructions }] });
+    assert.deepEqual(
+      sent.contents,
+      expected.slice(2).map((message) => ({
+        role: message.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: message.content }],
+      })),
+    );
+  } else {
+    assert.deepEqual(sent.messages, kind === 'anthropic' ? expected.slice(2) : expected);
+    if (kind === 'anthropic') assert.equal(sent.system, instructions);
+  }
+  assert.equal(nativeLimit(kind, sent), 17);
+}
+for (const kind of kinds) {
+  test(`${kind}: all supported roles accept exact text arrays with literal string parity`, async () => {
+    for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
+      const f = httpFixture(kind);
+      for (const parts of [true, false]) {
+        assert.equal((await f.handler(conversationRequest(path, conversation(parts)))).status, 200);
+        assertConversation(kind, f.sent.at(-1));
+      }
+      assert.deepEqual(f.sent[0], f.sent[1]);
+      assert.equal(f.usage.length, 2);
+      assert.doesNotMatch(
+        JSON.stringify([f.audits, f.usage]),
+        /private system|private developer|private history|fixture-key/u,
+      );
+    }
+  });
+  test(`${kind}: actual SDK sends instruction and assistant-history arrays`, async () => {
+    const f = httpFixture(kind);
+    const server = createNodeRequestServer(f.handler);
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    try {
+      const address = server.address();
+      assert.ok(address && typeof address === 'object');
+      for (const base of ['/v1', '/api/v1']) {
+        const sdk = new OpenAI({
+          apiKey: 'fixture',
+          baseURL: `http://127.0.0.1:${address.port}${base}`,
+          maxRetries: 0,
+        });
+        const result = await sdk.chat.completions.create(
+          conversation() as OpenAI.ChatCompletionCreateParamsNonStreaming,
+        );
+        assert.equal(result.choices[0]?.message.content, 'reply');
+        assertConversation(kind, f.sent.at(-1));
+      }
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
+  });
+}
+test('normalized instruction/history arrays remain captured during credential resolution', async () => {
+  for (const kind of kinds) {
+    const payload = conversation();
+    const shared = payload.messages;
+    const f = httpFixture(kind, {
+      mutate: () => {
+        shared[0] = { role: 'user', content: 'private replaced' };
+        shared.splice(1);
+      },
+    });
+    const req = conversationRequest('/api/v1/chat/completions', payload);
+    Object.defineProperty(req, 'json', { value: async () => payload });
+    assert.equal((await f.handler(req)).status, 200);
+    assertConversation(kind, f.sent[0]);
+  }
+});
+test('instruction/history parts reject malformed content and late instructions before routing', async () => {
+  for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
+    for (const role of ['system', 'developer', 'assistant']) {
+      for (const content of [
+        [],
+        Array(2),
+        [null],
+        [{ type: 'text', text: 1 }],
+        [{ type: 'text', text: 'private invalid', cache_control: {} }],
+        [
+          { type: 'text', text: 'private invalid' },
+          { type: 'refusal', refusal: 'private refusal' },
+        ],
+        [{ type: 'image_url', image_url: { url: 'https://untrusted.test/private' } }],
+      ]) {
+        const f = httpFixture('openrouter');
+        const payload = {
+          ...input(),
+          messages: [
+            { role, content },
+            { role: 'user', content: 'hi' },
+          ],
+        };
+        assert.equal((await f.handler(conversationRequest(path, payload))).status, 400);
+        assert.equal(f.routes(), 0);
+        assert.equal(f.secrets(), 0);
+        assert.doesNotMatch(
+          JSON.stringify(f.audits),
+          /private invalid|private refusal|untrusted.test/u,
+        );
+      }
+    }
+    for (const role of ['system', 'developer']) {
+      const f = httpFixture('openrouter');
+      assert.equal(
+        (
+          await f.handler(
+            conversationRequest(path, {
+              ...input(),
+              messages: [
+                { role: 'user', content: 'hi' },
+                { role, content: textParts },
+              ],
+            }),
+          )
+        ).status,
+        400,
+      );
+      assert.equal(f.routes(), 0);
+      assert.equal(f.secrets(), 0);
+    }
+  }
+});
+test('instruction/history arrays retain denial and safe failed-attempt accounting', async () => {
+  for (const kind of kinds) {
+    for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
+      for (const [options, status] of [
+        [{ deny: true }, 403],
+        [{ explicitDeny: true }, 403],
+        [{ limit: true }, 429],
+        [{ audit: true }, 503],
+        [{ fail: true }, 502],
+      ] as const) {
+        const f = httpFixture(kind, options);
+        const response = await f.handler(conversationRequest(path));
+        assert.equal(response.status, status);
+        assert.equal(f.sent.length, options.fail ? 1 : 0);
+        assert.equal(f.usage.length, options.fail ? 1 : 0);
+        assert.doesNotMatch(
+          await response.text(),
+          /private system|private developer|private history|fixture-key/u,
+        );
+        assert.doesNotMatch(
+          JSON.stringify([f.audits, f.usage]),
+          /private system|private developer|private history|fixture-key/u,
+        );
+      }
+    }
   }
 });

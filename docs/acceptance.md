@@ -384,3 +384,10 @@ Four-provider HTTP/SDK cases verify user text-array concatenation through both p
 ## Developer instruction prefix
 
 Both chat paths and four adapters accept the developer instruction prefix, preserve ordering/native text and snapshot before secret lookup. Malformed or late instructions reject without credential/transport activity; IAM/limits/audit denials and upstream failures retain safe records. SDK cases verify the same public path. See [plan](plans/142-developer-messages.md) and [contract](../contracts/client-developer-messages.md).
+
+## Instruction and assistant-history text parts
+
+- Both client prefixes and the actual SDK deliver exact text arrays on system/developer/user/assistant as literal concatenated strings through four adapters; string parity and capture during credential awaits hold.
+- Empty/sparse/malformed/mixed/refusal arrays, unknown keys/roles and late instruction arrays reject before routing or secret resolution.
+- Implicit/explicit IAM Deny, limits and required audit prevent invocation; transport failures retain safe usage accounting. No content or credentials appear in metadata audit, usage or errors.
+- Native block/cache semantics, multimodal and tool/stream workflows remain open. See [contract](../contracts/client-user-text-parts.md).
