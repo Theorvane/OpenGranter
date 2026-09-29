@@ -390,3 +390,7 @@ HTTP text-part normalization applies to all supported roles before the shared im
 ### Refusal response normalization
 
 OpenAI and OpenRouter share bounded assistant-output validation. Preserve string/null content, optional string/null refusal and content_filter while retaining singleton validation and existing post-response failure accounting. Null content without a refusal/filter signal and malformed refusal fail safely. Delivered refusals do not trigger fallback; audit attempt success means delivery success. No refusal/content is copied into metadata audit or usage. See [plan](plans/146-refusal-outcomes.md) and [contract](../contracts/refusal-outcomes.md). Richer outcome metadata and native Anthropic/Gemini refusal mappings remain deferred.
+
+### Anthropic refusal normalization
+
+After content-array validation, explicit Anthropic refusal maps to the shared compatible filter envelope. Valid text blocks are discarded as incomplete output; malformed/mixed content remains safe failure with possible billing. Provider details are neither mapped to metadata nor used for model routing. Preserve usage without inferring a billing waiver or enabling automatic refusal fallback. See [plan](plans/152-anthropic-refusals.md).

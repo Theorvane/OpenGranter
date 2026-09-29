@@ -165,15 +165,27 @@ function normalize(
     );
   }
   if (kind === 'anthropic') {
+    const refusal = value.stop_reason === 'refusal';
     const blocks = items(value.content);
     if (
       !blocks ||
-      blocks.length === 0 ||
+      (!refusal && blocks.length === 0) ||
       blocks.some(
         (block) => record(block)?.type !== 'text' || typeof record(block)?.text !== 'string',
       )
     )
       fail('other');
+    if (refusal) {
+      return completion(
+        value.id,
+        undefined,
+        model,
+        null,
+        'content_filter',
+        normalizeProviderUsage(value.usage, ['input_tokens', 'output_tokens']),
+        { role: 'assistant', content: null, refusal: null },
+      );
+    }
     return completion(
       value.id,
       undefined,

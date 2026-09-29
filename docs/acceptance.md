@@ -398,3 +398,9 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - A valid refusal/filter response retains provider usage with one upstream invocation and no fallback. IAM implicit/explicit Deny, limits and required audit still block invocation.
 - Malformed refusal types, missing content and null content without nonempty refusal/filter signal produce safe 502 failures with possible billing recorded. Response/refusal text and credentials do not enter metadata audit, usage or errors.
 - Native Anthropic/Gemini refusal mappings, streaming and tool lifecycles remain incomplete. See [contract](../contracts/refusal-outcomes.md).
+
+## Native Anthropic refusals
+
+- Both prefixes and actual SDK receive content=null, refusal=null and finish_reason=content_filter for explicit empty/text-only refusal content. A configured fallback is not invoked after delivery.
+- Provider usage/missing/invalid accounting and normal text mappings remain effective; empty non-refusals and malformed/mixed/tool/thinking refusal content fail safely with possible billing.
+- IAM implicit/explicit Deny, limits and required audit block invocation. No incomplete text, stop_details or keys enter metadata audit, usage or errors. See [contract](../contracts/anthropic-refusals.md).
