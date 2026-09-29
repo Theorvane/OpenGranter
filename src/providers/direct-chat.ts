@@ -132,8 +132,10 @@ function normalize(
   const value = record(body);
   if (!value) fail('other');
   if (kind === 'openai') {
-    const first = record(items(value.choices)?.[0]);
-    const message = record(first?.message);
+    const choices = items(value.choices);
+    const first = record(choices?.[0]);
+    if (choices?.length !== 1 || first?.index !== 0) fail('other');
+    const message = record(first.message);
     if (message?.role !== 'assistant') fail('other');
     const finish =
       first?.finish_reason === 'stop'
@@ -173,7 +175,10 @@ function normalize(
       normalizeProviderUsage(value.usage, ['input_tokens', 'output_tokens']),
     );
   }
-  const first = record(items(value.candidates)?.[0]);
+  const candidates = items(value.candidates);
+  const first = record(candidates?.[0]);
+  if (candidates?.length !== 1 || !first || (first.index !== undefined && first.index !== 0))
+    fail('other');
   const parts = items(record(first?.content)?.parts);
   if (!parts || parts.length === 0 || parts.some((part) => typeof record(part)?.text !== 'string'))
     fail('other');
