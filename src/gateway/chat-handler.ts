@@ -45,6 +45,8 @@ import {
   createClientErrorResponse,
 } from './client-errors.ts';
 
+import { normalizeClientTextMessages } from './client-text-messages.ts';
+
 const MAX_BODY_BYTES = 1024 * 1024;
 
 export type { ChatMessage } from './chat-messages.ts';
@@ -331,7 +333,7 @@ function validateChat(value: unknown): ChatRequest | undefined {
   if (typeof value.model !== 'string' || !value.model) return undefined;
   let messages: readonly ChatMessage[];
   try {
-    messages = snapshotChatMessages(value.messages);
+    messages = snapshotChatMessages(normalizeClientTextMessages(value.messages));
   } catch {
     return undefined;
   }
