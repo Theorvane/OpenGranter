@@ -113,3 +113,7 @@ OpenAI and delegated OpenRouter preserve optional string/null refusal and conten
 ## Direct Anthropic refusal subset
 
 Explicit non-streaming Anthropic refusal with valid empty/text-only content maps to null-content/content_filter and refusal=null. Partial text and stop_details are not forwarded. Both prefixes, actual SDK, normal text parity, configured backup, usage/missing/invalid accounting and security gates are covered. Rich native blocks, provider billing-category projections, automatic refusal fallback and stream/tool workflows remain incomplete. See [plan](plans/152-anthropic-refusals.md) and [contract](../contracts/anthropic-refusals.md).
+
+## Direct Gemini SAFETY subset
+
+Empty direct Gemini SAFETY prompt/candidate blocks map to null-content/content_filter with success-delivery accounting and no fallback. Both prefixes, actual SDK, usage/missing/invalid accounting, malformed-block and security gate cases are covered. Other native reasons, Anthropic refusals, populated block shapes and tool/stream workflows remain pending. See [plan](plans/150-gemini-safety.md) and [contract](../contracts/gemini-safety.md).

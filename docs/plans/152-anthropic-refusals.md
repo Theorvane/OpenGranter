@@ -37,3 +37,8 @@
 - Green: same command: 6 passes.
 - `npm run check`: 720 passes, 1 optional external PostgreSQL integration skipped, 0 failures. Strict types, lint, document/link/contract/fixture checks and pinned schema integrity passed.
 - Touched-file Biome with warnings as errors and whitespace checks passed. This branch starts from approved main and does not include pending PR #151.
+
+### Approved Gemini integration
+
+- Integrated merged PR #151, preserving both native contracts and additive documentation sections. `npm run check`: 725 passes, 1 optional external PostgreSQL integration skipped, 0 failures; all gates passed.
+- Updated head awaits current CI/review. Original native Anthropic red/green behavior is unchanged.

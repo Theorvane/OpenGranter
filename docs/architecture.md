@@ -394,3 +394,7 @@ OpenAI and OpenRouter share bounded assistant-output validation. Preserve string
 ### Anthropic refusal normalization
 
 After content-array validation, explicit Anthropic refusal maps to the shared compatible filter envelope. Valid text blocks are discarded as incomplete output; malformed/mixed content remains safe failure with possible billing. Provider details are neither mapped to metadata nor used for model routing. Preserve usage without inferring a billing waiver or enabling automatic refusal fallback. See [plan](plans/152-anthropic-refusals.md).
+
+### Gemini safety normalization
+
+Before normal text validation, bounded Gemini SAFETY prompt blocks without candidates and singleton SAFETY candidate blocks without content map to content_filter/null-content. Preserve alias and usage; metadata excludes provider feedback. Contradictory/populated/malformed data fails with possible billing. This is compatible response mapping, not IAM denial, and successful delivery does not invoke fallback. See [plan](plans/150-gemini-safety.md).

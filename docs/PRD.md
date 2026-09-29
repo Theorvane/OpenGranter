@@ -201,3 +201,7 @@ OpenAI and delegated OpenRouter preserve optional refusal text/null and content_
 ### Native Anthropic refusals
 
 Direct non-streaming Anthropic refusal outcomes with empty/text-only content are delivered as null-content/content_filter with refusal=null. Discard incomplete text and keep stop_details outside the client envelope and metadata. Preserve existing usage/accounting and no fallback after delivery. See [contract](../contracts/anthropic-refusals.md).
+
+### Gemini SAFETY completions
+
+Direct Gemini SAFETY prompt/singleton candidate blocks without output are compatible null-content/content_filter completions with existing usage accounting and no fallback. Contradictory/malformed block data remains safe failure. Other filtering/refusal mappings remain incomplete. See [contract](../contracts/gemini-safety.md).

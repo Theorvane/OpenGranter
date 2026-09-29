@@ -199,10 +199,33 @@ function normalize(
       normalizeProviderUsage(value.usage, ['input_tokens', 'output_tokens']),
     );
   }
+  const googleUsage = normalizeProviderUsage(value.usageMetadata, [
+    'promptTokenCount',
+    'candidatesTokenCount',
+    'totalTokenCount',
+  ]);
   const candidates = items(value.candidates);
+  if (record(value.promptFeedback)?.blockReason === 'SAFETY') {
+    if (value.candidates !== undefined && candidates?.length !== 0) fail('other');
+    return completion(value.responseId, undefined, model, null, 'content_filter', googleUsage);
+  }
   const first = record(candidates?.[0]);
   if (candidates?.length !== 1 || !first || (first.index !== undefined && first.index !== 0))
     fail('other');
+  if (first.finishReason === 'SAFETY') {
+    if (first.content !== undefined) {
+      const content = record(first.content);
+      if (
+        !content ||
+        Object.keys(content).some((key) => key !== 'role' && key !== 'parts') ||
+        (content.role !== undefined && content.role !== 'model') ||
+        (content.parts !== undefined &&
+          (!Array.isArray(content.parts) || content.parts.length !== 0))
+      )
+        fail('other');
+    }
+    return completion(value.responseId, undefined, model, null, 'content_filter', googleUsage);
+  }
   const parts = items(record(first?.content)?.parts);
   if (!parts || parts.length === 0 || parts.some((part) => typeof record(part)?.text !== 'string'))
     fail('other');
@@ -216,11 +239,7 @@ function normalize(
       : first?.finishReason === 'STOP'
         ? 'stop'
         : null,
-    normalizeProviderUsage(value.usageMetadata, [
-      'promptTokenCount',
-      'candidatesTokenCount',
-      'totalTokenCount',
-    ]),
+    googleUsage,
   );
 }
 
