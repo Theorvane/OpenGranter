@@ -89,3 +89,8 @@ export function validTopK(value: unknown): value is number | undefined {
     value === undefined || (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0)
   );
 }
+
+/** Preserve only exactly representable integer seeds; omission uses provider defaults. */
+export function validSeed(value: unknown): value is number | undefined {
+  return value === undefined || (typeof value === 'number' && Number.isSafeInteger(value));
+}

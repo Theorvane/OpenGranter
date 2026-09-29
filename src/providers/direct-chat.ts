@@ -5,6 +5,7 @@ import {
   snapshotResponseFormat,
   snapshotStopSequences,
   validPenalty,
+  validSeed,
   validSingleChoice,
   validTemperature,
   validTopK,
@@ -260,6 +261,8 @@ function prepare(
   presencePenalty: number | undefined,
   responseFormat: ReturnType<typeof snapshotResponseFormat>,
   topK: number | undefined,
+
+  seed: number | undefined,
 ): { url: string; headers: Record<string, string>; body: object } {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
   const outputLimit =
@@ -276,6 +279,7 @@ function prepare(
         messages: inputMessages,
         stream: false,
         ...(n === undefined ? {} : { n }),
+        ...(seed === undefined ? {} : { seed }),
         ...(frequencyPenalty === undefined ? {} : { frequency_penalty: frequencyPenalty }),
         ...(presencePenalty === undefined ? {} : { presence_penalty: presencePenalty }),
         ...(responseFormat === undefined ? {} : { response_format: responseFormat }),
@@ -336,11 +340,13 @@ function prepare(
       frequencyPenalty === undefined &&
       presencePenalty === undefined &&
       responseFormat === undefined &&
-      topK === undefined
+      topK === undefined &&
+      seed === undefined
         ? {}
         : {
             generationConfig: {
               ...(topK === undefined ? {} : { topK }),
+              ...(seed === undefined ? {} : { seed }),
               ...(frequencyPenalty === undefined ? {} : { frequencyPenalty }),
               ...(presencePenalty === undefined ? {} : { presencePenalty }),
               ...(responseFormat === undefined
@@ -390,6 +396,14 @@ export function createDirectChatInvoker(
       !validTopK(topK) ||
       (topK !== undefined &&
         (registration.kind === 'openai' || (registration.kind === 'google' && topK > 2147483647)))
+    )
+      fail('other');
+    const seed = request.seed ?? undefined;
+    if (
+      !validSeed(seed) ||
+      (seed !== undefined &&
+        (registration.kind === 'anthropic' ||
+          (registration.kind === 'google' && (seed < -2147483648 || seed > 2147483647))))
     )
       fail('other');
     const frequencyPenalty = request.frequency_penalty ?? undefined;
@@ -453,6 +467,8 @@ export function createDirectChatInvoker(
       presencePenalty,
       responseFormat,
       topK,
+
+      seed,
     );
     const timeout = AbortSignal.timeout(timeoutMs);
     let response: Response;

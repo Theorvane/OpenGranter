@@ -38,3 +38,10 @@
 - First full gate found one obsolete gateway test asserting that valid top_k is unsupported. Replace that case with unknown min_p and negative top_k, retaining rejection coverage while the dedicated suite verifies success.
 - Updated full `npm run check`: 769 tests pass and 1 optional PostgreSQL integration is skipped locally. Typecheck, lint, planning/link/contract/fixture-secret and offline schema checks pass. Strict touched-file lint and diff whitespace validation pass.
 - Approved seed PR #161 is now merging; integration evidence follows below. Schema PR #159 remains separately reviewable.
+
+## Approved seed integration
+
+- PR #161 is merged. Resolve shared validator/native-preparation conflicts by retaining both seed and top_k capture, destination validation, argument order and Gemini generation settings.
+- Combined seed/top-k public-boundary suites: 28 tests pass. Updated full `npm run check`: 783 tests pass and 1 optional PostgreSQL integration is skipped locally; typecheck, lint, planning/link/contract/fixture-secret checks and offline schema integrity pass.
+- Strict touched-file lint and diff whitespace validation pass. Original evidence above is historical; merged seed support is included in this delivery.
+- Schema PR #159 is updated separately with current main and awaits its latest checks/review. No new capability policy or full-compatibility claim is introduced.

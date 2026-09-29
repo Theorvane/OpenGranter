@@ -128,3 +128,7 @@ Exact text/json_object controls are captured and mapped across both paths. OpenA
 ## Client top-k subset
 
 Nullable nonnegative safe-integer top_k preserves supplied values/defaults on both bases and SDK serialization. OpenRouter/Anthropic retain the external field; Gemini uses int32-bounded generationConfig.topK and direct OpenAI rejects supplied controls before secrets. Capture, settings-only configuration, malformed inputs and shared security/accounting are covered. Newer Anthropic and model-specific Gemini restrictions remain upstream/model dependent; capability routing, source-drift coverage and full tool/stream/client conformance remain incomplete. See [plan](plans/162-top-k.md) and [contract](../contracts/client-top-k.md).
+
+## Client seed subset
+
+Nullable safe-integer seed controls preserve omission defaults and values across both client bases and SDK requests. OpenAI/OpenRouter forward seed; Gemini generationConfig.seed is bounded by native signed int32, while Anthropic supplied seeds reject before credentials. Native capture, settings-only configuration and security/accounting paths are covered. Model-dependent support, deterministic output, provider fingerprint metadata and full client/tool/stream workflows remain open. Seed is not yet in the independent source-drift allowlist. See [plan](plans/160-client-seed.md) and [contract](../contracts/client-seed.md).

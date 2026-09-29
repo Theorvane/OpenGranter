@@ -435,3 +435,9 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Both compatible bases and SDK serialization preserve null/omission defaults and exact zero/positive safe integers across supported native mappings, retaining output-token, temperature, top_p, stop and text-format controls.
 - Invalid client inputs reject before routing; direct OpenAI controls and out-of-int32 Gemini values reject before credentials/transport with no fabricated usage record.
 - Native credential-await mutation cannot replace captured values. Gemini settings-only requests create generationConfig without other defaults. IAM implicit/explicit denial, limits and required audit still prevent provider calls; upstream failures preserve safe accounting.
+
+### Nullable client seed
+
+- Both base paths and actual SDK requests preserve omitted/null defaults and exact negative/zero/positive safe integer seeds on supported destinations, including existing output-format/sampling/token controls.
+- Malformed or unsafe integers reject before routing. Native adapters repeat validation, retain pre-await values and prevent unsupported Anthropic or out-of-int32 Gemini calls before credentials.
+- Gemini seed-only requests create generationConfig without other injected settings. IAM implicit/explicit denial, limits and required audit still prevent secrets and upstream usage; transport failures retain safe accounting.

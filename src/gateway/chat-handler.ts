@@ -38,6 +38,7 @@ import {
   snapshotResponseFormat,
   snapshotStopSequences,
   validPenalty,
+  validSeed,
   validSingleChoice,
   validTemperature,
   validTopK,
@@ -62,6 +63,7 @@ export interface ChatRequest {
   readonly max_completion_tokens?: number;
   readonly temperature?: number;
   readonly n?: 1;
+  readonly seed?: number;
   readonly frequency_penalty?: number;
   readonly presence_penalty?: number;
   readonly response_format?: ResponseFormat;
@@ -316,6 +318,7 @@ function validateChat(value: unknown): ChatRequest | undefined {
           'top_p',
           'top_k',
           'n',
+          'seed',
           'frequency_penalty',
           'presence_penalty',
           'response_format',
@@ -325,6 +328,8 @@ function validateChat(value: unknown): ChatRequest | undefined {
     return undefined;
   }
   if (value.stream !== undefined && value.stream !== false) return undefined;
+  const seed = value.seed ?? undefined;
+  if (!validSeed(seed)) return undefined;
   const temperature = value.temperature ?? undefined;
   if (!validTemperature(temperature)) return undefined;
   if (!validSingleChoice(value.n)) return undefined;
@@ -359,6 +364,7 @@ function validateChat(value: unknown): ChatRequest | undefined {
   return {
     model: value.model,
     messages,
+    ...(seed === undefined ? {} : { seed }),
     ...(frequencyPenalty === undefined ? {} : { frequency_penalty: frequencyPenalty }),
     ...(presencePenalty === undefined ? {} : { presence_penalty: presencePenalty }),
     ...(responseFormat === undefined ? {} : { response_format: responseFormat }),

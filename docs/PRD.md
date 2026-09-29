@@ -217,3 +217,7 @@ Both client paths support exact text/json_object format controls. OpenAI/OpenRou
 ### Nullable top-k sampling
 
 Both chat prefixes accept nullable nonnegative safe-integer top_k. OpenRouter/Anthropic preserve supplied values, Gemini maps native topK with int32 bounds, and direct OpenAI rejects supplied values before credentials. Omission preserves defaults; model-dependent support remains explicit. See [contract](../contracts/client-top-k.md).
+
+### Client seed controls
+
+Both compatible chat paths support nullable safe-integer seed values. OpenAI/OpenRouter preserve them, Gemini applies native int32 bounds and Anthropic rejects supplied seeds before credentials. Omission keeps native defaults. Reproducibility and per-model support are not guaranteed. See [contract](../contracts/client-seed.md).
