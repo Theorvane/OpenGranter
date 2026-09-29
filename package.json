@@ -11,7 +11,9 @@
     "lint": "biome check src test scripts package.json tsconfig.json biome.json",
     "format": "biome check --write src test scripts package.json tsconfig.json biome.json",
     "test": "node --experimental-strip-types --test test/*.test.ts",
-    "check": "npm run typecheck && npm run lint && npm test && python3 scripts/check.py"
+    "check": "npm run typecheck && npm run lint && npm test && python3 scripts/check.py && npm run compatibility:check",
+    "compatibility:check": "node --experimental-strip-types scripts/check-openrouter-schema.ts",
+    "compatibility:drift": "node --experimental-strip-types scripts/check-openrouter-schema.ts --live"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",
