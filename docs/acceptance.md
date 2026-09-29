@@ -345,3 +345,10 @@ Both chat paths support literal stop strings or dense arrays of up to four strin
 - Both chat paths and four real adapters preserve valid zero/one/fractional top_p and omit it when absent; malformed values reject before route/credential/transport work with required denial audit.
 - Mutation during credential resolution cannot change the outgoing primitive. Combining stop and output maxima retains all native settings and configured direct caps.
 - IAM denial, limits, required audit failures and upstream rejection retain safe errors and usage accounting. Model-specific limitations remain documented. See [contract](../contracts/client-top-p.md).
+
+## Typed compatible errors
+
+- Every compatible local error reason includes the documented fixed error_type and preserves status, message, local reason and request ID. Legacy /v1 shape remains identical.
+- Node internal fallback uses server without exception content; errors, audits and histories do not acquire raw upstream data, prompts or keys.
+- Query text and numeric envelope selection do not expand endpoint eligibility. History reasons are validated through the serializer without adding history aliases.
+- Unknown provider causes remain unmapped and do not invent retryability. See [contract](../contracts/openrouter-error-schema.md).

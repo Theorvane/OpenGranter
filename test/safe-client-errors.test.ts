@@ -2,25 +2,26 @@ import assert from 'node:assert/strict';
 import type { AddressInfo } from 'node:net';
 import { test } from 'node:test';
 import { createChatHandler } from '../src/gateway/chat-handler.ts';
+import { type ClientErrorCode, createClientErrorResponse } from '../src/gateway/client-errors.ts';
 import { createNodeRequestServer } from '../src/gateway/node-request-server.ts';
 import { OpenRouterChatFailure } from '../src/providers/openrouter-chat.ts';
 
 const privateMarker = 'private-content-key-fixture';
 const cases = [
-  ['not_found', 404, 'Requested endpoint was not found.'],
-  ['unauthorized', 401, 'Authentication is required.'],
-  ['authentication_unavailable', 503, 'Authentication is temporarily unavailable.'],
-  ['invalid_request', 400, 'Invalid request.'],
-  ['forbidden', 403, 'Access is denied.'],
-  ['audit_history_unavailable', 503, 'Audit history is temporarily unavailable.'],
-  ['usage_unavailable', 503, 'Usage data is temporarily unavailable.'],
-  ['catalog_unavailable', 503, 'Model catalog is temporarily unavailable.'],
-  ['route_unavailable', 503, 'Model routing is temporarily unavailable.'],
-  ['unknown_model', 404, 'Requested model was not found.'],
-  ['limit_exceeded', 429, 'Request limit exceeded.'],
-  ['credential_unavailable', 503, 'Upstream credentials are temporarily unavailable.'],
-  ['upstream_failed', 502, 'Upstream model request failed.'],
-  ['audit_unavailable', 503, 'Required audit recording is temporarily unavailable.'],
+  ['not_found', 404, 'Requested endpoint was not found.', 'not_found'],
+  ['unauthorized', 401, 'Authentication is required.', 'authentication'],
+  ['authentication_unavailable', 503, 'Authentication is temporarily unavailable.', 'server'],
+  ['invalid_request', 400, 'Invalid request.', 'invalid_request'],
+  ['forbidden', 403, 'Access is denied.', 'permission_denied'],
+  ['audit_history_unavailable', 503, 'Audit history is temporarily unavailable.', 'server'],
+  ['usage_unavailable', 503, 'Usage data is temporarily unavailable.', 'server'],
+  ['catalog_unavailable', 503, 'Model catalog is temporarily unavailable.', 'server'],
+  ['route_unavailable', 503, 'Model routing is temporarily unavailable.', 'server'],
+  ['unknown_model', 404, 'Requested model was not found.', 'not_found'],
+  ['limit_exceeded', 429, 'Request limit exceeded.', 'rate_limit_exceeded'],
+  ['credential_unavailable', 503, 'Upstream credentials are temporarily unavailable.', 'server'],
+  ['upstream_failed', 502, 'Upstream model request failed.', 'unmapped'],
+  ['audit_unavailable', 503, 'Required audit recording is temporarily unavailable.', 'server'],
 ] as const;
 function fixture(code: string) {
   const audits: unknown[] = [];
@@ -84,7 +85,7 @@ function fixture(code: string) {
   });
   return { handler, audits };
 }
-for (const [code, status, message] of cases) {
+for (const [code, status, message, errorType] of cases) {
   test(`${code} has a fixed safe display message`, async () => {
     for (const base of ['/v1', '/api/v1']) {
       const endpoint =
@@ -120,7 +121,7 @@ for (const [code, status, message] of cases) {
       assert.equal(text.includes(privateMarker), false);
       assert.deepEqual(JSON.parse(text), {
         error: path.startsWith('/api/v1/')
-          ? { code: status, message, metadata: { opengranter_code: code } }
+          ? { code: status, message, metadata: { opengranter_code: code, error_type: errorType } }
           : { code, message },
         request_id: 'request',
       });
@@ -155,7 +156,7 @@ test('Node pre-header fallback supplies a fixed internal message without excepti
           ? {
               code: 500,
               message: 'Internal server error.',
-              metadata: { opengranter_code: 'internal_error' },
+              metadata: { opengranter_code: 'internal_error', error_type: 'server' },
             }
           : { code: 'internal_error', message: 'Internal server error.' },
       });
@@ -187,7 +188,28 @@ test('error format selection does not expand paths and ignores query text', asyn
     assert.equal(data.error.code, path.startsWith('/api/v1/') ? status : reason);
     assert.deepEqual(
       data.error.metadata,
-      path.startsWith('/api/v1/') ? { opengranter_code: reason } : undefined,
+      path.startsWith('/api/v1/') ? { opengranter_code: reason, error_type: reason } : undefined,
     );
+  }
+});
+
+test('public serializer classifies all local reasons without changing legacy envelopes', async () => {
+  const complete: readonly (readonly [ClientErrorCode, number, string, string])[] = [
+    ...cases,
+    ['internal_error', 500, 'Internal server error.', 'server'],
+  ];
+  for (const [code, status, message, errorType] of complete) {
+    for (const format of ['opengranter', 'openrouter'] as const) {
+      const response = createClientErrorResponse(status, code, 'request', format);
+      assert.equal(response.status, status);
+      assert.equal(response.headers.get('x-request-id'), 'request');
+      assert.deepEqual(await response.json(), {
+        error:
+          format === 'openrouter'
+            ? { code: status, message, metadata: { opengranter_code: code, error_type: errorType } }
+            : { code, message },
+        request_id: 'request',
+      });
+    }
   }
 });
