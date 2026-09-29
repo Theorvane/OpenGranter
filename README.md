@@ -33,7 +33,7 @@ npm ci
 npm run check
 ```
 
-The command checks TypeScript types, formatting, linting, policy and route-authorization contract tests, document links, contract structure, and common credential patterns in fixtures. More service tests will be added as implementation proceeds.
+The command checks TypeScript types, formatting, linting, policy and route-authorization contract tests, document links, contract structure, and common credential patterns in fixtures. The gate also validates the pinned OpenRouter request-schema projection offline. More service tests will be added as implementation proceeds.
 
 
 ## PostgreSQL integration checks
@@ -47,3 +47,10 @@ OPENGRANTER_TEST_DATABASE_URL=postgresql://postgres@127.0.0.1:5432/postgres npm 
 Use only a disposable database; the integration test creates a uniquely named schema, applies the migrations there, and removes it afterward. The example assumes a localhost test database configured without a password. Never use that authentication configuration for production. Without the explicit test URL, the real PostgreSQL integration test skips; unit and embedded database tests still run.
 
 `createPostgresConnection` in `src/storage/postgres-connection.ts` accepts trusted node-postgres configuration and returns query, transaction, and close ports. Pass it to the PostgreSQL gateway factory and migration runner; it does not run migrations or start HTTP automatically. Close HTTP before awaiting database `close()` so active requests can finish. See [driver ownership](docs/architecture.md#postgresql-driver-ownership) for failure handling and deployment responsibilities.
+
+
+## OpenRouter schema drift
+
+`npm run compatibility:check` validates the reviewed request-schema pin without network access and is included in `npm run check`. Run `npm run compatibility:drift` explicitly to compare selected structural fields against the official public schema; it performs no inference, sends no credentials, and does not update the pin. Review differences through an issue and pull request before updating provenance and contract expectations.
+
+This covers selected request definitions, not full schema validation, referenced definitions, streaming, tools or named external-client certification. See [coverage and limitations](contracts/openrouter-schema-drift.md).

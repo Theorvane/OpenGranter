@@ -359,3 +359,9 @@ Both chat paths support literal stop strings or dense arrays of up to four strin
 - Node internal fallback uses server without exception content; errors, audits and histories do not acquire raw upstream data, prompts or keys.
 - Query text and numeric envelope selection do not expand endpoint eligibility. History reasons are validated through the serializer without adding history aliases.
 - Unknown provider causes remain unmapped and do not invent retryability. See [contract](../contracts/openrouter-error-schema.md).
+
+## Official request schema drift
+
+- Offline validation rejects corrupted pins and records fixed official provenance. Explicit network checks compare selected request constraints with bounded time/bytes and no credentials or redirects.
+- Type, required-field and request-reference changes fail; editorial/unrelated changes do not. Transport/malformed/oversized/time failures do not expose source content.
+- Referenced schemas, full request/response instance validation and streaming/tool/client gates remain open. See [contract](../contracts/openrouter-schema-drift.md).
