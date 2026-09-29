@@ -229,3 +229,7 @@ Both chat bases accept optional string names on the four supported text roles. O
 ### Referenced name drift subset
 
 The version-3 official schema pin tracks name constraints and name-required status for four supported text-message definitions. This quality gate changes no runtime API or security controls and does not certify full message/client conformance. See [plan](plans/168-message-name-schema.md).
+
+### Unsupported invocation output
+
+Before complete tool workflows ship, OpenAI/OpenRouter tool-bearing responses fail explicitly rather than dropping invocation semantics and reporting text success. No-invocation defaults retain existing text outcomes. See [plan](plans/172-unsupported-tool-output.md).

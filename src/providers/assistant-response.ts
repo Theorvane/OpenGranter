@@ -9,6 +9,16 @@ export function normalizeAssistantResponse(
   finish: unknown,
 ): AssistantResponse | undefined {
   if (value?.role !== 'assistant') return undefined;
+  const toolCalls = value.tool_calls;
+  if (
+    finish === 'tool_calls' ||
+    finish === 'function_call' ||
+    (toolCalls !== undefined &&
+      toolCalls !== null &&
+      (!Array.isArray(toolCalls) || toolCalls.length !== 0)) ||
+    (value.function_call !== undefined && value.function_call !== null)
+  )
+    return undefined;
   const hasRefusal = Object.hasOwn(value, 'refusal');
   const refusal = value.refusal;
   if (hasRefusal && refusal !== null && typeof refusal !== 'string') return undefined;

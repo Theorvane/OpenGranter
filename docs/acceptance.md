@@ -467,3 +467,10 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Reject missing/malformed names, message containers, required lists and stale/rehashed malformed message maps with fixed diagnostics.
 - Ignore annotations and unrelated message fields; retain thirteen request fields and two selected format definitions.
 - Preserve credential-free bounded fixed-host retrieval, runtime IAM/usage/audit semantics and the explicit limits of structural subset coverage. See [plan](plans/168-message-name-schema.md).
+
+### Unsupported upstream invocation responses
+
+- Reject populated/malformed tool_calls, non-null function_call and tool finish reasons through both OpenAI/OpenRouter paths and actual SDK bases.
+- Preserve ordinary text/refusal/filter outcomes with omitted/null/empty modern fields and omitted/null legacy fields.
+- Keep possibly-billed failure accounting and prevent function names/arguments/content in errors or metadata; IAM, limits and audit denials never call upstream.
+- Full tool workflows remain open under #116. See [plan](plans/172-unsupported-tool-output.md).

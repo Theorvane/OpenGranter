@@ -422,3 +422,7 @@ The existing HTTP text-array normalization retains message keys; the shared snap
 ### Selected message-name schema projection
 
 The version-3 projector selects four message definitions and captures only their structural name properties and name-required booleans. Exact map validation rejects stale/rehashed malformed pins; fixed-host bounded fetching and safe diagnostics remain unchanged. Other message fields and full reference traversal are unimplemented. See [plan](plans/168-message-name-schema.md).
+
+### Text-only response invocation guard
+
+The shared assistant normalizer rejects populated/malformed modern tool fields, non-null legacy calls and invocation finish reasons before content normalization. Existing adapters translate rejection into safe post-response failure/accounting. No input-tool or native mapping change is made. See [contract](../contracts/unsupported-tool-output.md).
