@@ -429,3 +429,9 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Given supported OpenAI/OpenRouter/Gemini routes, when an SDK sends text/json_object response format with frequency and presence penalties through either client base path, then all supplied controls reach the native payload and normal usage accounting remains effective.
 - Credential resolution must not permit caller mutations to replace any validated format or penalty.
 - Direct Anthropic text format with null/omitted penalties succeeds; JSON format or supplied non-null penalties fail before credentials with no provider usage record.
+
+### Nullable client seed
+
+- Both base paths and actual SDK requests preserve omitted/null defaults and exact negative/zero/positive safe integer seeds on supported destinations, including existing output-format/sampling/token controls.
+- Malformed or unsafe integers reject before routing. Native adapters repeat validation, retain pre-await values and prevent unsupported Anthropic or out-of-int32 Gemini calls before credentials.
+- Gemini seed-only requests create generationConfig without other injected settings. IAM implicit/explicit denial, limits and required audit still prevent secrets and upstream usage; transport failures retain safe accounting.

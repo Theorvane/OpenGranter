@@ -82,3 +82,8 @@ export function snapshotResponseFormat(value: unknown): ResponseFormat | undefin
     throw new TypeError('Invalid response format');
   return Object.freeze({ type: format.type });
 }
+
+/** Preserve only exactly representable integer seeds; omission uses provider defaults. */
+export function validSeed(value: unknown): value is number | undefined {
+  return value === undefined || (typeof value === 'number' && Number.isSafeInteger(value));
+}
