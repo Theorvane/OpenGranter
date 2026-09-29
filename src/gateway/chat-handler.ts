@@ -44,6 +44,8 @@ import {
   createClientErrorResponse,
 } from './client-errors.ts';
 
+import { normalizeClientTextMessages } from './client-text-messages.ts';
+
 const MAX_BODY_BYTES = 1024 * 1024;
 
 export interface ChatMessage {
@@ -333,10 +335,15 @@ function validateChat(value: unknown): ChatRequest | undefined {
   if (typeof value.model !== 'string' || !value.model || !Array.isArray(value.messages)) {
     return undefined;
   }
-  if (value.messages.length === 0) return undefined;
+  let clientMessages: readonly Record<string, unknown>[];
+  try {
+    clientMessages = normalizeClientTextMessages(value.messages);
+  } catch {
+    return undefined;
+  }
   const messages: ChatMessage[] = [];
   let nonSystemSeen = false;
-  for (const item of value.messages) {
+  for (const item of clientMessages) {
     if (!isRecord(item) || Object.keys(item).some((key) => !['role', 'content'].includes(key))) {
       return undefined;
     }

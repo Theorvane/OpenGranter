@@ -93,3 +93,7 @@ The four nullable token/sampling controls now enter the existing omission path a
 ## Upstream single-choice conformance
 
 OpenAI/OpenRouter/Gemini normalize only a validated native singleton rather than truncating alternatives. OpenAI/OpenRouter index must be 0; optional Gemini index is validated. Anthropic multi-block text remains one message. Safe post-response failure accounting remains effective. Multichoice and complete response conformance remain open. See [contract](../contracts/upstream-single-choice.md) and [plan](plans/136-upstream-choice-count.md).
+
+## User text content parts
+
+User text-only content arrays are normalized to strings across both external paths and four providers. Native block/cache boundaries are not retained; other-role arrays, mixed modalities, tools and streaming remain open. See [plan](plans/144-user-text-parts.md) and [contract](../contracts/client-user-text-parts.md).

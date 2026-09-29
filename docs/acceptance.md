@@ -376,3 +376,7 @@ Both chat paths and four adapters normalize optional null token/sampling control
 - Extra/sparse/empty/malformed alternatives and wrong indices fail safely without content disclosure or silent truncation.
 - Failed response validation retains possibly-billed failed-attempt usage and audit through managed/delegated paths; IAM, limits and required audit still prevent unauthorized transport.
 - Anthropic multi-text-block messages remain supported. See [contract](../contracts/upstream-single-choice.md).
+
+## User text content parts
+
+Four-provider HTTP/SDK cases verify user text-array concatenation through both paths, string parity and combined controls. Malformed/mixed/non-user arrays reject before routes with safe audit; IAM/limits/audit denial and failed-attempt usage remain intact. See [plan](plans/144-user-text-parts.md) and [contract](../contracts/client-user-text-parts.md).
