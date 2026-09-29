@@ -410,3 +410,10 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Both prefixes and actual SDK receive null-content/content_filter for documented empty SAFETY blocks. Usage is preserved or marked missing/invalid; a configured fallback is not invoked after delivery.
 - Multi-candidates, bad indexes, populated/malformed content, contradictory prompt block/candidates and empty no-signal responses fail safely with possible billing. Other native reasons remain deferred.
 - IAM implicit/explicit Deny, limits and required audit prevent upstream calls. No feedback/content/keys enter metadata audit, usage or errors. See [contract](../contracts/gemini-safety.md).
+
+## Portable response formats
+
+- Both prefixes and actual SDK map text/JSON on supported adapters with omission parity and immutable capture during credentials; combined controls remain intact.
+- Malformed/null/extra-key/unsupported formats reject before routing; native invalid formats reject before secrets. Anthropic JSON fails before secret/transport, with possiblyBilled=false and no fabricated usage row.
+- IAM/limits/required audit continue to block invocation. Upstream failures retain safe usage accounting and no content/key exposure.
+- Model-dependent native generation, JSON schemas, Anthropic JSON and capability-aware selection remain incomplete. See [contract](../contracts/client-response-formats.md).
