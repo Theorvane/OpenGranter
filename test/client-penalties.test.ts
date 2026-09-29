@@ -347,3 +347,89 @@ test('penalties retain safe failed-provider audit and usage', async () => {
     assert.doesNotMatch(JSON.stringify([f.audits, f.usage]), /private prompt|fixture-key/u);
   }
 });
+
+test('combined response format and penalty controls survive both HTTP paths and SDK serialization', async () => {
+  for (const kind of ['openai', 'google', 'openrouter'] as const) {
+    const f = httpFixture(kind);
+    const server = createNodeRequestServer(f.handler);
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    try {
+      const address = server.address();
+      assert.ok(address && typeof address === 'object');
+      for (const base of ['/v1', '/api/v1'])
+        for (const type of ['text', 'json_object'] as const) {
+          const fields = {
+            frequency_penalty: -0.25,
+            presence_penalty: 0,
+            response_format: { type },
+          };
+          const sdk = new OpenAI({
+            apiKey: 'fixture',
+            baseURL: `http://127.0.0.1:${address.port}${base}`,
+            maxRetries: 0,
+          });
+          const result = await sdk.chat.completions.create(
+            input(fields) as OpenAI.ChatCompletionCreateParamsNonStreaming,
+          );
+          assert.equal(result.choices[0]?.message.content, 'reply');
+          const sent = f.sent.at(-1);
+          assert.ok(sent);
+          assertMapping(kind, sent, fields);
+          if (kind === 'google') {
+            assert.equal(
+              (sent.generationConfig as Record<string, unknown>).responseMimeType,
+              type === 'text' ? 'text/plain' : 'application/json',
+            );
+          } else assert.deepEqual(sent?.response_format, { type });
+        }
+      assert.equal(f.usage.length, 4);
+      assert.doesNotMatch(JSON.stringify([f.audits, f.usage]), /private prompt|fixture-key/u);
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
+  }
+});
+
+test('combined native format and penalties are captured before credential awaits', async () => {
+  for (const kind of ['openai', 'google', 'openrouter'] as const) {
+    const format = { type: 'json_object' };
+    const payload: Record<string, unknown> = input({
+      response_format: format,
+      frequency_penalty: 0.5,
+      presence_penalty: -1,
+    });
+    const f = adapter(kind, undefined, () => {
+      format.type = 'text';
+      payload.frequency_penalty = -2;
+      payload.presence_penalty = 2;
+    });
+    await f.call(payload as unknown as ChatRequest);
+    const sent = f.sent[0];
+    assert.ok(sent);
+    assertMapping(kind, sent, { frequency_penalty: 0.5, presence_penalty: -1 });
+    if (kind === 'google')
+      assert.equal(
+        (sent.generationConfig as Record<string, unknown>).responseMimeType,
+        'application/json',
+      );
+    else assert.deepEqual(f.sent[0]?.response_format, { type: 'json_object' });
+  }
+});
+
+test('Anthropic combined controls preserve null omission and reject unsupported semantics before secrets', async () => {
+  for (const path of ['/v1/chat/completions', '/api/v1/chat/completions'])
+    for (const [fields, status] of [
+      [{ response_format: { type: 'text' }, frequency_penalty: null, presence_penalty: null }, 200],
+      [{ response_format: { type: 'text' }, frequency_penalty: 0 }, 502],
+      [{ response_format: { type: 'text' }, presence_penalty: 0 }, 502],
+      [{ response_format: { type: 'json_object' }, frequency_penalty: null }, 502],
+    ] as const) {
+      const f = httpFixture('anthropic');
+      assert.equal((await f.handler(request(path, fields))).status, status);
+      assert.equal(f.secrets(), status === 200 ? 1 : 0);
+      assert.equal(f.sent.length, status === 200 ? 1 : 0);
+      assert.equal(f.usage.length, status === 200 ? 1 : 0);
+    }
+});

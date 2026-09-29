@@ -63,3 +63,22 @@ export function validPenalty(value: unknown): value is number | undefined {
     (typeof value === 'number' && Number.isFinite(value) && value >= -2 && value <= 2)
   );
 }
+
+export interface ResponseFormat {
+  readonly type: 'text' | 'json_object';
+}
+/** Capture the bounded output format without retaining mutable caller objects. */
+export function snapshotResponseFormat(value: unknown): ResponseFormat | undefined {
+  if (value === undefined) return undefined;
+  if (!value || typeof value !== 'object' || Array.isArray(value))
+    throw new TypeError('Invalid response format');
+  const format = value as Record<string, unknown>;
+  const keys = Object.keys(format);
+  if (
+    keys.length !== 1 ||
+    keys[0] !== 'type' ||
+    (format.type !== 'text' && format.type !== 'json_object')
+  )
+    throw new TypeError('Invalid response format');
+  return Object.freeze({ type: format.type });
+}

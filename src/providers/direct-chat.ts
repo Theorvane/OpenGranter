@@ -2,6 +2,7 @@ import type { ChatRequest } from '../gateway/chat-handler.ts';
 import { type ChatMessage, snapshotChatMessages } from '../gateway/chat-messages.ts';
 import {
   resolveOutputTokenLimit,
+  snapshotResponseFormat,
   snapshotStopSequences,
   validPenalty,
   validSingleChoice,
@@ -256,6 +257,7 @@ function prepare(
   n: 1 | undefined,
   frequencyPenalty: number | undefined,
   presencePenalty: number | undefined,
+  responseFormat: ReturnType<typeof snapshotResponseFormat>,
 ): { url: string; headers: Record<string, string>; body: object } {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
   const outputLimit =
@@ -274,6 +276,7 @@ function prepare(
         ...(n === undefined ? {} : { n }),
         ...(frequencyPenalty === undefined ? {} : { frequency_penalty: frequencyPenalty }),
         ...(presencePenalty === undefined ? {} : { presence_penalty: presencePenalty }),
+        ...(responseFormat === undefined ? {} : { response_format: responseFormat }),
         ...(outputLimit === undefined ? {} : { max_tokens: outputLimit }),
         ...(temperature === undefined ? {} : { temperature }),
         ...(topP === undefined ? {} : { top_p: topP }),
@@ -328,12 +331,19 @@ function prepare(
       topP === undefined &&
       n === undefined &&
       frequencyPenalty === undefined &&
-      presencePenalty === undefined
+      presencePenalty === undefined &&
+      responseFormat === undefined
         ? {}
         : {
             generationConfig: {
               ...(frequencyPenalty === undefined ? {} : { frequencyPenalty }),
               ...(presencePenalty === undefined ? {} : { presencePenalty }),
+              ...(responseFormat === undefined
+                ? {}
+                : {
+                    responseMimeType:
+                      responseFormat.type === 'text' ? 'text/plain' : 'application/json',
+                  }),
               ...(n === undefined ? {} : { candidateCount: n }),
               ...(topP === undefined ? {} : { topP }),
               ...(temperature === undefined ? {} : { temperature }),
@@ -379,6 +389,13 @@ export function createDirectChatInvoker(
         (frequencyPenalty !== undefined || presencePenalty !== undefined))
     )
       fail('other');
+    let responseFormat: ReturnType<typeof snapshotResponseFormat>;
+    try {
+      responseFormat = snapshotResponseFormat(request.response_format);
+    } catch {
+      fail('other');
+    }
+    if (registration.kind === 'anthropic' && responseFormat?.type === 'json_object') fail('other');
     const n = request.n;
     if (!validSingleChoice(n)) fail('other');
     const topP = request.top_p ?? undefined;
@@ -422,6 +439,7 @@ export function createDirectChatInvoker(
       n,
       frequencyPenalty,
       presencePenalty,
+      responseFormat,
     );
     const timeout = AbortSignal.timeout(timeoutMs);
     let response: Response;

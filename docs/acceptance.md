@@ -416,3 +416,16 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Both prefixes and SDK preserve independent/combined negative/zero/positive values, null/omission defaults and native field mapping. Google penalty-only calls create only requested generation settings.
 - Malformed HTTP values reject before routes; native invalid/nonfinite values and unsupported Anthropic controls reject before secrets. Scalar capture prevents secret-await mutations from changing native payloads.
 - IAM, limits and required audit block invocation; provider failures preserve safe usage and metadata. Model-dependent support and capability selection remain pending. See [contract](../contracts/client-penalties.md).
+
+## Portable response formats
+
+- Both prefixes and actual SDK map text/JSON on supported adapters with omission parity and immutable capture during credentials; combined controls remain intact.
+- Malformed/null/extra-key/unsupported formats reject before routing; native invalid formats reject before secrets. Anthropic JSON fails before secret/transport, with possiblyBilled=false and no fabricated usage row.
+- IAM/limits/required audit continue to block invocation. Upstream failures retain safe usage accounting and no content/key exposure.
+- Model-dependent native generation, JSON schemas, Anthropic JSON and capability-aware selection remain incomplete. See [contract](../contracts/client-response-formats.md).
+
+### Combined format and penalty controls
+
+- Given supported OpenAI/OpenRouter/Gemini routes, when an SDK sends text/json_object response format with frequency and presence penalties through either client base path, then all supplied controls reach the native payload and normal usage accounting remains effective.
+- Credential resolution must not permit caller mutations to replace any validated format or penalty.
+- Direct Anthropic text format with null/omitted penalties succeeds; JSON format or supplied non-null penalties fail before credentials with no provider usage record.

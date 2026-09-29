@@ -38,3 +38,12 @@
 - Full gate: `npm run check` passes with 739 tests passing and 1 optional PostgreSQL integration test skipped locally. Type checking, linting, planning/link/contract/fixture-secret checks and pinned OpenRouter schema integrity pass.
 - Touched-file lint with warnings treated as errors and `git diff --check` pass.
 - This branch includes merged Anthropic refusal PR #153. Response-format PR #155 remains independently reviewable and is not included; cross-control integration must be validated when both changes merge.
+
+## Approved response-format integration
+
+- PR #155 is now merged. Resolve shared HTTP validation and adapter serialization conflicts by retaining both response_format and the penalty controls.
+- The original red/green evidence remains the implementation basis. Additional combined tests check actual SDK serialization on both base paths, native credential-await capture and Anthropic null/default versus unsupported-control behavior.
+- Focused format/penalty validation: 30 tests pass (17 penalty tests, 13 response-format tests). Full integrated validation is recorded below once complete.
+- Earlier statements that PR #155 is independently pending describe the original delivery; this integration supersedes them. Model-specific support, strict schemas, native Anthropic JSON/penalties, capability-aware routing and full external-client workflows remain open.
+
+- Integrated full gate: `npm run check` passes with 755 tests passing and 1 optional PostgreSQL integration test skipped locally. Typecheck, lint, planning/link/contract/fixture-secret validation and pinned OpenRouter schema integrity pass. Touched-file lint with warnings as errors and diff whitespace validation also pass.

@@ -209,3 +209,7 @@ Direct Gemini SAFETY prompt/singleton candidate blocks without output are compat
 ### Portable frequency and presence penalties
 
 Both client paths accept nullable penalty controls in [-2,2]. OpenAI/OpenRouter forward them and Gemini maps native fields; direct Anthropic rejects supplied non-null controls before credentials/transport. Preserve omission defaults and exact zero/negative values. Per-model capabilities remain pending. See [contract](../contracts/client-penalties.md).
+
+### Portable response formats
+
+Both client paths support exact text/json_object format controls. OpenAI/OpenRouter forward them; Gemini maps native MIME; direct Anthropic supports text only and rejects JSON before credential/transport. Native output generation is model-dependent; strict schemas and capability selection remain pending. See [contract](../contracts/client-response-formats.md).
