@@ -85,3 +85,7 @@ Fixed metadata.error_type is available alongside numeric codes and local reasons
 ## Official request schema drift coverage
 
 A provenance-checked structural pin covers eight source-declared chat request fields, required fields and request reference/document versions. The offline gate checks integrity; an explicit fixed-host network command detects selected structural drift without auto-updating the pin. Referenced definitions and full schema instance validation remain uncovered. The retrieved ChatRequest does not declare n; local n=1 is SDK support. Official nullable fields and optional model are broader than the current local subset. See [plan](plans/138-openrouter-schema-drift.md) and [contract](../contracts/openrouter-schema-drift.md).
+
+## Upstream single-choice conformance
+
+OpenAI/OpenRouter/Gemini normalize only a validated native singleton rather than truncating alternatives. OpenAI/OpenRouter index must be 0; optional Gemini index is validated. Anthropic multi-block text remains one message. Safe post-response failure accounting remains effective. Multichoice and complete response conformance remain open. See [contract](../contracts/upstream-single-choice.md) and [plan](plans/136-upstream-choice-count.md).

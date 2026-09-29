@@ -74,7 +74,11 @@ test('PostgreSQL socket gateway authenticates, invokes a registered adapter, and
           id: 'completion',
           created: 1000,
           choices: [
-            { message: { role: 'assistant', content: 'private response' }, finish_reason: 'stop' },
+            {
+              index: 0,
+              message: { role: 'assistant', content: 'private response' },
+              finish_reason: 'stop',
+            },
           ],
           usage: { prompt_tokens: 2, completion_tokens: 3, total_tokens: 5 },
         });

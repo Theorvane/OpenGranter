@@ -75,7 +75,9 @@ for (const kind of ['openai', 'anthropic', 'google'] as const) {
       const responseBody =
         kind === 'openai'
           ? {
-              choices: [{ message: { role: 'assistant', content: 'Hi' }, finish_reason: 'stop' }],
+              choices: [
+                { index: 0, message: { role: 'assistant', content: 'Hi' }, finish_reason: 'stop' },
+              ],
               usage: {
                 prompt_tokens: values.p,
                 completion_tokens: values.c,

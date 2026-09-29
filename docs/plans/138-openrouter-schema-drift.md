@@ -38,3 +38,9 @@
 - Green: all eleven cases pass, including integrity/projection, structural drift, ignored editorial changes, safe download failures/deadline and CLI success/rejection. CLI subprocess tests require process execution; the initial restricted sandbox run denied child creation, and the permitted run passed.
 - Focused Biome with `--error-on-warnings`, strict TypeScript and diff checks passed. The explicit live drift command matched the selected definitions from the official source.
 - `npm run check` passed: 640 tests pass, one optional external PostgreSQL case skipped, type/lint/planning/contract/fixture gates pass and the new offline integrity check passes. No keys or inference calls were involved.
+
+## Reviewed-main integration
+
+- Resolve appended acceptance/compatibility documentation conflicts after PR #137 while preserving official-schema drift and upstream single-choice requirements. The conflict resolution changes only documentation; reviewed provider validation is integrated from main.
+- Run the full integrated gate and refresh CI before merge; reviewer approval remains required.
+- Integrated npm run check passed: 649 tests pass, one optional external PostgreSQL case skipped, all type/lint/document checks and offline pin integrity pass.

@@ -365,3 +365,10 @@ Both chat paths support literal stop strings or dense arrays of up to four strin
 - Offline validation rejects corrupted pins and records fixed official provenance. Explicit network checks compare selected request constraints with bounded time/bytes and no credentials or redirects.
 - Type, required-field and request-reference changes fail; editorial/unrelated changes do not. Transport/malformed/oversized/time failures do not expose source content.
 - Referenced schemas, full request/response instance validation and streaming/tool/client gates remain open. See [contract](../contracts/openrouter-schema-drift.md).
+
+## Upstream single-choice responses
+
+- Valid native singleton responses normalize unchanged; OpenAI/OpenRouter index is 0 and optional Gemini index is either omitted or 0.
+- Extra/sparse/empty/malformed alternatives and wrong indices fail safely without content disclosure or silent truncation.
+- Failed response validation retains possibly-billed failed-attempt usage and audit through managed/delegated paths; IAM, limits and required audit still prevent unauthorized transport.
+- Anthropic multi-text-block messages remain supported. See [contract](../contracts/upstream-single-choice.md).
