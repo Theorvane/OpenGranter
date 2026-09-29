@@ -38,3 +38,8 @@
 - Green: same command: 5 passes; both prefixes, actual SDK, known/missing/invalid usage, configured fallback, malformed/contradictory data and security gates.
 - `npm run check`: 708 passes, 1 optional external PostgreSQL integration skipped, 0 failures. Typecheck, lint, document/link/contract/fixture checks and pinned schema integrity passed.
 - Touched-file Biome with warnings as errors and whitespace checks passed. Lost pre-restart runs are not used as verification evidence.
+
+### Final approved-main integration
+
+- Integrated merged PR #149 without conflicts. `npm run check`: 719 passes, 1 optional external PostgreSQL integration skipped, 0 failures; all type/lint/document/schema gates passed.
+- The earlier 708-pass run remains the standalone branch evidence; 719 is the final combined baseline for review.
