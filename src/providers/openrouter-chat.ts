@@ -97,6 +97,7 @@ function normalize(
   attempt: OpenRouterChatAttempt,
 ): ChatCompletion {
   const value = record(body);
+  const fingerprint = value?.system_fingerprint;
   const choices = Array.isArray(value?.choices) ? value.choices : undefined;
   const first = record(choices?.[0]);
   const message = normalizeAssistantResponse(record(first?.message), first?.finish_reason);
@@ -107,7 +108,8 @@ function normalize(
     count(value.created) === undefined ||
     value.model !== attempt.upstreamModelId ||
     first?.index !== 0 ||
-    !message
+    !message ||
+    (fingerprint !== undefined && fingerprint !== null && typeof fingerprint !== 'string')
   )
     fail('upstream', true, true);
 
@@ -120,6 +122,7 @@ function normalize(
     object: 'chat.completion',
     created: value.created as number,
     model: request.model,
+    ...(fingerprint === undefined ? {} : { system_fingerprint: fingerprint }),
     choices: [{ index: 0, message, finish_reason: finish }],
     ...(stats ? { usage: stats } : {}),
   };

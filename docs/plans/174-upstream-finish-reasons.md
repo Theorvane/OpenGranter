@@ -35,3 +35,8 @@
 - Green: all eight new HTTP/SDK/denial/accounting tests pass. Combined registration/regression coverage passes 11 tests.
 - The first full run found a historical registration-mutation success fixture missing finish_reason. Add a valid stop reason there; the new missing-field denial regression remains unchanged. Format the fixture with the configured formatter.
 - Final npm run check passes: 830 tests pass, one optional external PostgreSQL test skips. Type checking, lint, planning validation and pinned integrity pass; local PGlite tests run. Git diff whitespace checks pass.
+
+### Fingerprint main integration
+
+- Integrated merged fingerprint PR #171 from main. Resolve the direct-normalizer conflict by preserving both validated finish reasons and fingerprint forwarding; keep both document sections.
+- Integrated npm run check passes: 840 tests pass, one optional external PostgreSQL test skips; all other gates pass. Updated-head CI and review remain required.
