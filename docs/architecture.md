@@ -423,6 +423,10 @@ The existing HTTP text-array normalization retains message keys; the shared snap
 
 The version-3 projector selects four message definitions and captures only their structural name properties and name-required booleans. Exact map validation rejects stale/rehashed malformed pins; fixed-host bounded fetching and safe diagnostics remain unchanged. Other message fields and full reference traversal are unimplemented. See [plan](plans/168-message-name-schema.md).
 
+### Backend fingerprint normalization
+
+OpenAI/OpenRouter normalizers validate and preserve the optional string/null upstream field; malformed values fail through existing post-response accounting. Fingerprints never enter metadata audit or principal decisions, and native adapters never synthesize them. See [contract](../contracts/system-fingerprint.md).
+
 ### Text-only response invocation guard
 
 The shared assistant normalizer rejects populated/malformed modern tool fields, non-null legacy calls and invocation finish reasons before content normalization. Existing adapters translate rejection into safe post-response failure/accounting. No input-tool or native mapping change is made. See [contract](../contracts/unsupported-tool-output.md).

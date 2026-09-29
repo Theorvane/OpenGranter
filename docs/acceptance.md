@@ -468,6 +468,13 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Ignore annotations and unrelated message fields; retain thirteen request fields and two selected format definitions.
 - Preserve credential-free bounded fixed-host retrieval, runtime IAM/usage/audit semantics and the explicit limits of structural subset coverage. See [plan](plans/168-message-name-schema.md).
 
+### Non-streaming system fingerprints
+
+- Preserve omitted/string/null fingerprints on both OpenAI/OpenRouter client prefixes, normal/refusal/filter responses and installed SDK bases.
+- Reject malformed upstream types safely after the response with failed-attempt accounting and no fingerprint/content leakage.
+- Deny IAM, limit and audit failures before transport; do not synthesize native Anthropic/Gemini fingerprints.
+- Full response/stream conformance and deterministic behavior remain open. See [plan](plans/170-system-fingerprint.md).
+
 ### Unsupported upstream invocation responses
 
 - Reject populated/malformed tool_calls, non-null function_call and tool finish reasons through both OpenAI/OpenRouter paths and actual SDK bases.

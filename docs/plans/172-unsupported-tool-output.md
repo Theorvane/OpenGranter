@@ -34,3 +34,8 @@
 - Green: all eight new tests pass across both compatible paths and SDK bases; empty/null defaults, shared denial gates and possibly-billed failure accounting remain covered.
 - Final npm run check passes: 830 tests pass, one optional external PostgreSQL test skips. Type checking, lint, planning validation and pin integrity pass; local PGlite tests run. Git diff whitespace checks pass.
 - This branch starts from main containing merged schema PR #169; pending fingerprint PR #171 is independently integrated and verified there with 832 passing tests.
+
+### Fingerprint main integration
+
+- Integrated merged fingerprint PR #171 from main and preserved both English document sections without changing the invocation guard.
+- Integrated npm run check passes: 840 tests pass, one optional external PostgreSQL test skips; type checking, lint, planning validation and pinned integrity pass. Updated-head CI/review remain required.
