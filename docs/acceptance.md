@@ -398,3 +398,9 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - A valid refusal/filter response retains provider usage with one upstream invocation and no fallback. IAM implicit/explicit Deny, limits and required audit still block invocation.
 - Malformed refusal types, missing content and null content without nonempty refusal/filter signal produce safe 502 failures with possible billing recorded. Response/refusal text and credentials do not enter metadata audit, usage or errors.
 - Native Anthropic/Gemini refusal mappings, streaming and tool lifecycles remain incomplete. See [contract](../contracts/refusal-outcomes.md).
+
+## Gemini SAFETY completions
+
+- Both prefixes and actual SDK receive null-content/content_filter for documented empty SAFETY blocks. Usage is preserved or marked missing/invalid; a configured fallback is not invoked after delivery.
+- Multi-candidates, bad indexes, populated/malformed content, contradictory prompt block/candidates and empty no-signal responses fail safely with possible billing. Other native reasons remain deferred.
+- IAM implicit/explicit Deny, limits and required audit prevent upstream calls. No feedback/content/keys enter metadata audit, usage or errors. See [contract](../contracts/gemini-safety.md).
