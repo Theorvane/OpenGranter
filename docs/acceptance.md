@@ -424,6 +424,12 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - IAM/limits/required audit continue to block invocation. Upstream failures retain safe usage accounting and no content/key exposure.
 - Model-dependent native generation, JSON schemas, Anthropic JSON and capability-aware selection remain incomplete. See [contract](../contracts/client-response-formats.md).
 
+### Supported-format schema drift
+
+- The selected official projection includes all eleven declared request fields plus the exact text/json_object format definitions; changing a selected field or either supported definition must fail comparison even if request references are unchanged.
+- Annotation-only or unrelated-definition changes do not produce drift. Missing/malformed selected definitions and rehashed malformed definition maps fail safely; stale version-1 pins reject.
+- Offline checks never download a source or rewrite pins; explicit live comparison retains the fixed official host and bounded credential-free transport. Other referenced definitions and full instance/response/tool/stream conformance remain open.
+
 ### Combined format and penalty controls
 
 - Given supported OpenAI/OpenRouter/Gemini routes, when an SDK sends text/json_object response format with frequency and presence penalties through either client base path, then all supplied controls reach the native payload and normal usage accounting remains effective.

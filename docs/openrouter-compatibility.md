@@ -84,7 +84,7 @@ Fixed metadata.error_type is available alongside numeric codes and local reasons
 
 ## Official request schema drift coverage
 
-A provenance-checked structural pin covers eight source-declared chat request fields, required fields and request reference/document versions. The offline gate checks integrity; an explicit fixed-host network command detects selected structural drift without auto-updating the pin. Referenced definitions and full schema instance validation remain uncovered. The retrieved ChatRequest does not declare n; local n=1 is SDK support. The four nullable token/sampling controls are supported; optional model and other broader source behaviors remain gaps. See [plan](plans/138-openrouter-schema-drift.md) and [contract](../contracts/openrouter-schema-drift.md).
+A provenance-checked structural pin covers eleven source-declared chat request fields and the two supported text/json_object format definitions, required fields and request reference/document versions. The offline gate checks integrity; an explicit fixed-host network command detects selected structural drift without auto-updating the pin. Other referenced definitions and full schema instance validation remain uncovered. Version-2 pin integrity rejects stale or malformed definition maps. The retrieved ChatRequest does not declare n; local n=1 is SDK support. The four nullable token/sampling controls are supported; optional model and other broader source behaviors remain gaps. See [plan](plans/138-openrouter-schema-drift.md) and [contract](../contracts/openrouter-schema-drift.md).
 
 ## Nullable optional chat controls
 
