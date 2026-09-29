@@ -414,3 +414,7 @@ HTTP and native boundaries normalize null to omission and validate/capture nonne
 ### Seed capture and native ranges
 
 Validate safe integers and normalize null to omission at HTTP and native boundaries; capture the scalar before credential awaits. OpenAI/OpenRouter forward seed, Gemini creates/extends generationConfig with a signed int32 seed, and unsupported Anthropic or Gemini ranges fail before secret/transport without fabricated usage. Existing IAM, limits, audit and fallback scope remain shared. No capability-aware candidate selection or deterministic-output guarantee is added. See [plan](plans/160-client-seed.md).
+
+### Immutable speaker-name protocol data
+
+The existing HTTP text-array normalization retains message keys; the shared snapshot now validates and freezes optional string name alongside role/content. OpenAI/OpenRouter emit the captured fields unchanged. Direct Anthropic/Gemini reject supplied names before secret resolution rather than rewriting text or silently discarding speaker semantics. Authorization, limits and audit/usage attribution still use the authenticated principal exclusively. Names remain outside metadata audit/error output. See [plan](plans/166-message-names.md).

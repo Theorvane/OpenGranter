@@ -443,6 +443,8 @@ export function createDirectChatInvoker(
     let messages: readonly ChatMessage[];
     try {
       messages = snapshotChatMessages(request.messages);
+      if (registration.kind !== 'openai' && messages.some((message) => message.name !== undefined))
+        fail('other');
     } catch {
       fail('other');
     }

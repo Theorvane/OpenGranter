@@ -1,6 +1,7 @@
 export interface ChatMessage {
   readonly role: 'system' | 'developer' | 'user' | 'assistant';
   readonly content: string;
+  readonly name?: string;
 }
 
 /** Capture the portable text protocol before callers can mutate an async request. */
@@ -13,20 +14,21 @@ export function snapshotChatMessages(value: unknown): readonly ChatMessage[] {
       !item ||
       typeof item !== 'object' ||
       Array.isArray(item) ||
-      Object.keys(item).some((key) => key !== 'role' && key !== 'content')
+      Object.keys(item).some((key) => key !== 'role' && key !== 'content' && key !== 'name')
     ) {
       throw new TypeError('Invalid chat messages');
     }
-    const { role, content } = item as Record<string, unknown>;
+    const { role, content, name } = item as Record<string, unknown>;
     if (
       (role !== 'system' && role !== 'developer' && role !== 'user' && role !== 'assistant') ||
-      typeof content !== 'string'
+      typeof content !== 'string' ||
+      (name !== undefined && typeof name !== 'string')
     )
       throw new TypeError('Invalid chat messages');
     const instruction = role === 'system' || role === 'developer';
     if (instruction && conversationSeen) throw new TypeError('Invalid chat messages');
     if (!instruction) conversationSeen = true;
-    messages.push(Object.freeze({ role, content }));
+    messages.push(Object.freeze({ role, content, ...(name === undefined ? {} : { name }) }));
   }
   return Object.freeze(messages);
 }

@@ -453,3 +453,10 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - The exact thirteen-field source projection detects integer, nullability and structural-constraint changes to seed/top_k, and missing/malformed selected fields fail safely.
 - Recomputed integrity hashes do not permit stale, extra or malformed selected-field maps. Annotation-only changes remain ignored.
 - Explicit live comparison preserves bounded credential-free fixed-host fetching and never rewrites the pin. Runtime model support, native provider schemas and full instance/response/tool/stream/client conformance remain separate requirements.
+
+### Optional message names
+
+- Both compatible bases and actual SDK requests preserve optional names on system/developer/user/assistant text messages for OpenAI/OpenRouter, including text-array normalization and exact empty/space/Unicode values.
+- Null/non-string names, unknown message keys and late instructions reject before routing. Direct Anthropic/Gemini supplied names reject before credentials/transport with no provider usage row.
+- Credential-await mutation cannot replace captured name/content. Caller names cannot grant privileges, select a principal or alter limit/audit/usage attribution; metadata/errors never expose names or message text.
+- Existing IAM denial, limits, required audit and safe failed-provider accounting remain effective.
