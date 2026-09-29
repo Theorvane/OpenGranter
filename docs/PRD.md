@@ -205,3 +205,7 @@ Direct non-streaming Anthropic refusal outcomes with empty/text-only content are
 ### Gemini SAFETY completions
 
 Direct Gemini SAFETY prompt/singleton candidate blocks without output are compatible null-content/content_filter completions with existing usage accounting and no fallback. Contradictory/malformed block data remains safe failure. Other filtering/refusal mappings remain incomplete. See [contract](../contracts/gemini-safety.md).
+
+### Portable frequency and presence penalties
+
+Both client paths accept nullable penalty controls in [-2,2]. OpenAI/OpenRouter forward them and Gemini maps native fields; direct Anthropic rejects supplied non-null controls before credentials/transport. Preserve omission defaults and exact zero/negative values. Per-model capabilities remain pending. See [contract](../contracts/client-penalties.md).

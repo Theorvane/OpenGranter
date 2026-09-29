@@ -398,3 +398,7 @@ After content-array validation, explicit Anthropic refusal maps to the shared co
 ### Gemini safety normalization
 
 Before normal text validation, bounded Gemini SAFETY prompt blocks without candidates and singleton SAFETY candidate blocks without content map to content_filter/null-content. Preserve alias and usage; metadata excludes provider feedback. Contradictory/populated/malformed data fails with possible billing. This is compatible response mapping, not IAM denial, and successful delivery does not invoke fallback. See [plan](plans/150-gemini-safety.md).
+
+### Penalty control capture and mapping
+
+HTTP and native adapters normalize null to omission, validate finite penalty ranges and capture scalars before awaits. OpenAI/OpenRouter retain external names; Gemini emits native generation fields even without other settings. Direct Anthropic rejects any supplied non-null control, including zero, without secret/transport or a fabricated provider usage row. IAM/limits/audit and existing controls remain shared; capability routing is unchanged. See [plan](plans/156-penalty-controls.md).

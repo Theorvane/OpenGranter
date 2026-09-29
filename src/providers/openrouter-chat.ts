@@ -3,6 +3,7 @@ import { type ChatMessage, snapshotChatMessages } from '../gateway/chat-messages
 import {
   resolveOutputTokenLimit,
   snapshotStopSequences,
+  validPenalty,
   validSingleChoice,
   validTemperature,
   validTopP,
@@ -129,6 +130,9 @@ export function createOpenRouterChatInvoker(
   ports: OpenRouterChatPorts,
 ): (attempt: OpenRouterChatAttempt, request: ChatRequest) => Promise<ChatCompletion> {
   return async (attempt, request) => {
+    const frequencyPenalty = request.frequency_penalty ?? undefined;
+    const presencePenalty = request.presence_penalty ?? undefined;
+    if (!validPenalty(frequencyPenalty) || !validPenalty(presencePenalty)) fail('configuration');
     const n = request.n;
     if (!validSingleChoice(n)) fail('configuration');
     const topP = request.top_p ?? undefined;
@@ -182,6 +186,8 @@ export function createOpenRouterChatInvoker(
           messages,
           stream: false,
           ...(n === undefined ? {} : { n }),
+          ...(frequencyPenalty === undefined ? {} : { frequency_penalty: frequencyPenalty }),
+          ...(presencePenalty === undefined ? {} : { presence_penalty: presencePenalty }),
           ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
           ...(temperature === undefined ? {} : { temperature }),
           ...(topP === undefined ? {} : { top_p: topP }),

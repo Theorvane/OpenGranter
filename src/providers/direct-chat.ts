@@ -3,6 +3,7 @@ import { type ChatMessage, snapshotChatMessages } from '../gateway/chat-messages
 import {
   resolveOutputTokenLimit,
   snapshotStopSequences,
+  validPenalty,
   validSingleChoice,
   validTemperature,
   validTopP,
@@ -253,6 +254,8 @@ function prepare(
   temperature: number | undefined,
   topP: number | undefined,
   n: 1 | undefined,
+  frequencyPenalty: number | undefined,
+  presencePenalty: number | undefined,
 ): { url: string; headers: Record<string, string>; body: object } {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
   const outputLimit =
@@ -269,6 +272,8 @@ function prepare(
         messages: inputMessages,
         stream: false,
         ...(n === undefined ? {} : { n }),
+        ...(frequencyPenalty === undefined ? {} : { frequency_penalty: frequencyPenalty }),
+        ...(presencePenalty === undefined ? {} : { presence_penalty: presencePenalty }),
         ...(outputLimit === undefined ? {} : { max_tokens: outputLimit }),
         ...(temperature === undefined ? {} : { temperature }),
         ...(topP === undefined ? {} : { top_p: topP }),
@@ -321,10 +326,14 @@ function prepare(
       stop === undefined &&
       temperature === undefined &&
       topP === undefined &&
-      n === undefined
+      n === undefined &&
+      frequencyPenalty === undefined &&
+      presencePenalty === undefined
         ? {}
         : {
             generationConfig: {
+              ...(frequencyPenalty === undefined ? {} : { frequencyPenalty }),
+              ...(presencePenalty === undefined ? {} : { presencePenalty }),
               ...(n === undefined ? {} : { candidateCount: n }),
               ...(topP === undefined ? {} : { topP }),
               ...(temperature === undefined ? {} : { temperature }),
@@ -360,6 +369,15 @@ export function createDirectChatInvoker(
     const configuredTimeout = ports.timeoutMs;
     const timeoutMs = configuredTimeout === undefined ? 30_000 : configuredTimeout;
     if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > 2_147_483_647)
+      fail('other');
+    const frequencyPenalty = request.frequency_penalty ?? undefined;
+    const presencePenalty = request.presence_penalty ?? undefined;
+    if (
+      !validPenalty(frequencyPenalty) ||
+      !validPenalty(presencePenalty) ||
+      (registration.kind === 'anthropic' &&
+        (frequencyPenalty !== undefined || presencePenalty !== undefined))
+    )
       fail('other');
     const n = request.n;
     if (!validSingleChoice(n)) fail('other');
@@ -402,6 +420,8 @@ export function createDirectChatInvoker(
       temperature,
       topP,
       n,
+      frequencyPenalty,
+      presencePenalty,
     );
     const timeout = AbortSignal.timeout(timeoutMs);
     let response: Response;
