@@ -225,3 +225,7 @@ Both compatible chat paths support nullable safe-integer seed values. OpenAI/Ope
 ### Named text messages
 
 Both chat bases accept optional string names on the four supported text roles. OpenAI/OpenRouter preserve names; native Anthropic/Gemini reject supplied names before credentials. Names never override authenticated identity, IAM or usage/audit attribution. Provider-specific named-message semantics and full tool/stream workflows remain open. See [contract](../contracts/client-message-names.md).
+
+### Non-streaming backend fingerprints
+
+Compatible OpenAI/OpenRouter responses retain optional string/null system_fingerprint so clients can observe upstream backend changes. No identity or deterministic-output guarantee follows from it. Native Anthropic/Gemini omit the field. See [plan](plans/170-system-fingerprint.md).

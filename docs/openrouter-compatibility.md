@@ -140,3 +140,7 @@ The thirteen-field source projection includes seed/top_k integer/nullability str
 ## Optional text speaker names
 
 String name is supported on all four existing text roles and normalized text arrays. Both bases and SDK preserve exact OpenAI/OpenRouter names with immutable capture; direct Anthropic/Gemini reject supplied names before credentials. Names cannot override authenticated authority or accounting identity and stay out of metadata audit/errors. Native named-speaker semantics, referenced-message schema drift and full tool/multimodal/stream/client workflows remain open. See [plan](plans/166-message-names.md) and [contract](../contracts/client-message-names.md).
+
+## Non-streaming system fingerprint subset
+
+Direct OpenAI and delegated OpenRouter preserve optional string/null system_fingerprint, including normal/refusal/filter outcomes and SDK paths. Malformed fields fail safely with post-response accounting; native Anthropic/Gemini do not fabricate metadata. Fingerprints stay out of operational metadata and cannot establish authority, provider identity or deterministic output. Response-schema drift, full validation and streaming remain open. See [plan](plans/170-system-fingerprint.md) and [contract](../contracts/system-fingerprint.md).

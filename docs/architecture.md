@@ -418,3 +418,7 @@ Validate safe integers and normalize null to omission at HTTP and native boundar
 ### Immutable speaker-name protocol data
 
 The existing HTTP text-array normalization retains message keys; the shared snapshot now validates and freezes optional string name alongside role/content. OpenAI/OpenRouter emit the captured fields unchanged. Direct Anthropic/Gemini reject supplied names before secret resolution rather than rewriting text or silently discarding speaker semantics. Authorization, limits and audit/usage attribution still use the authenticated principal exclusively. Names remain outside metadata audit/error output. See [plan](plans/166-message-names.md).
+
+### Backend fingerprint normalization
+
+OpenAI/OpenRouter normalizers validate and preserve the optional string/null upstream field; malformed values fail through existing post-response accounting. Fingerprints never enter metadata audit or principal decisions, and native adapters never synthesize them. See [contract](../contracts/system-fingerprint.md).

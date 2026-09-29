@@ -460,3 +460,10 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Null/non-string names, unknown message keys and late instructions reject before routing. Direct Anthropic/Gemini supplied names reject before credentials/transport with no provider usage row.
 - Credential-await mutation cannot replace captured name/content. Caller names cannot grant privileges, select a principal or alter limit/audit/usage attribution; metadata/errors never expose names or message text.
 - Existing IAM denial, limits, required audit and safe failed-provider accounting remain effective.
+
+### Non-streaming system fingerprints
+
+- Preserve omitted/string/null fingerprints on both OpenAI/OpenRouter client prefixes, normal/refusal/filter responses and installed SDK bases.
+- Reject malformed upstream types safely after the response with failed-attempt accounting and no fingerprint/content leakage.
+- Deny IAM, limit and audit failures before transport; do not synthesize native Anthropic/Gemini fingerprints.
+- Full response/stream conformance and deterministic behavior remain open. See [plan](plans/170-system-fingerprint.md).
