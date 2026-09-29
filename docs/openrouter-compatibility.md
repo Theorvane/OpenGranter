@@ -148,3 +148,7 @@ The version-3 pin tracks structural name schemas and name-required status for th
 ## Non-streaming system fingerprint subset
 
 Direct OpenAI and delegated OpenRouter preserve optional string/null system_fingerprint, including normal/refusal/filter outcomes and SDK paths. Malformed fields fail safely with post-response accounting; native Anthropic/Gemini do not fabricate metadata. Fingerprints stay out of operational metadata and cannot establish authority, provider identity or deterministic output. Response-schema drift, full validation and streaming remain open. See [plan](plans/170-system-fingerprint.md) and [contract](../contracts/system-fingerprint.md).
+
+## Unsupported invocation response guard
+
+OpenAI/OpenRouter tool-bearing text responses now fail safely rather than silently dropping unsupported tool semantics. Invocation finish reasons also reject. No-invocation omitted/null/empty defaults preserve ordinary outcomes; safe failure accounting and shared security controls remain covered. This does not implement tool workflows. See [plan](plans/172-unsupported-tool-output.md) and [contract](../contracts/unsupported-tool-output.md).

@@ -474,3 +474,10 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Reject malformed upstream types safely after the response with failed-attempt accounting and no fingerprint/content leakage.
 - Deny IAM, limit and audit failures before transport; do not synthesize native Anthropic/Gemini fingerprints.
 - Full response/stream conformance and deterministic behavior remain open. See [plan](plans/170-system-fingerprint.md).
+
+### Unsupported upstream invocation responses
+
+- Reject populated/malformed tool_calls, non-null function_call and tool finish reasons through both OpenAI/OpenRouter paths and actual SDK bases.
+- Preserve ordinary text/refusal/filter outcomes with omitted/null/empty modern fields and omitted/null legacy fields.
+- Keep possibly-billed failure accounting and prevent function names/arguments/content in errors or metadata; IAM, limits and audit denials never call upstream.
+- Full tool workflows remain open under #116. See [plan](plans/172-unsupported-tool-output.md).
