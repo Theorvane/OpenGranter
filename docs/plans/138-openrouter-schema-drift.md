@@ -44,3 +44,5 @@
 - Resolve appended acceptance/compatibility documentation conflicts after PR #137 while preserving official-schema drift and upstream single-choice requirements. The conflict resolution changes only documentation; reviewed provider validation is integrated from main.
 - Run the full integrated gate and refresh CI before merge; reviewer approval remains required.
 - Integrated npm run check passed: 649 tests pass, one optional external PostgreSQL case skipped, all type/lint/document checks and offline pin integrity pass.
+- Integrate reviewed PR #141 while preserving both appended requirement sections. Update the current coverage inventory: nullable token/sampling fields are now supported; optional model and full conformance still remain open.
+- Final integration with reviewed nullable controls passes npm run check: 665 tests pass, one optional external PostgreSQL skip, and type/lint/document/fixture/offline integrity gates pass.

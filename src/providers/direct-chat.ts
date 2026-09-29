@@ -315,9 +315,9 @@ export function createDirectChatInvoker(
       fail('other');
     const n = request.n;
     if (!validSingleChoice(n)) fail('other');
-    const topP = request.top_p;
+    const topP = request.top_p ?? undefined;
     if (!validTopP(topP)) fail('other');
-    const temperature = request.temperature;
+    const temperature = request.temperature ?? undefined;
     if (!validTemperature(temperature, registration.kind === 'anthropic' ? 1 : 2)) fail('other');
     let maxTokens: number | undefined;
     try {

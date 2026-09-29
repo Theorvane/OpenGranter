@@ -181,7 +181,7 @@ for (const kind of kinds) {
     }
   });
   test(`${kind} rejects malformed temperature before credentials`, async () => {
-    for (const value of [-0.01, 2.01, NaN, Infinity, -Infinity, '0.7', null, true, {}, []]) {
+    for (const value of [-0.01, 2.01, NaN, Infinity, -Infinity, '0.7', true, {}, []]) {
       const f = adapter(kind);
       await assert.rejects(f.call(temperatureRequest(value)), (error: unknown) => {
         assert.equal((error as { possiblyBilled: boolean }).possiblyBilled, false);
@@ -268,7 +268,7 @@ test('direct Anthropic range rejection is non-billable and makes no credential/t
 });
 test('globally invalid public temperature is audited before route work without leaking input', async () => {
   for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
-    for (const value of [-0.01, 2.01, 'private fixture invalid temperature', null, true, {}, []]) {
+    for (const value of [-0.01, 2.01, 'private fixture invalid temperature', true, {}, []]) {
       const f = httpFixture('openrouter');
       const response = await f.handler(httpRequest(path, value));
       assert.equal(response.status, 400);
