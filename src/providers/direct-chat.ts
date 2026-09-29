@@ -2,6 +2,7 @@ import type { ChatRequest } from '../gateway/chat-handler.ts';
 import {
   resolveOutputTokenLimit,
   snapshotStopSequences,
+  validSingleChoice,
   validTemperature,
   validTopP,
 } from '../gateway/chat-parameters.ts';
@@ -209,6 +210,7 @@ function prepare(
   stop: ReturnType<typeof snapshotStopSequences>,
   temperature: number | undefined,
   topP: number | undefined,
+  n: 1 | undefined,
 ): { url: string; headers: Record<string, string>; body: object } {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
   const outputLimit =
@@ -224,6 +226,7 @@ function prepare(
         model: candidate.upstreamModelId,
         messages: request.messages,
         stream: false,
+        ...(n === undefined ? {} : { n }),
         ...(outputLimit === undefined ? {} : { max_tokens: outputLimit }),
         ...(temperature === undefined ? {} : { temperature }),
         ...(topP === undefined ? {} : { top_p: topP }),
@@ -269,10 +272,12 @@ function prepare(
       ...(outputLimit === undefined &&
       stop === undefined &&
       temperature === undefined &&
-      topP === undefined
+      topP === undefined &&
+      n === undefined
         ? {}
         : {
             generationConfig: {
+              ...(n === undefined ? {} : { candidateCount: n }),
               ...(topP === undefined ? {} : { topP }),
               ...(temperature === undefined ? {} : { temperature }),
               ...(outputLimit === undefined ? {} : { maxOutputTokens: outputLimit }),
@@ -308,6 +313,8 @@ export function createDirectChatInvoker(
     const timeoutMs = configuredTimeout === undefined ? 30_000 : configuredTimeout;
     if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > 2_147_483_647)
       fail('other');
+    const n = request.n;
+    if (!validSingleChoice(n)) fail('other');
     const topP = request.top_p;
     if (!validTopP(topP)) fail('other');
     const temperature = request.temperature;
@@ -340,6 +347,7 @@ export function createDirectChatInvoker(
       stop,
       temperature,
       topP,
+      n,
     );
     const timeout = AbortSignal.timeout(timeoutMs);
     let response: Response;

@@ -10,7 +10,7 @@
 - Require exactly one native choice/candidate for these three adapters. OpenAI/OpenRouter require index 0; optional Gemini index must be 0 when present.
 - Reject extra/sparse/empty/malformed collections using existing safe post-response failures. No truncation, raw upstream response/error disclosure or replay is introduced.
 - Preserve single-choice successes, omission of optional Gemini index, and Anthropic one-message responses containing multiple text blocks.
-- Preserve authentication, IAM, limits, required audit and failed-attempt usage with possible billing. Out of scope: multi-choice support, n-field acceptance (pending PR #135), full response schemas, streaming and tools.
+- Preserve authentication, IAM, limits, required audit and failed-attempt usage with possible billing. Out of scope: multi-choice support, n-field acceptance (implemented separately in merged PR #135), full response schemas, streaming and tools.
 
 ## Design
 
@@ -36,3 +36,4 @@
 - Green: the same nine adapter/HTTP cases all pass after validation. Focused Biome with `--error-on-warnings` passed for both adapters and the new test.
 - Six existing native OpenAI fixture files now supply required index 0; registration, timeout, usage and PostgreSQL boundary expectations are unchanged.
 - `npm run check` passed: strict type checking, lint, 621 passing tests, one optional external PostgreSQL case skipped, and planning/link/contract/fixture checks. No live provider requests or credentials were used.
+- After merging reviewed PR #135 into main and integrating it here, `npm run check` passed again: 638 tests pass, one optional external PostgreSQL case skipped, and all type/lint/document gates pass. The actual SDK cases coexist with native singleton validation.
