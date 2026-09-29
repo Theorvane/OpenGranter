@@ -37,3 +37,8 @@
 - Green: same command: 13 passes. Corrected test typing for intentionally invalid native inputs and confirmed existing pre-transport accounting produces no fabricated usage row.
 - `npm run check`: 732 passes, 1 optional external PostgreSQL integration skipped, 0 failures; all strict type/lint/document/link/contract/fixture/schema gates passed.
 - Touched-file lint with warnings as errors and whitespace checks passed. Native-format request mapping does not imply universal model or output-schema support.
+
+### Approved refusal integration
+
+- Integrated merged PR #153 without conflicts. `npm run check`: 738 passes, 1 optional external PostgreSQL integration skipped, 0 failures; all gates passed.
+- Updated head awaits current CI/review; the original response-format implementation and red/green behavior remain unchanged.
