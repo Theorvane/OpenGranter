@@ -14,6 +14,8 @@ const FIELD_NAMES = [
   'response_format',
   'frequency_penalty',
   'presence_penalty',
+  'seed',
+  'top_k',
 ] as const;
 const DEFINITION_NAMES = ['ChatFormatTextConfig', 'ChatFormatJsonObjectConfig'] as const;
 const ANNOTATIONS = new Set([

@@ -84,7 +84,7 @@ Fixed metadata.error_type is available alongside numeric codes and local reasons
 
 ## Official request schema drift coverage
 
-A provenance-checked structural pin covers eleven source-declared chat request fields and the two supported text/json_object format definitions, required fields and request reference/document versions. The offline gate checks integrity; an explicit fixed-host network command detects selected structural drift without auto-updating the pin. Other referenced definitions and full schema instance validation remain uncovered. Version-2 pin integrity rejects stale or malformed definition maps. The retrieved ChatRequest does not declare n; local n=1 is SDK support. The four nullable token/sampling controls are supported; optional model and other broader source behaviors remain gaps. See [plan](plans/138-openrouter-schema-drift.md) and [contract](../contracts/openrouter-schema-drift.md).
+A provenance-checked structural pin covers thirteen source-declared chat request fields and the two supported text/json_object format definitions, required fields and request reference/document versions. The offline gate checks integrity; an explicit fixed-host network command detects selected structural drift without auto-updating the pin. Other referenced definitions and full schema instance validation remain uncovered. Version-2 pin integrity rejects stale or malformed definition maps. The retrieved ChatRequest does not declare n; local n=1 is SDK support. The four nullable token/sampling controls are supported; optional model and other broader source behaviors remain gaps. See [plan](plans/138-openrouter-schema-drift.md) and [contract](../contracts/openrouter-schema-drift.md).
 
 ## Nullable optional chat controls
 
@@ -127,4 +127,8 @@ Exact text/json_object controls are captured and mapped across both paths. OpenA
 
 ## Client seed subset
 
-Nullable safe-integer seed controls preserve omission defaults and values across both client bases and SDK requests. OpenAI/OpenRouter forward seed; Gemini generationConfig.seed is bounded by native signed int32, while Anthropic supplied seeds reject before credentials. Native capture, settings-only configuration and security/accounting paths are covered. Model-dependent support, deterministic output, provider fingerprint metadata and full client/tool/stream workflows remain open. Seed is not yet in the independent source-drift allowlist. See [plan](plans/160-client-seed.md) and [contract](../contracts/client-seed.md).
+Nullable safe-integer seed controls preserve omission defaults and values across both client bases and SDK requests. OpenAI/OpenRouter forward seed; Gemini generationConfig.seed is bounded by native signed int32, while Anthropic supplied seeds reject before credentials. Native capture, settings-only configuration and security/accounting paths are covered. Model-dependent support, deterministic output, provider fingerprint metadata and full client/tool/stream workflows remain open. Seed and top_k are now included in the reviewed source-drift allowlist; this does not guarantee runtime model support. See [plan](plans/160-client-seed.md) and [contract](../contracts/client-seed.md).
+
+## Sampling-field source drift
+
+The thirteen-field source projection includes seed/top_k integer/nullability structure and constraints, with missing/malformed/rehashed-map and annotation/unrelated-change coverage. Version-2 projection format and two selected format definitions remain unchanged. Native provider schemas, runtime model support, other references and full instance/response/tool/stream/client conformance remain open. See [plan](plans/164-sampling-schema.md) and [contract](../contracts/openrouter-schema-drift.md).

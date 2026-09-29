@@ -3,7 +3,7 @@
   "source": "https://openrouter.ai/openapi.json",
   "retrievedAt": "2026-09-29",
   "sourceSha256": "d2352bf0d6587821a453e8e06906fb1a6e85d6e146f8ed706156d582b1029f5c",
-  "projectionSha256": "d0a90271949190eb2534375c66a704360c1781bc923498d3a00bb799c7225322",
+  "projectionSha256": "f8f5827dc430b7a99ef345b44e4ecaa105de54eabafca9fb0d953ee62dcf9e01",
   "projection": {
     "openapi": "3.1.0",
     "documentVersion": "1.0.0",
@@ -109,6 +109,18 @@
         "format": "double",
         "type": [
           "number",
+          "null"
+        ]
+      },
+      "seed": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      },
+      "top_k": {
+        "type": [
+          "integer",
           "null"
         ]
       }

@@ -441,3 +441,9 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Both base paths and actual SDK requests preserve omitted/null defaults and exact negative/zero/positive safe integer seeds on supported destinations, including existing output-format/sampling/token controls.
 - Malformed or unsafe integers reject before routing. Native adapters repeat validation, retain pre-await values and prevent unsupported Anthropic or out-of-int32 Gemini calls before credentials.
 - Gemini seed-only requests create generationConfig without other injected settings. IAM implicit/explicit denial, limits and required audit still prevent secrets and upstream usage; transport failures retain safe accounting.
+
+### Seed/top-k official schema drift
+
+- The exact thirteen-field source projection detects integer, nullability and structural-constraint changes to seed/top_k, and missing/malformed selected fields fail safely.
+- Recomputed integrity hashes do not permit stale, extra or malformed selected-field maps. Annotation-only changes remain ignored.
+- Explicit live comparison preserves bounded credential-free fixed-host fetching and never rewrites the pin. Runtime model support, native provider schemas and full instance/response/tool/stream/client conformance remain separate requirements.
