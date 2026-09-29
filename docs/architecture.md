@@ -418,3 +418,7 @@ Validate safe integers and normalize null to omission at HTTP and native boundar
 ### Immutable speaker-name protocol data
 
 The existing HTTP text-array normalization retains message keys; the shared snapshot now validates and freezes optional string name alongside role/content. OpenAI/OpenRouter emit the captured fields unchanged. Direct Anthropic/Gemini reject supplied names before secret resolution rather than rewriting text or silently discarding speaker semantics. Authorization, limits and audit/usage attribution still use the authenticated principal exclusively. Names remain outside metadata audit/error output. See [plan](plans/166-message-names.md).
+
+### Selected message-name schema projection
+
+The version-3 projector selects four message definitions and captures only their structural name properties and name-required booleans. Exact map validation rejects stale/rehashed malformed pins; fixed-host bounded fetching and safe diagnostics remain unchanged. Other message fields and full reference traversal are unimplemented. See [plan](plans/168-message-name-schema.md).

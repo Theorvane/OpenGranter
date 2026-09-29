@@ -460,3 +460,10 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Null/non-string names, unknown message keys and late instructions reject before routing. Direct Anthropic/Gemini supplied names reject before credentials/transport with no provider usage row.
 - Credential-await mutation cannot replace captured name/content. Caller names cannot grant privileges, select a principal or alter limit/audit/usage attribution; metadata/errors never expose names or message text.
 - Existing IAM denial, limits, required audit and safe failed-provider accounting remain effective.
+
+### Referenced message-name drift
+
+- Detect name type/nullability/bounds/literal-default and required-status changes in each selected text-role definition with unchanged request references.
+- Reject missing/malformed names, message containers, required lists and stale/rehashed malformed message maps with fixed diagnostics.
+- Ignore annotations and unrelated message fields; retain thirteen request fields and two selected format definitions.
+- Preserve credential-free bounded fixed-host retrieval, runtime IAM/usage/audit semantics and the explicit limits of structural subset coverage. See [plan](plans/168-message-name-schema.md).

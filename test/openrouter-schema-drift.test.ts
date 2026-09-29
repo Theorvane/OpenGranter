@@ -83,6 +83,17 @@ function source(): Record<string, unknown> {
           required: ['type'],
           properties: { type: { enum: ['json_object'], type: 'string' } },
         },
+        ...Object.fromEntries(
+          [
+            'ChatSystemMessage',
+            'ChatDeveloperMessage',
+            'ChatUserMessage',
+            'ChatAssistantMessage',
+          ].map((name) => [
+            name,
+            { type: 'object', required: ['role'], properties: { name: { type: 'string' } } },
+          ]),
+        ),
       },
     },
   };
@@ -264,8 +275,8 @@ for (const name of ['ChatFormatTextConfig', 'ChatFormatJsonObjectConfig']) {
     }
   });
 }
-test('version-2 pin includes exact selected format definitions', () => {
-  assert.equal(pinned.version, 2);
+test('version-3 pin retains exact selected format definitions', () => {
+  assert.equal(pinned.version, 3);
   const definitions = (
     projectOfficialSchema(source()) as unknown as { definitions: Record<string, unknown> }
   ).definitions;
@@ -360,4 +371,98 @@ test('sampling field annotations are ignored while literal constraints remain da
       example: 42,
     };
   assert.equal(compareOfficialSchema(data, pinned), true);
+});
+
+const messageDefinitions = [
+  'ChatSystemMessage',
+  'ChatDeveloperMessage',
+  'ChatUserMessage',
+  'ChatAssistantMessage',
+];
+function messageSchema(data: Record<string, unknown>, name: string) {
+  const schemas = (data.components as { schemas: Record<string, unknown> }).schemas;
+  return schemas[name] as { type: string; required?: unknown; properties: Record<string, unknown> };
+}
+for (const name of messageDefinitions) {
+  test(`${name}: name constraints and required status drift without reference changes`, () => {
+    for (const schema of [
+      { type: ['string', 'null'] },
+      { type: 'number' },
+      { type: 'string', maxLength: 64 },
+      { type: 'string', default: { description: 'literal' } },
+    ]) {
+      const data = source();
+      messageSchema(data, name).properties.name = schema;
+      assert.equal(compareOfficialSchema(data, pinned), false);
+    }
+    const data = source();
+    messageSchema(data, name).required = ['role', 'name'];
+    assert.equal(compareOfficialSchema(data, pinned), false);
+  });
+  test(`${name}: malformed selected containers, name fields and required lists reject safely`, () => {
+    for (const value of [undefined, null, [], 'private invalid']) {
+      const data = source();
+      messageSchema(data, name).properties.name = value;
+      assert.throws(() => projectOfficialSchema(data), /Invalid official schema/);
+      const absent = source();
+      (absent.components as { schemas: Record<string, unknown> }).schemas[name] = value;
+      assert.throws(() => projectOfficialSchema(absent), /Invalid official schema/);
+    }
+    for (const value of [null, {}, 'name', [null], [''], ['name', 'name']]) {
+      const data = source();
+      messageSchema(data, name).required = value;
+      assert.throws(() => projectOfficialSchema(data), /Invalid official schema/);
+    }
+    const data = source();
+    messageSchema(data, name).type = 'array';
+    assert.throws(() => projectOfficialSchema(data), /Invalid official schema/);
+  });
+}
+test('message name selection ignores editorial and unrelated message changes', () => {
+  const data = source();
+  for (const name of messageDefinitions) {
+    const schema = messageSchema(data, name);
+    schema.properties.name = {
+      type: 'string',
+      description: 'private annotation',
+      example: 'example',
+    };
+    schema.properties.content = { type: 'number' };
+    delete schema.required;
+  }
+  assert.equal(compareOfficialSchema(data, pinned), true);
+  const projected = projectOfficialSchema(data) as unknown as {
+    messageNames: Record<string, unknown>;
+  };
+  assert.deepEqual(Object.keys(projected.messageNames).sort(), [...messageDefinitions].sort());
+  for (const value of Object.values(projected.messageNames))
+    assert.deepEqual(value, { schema: { type: 'string' }, required: false });
+});
+test('version-3 message maps reject stale and rehashed malformed pins', () => {
+  for (const version of [1, 2])
+    assert.throws(() => validateSchemaPin({ ...pinned, version }), /Invalid schema pin/);
+  for (const messageNames of [
+    undefined,
+    {},
+    [],
+    { ...pinned.projection.messageNames, Extra: { schema: { type: 'string' }, required: false } },
+    { ...pinned.projection.messageNames, ChatUserMessage: null },
+    { ...pinned.projection.messageNames, ChatUserMessage: { schema: null, required: false } },
+    {
+      ...pinned.projection.messageNames,
+      ChatUserMessage: { schema: { type: 'string' }, required: 'false' },
+    },
+    {
+      ...pinned.projection.messageNames,
+      ChatUserMessage: { schema: { type: 'string' }, required: false, extra: true },
+    },
+  ]) {
+    const projection = { ...pinned.projection, messageNames };
+    if (messageNames === undefined) delete projection.messageNames;
+    const projectionSha256 = createHash('sha256').update(canonicalSchema(projection)).digest('hex');
+    assert.throws(
+      () => validateSchemaPin({ ...pinned, projection, projectionSha256 }),
+      /Invalid schema pin/,
+    );
+  }
 });
