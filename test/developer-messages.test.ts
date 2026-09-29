@@ -195,7 +195,7 @@ const invalidMessages: unknown[] = [
   [{ role: 'developer', content: null }],
   [{ role: 'developer', content: [] }],
   [{ role: 'tool', content: 'private invalid' }],
-  [{ role: 'developer', content: 'private invalid', name: 'x' }],
+  [{ role: 'developer', content: 'private invalid', name: null }],
   [
     { role: 'user', content: 'x' },
     { role: 'developer', content: 'private invalid' },

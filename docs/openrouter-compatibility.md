@@ -136,3 +136,7 @@ Nullable safe-integer seed controls preserve omission defaults and values across
 ## Sampling-field source drift
 
 The thirteen-field source projection includes seed/top_k integer/nullability structure and constraints, with missing/malformed/rehashed-map and annotation/unrelated-change coverage. Version-2 projection format and two selected format definitions remain unchanged. Native provider schemas, runtime model support, other references and full instance/response/tool/stream/client conformance remain open. See [plan](plans/164-sampling-schema.md) and [contract](../contracts/openrouter-schema-drift.md).
+
+## Optional text speaker names
+
+String name is supported on all four existing text roles and normalized text arrays. Both bases and SDK preserve exact OpenAI/OpenRouter names with immutable capture; direct Anthropic/Gemini reject supplied names before credentials. Names cannot override authenticated authority or accounting identity and stay out of metadata audit/errors. Native named-speaker semantics, referenced-message schema drift and full tool/multimodal/stream/client workflows remain open. See [plan](plans/166-message-names.md) and [contract](../contracts/client-message-names.md).
