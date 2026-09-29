@@ -4,7 +4,7 @@ function record(value: unknown): Record<string, unknown> | undefined {
     : undefined;
 }
 
-/** Normalize external user text parts; retain keys for the protocol validator. */
+/** Normalize external text parts; retain keys for the protocol validator. */
 export function normalizeClientTextMessages(value: unknown): readonly Record<string, unknown>[] {
   if (!Array.isArray(value) || value.length === 0) throw new TypeError('Invalid client messages');
   const messages: Record<string, unknown>[] = [];
@@ -13,7 +13,7 @@ export function normalizeClientTextMessages(value: unknown): readonly Record<str
     if (!message) throw new TypeError('Invalid client messages');
     let content = message.content;
     if (typeof content !== 'string') {
-      if (message.role !== 'user' || !Array.isArray(content) || content.length === 0)
+      if (!Array.isArray(content) || content.length === 0)
         throw new TypeError('Invalid client messages');
       let text = '';
       for (const raw of content) {

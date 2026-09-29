@@ -15,7 +15,7 @@ For tools supporting a configurable OpenRouter/OpenAI-compatible endpoint:
 - Base URL: `https://<gateway-host>/api/v1` (existing `/v1` also remains available).
 - API key: the user's OpenGranter proxy token; provider keys stay server held.
 - Model: an administrator-published alias visible to that token. An OpenRouter-style alias such as `openai/example-model` must be explicitly published; arbitrary model IDs do not become eligible.
-- Current text-chat request: model plus string-content messages (user text-part arrays also normalize to strings), optional stream false, optional n=1 and positive-integer max_tokens or max_completion_tokens and optional stop (string or up to four strings), optional top_p (finite number in 0..1), and optional temperature (finite number in 0..2; direct Anthropic 0..1). Discovery uses GET models; chat uses POST chat/completions relative to the base.
+- Current text-chat request: model plus string-content messages (exact text-part arrays on supported roles also normalize to strings), optional stream false, optional n=1 and positive-integer max_tokens or max_completion_tokens and optional stop (string or up to four strings), optional top_p (finite number in 0..1), and optional temperature (finite number in 0..2; direct Anthropic 0..1). Discovery uses GET models; chat uses POST chat/completions relative to the base.
 
 Tools with a hardcoded openrouter.ai host need a configurable endpoint or an integration change. Path aliases alone do not make tools needing streaming, function calls or advanced parameters work.
 
@@ -28,7 +28,7 @@ Tools with a hardcoded openrouter.ai host need a configurable endpoint or an int
 | Non-streaming text chat | Text messages, one normalized text choice with max_tokens/max_completion_tokens and portable stop/top_p/temperature/n=1 across four adapters | Remaining request/response schema, sampling and capability metadata |
 | Streaming | Not implemented | SSE framing, termination, usage, backpressure, cancellation, safe interruption/failure audit |
 | Tool calling | Not implemented | Tool definitions, choice, assistant tool calls, tool results and provider mappings |
-| Rich inputs and outputs | User text-only parts normalize to strings | Other-role arrays, multimodal/cached content, native block semantics, structured output and reasoning handling |
+| Rich inputs and outputs | Text-only parts on system/developer/user/assistant normalize to strings | Multimodal/cached content, native block semantics, structured output and reasoning handling |
 | Client routing controls | Rejected today | Client preferences narrow approved model/provider scope; no arbitrary destinations or authority widening |
 | Errors | /api/v1 numeric status codes, fixed messages, safe local reason/typed metadata and request ID; legacy /v1 symbolic codes | Precise upstream error_type propagation, retry hints and streaming errors |
 | Other model-use endpoints | Not implemented | Inventory completions, responses, embeddings and generation lookup against external-tool requirements and authorization |
@@ -96,11 +96,15 @@ OpenAI/OpenRouter/Gemini normalize only a validated native singleton rather than
 
 ## User text content parts
 
-User text-only content arrays are normalized to strings across both external paths and four providers. Native block/cache boundaries are not retained; other-role arrays, mixed modalities, tools and streaming remain open. See [plan](plans/144-user-text-parts.md) and [contract](../contracts/client-user-text-parts.md).
+Text-only content arrays on system/developer/user/assistant are normalized to strings across both external paths and four providers. Native block/cache boundaries are not retained; mixed modalities, tools and streaming remain open. See [plan](plans/144-user-text-parts.md) and [contract](../contracts/client-user-text-parts.md).
 
 ## Developer instruction prefix
 
 Leading developer text instructions are supported with immutable capture. OpenAI/OpenRouter preserve roles; Anthropic/Gemini use a combined native instruction field without separate role priority. Mid-conversation instructions, rich/tool messages and full external-client workflows remain open. See [plan](plans/142-developer-messages.md) and [contract](../contracts/client-developer-messages.md).
+
+## Instruction and assistant-history text parts
+
+Both prefixes accept exact text arrays on all four supported roles using literal concatenation. Leading instruction order, immutable capture, strict keys, IAM/limits/audit and safe usage remain enforced across four adapters and actual SDK cases. Native string contracts remain unchanged; block/cache semantics, multimodal/refusal/tool arrays and stream workflows remain open. See [plan](plans/148-message-text-parts.md) and [contract](../contracts/client-user-text-parts.md).
 
 ## Non-streaming refusal/filter response subset
 
