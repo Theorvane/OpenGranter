@@ -8,6 +8,7 @@ import {
   validSeed,
   validSingleChoice,
   validTemperature,
+  validTopK,
   validTopP,
 } from '../gateway/chat-parameters.ts';
 import type { RouteCandidate } from '../routing/authorize-candidates.ts';
@@ -259,6 +260,8 @@ function prepare(
   frequencyPenalty: number | undefined,
   presencePenalty: number | undefined,
   responseFormat: ReturnType<typeof snapshotResponseFormat>,
+  topK: number | undefined,
+
   seed: number | undefined,
 ): { url: string; headers: Record<string, string>; body: object } {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
@@ -316,6 +319,7 @@ function prepare(
         max_tokens: outputLimit ?? registration.maxOutputTokens,
         ...(temperature === undefined ? {} : { temperature }),
         ...(topP === undefined ? {} : { top_p: topP }),
+        ...(topK === undefined ? {} : { top_k: topK }),
         ...(stop === undefined ? {} : { stop_sequences: typeof stop === 'string' ? [stop] : stop }),
         ...(system.length ? { system: system.map((message) => message.content).join('\n') } : {}),
         messages,
@@ -336,10 +340,12 @@ function prepare(
       frequencyPenalty === undefined &&
       presencePenalty === undefined &&
       responseFormat === undefined &&
+      topK === undefined &&
       seed === undefined
         ? {}
         : {
             generationConfig: {
+              ...(topK === undefined ? {} : { topK }),
               ...(seed === undefined ? {} : { seed }),
               ...(frequencyPenalty === undefined ? {} : { frequencyPenalty }),
               ...(presencePenalty === undefined ? {} : { presencePenalty }),
@@ -384,6 +390,13 @@ export function createDirectChatInvoker(
     const configuredTimeout = ports.timeoutMs;
     const timeoutMs = configuredTimeout === undefined ? 30_000 : configuredTimeout;
     if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > 2_147_483_647)
+      fail('other');
+    const topK = request.top_k ?? undefined;
+    if (
+      !validTopK(topK) ||
+      (topK !== undefined &&
+        (registration.kind === 'openai' || (registration.kind === 'google' && topK > 2147483647)))
+    )
       fail('other');
     const seed = request.seed ?? undefined;
     if (
@@ -453,6 +466,8 @@ export function createDirectChatInvoker(
       frequencyPenalty,
       presencePenalty,
       responseFormat,
+      topK,
+
       seed,
     );
     const timeout = AbortSignal.timeout(timeoutMs);

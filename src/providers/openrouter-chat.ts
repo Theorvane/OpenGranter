@@ -8,6 +8,7 @@ import {
   validSeed,
   validSingleChoice,
   validTemperature,
+  validTopK,
   validTopP,
 } from '../gateway/chat-parameters.ts';
 import { normalizeProviderUsage } from '../usage/normalize-provider-tokens.ts';
@@ -132,6 +133,9 @@ export function createOpenRouterChatInvoker(
   ports: OpenRouterChatPorts,
 ): (attempt: OpenRouterChatAttempt, request: ChatRequest) => Promise<ChatCompletion> {
   return async (attempt, request) => {
+    const topK = request.top_k ?? undefined;
+    if (!validTopK(topK)) fail('configuration');
+
     const seed = request.seed ?? undefined;
     if (!validSeed(seed)) fail('configuration');
     const frequencyPenalty = request.frequency_penalty ?? undefined;
@@ -203,6 +207,7 @@ export function createOpenRouterChatInvoker(
           ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
           ...(temperature === undefined ? {} : { temperature }),
           ...(topP === undefined ? {} : { top_p: topP }),
+          ...(topK === undefined ? {} : { top_k: topK }),
           ...(stop === undefined ? {} : { stop }),
           provider: { only: attempt.authorizedProviderSlugs },
         }),
