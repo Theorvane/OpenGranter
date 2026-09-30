@@ -300,6 +300,8 @@ The delegated invoker reads the optional timeout once, validates its resolved du
 
 The delegated invoker also copies and validates the exact IAM-approved upstream model and final-provider slug set before awaiting credential resolution. Request construction and response model validation use that immutable attempt snapshot, so mutations of the caller-owned attempt during an await cannot widen or replace the evaluated scope. See [plan](plans/200-openrouter-attempt-snapshot.md) and [contract](../contracts/openrouter-attempt-snapshot.md).
 
+An internal delegated text-stream invoker shares the non-streaming adapter's request preparation, fixed OpenRouter endpoint, credential resolution and timeout handling. It sends `stream:true` for the supported text/sampling subset, excludes tool controls that the decoder cannot represent, and passes the HTTP response through bounded SSE and sequence validation. A timeout after response headers remains possibly billed and cannot trigger replay. This component does not participate in the gateway's IAM, limits, audit or usage flow until explicitly wired there; the public handler still rejects `stream:true`. See [plan](plans/202-openrouter-stream-invoker.md) and [contract](../contracts/openrouter-stream-invoker.md).
+
 ## Usage container boundary
 
 A shared pure boundary validates the upstream usage container before provider-specific known-counter projection. Absent/null means missing; a non-null primitive or array becomes a sanitized null-counter marker for the existing invalid ledger state. Empty/unrecognized-only objects remain missing. Response and accounting retain no raw malformed value. See [contract](../contracts/provider-usage-containers.md).

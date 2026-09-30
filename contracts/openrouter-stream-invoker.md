@@ -1,0 +1,7 @@
+# Internal delegated OpenRouter text-stream invocation contract
+
+The invoker accepts an already authorized `OpenRouterChatAttempt`, a validated text chat request, a trusted secret resolver/fetcher, and an awaited delta callback. It snapshots and validates the exact upstream model and final-provider slugs before any await. It shares the non-streaming adapter's text and sampling control normalization, but rejects function-tool controls because the current stream decoder supports text only. It sends one POST to `https://openrouter.ai/api/v1/chat/completions` with a server-held Bearer key, `stream:true`, exact `provider.only`, redirects disabled and a bounded timeout.
+
+The response passes through the HTTP SSE validator and bounded consumer. Only validated text deltas reach the callback. A complete terminal/usage/`[DONE]` sequence returns immutable normalized usage. Missing/invalid usage remains explicit. No upstream error body, prompt, response, credential or callback cause enters error messages. Configuration and credential failures stop before HTTP. Pre-header failures retain safe timeout/upstream classification with possible billing; post-header and midstream failures cannot be replayed and retain response-started possible-billing metadata.
+
+This internal invoker does not bypass gateway authentication, IAM, limits, audit or usage controls. It is not wired to the client HTTP handler, so client `stream:true` remains rejected. Direct-provider streaming and client SSE delivery are separate requirements.
