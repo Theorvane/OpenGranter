@@ -28,6 +28,12 @@ const DEFINITION_NAMES = [
   'ChatNamedToolChoice',
   'ChatToolCall',
 ] as const;
+const STREAM_DEFINITION_NAMES = [
+  'ChatStreamChunk',
+  'ChatStreamChoice',
+  'ChatStreamDelta',
+  'ChatStreamOptions',
+] as const;
 const MESSAGE_NAMES = [
   'ChatSystemMessage',
   'ChatDeveloperMessage',
@@ -50,6 +56,7 @@ export interface SchemaProjection {
   required: readonly string[];
   fields: Record<string, unknown>;
   definitions: Record<string, unknown>;
+  streamDefinitions: Record<string, unknown>;
   messageNames: Record<string, unknown>;
   toolMessages: Record<string, unknown>;
 }
@@ -98,6 +105,7 @@ function projection(value: unknown): SchemaProjection {
   const data = record(value);
   const fields = record(data?.fields);
   const definitions = record(data?.definitions);
+  const streamDefinitions = record(data?.streamDefinitions);
   const messageNames = record(data?.messageNames);
   const toolMessages = record(data?.toolMessages);
   const required = data?.required;
@@ -115,6 +123,9 @@ function projection(value: unknown): SchemaProjection {
     !definitions ||
     Object.keys(definitions).length !== DEFINITION_NAMES.length ||
     DEFINITION_NAMES.some((name) => !record(definitions[name])) ||
+    !streamDefinitions ||
+    Object.keys(streamDefinitions).length !== STREAM_DEFINITION_NAMES.length ||
+    STREAM_DEFINITION_NAMES.some((name) => !record(streamDefinitions[name])) ||
     !messageNames ||
     Object.keys(messageNames).length !== MESSAGE_NAMES.length ||
     MESSAGE_NAMES.some((name) => {
@@ -141,6 +152,9 @@ function projection(value: unknown): SchemaProjection {
     fields: Object.fromEntries(FIELD_NAMES.map((name) => [name, ordered(fields[name], true)])),
     definitions: Object.fromEntries(
       DEFINITION_NAMES.map((name) => [name, ordered(definitions[name], true)]),
+    ),
+    streamDefinitions: Object.fromEntries(
+      STREAM_DEFINITION_NAMES.map((name) => [name, ordered(streamDefinitions[name], true)]),
     ),
     messageNames: Object.fromEntries(
       MESSAGE_NAMES.map((name) => [name, ordered(messageNames[name], true)]),
@@ -171,6 +185,9 @@ export function projectOfficialSchema(value: unknown): SchemaProjection {
     required: request?.required,
     fields: Object.fromEntries(FIELD_NAMES.map((name) => [name, properties[name]])),
     definitions: Object.fromEntries(DEFINITION_NAMES.map((name) => [name, schemas?.[name]])),
+    streamDefinitions: Object.fromEntries(
+      STREAM_DEFINITION_NAMES.map((name) => [name, schemas?.[name]]),
+    ),
     messageNames: Object.fromEntries(
       MESSAGE_NAMES.map((name) => {
         const message = record(schemas?.[name]);
@@ -217,7 +234,7 @@ export function validateSchemaPin(value: unknown): { projection: SchemaProjectio
   try {
     const data = record(value);
     if (
-      data?.version !== 4 ||
+      data?.version !== 5 ||
       data.source !== OFFICIAL_SCHEMA_URL ||
       typeof data.retrievedAt !== 'string' ||
       !/^\d{4}-\d{2}-\d{2}$/.test(data.retrievedAt) ||

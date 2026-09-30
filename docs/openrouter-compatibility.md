@@ -50,7 +50,7 @@ The next internal decoder classifies individual delegated OpenRouter text chunks
 
 ## Sources checked 2026-09-28
 
-OpenRouter documents /api/v1 with Bearer authentication and configurable SDK base URLs: [authentication](https://openrouter.ai/docs/api_reference/authentication). Its unified chat schema includes additional parameters, tools, richer messages and response fields: [API overview](https://openrouter.ai/docs/api_reference/overview). Streaming uses SSE and has distinct pre-stream and mid-stream errors: [streaming](https://openrouter.ai/docs/api_reference/streaming). The [official OpenAPI specification](https://openrouter.ai/openapi.json) is the future conformance input; schema version capture and drift checks remain to implement.
+OpenRouter documents /api/v1 with Bearer authentication and configurable SDK base URLs: [authentication](https://openrouter.ai/docs/api_reference/authentication). Its unified chat schema includes additional parameters, tools, richer messages and response fields: [API overview](https://openrouter.ai/docs/api_reference/overview). Streaming uses SSE and has distinct pre-stream and mid-stream errors: [streaming](https://openrouter.ai/docs/api_reference/streaming). The [official OpenAPI specification](https://openrouter.ai/openapi.json) supplies the selected structural drift pin; full instance and client conformance remain open.
 
 ## Output-token limit conformance
 
@@ -88,7 +88,7 @@ Fixed metadata.error_type is available alongside numeric codes and local reasons
 
 ## Official request schema drift coverage
 
-A provenance-checked version-4 structural pin covers sixteen source-declared chat request fields, six selected definitions, four message-name fields and tool-call/result message structures, plus required fields and request reference/document versions. The offline gate checks integrity; an explicit fixed-host network command detects selected structural drift without auto-updating the pin. Other referenced definitions and full schema instance validation remain uncovered. The retrieved ChatRequest does not declare n; local n=1 is SDK support. Optional model and broader source behaviors remain gaps. See [base plan](plans/138-openrouter-schema-drift.md), [tool plan](plans/186-function-tool-schema-drift.md) and [contract](../contracts/openrouter-schema-drift.md).
+A provenance-checked version-5 structural pin covers sixteen source-declared chat request fields, six selected request definitions, four streaming response definitions, four message-name fields and tool-call/result message structures, plus required fields and request reference/document versions. The offline gate checks integrity; an explicit fixed-host network command detects selected structural drift without auto-updating the pin. Other referenced definitions and full schema instance validation remain uncovered. The retrieved ChatRequest does not declare n; local n=1 is SDK support. Optional model and broader source behaviors remain gaps. See [base plan](plans/138-openrouter-schema-drift.md), [tool plan](plans/186-function-tool-schema-drift.md), [stream plan](plans/193-stream-response-schema-drift.md) and [contract](../contracts/openrouter-schema-drift.md).
 
 ## Nullable optional chat controls
 
@@ -147,7 +147,7 @@ String name is supported on all four existing text roles and normalized text arr
 
 ## Referenced message-name source drift
 
-The message-name subset introduced in version 3 remains selected in version 4. Malformed source containers, required lists and rehashed maps fail safely. Annotation and unrelated message-field changes are ignored. Full ChatMessages traversal, other fields and instance/stream/response conformance remain open. See [plan](plans/168-message-name-schema.md) and [contract](../contracts/openrouter-schema-drift.md).
+The message-name subset introduced in version 3 remains selected in version 5. Malformed source containers, required lists and rehashed maps fail safely. Annotation and unrelated message-field changes are ignored. Full ChatMessages traversal, other fields and instance/stream/response conformance remain open. See [plan](plans/168-message-name-schema.md) and [contract](../contracts/openrouter-schema-drift.md).
 
 ## Non-streaming system fingerprint subset
 
