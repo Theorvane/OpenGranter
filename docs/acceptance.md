@@ -367,6 +367,12 @@ Both chat paths support literal stop strings or dense arrays of up to four strin
 - Version-4 selection detects structural and required-list changes to function-tool request controls, tool definitions, assistant tool calls and tool-result messages; missing/malformed selections reject safely and editorial changes remain ignored.
 - Other referenced schemas, full request/response instance validation and streaming/tool/client gates remain open. See [contract](../contracts/openrouter-schema-drift.md).
 
+## Streaming SSE framing preparation
+
+- A bounded parser yields complete data events with CR/LF/CRLF, split UTF-8, comments, multiline data and blank-line dispatch; incomplete EOF data is discarded.
+- Invalid UTF-8, oversized lines/events and transport failures produce fixed diagnostics without upstream content. Early iteration cancellation closes the source; successful EOF releases its lock.
+- Gateway `stream:true` requests remain rejected until provider chunk validation, HTTP delivery, usage and audit lifecycle are implemented. See [contract](../contracts/streaming-sse-framing.md).
+
 ## Nullable optional chat controls
 
 Both chat paths and four adapters normalize optional null token/sampling controls to omission. Null+numeric aliases preserve the numeric maximum and configured caps; mutation cannot add fields after capture. IAM/limits/audit denials prevent transport and upstream failures retain safe accounting. See [plan](plans/140-nullable-chat-controls.md) and [output contract](../contracts/client-output-limits.md).
