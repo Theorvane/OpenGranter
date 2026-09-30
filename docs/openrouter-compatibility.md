@@ -26,7 +26,7 @@ Tools with a hardcoded openrouter.ai host need a configurable endpoint or an int
 | Base paths and Bearer token | /api/v1 chat/models aliases; shared proxy authorization; pinned OpenAI SDK smoke tests | Streaming/tool SDK workflows and named external-tool registration tests |
 | Model discovery | Authorized alias IDs and basic model fields | Context window, capability, supported-parameter and price metadata from trusted catalog sources |
 | Non-streaming text chat | Text messages, one normalized text choice with max_tokens/max_completion_tokens and portable stop/top_p/temperature/n=1 across four adapters | Remaining request/response schema, sampling and capability metadata |
-| Streaming | Bounded internal SSE parser, text-only OpenRouter chunk decoder, sequence validator and upstream byte-stream consumer; client stream:true still rejected | Direct-provider mappings, HTTP integration, termination, usage persistence, cancellation, safe interruption/failure audit |
+| Streaming | Bounded internal SSE parser, text-only OpenRouter chunk decoder, sequence validator, byte-stream consumer and HTTP response validator; client stream:true still rejected | Provider request, direct-provider mappings, client HTTP delivery, usage persistence, cancellation, safe interruption/failure audit |
 | Tool calling | Validated function-tool requests, non-streaming assistant calls and text-only tool-result history for delegated OpenRouter/direct OpenAI | Server tools, rich content, native mappings and streaming |
 | Rich inputs and outputs | Text-only parts on system/developer/user/assistant normalize to strings | Multimodal/cached content, native block semantics, structured output and reasoning handling |
 | Client routing controls | Rejected today | Client preferences narrow approved model/provider scope; no arbitrary destinations or authority widening |
@@ -51,6 +51,8 @@ The next internal decoder classifies individual delegated OpenRouter text chunks
 The internal sequence validator checks stable response identity and client model alias, terminal ordering, final usage and `[DONE]` over decoded text events. It treats upstream errors, malformed order and incomplete streams as possibly billed failures, without retaining response text. It does not integrate transport, accounting, audit or client SSE. See [plan](plans/192-openrouter-stream-sequence.md) and [contract](../contracts/openrouter-stream-sequence.md).
 
 The internal byte-stream consumer composes framing, text-chunk decoding and sequence validation for an already opened upstream stream. It awaits validated delta delivery, stops on `[DONE]` or an upstream error, and converts framing, transport and callback failures into safe possibly-billed failures. It does not yet open the provider request, persist usage/audit or emit client SSE. See [plan](plans/196-openrouter-stream-consumer.md) and [contract](../contracts/openrouter-stream-consumer.md).
+
+The internal HTTP response boundary checks status, SSE media type and body before invoking that consumer. It classifies non-200 responses without reading their bodies and converts incomplete or invalid streams to existing safe delegated failures. It does not issue the HTTP request, write audit/usage or enable a client stream. See [plan](plans/198-openrouter-stream-response.md) and [contract](../contracts/openrouter-stream-response.md).
 
 ## Sources checked 2026-09-28
 
