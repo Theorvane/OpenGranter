@@ -2,6 +2,7 @@ import type { ChatRequest } from '../gateway/chat-handler.ts';
 import { type ChatMessage, snapshotChatMessages } from '../gateway/chat-messages.ts';
 import {
   resolveOutputTokenLimit,
+  snapshotLogitBias,
   snapshotResponseFormat,
   snapshotStopSequences,
   validPenalty,
@@ -260,6 +261,7 @@ function prepare(
   frequencyPenalty: number | undefined,
   presencePenalty: number | undefined,
   responseFormat: ReturnType<typeof snapshotResponseFormat>,
+  logitBias: ReturnType<typeof snapshotLogitBias>,
   topK: number | undefined,
 
   seed: number | undefined,
@@ -283,6 +285,7 @@ function prepare(
         ...(frequencyPenalty === undefined ? {} : { frequency_penalty: frequencyPenalty }),
         ...(presencePenalty === undefined ? {} : { presence_penalty: presencePenalty }),
         ...(responseFormat === undefined ? {} : { response_format: responseFormat }),
+        ...(logitBias === undefined ? {} : { logit_bias: logitBias }),
         ...(outputLimit === undefined ? {} : { max_tokens: outputLimit }),
         ...(temperature === undefined ? {} : { temperature }),
         ...(topP === undefined ? {} : { top_p: topP }),
@@ -422,6 +425,13 @@ export function createDirectChatInvoker(
       fail('other');
     }
     if (registration.kind === 'anthropic' && responseFormat?.type === 'json_object') fail('other');
+    let logitBias: ReturnType<typeof snapshotLogitBias>;
+    try {
+      logitBias = snapshotLogitBias(request.logit_bias);
+    } catch {
+      fail('other');
+    }
+    if (registration.kind !== 'openai' && logitBias !== undefined) fail('other');
     const n = request.n;
     if (!validSingleChoice(n)) fail('other');
     const topP = request.top_p ?? undefined;
@@ -468,6 +478,7 @@ export function createDirectChatInvoker(
       frequencyPenalty,
       presencePenalty,
       responseFormat,
+      logitBias,
       topK,
 
       seed,

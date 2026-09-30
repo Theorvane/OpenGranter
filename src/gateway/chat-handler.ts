@@ -35,6 +35,7 @@ import { type ChatMessage, snapshotChatMessages } from './chat-messages.ts';
 import {
   type ResponseFormat,
   resolveOutputTokenLimit,
+  snapshotLogitBias,
   snapshotResponseFormat,
   snapshotStopSequences,
   validPenalty,
@@ -69,6 +70,7 @@ export interface ChatRequest {
   readonly response_format?: ResponseFormat;
   readonly top_p?: number;
   readonly top_k?: number;
+  readonly logit_bias?: Readonly<Record<string, number>>;
   readonly stop?: string | readonly string[] | null;
 }
 
@@ -317,6 +319,7 @@ function validateChat(value: unknown): ChatRequest | undefined {
           'temperature',
           'top_p',
           'top_k',
+          'logit_bias',
           'n',
           'seed',
           'frequency_penalty',
@@ -338,6 +341,12 @@ function validateChat(value: unknown): ChatRequest | undefined {
   if (!validPenalty(frequencyPenalty) || !validPenalty(presencePenalty)) return undefined;
   const topK = value.top_k ?? undefined;
   if (!validTopK(topK)) return undefined;
+  let logitBias: ReturnType<typeof snapshotLogitBias>;
+  try {
+    logitBias = snapshotLogitBias(value.logit_bias);
+  } catch {
+    return undefined;
+  }
   const topP = value.top_p ?? undefined;
   if (!validTopP(topP)) return undefined;
   let maxTokens: number | undefined;
@@ -372,6 +381,7 @@ function validateChat(value: unknown): ChatRequest | undefined {
     ...(temperature === undefined ? {} : { temperature }),
     ...(topP === undefined ? {} : { top_p: topP }),
     ...(topK === undefined ? {} : { top_k: topK }),
+    ...(logitBias === undefined ? {} : { logit_bias: logitBias }),
     ...(value.n === undefined ? {} : { n: value.n }),
     ...(stop === undefined ? {} : { stop }),
   };

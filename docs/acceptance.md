@@ -495,3 +495,10 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Existing bounded Anthropic refusal and Gemini SAFETY outcomes retain content_filter.
 - Reject unsupported/malformed/missing native reasons, including tool, paused-turn, recitation and invalid-function outcomes, even when text is present; record possibly billed failures without exposing reason/body.
 - IAM/limit/audit denial gates remain ahead of transport; full native blocked/tool/stream mappings remain open. See [plan](plans/176-native-stop-reasons.md).
+
+### Nullable logit bias
+
+- Preserve omitted/null and exact finite map values, including empty/Unicode keys and empty maps, across both HTTP prefixes and installed SDK bases.
+- Reject malformed HTTP maps before routing and native malformed/unsupported maps before secrets; only direct OpenAI and delegated OpenRouter forward non-null maps.
+- Capture maps before credential awaits. IAM, limits, required audit, principal attribution and safe failed-attempt usage remain effective without key/value leakage.
+- Per-model native support, source-drift coverage for this field, tool/stream/client completeness remain open. See [plan](plans/178-client-logit-bias.md).

@@ -245,3 +245,7 @@ Non-streaming OpenAI/OpenRouter preserve supported finish reasons and explicit n
 ### Direct native termination semantics
 
 Anthropic and Gemini text responses retain only supported completed/truncated stop mappings plus their existing bounded refusal/SAFETY outcomes. Other, malformed or missing native reasons fail instead of becoming successful null-finish text. See [plan](plans/176-native-stop-reasons.md).
+
+### Client token-bias maps
+
+Both compatible chat bases accept nullable logit_bias maps. Direct OpenAI and delegated OpenRouter preserve them; direct Anthropic/Gemini reject supplied maps before credentials. IAM, limits and usage/audit attribution remain based on authenticated authority. See [plan](plans/178-client-logit-bias.md).

@@ -438,3 +438,7 @@ Compatible adapter normalizers validate stop/length/content_filter/null explicit
 ### Native text stop validation
 
 The direct Anthropic/Gemini normalizer accepts only explicit text completion/truncation reasons after existing refusal/SAFETY special cases. Unsupported or missing reasons use safe post-response failure/accounting, keeping route authorization and native adapter contracts intact. See [contract](../contracts/native-stop-reasons.md).
+
+### Captured logit bias
+
+The gateway snapshots a finite numeric map with exact own string keys before asynchronous routing. Direct and delegated invokers validate native calls independently before secret resolution; only OpenAI/OpenRouter emit maps. Null omits the field. This changes no IAM, route eligibility, audit attribution or fallback policy. See [contract](../contracts/client-logit-bias.md).

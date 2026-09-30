@@ -5,6 +5,19 @@ export function validOutputTokenLimit(value: unknown): value is number | undefin
   );
 }
 
+/** Capture an opaque token-bias map before asynchronous routing and credential access. */
+export function snapshotLogitBias(value: unknown): Readonly<Record<string, number>> | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== 'object' || Array.isArray(value)) throw new TypeError('Invalid logit bias');
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null)
+    throw new TypeError('Invalid logit bias');
+  const entries = Object.entries(value);
+  if (entries.some(([, bias]) => typeof bias !== 'number' || !Number.isFinite(bias)))
+    throw new TypeError('Invalid logit bias');
+  return Object.freeze(Object.fromEntries(entries));
+}
+
 /** Capture the portable stop subset without retaining mutable caller arrays. */
 export function snapshotStopSequences(value: unknown): string | readonly string[] | undefined {
   if (value === undefined || value === null) return undefined;
