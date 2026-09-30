@@ -566,3 +566,9 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Invalid scope, tool controls, request shape, timeout and missing credential fail before HTTP. Mutating model/provider inputs during credential resolution does not change the outgoing scope.
 - HTTP errors, malformed/incomplete SSE, redirect/transport failures and pre-/post-header timeouts remain fixed safe possibly-billed failures. A partial response cannot be replayed.
 - The public chat handler still rejects client `stream:true`. Gateway IAM, limits, required audit, usage persistence, client SSE and direct-provider stream mappings remain integration gates. See [plan](plans/202-openrouter-stream-invoker.md) and [contract](../contracts/openrouter-stream-invoker.md).
+
+## Internal OpenRouter client text SSE encoding
+
+- A decoded authorized text delta yields one `chat.completion.chunk` SSE data frame with the client model alias, supported role/content and exact finish reason; embedded newlines cannot create a second frame.
+- Complete valid final usage yields the documented usage shape, including the repeated finish reason or accepted empty-choice variant. Missing or invalid counters yield no usage frame and remain visible to later accounting without invented values. `[DONE]` emits the exact terminal marker.
+- Upstream error and unsupported events fail with a fixed local error. The encoder does not open a public stream or bypass IAM, limits, usage or audit integration. See [plan](plans/204-openrouter-client-sse.md) and [contract](../contracts/openrouter-client-sse.md).
