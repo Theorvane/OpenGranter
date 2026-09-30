@@ -87,6 +87,24 @@ function validAttempt(value: OpenRouterChatAttempt): boolean {
   );
 }
 
+/** Capture the IAM-approved destination before credential or transport awaits. */
+export function snapshotOpenRouterChatAttempt(value: OpenRouterChatAttempt): OpenRouterChatAttempt {
+  let snapshot: OpenRouterChatAttempt;
+  try {
+    snapshot = {
+      upstreamModelId: value.upstreamModelId,
+      authorizedProviderSlugs: [...value.authorizedProviderSlugs],
+    };
+  } catch {
+    fail('configuration');
+  }
+  if (!validAttempt(snapshot)) fail('configuration');
+  return Object.freeze({
+    upstreamModelId: snapshot.upstreamModelId,
+    authorizedProviderSlugs: Object.freeze(snapshot.authorizedProviderSlugs),
+  });
+}
+
 function record(value: unknown): Record<string, unknown> | undefined {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -145,6 +163,7 @@ export function createOpenRouterChatInvoker(
   ports: OpenRouterChatPorts,
 ): (attempt: OpenRouterChatAttempt, request: ChatRequest) => Promise<ChatCompletion> {
   return async (attempt, request) => {
+    const fixedAttempt = snapshotOpenRouterChatAttempt(attempt);
     const topK = request.top_k ?? undefined;
     if (!validTopK(topK)) fail('configuration');
 
@@ -192,7 +211,6 @@ export function createOpenRouterChatInvoker(
     const configuredTimeout = ports.timeoutMs;
     const timeoutMs = configuredTimeout === undefined ? 30_000 : configuredTimeout;
     if (
-      !validAttempt(attempt) ||
       !ports.credentialRef ||
       !Number.isSafeInteger(timeoutMs) ||
       timeoutMs <= 0 ||
@@ -220,7 +238,7 @@ export function createOpenRouterChatInvoker(
         method: 'POST',
         headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
         body: JSON.stringify({
-          model: attempt.upstreamModelId,
+          model: fixedAttempt.upstreamModelId,
           messages,
           stream: false,
           ...(n === undefined ? {} : { n }),
@@ -237,7 +255,7 @@ export function createOpenRouterChatInvoker(
           ...(topP === undefined ? {} : { top_p: topP }),
           ...(topK === undefined ? {} : { top_k: topK }),
           ...(stop === undefined ? {} : { stop }),
-          provider: { only: attempt.authorizedProviderSlugs },
+          provider: { only: fixedAttempt.authorizedProviderSlugs },
         }),
         redirect: 'error',
         signal: timeout,
@@ -260,6 +278,6 @@ export function createOpenRouterChatInvoker(
     } catch {
       fail('upstream', true, true);
     }
-    return normalize(body, request, attempt);
+    return normalize(body, request, fixedAttempt);
   };
 }

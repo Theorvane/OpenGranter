@@ -553,3 +553,9 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - HTTP 429, 5xx and other statuses receive existing safe delegated failure categories without reading upstream bodies. Wrong/missing media type or body, upstream SSE error, invalid/truncated stream and callback failure remain possibly billed upstream failures.
 - Rejected unread response bodies are cancelled, and errors never include response content, callback causes or credentials. Non-streaming behavior remains unchanged.
 - Provider HTTP invocation, client SSE, usage/audit persistence and direct-provider streaming remain future work. See [plan](plans/198-openrouter-stream-response.md) and [contract](../contracts/openrouter-stream-response.md).
+
+## Delegated OpenRouter attempt scope snapshot
+
+- The delegated adapter copies and validates the selected upstream model and exact authorized provider slug set before credential resolution.
+- Mutating model or provider slugs, including array elements or replacement, during the credential await cannot change the outgoing HTTP scope or the accepted response model.
+- Invalid initial attempts stop before secret/network access; existing safe failure, IAM, limits, audit and usage behavior remains in force. The same scope boundary is available to the future streaming invoker. See [plan](plans/200-openrouter-attempt-snapshot.md) and [contract](../contracts/openrouter-attempt-snapshot.md).

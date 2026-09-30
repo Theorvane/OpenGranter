@@ -54,6 +54,8 @@ The internal byte-stream consumer composes framing, text-chunk decoding and sequ
 
 The internal HTTP response boundary checks status, SSE media type and body before invoking that consumer. It classifies non-200 responses without reading their bodies and converts incomplete or invalid streams to existing safe delegated failures. It does not issue the HTTP request, write audit/usage or enable a client stream. See [plan](plans/198-openrouter-stream-response.md) and [contract](../contracts/openrouter-stream-response.md).
 
+The delegated OpenRouter request adapter captures the IAM-approved upstream model and final-provider slug set before resolving a credential. Its HTTP body and response-scope check use that immutable attempt, even if a caller-owned object changes during the await. The future streaming request must reuse this boundary. See [plan](plans/200-openrouter-attempt-snapshot.md) and [contract](../contracts/openrouter-attempt-snapshot.md).
+
 ## Sources checked 2026-09-28
 
 OpenRouter documents /api/v1 with Bearer authentication and configurable SDK base URLs: [authentication](https://openrouter.ai/docs/api_reference/authentication). Its unified chat schema includes additional parameters, tools, richer messages and response fields: [API overview](https://openrouter.ai/docs/api_reference/overview). Streaming uses SSE and has distinct pre-stream and mid-stream errors: [streaming](https://openrouter.ai/docs/api_reference/streaming). The [official OpenAPI specification](https://openrouter.ai/openapi.json) supplies the selected structural drift pin; full instance and client conformance remain open.
