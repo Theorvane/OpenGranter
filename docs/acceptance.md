@@ -375,7 +375,7 @@ Both chat paths support literal stop strings or dense arrays of up to four strin
 
 ## OpenRouter text-stream chunk validation
 
-- A pure decoder identifies single-choice text deltas, supported finish reasons, OpenRouter's content-free usage chunk, `[DONE]` and a top-level error even as the first payload.
+- A pure decoder identifies single-choice text deltas, supported finish reasons, OpenRouter's content-free usage chunk, an empty-choice usage compatibility variant, `[DONE]` and a top-level error even as the first payload.
 - Wrong model, malformed identity, multiple choices, unsupported tool/rich deltas and ambiguous usage frames reject with a fixed message. Upstream error details never appear in returned error markers.
 - Usage counters retain known, missing and invalid markers for later accounting. Stream ordering, native provider mappings, client SSE, IAM, limits, audit and usage persistence remain separate gates. See [contract](../contracts/openrouter-stream-chunks.md).
 

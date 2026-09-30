@@ -15,7 +15,7 @@
 ## Design
 
 - Accept a data string plus expected upstream model and client alias. Return a closed tagged union with immutable normalized values. Handle a top-level error before ordinary chunk validation and never copy its details.
-- Reuse existing provider usage normalization to preserve missing/invalid counter semantics. A usage frame must carry a terminal finish reason and content-free delta. The repeated finish reason will be checked against prior frames by a later stream coordinator.
+- Reuse existing provider usage normalization to preserve missing/invalid counter semantics. OpenRouter's documented usage frame carries a terminal finish reason and content-free delta. Accept a separate empty-choice usage shape for OpenAI compatibility without fabricating a finish reason; a later coordinator will check the repeated reason when one is present.
 - Treat malformed JSON, multiple choices, wrong model, unknown finish reasons and unsupported delta fields as fixed safe failures.
 - Separating single-payload validation from sequence and transport control makes it reusable for delegated OpenRouter without implying end-to-end streaming support.
 - See [stream chunk contract](../../contracts/openrouter-stream-chunks.md), [compatibility inventory](../openrouter-compatibility.md) and [acceptance](../acceptance.md).

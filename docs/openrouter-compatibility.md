@@ -46,7 +46,7 @@ Every feature needs its own issue, English plan and red/green contract cases. Ro
 
 The first streaming preparation slice parses bounded SSE data events without exposing a streaming client route. It handles line and byte boundaries, comments, multiline data, strict UTF-8, incomplete EOF, backpressure and early reader cancellation. It leaves `[DONE]`, provider chunks, usage and midstream errors to later layers. See [plan](plans/188-bounded-sse-parser.md) and [contract](../contracts/streaming-sse-framing.md).
 
-The next internal decoder classifies individual delegated OpenRouter text chunks, the content-free repeated-finish usage chunk, `[DONE]` and top-level midstream errors. It validates selected model scope and rejects malformed, multi-choice, tool and rich deltas with fixed errors. It does not validate sequence, persist usage or emit client SSE. See [plan](plans/190-openrouter-stream-chunks.md) and [contract](../contracts/openrouter-stream-chunks.md).
+The next internal decoder classifies individual delegated OpenRouter text chunks, the documented content-free repeated-finish usage chunk, an empty-choice usage compatibility variant, `[DONE]` and top-level midstream errors. It validates selected model scope and rejects malformed, multi-choice, tool and rich deltas with fixed errors. It does not validate sequence, persist usage or emit client SSE. See [plan](plans/190-openrouter-stream-chunks.md) and [contract](../contracts/openrouter-stream-chunks.md).
 
 ## Sources checked 2026-09-28
 

@@ -25,7 +25,7 @@ export type OpenRouterTextStreamPayload =
       readonly id: string;
       readonly created: number;
       readonly model: string;
-      readonly finishReason: FinishReason;
+      readonly finishReason: FinishReason | null;
       readonly usage: NormalizedUsage;
     };
 
@@ -70,9 +70,6 @@ export function decodeOpenRouterStreamPayload(
   if (hasOwn(value, 'error')) return Object.freeze({ kind: 'error' });
 
   const choices = value.choices;
-  const choice = Array.isArray(choices) && choices.length === 1 ? record(choices[0]) : undefined;
-  const delta = record(choice?.delta);
-  const finish = choice?.finish_reason;
   if (
     typeof value.id !== 'string' ||
     !value.id ||
@@ -82,6 +79,30 @@ export function decodeOpenRouterStreamPayload(
     !Number.isSafeInteger(value.created) ||
     value.created < 0 ||
     value.model !== scope.upstreamModelId ||
+    !Array.isArray(choices)
+  )
+    throw invalidChunk();
+
+  const common = {
+    id: value.id,
+    created: value.created,
+    model: scope.clientModelAlias,
+  };
+  if (choices.length === 0) {
+    if (!hasOwn(value, 'usage')) throw invalidChunk();
+    const usage = normalizeProviderUsage(value.usage);
+    return Object.freeze({
+      kind: 'usage',
+      ...common,
+      finishReason: null,
+      usage: usage && Object.freeze(usage),
+    });
+  }
+
+  const choice = choices.length === 1 ? record(choices[0]) : undefined;
+  const delta = record(choice?.delta);
+  const finish = choice?.finish_reason;
+  if (
     !choice ||
     choice.index !== 0 ||
     !delta ||
@@ -92,11 +113,6 @@ export function decodeOpenRouterStreamPayload(
   )
     throw invalidChunk();
 
-  const common = {
-    id: value.id,
-    created: value.created,
-    model: scope.clientModelAlias,
-  };
   if (hasOwn(value, 'usage')) {
     if (
       finish === null ||

@@ -101,6 +101,25 @@ test('preserves invalid and missing usage markers for later accounting', () => {
   });
 });
 
+test('accepts an empty-choice usage chunk without inventing a finish reason', () => {
+  const payload = JSON.stringify({
+    id: 'gen-1',
+    object: 'chat.completion.chunk',
+    created: 42,
+    model: 'openai/example',
+    choices: [],
+    usage: { prompt_tokens: 3, completion_tokens: 2, total_tokens: 5 },
+  });
+  assert.deepEqual(decodeOpenRouterStreamPayload(payload, scope), {
+    kind: 'usage',
+    id: 'gen-1',
+    created: 42,
+    model: 'approved-chat',
+    finishReason: null,
+    usage: { prompt_tokens: 3, completion_tokens: 2, total_tokens: 5 },
+  });
+});
+
 test('rejects malformed, out-of-scope and unsupported chunks with fixed errors', () => {
   for (const payload of [
     '{private-invalid-json',
@@ -116,6 +135,7 @@ test('rejects malformed, out-of-scope and unsupported chunks with fixed errors',
     chunk({ content: 'private' }, 'stop', { usage: { total_tokens: 2 } }),
     chunk({ content: '' }, 'stop').replace('"index":0', '"index":1'),
     chunk({ content: '' }, 'stop').replace('"choices":[', '"choices":[{"index":0},'),
+    chunk({}, 'stop').replace(/"choices":\[[^\]]+\]/u, '"choices":[]'),
   ]) {
     assert.throws(() => decodeOpenRouterStreamPayload(payload, scope), {
       message: 'Invalid OpenRouter stream chunk',
