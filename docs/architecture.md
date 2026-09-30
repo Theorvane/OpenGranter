@@ -427,9 +427,9 @@ The version-3 projector selects four message definitions and captures only their
 
 OpenAI/OpenRouter normalizers validate and preserve the optional string/null upstream field; malformed values fail through existing post-response accounting. Fingerprints never enter metadata audit or principal decisions, and native adapters never synthesize them. See [contract](../contracts/system-fingerprint.md).
 
-### Text-only response invocation guard
+### Function invocation response normalization
 
-The shared assistant normalizer rejects populated/malformed modern tool fields, non-null legacy calls and invocation finish reasons before content normalization. Existing adapters translate rejection into safe post-response failure/accounting. No input-tool or native mapping change is made. See [contract](../contracts/unsupported-tool-output.md).
+The shared assistant normalizer preserves valid non-streaming function tool calls only when the tool_calls finish reason matches. It rejects malformed, duplicate, mismatched and legacy calls; adapters translate rejection into safe post-response failure/accounting. Native Anthropic/Gemini mapping and tool-result history remain separate. See [contract](../contracts/function-tool-responses.md).
 
 ### Validated text completion finish reasons
 
@@ -445,4 +445,4 @@ The gateway snapshots a finite numeric map with exact own string keys before asy
 
 ## Function-tool request boundary
 
-The chat HTTP validator and both native invokers use a shared bounded snapshot of function-tool declarations, choice and parallel-call controls. The HTTP boundary rejects malformed or non-function tools before route lookup. Native adapters snapshot before credential awaits; OpenAI/OpenRouter forward, and Anthropic/Gemini reject supported controls before credentials. IAM and selected final-provider scope are unchanged. The response guard still rejects tool-call outputs; the full lifecycle is tracked in #116. See [plan](plans/180-function-tool-requests.md) and [contract](../contracts/client-function-tools.md).
+The chat HTTP validator and both native invokers use a shared bounded snapshot of function-tool declarations, choice and parallel-call controls. The HTTP boundary rejects malformed or non-function tools before route lookup. Native adapters snapshot before credential awaits; OpenAI/OpenRouter forward, and Anthropic/Gemini reject supported controls before credentials. IAM and selected final-provider scope are unchanged. Validated function-call responses are preserved; tool-result continuation remains open under #116. See [plan](plans/180-function-tool-requests.md) and [contract](../contracts/client-function-tools.md).

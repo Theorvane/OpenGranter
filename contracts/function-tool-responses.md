@@ -1,0 +1,9 @@
+# Function Tool Call Response Contract
+
+For non-streaming direct OpenAI and delegated OpenRouter responses, an assistant message with `finish_reason: "tool_calls"` must contain one to 128 function `tool_calls`. Each call has a nonempty unique string ID, `type: "function"`, and a function with a nonempty string name and string `arguments`. The argument string is preserved exactly, without parsing or execution. Assistant content may be a string, null or omitted (normalized to null); nonempty refusal alongside calls is contradictory and rejects.
+
+A populated call array with another finish reason, an empty/missing call array with `tool_calls` finish reason, malformed calls, duplicate IDs and any non-null legacy `function_call` fail as an invalid upstream response. Omitted/null/empty `tool_calls` with ordinary stop/length/content_filter/null finish reasons retain existing text/refusal/filter behavior. The current response subset does not claim support for multimodal assistant content, streamed call deltas, provider-specific server tools or native Anthropic/Gemini call translation.
+
+Both compatible HTTP bases and the installed OpenAI SDK receive the same normalized call IDs, names, serialized arguments and finish reason. Metadata audit and errors never include those values or assistant content. IAM, limits and required audit remain before transport. An invalid upstream response retains possibly-billed failed-attempt usage accounting; a valid delivered call uses the existing successful usage path. The caller's subsequent `tool` result and assistant call history are still unsupported, so this is not an end-to-end tool lifecycle. Request controls are separately tracked in #180; full compatibility remains tracked in #116.
+
+Source: https://openrouter.ai/openapi.json, raw snapshot retrieved 2026-09-29.

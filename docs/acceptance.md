@@ -477,7 +477,7 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 
 ### Unsupported upstream invocation responses
 
-- Reject populated/malformed tool_calls, non-null function_call and tool finish reasons through both OpenAI/OpenRouter paths and actual SDK bases.
+- Preserve validated non-streaming function tool_calls with matching tool_calls finish reason through both OpenAI/OpenRouter paths and actual SDK bases; reject malformed/mismatched calls and non-null legacy function_call safely.
 - Preserve ordinary text/refusal/filter outcomes with omitted/null/empty modern fields and omitted/null legacy fields.
 - Keep possibly-billed failure accounting and prevent function names/arguments/content in errors or metadata; IAM, limits and audit denials never call upstream.
 - Full tool workflows remain open under #116. See [plan](plans/172-unsupported-tool-output.md).
@@ -503,9 +503,10 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Capture maps before credential awaits. IAM, limits, required audit, principal attribution and safe failed-attempt usage remain effective without key/value leakage.
 - Per-model native support, source-drift coverage for this field, tool/stream/client completeness remain open. See [plan](plans/178-client-logit-bias.md).
 
-## Function-tool request subset
+## Function-tool request and response subset
 
 - Both chat paths and the installed OpenAI SDK carry validated function-tool declarations, choice and parallel-call flags to OpenAI/OpenRouter with exact nested schema snapshots.
 - Malformed controls and OpenRouter server tools reject before HTTP routing; native malformed controls and direct Anthropic/Gemini supported controls reject before credential lookup.
-- IAM deny, explicit deny, limits and required audit prevent transport; failed attempts retain safe usage attribution without tool payloads in metadata or errors.
-- Upstream tool-call outputs and tool-result history still fail or reject safely. Full external-tool compatibility remains open. See [plan](plans/180-function-tool-requests.md) and [contract](../contracts/client-function-tools.md).
+- Both compatible bases and actual OpenAI SDK preserve valid non-streaming function call IDs, names, argument strings and tool_calls finish reason; string/null/omitted content normalizes safely.
+- Malformed, duplicate, mismatched and legacy calls fail with possibly-billed usage and no sensitive metadata. Ordinary text/refusal/filter outcomes stay unchanged.
+- IAM deny, explicit deny, limits and required audit prevent transport. Tool-result history, streaming and native Anthropic/Gemini mappings remain open. See [request plan](plans/180-function-tool-requests.md), [response plan](plans/182-function-tool-responses.md) and [response contract](../contracts/function-tool-responses.md).
