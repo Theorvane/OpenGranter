@@ -531,3 +531,11 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Multiple call IDs preserve exact arguments and match one result each in either order; text-part tool results normalize to strings, omitted assistant call content becomes null, and an empty call array preserves ordinary text history.
 - Orphan, duplicate, interrupted and unresolved call groups reject before routing; valid history on direct Anthropic/Gemini rejects before credentials.
 - Continuation requests retain IAM, limits, required audit and usage accounting without tool payloads in metadata or errors. Streaming, server tools, rich content and native tool translation remain open. See [plan](plans/184-function-tool-history.md) and [contract](../contracts/function-tool-history.md).
+
+## Internal OpenRouter text-stream sequence
+
+- Decoded text deltas with stable response ID and client model alias, one terminal finish reason, one final usage frame and `[DONE]` produce a complete immutable summary with normalized usage and no retained response text.
+- The empty-choice usage variant may omit a repeated finish reason; when present it must match. Missing and invalid usage counters remain explicit.
+- Identity changes, out-of-order or duplicate terminal/usage/done events and incomplete EOF fail with one fixed safe error marked possibly billed. The first invalid event permanently invalidates the sequence.
+- First-event and midstream upstream error events produce a distinct safe possibly billed failure. Neither result contains upstream error details or response content.
+- This is an internal validator only. Client `stream:true` remains rejected pending transport, IAM/limits, usage/audit and provider/client stream integration. See [plan](plans/192-openrouter-stream-sequence.md) and [contract](../contracts/openrouter-stream-sequence.md).
