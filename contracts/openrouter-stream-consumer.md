@@ -1,0 +1,7 @@
+# Internal OpenRouter text-stream consumer contract
+
+The consumer accepts an upstream byte stream opened by an authorized caller, a fixed model scope, and an asynchronous delta callback. It frames bounded SSE data events, decodes only supported text chunks, validates their order and scope, and awaits each callback before reading more events. The callback receives only validated delta events, including the terminal delta. Completion returns the immutable sequence summary after final usage and `[DONE]`.
+
+A top-level upstream error, including the first event, returns the validator's safe failed outcome. Invalid framing, payload, sequence, incomplete EOF, transport interruption and callback rejection throw one fixed `OpenRouterStreamSequenceFailure` with `possiblyBilled: true`. No upstream error, callback error, content or credential appears in that failure. The reader is cancelled on `[DONE]`, upstream error, or any failure before EOF; an already ended source needs only reader release. The consumer does not wait indefinitely for the remote peer to close after a terminal marker.
+
+This internal component does not send a client response, open an upstream connection, authorize a route, persist usage or audit, or enable client `stream:true`. A callback may have delivered partial text before failure, so a later integration must distinguish committed client response failure from pre-response failure and avoid replay.
