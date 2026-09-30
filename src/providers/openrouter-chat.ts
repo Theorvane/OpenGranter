@@ -121,7 +121,13 @@ function normalize(
 
   const stats = normalizeProviderUsage(value.usage);
   const finish = first.finish_reason;
-  if (finish !== 'stop' && finish !== 'length' && finish !== 'content_filter' && finish !== null)
+  if (
+    finish !== 'stop' &&
+    finish !== 'length' &&
+    finish !== 'content_filter' &&
+    finish !== 'tool_calls' &&
+    finish !== null
+  )
     fail('upstream', true, true);
   return {
     id: value.id,

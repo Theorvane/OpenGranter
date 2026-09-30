@@ -15,10 +15,12 @@ function fixture(
   extra: Record<string, unknown> = {},
 ) {
   let calls = 0;
+  const sent: Record<string, unknown>[] = [];
   const audits: unknown[] = [];
   const usage: unknown[] = [];
-  const fetcher: typeof fetch = async () => {
+  const fetcher: typeof fetch = async (_, init) => {
     calls++;
+    sent.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
     return Response.json({
       id: 'completion',
       created: 1,
@@ -95,7 +97,7 @@ function fixture(
       delegated({ upstreamModelId: 'model', authorizedProviderSlugs: ['provider'] }, request),
     resolveVerifiedProviderSlug: async () => 'provider',
   });
-  return { handler, audits, usage, calls: () => calls };
+  return { handler, audits, usage, sent, calls: () => calls };
 }
 const input = { model: 'chat', messages: [{ role: 'user', content: 'private prompt' }] };
 function request(path: string) {
@@ -105,74 +107,43 @@ function request(path: string) {
     body: JSON.stringify(input),
   });
 }
-const tool = {
-  id: 'call',
+const firstCall = {
+  id: 'call_one',
   type: 'function',
-  function: { name: 'private-function', arguments: 'private-arguments' },
+  function: { name: 'lookup', arguments: '{"query":"private value"}' },
 };
-const unsupported: readonly [Record<string, unknown>, string][] = [
-  [{ tool_calls: [tool] }, 'stop'],
-  [{ tool_calls: {} }, 'stop'],
-  [{ tool_calls: 'private-arguments' }, 'stop'],
-  [{ tool_calls: false }, 'stop'],
-  [{ tool_calls: [null] }, 'stop'],
-  [{ function_call: tool.function }, 'stop'],
-  [{ function_call: [] }, 'stop'],
-  [{ function_call: false }, 'stop'],
-  [{}, 'tool_calls'],
-  [{}, 'function_call'],
-  [{ tool_calls: [] }, 'tool_calls'],
-  [{ function_call: null }, 'function_call'],
-];
+const secondCall = {
+  id: 'call_two',
+  type: 'function',
+  function: { name: 'summarize', arguments: '{}' },
+};
 for (const kind of ['openai', 'openrouter'] as const) {
-  test(`${kind}: unsupported invocation outputs fail through both HTTP prefixes with safe accounting`, async () => {
-    for (const [extra, finish] of unsupported)
-      for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
-        const f = fixture(kind, 'private response', undefined, finish, '', extra);
+  test(`${kind}: valid tool calls preserve data and finish reason on both HTTP paths`, async () => {
+    for (const path of ['/v1/chat/completions', '/api/v1/chat/completions'])
+      for (const content of [null, 'private prelude', Symbol('omitted content')]) {
+        const f = fixture(kind, content, undefined, 'tool_calls', '', {
+          tool_calls: [firstCall, secondCall],
+        });
         const response = await f.handler(request(path));
-        assert.equal(response.status, 502);
-        assert.equal(f.calls(), 1);
-        assert.equal(f.usage.length, 1);
-        assert.equal((f.usage[0] as { possiblyBilled: boolean }).possiblyBilled, true);
-        assert.doesNotMatch(
-          await response.text(),
-          /private-function|private-arguments|private response|fixture-key/u,
+        assert.equal(response.status, 200);
+        const body = (await response.json()) as {
+          choices: { finish_reason: string; message: Record<string, unknown> }[];
+        };
+        assert.equal(body.choices[0]?.finish_reason, 'tool_calls');
+        assert.equal(
+          body.choices[0]?.message.content,
+          typeof content === 'symbol' ? null : content,
         );
+        assert.deepEqual(body.choices[0]?.message.tool_calls, [firstCall, secondCall]);
+        assert.equal(f.usage.length, 1);
         assert.doesNotMatch(
           JSON.stringify([f.audits, f.usage]),
-          /private-function|private-arguments|private response|fixture-key/u,
+          /private value|lookup|summarize|private prelude|fixture-key/u,
         );
       }
   });
-  test(`${kind}: no-invocation defaults preserve text/refusal/filter outcomes`, async () => {
-    for (const extra of [
-      {},
-      { tool_calls: null },
-      { tool_calls: [] },
-      { function_call: null },
-      { tool_calls: [], function_call: null },
-    ])
-      for (const path of ['/v1/chat/completions', '/api/v1/chat/completions'])
-        for (const [content, refusal, finish] of [
-          ['reply', undefined, 'stop'],
-          [null, 'refusal', 'stop'],
-          [null, undefined, 'content_filter'],
-        ] as const) {
-          const f = fixture(kind, content, refusal, finish, '', extra);
-          const response = await f.handler(request(path));
-          assert.equal(response.status, 200);
-          const body = (await response.json()) as {
-            choices: { message: Record<string, unknown> }[];
-          };
-          assert.equal(body.choices[0]?.message.content, content);
-          assert.equal(Object.hasOwn(body.choices[0]?.message ?? {}, 'tool_calls'), false);
-          assert.equal(f.usage.length, 1);
-        }
-  });
-  test(`${kind}: actual SDK sees safe malformed tool failure on both bases`, async () => {
-    const f = fixture(kind, 'private response', undefined, 'tool_calls', '', {
-      tool_calls: [{ ...tool, id: '' }],
-    });
+  test(`${kind}: installed SDK reads tool calls through both base paths`, async () => {
+    const f = fixture(kind, null, undefined, 'tool_calls', '', { tool_calls: [firstCall] });
     const server = createNodeRequestServer(f.handler);
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
     try {
@@ -184,13 +155,18 @@ for (const kind of ['openai', 'openrouter'] as const) {
           baseURL: `http://127.0.0.1:${address.port}${base}`,
           maxRetries: 0,
         });
-        await assert.rejects(
-          () => sdk.chat.completions.create(input as OpenAI.ChatCompletionCreateParamsNonStreaming),
-          (error) =>
-            error instanceof OpenAI.APIError &&
-            error.status === 502 &&
-            !/private-function|private-arguments|private response/u.test(error.message),
-        );
+        const result = await sdk.chat.completions.create({
+          ...input,
+          tools: [
+            { type: 'function', function: { name: 'lookup', parameters: { type: 'object' } } },
+          ],
+          tool_choice: { type: 'function', function: { name: 'lookup' } },
+        } as OpenAI.ChatCompletionCreateParamsNonStreaming);
+        assert.equal(result.choices[0]?.finish_reason, 'tool_calls');
+        assert.deepEqual(result.choices[0]?.message.tool_calls, [firstCall]);
+        assert.deepEqual(f.sent.at(-1)?.tools, [
+          { type: 'function', function: { name: 'lookup', parameters: { type: 'object' } } },
+        ]);
       }
     } finally {
       await new Promise<void>((resolve, reject) =>
@@ -198,7 +174,27 @@ for (const kind of ['openai', 'openrouter'] as const) {
       );
     }
   });
-  test(`${kind}: unsupported outputs do not bypass IAM limits or audit gates`, async () => {
+  test(`${kind}: malformed or mismatched calls remain safe billed failures`, async () => {
+    for (const [calls, finish, extra] of [
+      [[firstCall], 'stop', {}],
+      [[], 'tool_calls', {}],
+      [[{ ...firstCall, id: '' }], 'tool_calls', {}],
+      [[{ ...firstCall, function: { name: 'lookup', arguments: {} } }], 'tool_calls', {}],
+      [[firstCall, firstCall], 'tool_calls', {}],
+      [[firstCall], 'tool_calls', { function_call: firstCall.function }],
+      [[firstCall], 'tool_calls', { refusal: 'private refusal' }],
+    ] as const) {
+      const f = fixture(kind, null, undefined, finish, '', { tool_calls: calls, ...extra });
+      const response = await f.handler(request('/api/v1/chat/completions'));
+      assert.equal(response.status, 502);
+      assert.equal((f.usage[0] as { possiblyBilled: boolean }).possiblyBilled, true);
+      assert.doesNotMatch(
+        JSON.stringify([f.audits, f.usage, await response.text()]),
+        /private value|lookup|fixture-key/u,
+      );
+    }
+  });
+  test(`${kind}: tool outputs remain behind IAM, limit and audit gates`, async () => {
     for (const [gate, status] of [
       ['deny', 403],
       ['explicit', 403],
@@ -206,9 +202,7 @@ for (const kind of ['openai', 'openrouter'] as const) {
       ['audit', 503],
     ] as const)
       for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
-        const f = fixture(kind, 'private response', undefined, 'tool_calls', gate, {
-          tool_calls: [tool],
-        });
+        const f = fixture(kind, null, undefined, 'tool_calls', gate, { tool_calls: [firstCall] });
         const response = await f.handler(request(path));
         assert.equal(response.status, status);
         assert.equal(f.calls(), 0);

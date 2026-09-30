@@ -92,7 +92,7 @@ export interface ChatCompletion {
     {
       readonly index: 0;
       readonly message: AssistantResponse;
-      readonly finish_reason: 'stop' | 'length' | 'content_filter' | null;
+      readonly finish_reason: 'stop' | 'length' | 'content_filter' | 'tool_calls' | null;
     },
   ];
   readonly usage?: {
@@ -125,7 +125,7 @@ function completion(
   created: unknown,
   model: string,
   content: unknown,
-  finish: 'stop' | 'length' | 'content_filter' | null,
+  finish: 'stop' | 'length' | 'content_filter' | 'tool_calls' | null,
   stats?: ChatCompletion['usage'],
   assistant?: AssistantResponse,
 ): ChatCompletion {
@@ -163,7 +163,13 @@ function normalize(
     const message = normalizeAssistantResponse(record(first.message), first.finish_reason);
     if (!message) fail('other');
     const finish = first.finish_reason;
-    if (finish !== 'stop' && finish !== 'length' && finish !== 'content_filter' && finish !== null)
+    if (
+      finish !== 'stop' &&
+      finish !== 'length' &&
+      finish !== 'content_filter' &&
+      finish !== 'tool_calls' &&
+      finish !== null
+    )
       fail('other');
     return {
       ...completion(

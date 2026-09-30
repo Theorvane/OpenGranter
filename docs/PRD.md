@@ -234,9 +234,9 @@ The version-3 official schema pin tracks name constraints and name-required stat
 
 Compatible OpenAI/OpenRouter responses retain optional string/null system_fingerprint so clients can observe upstream backend changes. No identity or deterministic-output guarantee follows from it. Native Anthropic/Gemini omit the field. See [plan](plans/170-system-fingerprint.md).
 
-### Unsupported invocation output
+### Function invocation responses
 
-Before complete tool workflows ship, OpenAI/OpenRouter tool-bearing responses fail explicitly rather than dropping invocation semantics and reporting text success. No-invocation defaults retain existing text outcomes. See [plan](plans/172-unsupported-tool-output.md).
+OpenAI/OpenRouter preserve validated non-streaming function tool-call responses with their IDs, names, serialized arguments and tool_calls finish reason. Malformed, mismatched and legacy invocations fail safely rather than dropping semantics. No-invocation defaults retain existing text outcomes. Tool-result history, streaming and native mappings remain open. See [plan](plans/182-function-tool-responses.md) and [contract](../contracts/function-tool-responses.md).
 
 ### Upstream termination semantics
 
@@ -252,4 +252,4 @@ Both compatible chat bases accept nullable logit_bias maps. Direct OpenAI and de
 
 ## Function-tool request subset
 
-Both OpenRouter-compatible chat paths accept validated non-streaming function-tool declarations, selection and nullable parallel-call controls. Delegated OpenRouter and direct OpenAI receive captured requests; direct Anthropic/Gemini reject supplied controls before credential access. Existing IAM, limits, audit and usage remain authoritative. Upstream tool-call responses, tool-result history, streaming and OpenRouter server tools remain unsupported, so this is not an end-to-end tool workflow. See [plan](plans/180-function-tool-requests.md) and [contract](../contracts/client-function-tools.md).
+Both OpenRouter-compatible chat paths accept validated non-streaming function-tool declarations, selection and nullable parallel-call controls. Delegated OpenRouter and direct OpenAI receive captured requests; direct Anthropic/Gemini reject supplied controls before credential access. Existing IAM, limits, audit and usage remain authoritative. Tool-result history, streaming and OpenRouter server tools remain unsupported, so this is not an end-to-end tool workflow. See [plan](plans/180-function-tool-requests.md) and [contract](../contracts/client-function-tools.md).
