@@ -40,6 +40,11 @@ test('decodes UTF-8 split inside a code point and drops unfinished final event',
   assert.deepEqual(await collect([bytes.slice(0, cut), bytes.slice(cut)]), ['한']);
 });
 
+test('accepts exact payload byte limits for single and multiline data events', async () => {
+  assert.deepEqual(await collect(['data: café\n\n'], 5), ['café']);
+  assert.deepEqual(await collect(['data: ab\ndata: cd\n\n'], 5), ['ab\ncd']);
+});
+
 test('rejects malformed UTF-8, oversized lines and events without echoing content', async () => {
   for (const chunks of [
     [new Uint8Array([0x64, 0x61, 0x74, 0x61, 0x3a, 0xff])],

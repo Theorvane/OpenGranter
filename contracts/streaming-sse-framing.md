@@ -4,6 +4,6 @@ The parser accepts a byte stream and yields only complete SSE `data` event paylo
 
 The parser does not interpret JSON, `[DONE]`, finish reasons, usage or midstream errors. A later protocol layer must validate those before emitting a client stream. `stream:true` remains unsupported at the gateway in this issue.
 
-Input decoding is strict UTF-8. Lines and collected event data have a default one MiB bound. Invalid bytes, excessive data and transport failures raise one fixed error with no upstream text. The reader is consumed on demand; stopping iteration early cancels it. A complete source releases the lock without cancellation.
+Input decoding is strict UTF-8. Emitted event data has a default one MiB bound, measured in UTF-8 bytes including only separators between `data` values. An individual source line may use up to six additional bytes for `data: ` framing. Invalid bytes, excessive data and transport failures raise one fixed error with no upstream text. The reader is consumed on demand; stopping iteration early cancels it. A complete source releases the lock without cancellation.
 
 Sources: [HTML SSE parsing rules](https://html.spec.whatwg.org/multipage/server-sent-events.html#event-stream-interpretation) and [OpenRouter streaming behavior](https://openrouter.ai/docs/api_reference/streaming).

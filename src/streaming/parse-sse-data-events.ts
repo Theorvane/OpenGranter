@@ -52,7 +52,7 @@ export async function* parseSseDataEvents(
     if (field !== 'data') return undefined;
     const raw = colon < 0 ? '' : current.slice(colon + 1);
     const value = raw.startsWith(' ') ? raw.slice(1) : raw;
-    eventBytes += encoder.encode(value).byteLength + 1;
+    eventBytes += encoder.encode(value).byteLength + (data.length === 0 ? 0 : 1);
     if (eventBytes > maxEventBytes) throw invalidStream();
     data.push(value);
     return undefined;
@@ -85,7 +85,8 @@ export async function* parseSseDataEvents(
         line += char;
         const point = char.codePointAt(0) ?? 0;
         lineBytes += point <= 0x7f ? 1 : point <= 0x7ff ? 2 : point <= 0xffff ? 3 : 4;
-        if (lineBytes > maxEventBytes) throw invalidStream();
+        // Allow the `data: ` framing bytes around a payload at its exact limit.
+        if (lineBytes > maxEventBytes + 6) throw invalidStream();
       }
     }
   } catch {

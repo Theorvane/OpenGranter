@@ -18,7 +18,7 @@
 - Use a strict streaming `TextDecoder`; incrementally scan characters and accumulate at most one bounded line and one bounded event. Preserve one leading space after `data:` except the single optional SSE separator space.
 - Expose only an async iterable of data strings. Upstream chunk validation, `[DONE]`, usage and errors belong to later protocol layers, so this parser must not interpret JSON or endpoint-specific markers.
 - Pull from the reader only when the consumer requests more output. Cancel and release the reader on early iteration termination or parsing failure.
-- Limit bytes by UTF-8 length of each complete line and collected data event; reject oversized unfinished lines before further accumulation.
+- Limit the emitted data by its UTF-8 byte length, counting separators only between values. Allow six extra line bytes for `data: ` framing, then reject oversized unfinished lines before further accumulation.
 - See [stream framing contract](../../contracts/streaming-sse-framing.md), [compatibility inventory](../openrouter-compatibility.md), and [acceptance](../acceptance.md).
 
 ## TDD plan
