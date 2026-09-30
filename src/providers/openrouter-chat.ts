@@ -12,6 +12,11 @@ import {
   validTopK,
   validTopP,
 } from '../gateway/chat-parameters.ts';
+import {
+  snapshotFunctionTools,
+  snapshotParallelToolCalls,
+  snapshotToolChoice,
+} from '../gateway/chat-tools.ts';
 import { normalizeProviderUsage } from '../usage/normalize-provider-tokens.ts';
 import { normalizeAssistantResponse } from './assistant-response.ts';
 import type { ChatCompletion } from './direct-chat.ts';
@@ -149,8 +154,14 @@ export function createOpenRouterChatInvoker(
       fail('configuration');
     }
     let logitBias: ReturnType<typeof snapshotLogitBias>;
+    let tools: ReturnType<typeof snapshotFunctionTools>;
+    let toolChoice: ReturnType<typeof snapshotToolChoice>;
+    let parallelToolCalls: ReturnType<typeof snapshotParallelToolCalls>;
     try {
       logitBias = snapshotLogitBias(request.logit_bias);
+      tools = snapshotFunctionTools(request.tools);
+      toolChoice = snapshotToolChoice(request.tool_choice);
+      parallelToolCalls = snapshotParallelToolCalls(request.parallel_tool_calls);
     } catch {
       fail('configuration');
     }
@@ -212,6 +223,9 @@ export function createOpenRouterChatInvoker(
           ...(presencePenalty === undefined ? {} : { presence_penalty: presencePenalty }),
           ...(responseFormat === undefined ? {} : { response_format: responseFormat }),
           ...(logitBias === undefined ? {} : { logit_bias: logitBias }),
+          ...(tools === undefined ? {} : { tools }),
+          ...(toolChoice === undefined ? {} : { tool_choice: toolChoice }),
+          ...(parallelToolCalls === undefined ? {} : { parallel_tool_calls: parallelToolCalls }),
           ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
           ...(temperature === undefined ? {} : { temperature }),
           ...(topP === undefined ? {} : { top_p: topP }),
