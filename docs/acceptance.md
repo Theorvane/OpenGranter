@@ -546,3 +546,10 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - `[DONE]` and first/midstream upstream errors stop reading and cancel the remaining source. Upstream errors return a distinct safe possibly-billed outcome.
 - Malformed framing/chunks/order, interrupted transport, incomplete EOF and callback rejection fail with a fixed possibly-billed error, release the reader, and omit sensitive causes and response content.
 - The internal consumer does not call a provider, send client SSE, persist usage/audit or enable `stream:true`. See [plan](plans/196-openrouter-stream-consumer.md) and [contract](../contracts/openrouter-stream-consumer.md).
+
+## Internal OpenRouter stream HTTP response validation
+
+- HTTP 200 with an SSE media type and body enters the bounded stream consumer; a complete terminal/usage/done sequence returns normalized usage and delivers only validated text deltas.
+- HTTP 429, 5xx and other statuses receive existing safe delegated failure categories without reading upstream bodies. Wrong/missing media type or body, upstream SSE error, invalid/truncated stream and callback failure remain possibly billed upstream failures.
+- Rejected unread response bodies are cancelled, and errors never include response content, callback causes or credentials. Non-streaming behavior remains unchanged.
+- Provider HTTP invocation, client SSE, usage/audit persistence and direct-provider streaming remain future work. See [plan](plans/198-openrouter-stream-response.md) and [contract](../contracts/openrouter-stream-response.md).
