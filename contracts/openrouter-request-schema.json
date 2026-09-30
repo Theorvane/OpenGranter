@@ -1,9 +1,9 @@
 {
-  "version": 3,
+  "version": 4,
   "source": "https://openrouter.ai/openapi.json",
-  "retrievedAt": "2026-09-29",
-  "sourceSha256": "d2352bf0d6587821a453e8e06906fb1a6e85d6e146f8ed706156d582b1029f5c",
-  "projectionSha256": "acc53f23470c42374022abcc34bab6e766f608098e36e477f19d79e8ea0ea687",
+  "retrievedAt": "2026-09-30",
+  "sourceSha256": "80ba515f0bf637b39411def07ad0ca0aea37c6b95fe1ad5a9d9d09f88e842185",
+  "projectionSha256": "aaf05dcba496954470fbef742853023e38a313a24f6a9d2f4935a8e4bcfe9dbc",
   "projection": {
     "openapi": "3.1.0",
     "documentVersion": "1.0.0",
@@ -123,6 +123,21 @@
           "integer",
           "null"
         ]
+      },
+      "tools": {
+        "items": {
+          "$ref": "#/components/schemas/ChatFunctionTool"
+        },
+        "type": "array"
+      },
+      "tool_choice": {
+        "$ref": "#/components/schemas/ChatToolChoice"
+      },
+      "parallel_tool_calls": {
+        "type": [
+          "boolean",
+          "null"
+        ]
       }
     },
     "definitions": {
@@ -153,6 +168,174 @@
           "type"
         ],
         "type": "object"
+      },
+      "ChatFunctionTool": {
+        "anyOf": [
+          {
+            "properties": {
+              "cache_control": {
+                "$ref": "#/components/schemas/ChatContentCacheControl"
+              },
+              "function": {
+                "properties": {
+                  "description": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  "parameters": {
+                    "additionalProperties": {},
+                    "type": "object"
+                  },
+                  "strict": {
+                    "type": [
+                      "boolean",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "type": "object"
+              },
+              "type": {
+                "enum": [
+                  "function"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "function"
+            ],
+            "type": "object"
+          },
+          {
+            "$ref": "#/components/schemas/AdvisorServerTool_OpenRouter"
+          },
+          {
+            "$ref": "#/components/schemas/BashServerTool"
+          },
+          {
+            "$ref": "#/components/schemas/DatetimeServerTool"
+          },
+          {
+            "$ref": "#/components/schemas/FilesServerTool"
+          },
+          {
+            "$ref": "#/components/schemas/FusionServerTool_OpenRouter"
+          },
+          {
+            "$ref": "#/components/schemas/ImageGenerationServerTool_OpenRouter"
+          },
+          {
+            "$ref": "#/components/schemas/ChatSearchModelsServerTool"
+          },
+          {
+            "$ref": "#/components/schemas/SubagentServerTool_OpenRouter"
+          },
+          {
+            "$ref": "#/components/schemas/WebFetchServerTool"
+          },
+          {
+            "$ref": "#/components/schemas/OpenRouterWebSearchServerTool"
+          },
+          {
+            "$ref": "#/components/schemas/ChatWebSearchShorthand"
+          }
+        ]
+      },
+      "ChatToolChoice": {
+        "anyOf": [
+          {
+            "enum": [
+              "none"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "auto"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "required"
+            ],
+            "type": "string"
+          },
+          {
+            "$ref": "#/components/schemas/ChatNamedToolChoice"
+          },
+          {
+            "$ref": "#/components/schemas/ChatServerToolChoice"
+          }
+        ]
+      },
+      "ChatNamedToolChoice": {
+        "properties": {
+          "function": {
+            "properties": {
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "type": "object"
+          },
+          "type": {
+            "enum": [
+              "function"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "function"
+        ],
+        "type": "object"
+      },
+      "ChatToolCall": {
+        "properties": {
+          "function": {
+            "properties": {
+              "arguments": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "arguments"
+            ],
+            "type": "object"
+          },
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "function"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "function"
+        ],
+        "type": "object"
       }
     },
     "messageNames": {
@@ -179,6 +362,49 @@
         "schema": {
           "type": "string"
         }
+      }
+    },
+    "toolMessages": {
+      "ChatAssistantMessage": {
+        "required": false,
+        "schema": {
+          "items": {
+            "$ref": "#/components/schemas/ChatToolCall"
+          },
+          "type": "array"
+        }
+      },
+      "ChatToolMessage": {
+        "properties": {
+          "content": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ChatContentItems"
+                },
+                "type": "array"
+              }
+            ]
+          },
+          "role": {
+            "enum": [
+              "tool"
+            ],
+            "type": "string"
+          },
+          "tool_call_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "content",
+          "tool_call_id"
+        ],
+        "type": "object"
       }
     }
   }

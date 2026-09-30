@@ -12,7 +12,7 @@ import {
 } from '../scripts/openrouter-schema.ts';
 
 function source(): Record<string, unknown> {
-  return {
+  const data = {
     openapi: '3.1.0',
     info: { version: '1.0.0' },
     paths: {
@@ -71,6 +71,9 @@ function source(): Record<string, unknown> {
                 $ref: `#/components/schemas/ChatFormat${name}Config`,
               })),
             },
+            tools: { type: 'array', items: { $ref: '#/components/schemas/ChatFunctionTool' } },
+            tool_choice: { $ref: '#/components/schemas/ChatNamedToolChoice' },
+            parallel_tool_calls: { type: 'boolean', default: true },
           },
         },
         ChatFormatTextConfig: {
@@ -83,6 +86,26 @@ function source(): Record<string, unknown> {
           required: ['type'],
           properties: { type: { enum: ['json_object'], type: 'string' } },
         },
+        ChatFunctionTool: {
+          type: 'object',
+          required: ['type', 'function'],
+          properties: { type: { const: 'function' } },
+        },
+        ChatNamedToolChoice: {
+          type: 'object',
+          required: ['type', 'function'],
+          properties: { type: { const: 'function' } },
+        },
+        ChatToolCall: {
+          type: 'object',
+          required: ['id', 'type', 'function'],
+          properties: { id: { type: 'string' } },
+        },
+        ChatToolMessage: {
+          type: 'object',
+          required: ['role', 'content', 'tool_call_id'],
+          properties: { role: { const: 'tool' }, tool_call_id: { type: 'string' } },
+        },
         ...Object.fromEntries(
           [
             'ChatSystemMessage',
@@ -94,9 +117,29 @@ function source(): Record<string, unknown> {
             { type: 'object', required: ['role'], properties: { name: { type: 'string' } } },
           ]),
         ),
+        ChatAssistantMessage: {
+          type: 'object',
+          required: ['role'],
+          properties: {
+            name: { type: 'string' },
+            tool_calls: { type: 'array', items: { $ref: '#/components/schemas/ChatToolCall' } },
+          },
+        },
       },
     },
   };
+  Object.assign(data.components.schemas.ChatRequest.properties, {
+    tools: structuredClone(pinned.projection.fields.tools),
+    tool_choice: structuredClone(pinned.projection.fields.tool_choice),
+    parallel_tool_calls: structuredClone(pinned.projection.fields.parallel_tool_calls),
+  });
+  Object.assign(data.components.schemas, structuredClone(pinned.projection.definitions), {
+    ChatToolMessage: structuredClone(pinned.projection.toolMessages.ChatToolMessage),
+  });
+  Object.assign(data.components.schemas.ChatAssistantMessage.properties, {
+    tool_calls: structuredClone(pinned.projection.toolMessages.ChatAssistantMessage.schema),
+  });
+  return data;
 }
 const pinned = JSON.parse(
   await readFile(new URL('../contracts/openrouter-request-schema.json', import.meta.url), 'utf8'),
@@ -111,12 +154,15 @@ test('official projection and reviewed pin agree; key order is immaterial', () =
     'max_tokens',
     'messages',
     'model',
+    'parallel_tool_calls',
     'presence_penalty',
     'response_format',
     'seed',
     'stop',
     'stream',
     'temperature',
+    'tool_choice',
+    'tools',
     'top_k',
     'top_p',
   ]);
@@ -131,6 +177,86 @@ test('meaningful field and required-list changes cause drift', () => {
     raw.replace('"default":false', '"default":true'),
   ])
     assert.equal(compareOfficialSchema(JSON.parse(altered), pinned), false);
+});
+
+test('function-tool request, definition and history changes cause drift', () => {
+  const data = source();
+  const projected = projectOfficialSchema(data) as unknown as Record<string, unknown>;
+  const fields = projected.fields as Record<string, unknown>;
+  const definitions = projected.definitions as Record<string, unknown>;
+  const messages = projected.toolMessages as Record<string, unknown>;
+  for (const name of ['tools', 'tool_choice', 'parallel_tool_calls']) assert.ok(fields[name]);
+  for (const name of ['ChatFunctionTool', 'ChatToolChoice', 'ChatNamedToolChoice', 'ChatToolCall'])
+    assert.ok(definitions[name]);
+  assert.ok(messages.ChatAssistantMessage);
+  assert.ok(messages.ChatToolMessage);
+  const alterations = [
+    (schemas: Record<string, unknown>) => {
+      const request = schemas.ChatRequest as { properties: Record<string, unknown> };
+      request.properties.parallel_tool_calls = { type: 'string' };
+    },
+    (schemas: Record<string, unknown>) => {
+      schemas.ChatFunctionTool = { type: 'string' };
+    },
+    (schemas: Record<string, unknown>) => {
+      const tool = schemas.ChatToolMessage as { required: string[] };
+      tool.required = [...tool.required, 'extra'];
+    },
+    (schemas: Record<string, unknown>) => {
+      const assistant = schemas.ChatAssistantMessage as { properties: Record<string, unknown> };
+      assistant.properties.tool_calls = { type: 'string' };
+    },
+  ];
+  for (const alter of alterations) {
+    const changed = source();
+    alter((changed.components as { schemas: Record<string, unknown> }).schemas);
+    assert.equal(compareOfficialSchema(changed, pinned), false);
+  }
+});
+
+test('missing or malformed selected tool structures fail safely', () => {
+  for (const name of ['tools', 'tool_choice', 'parallel_tool_calls']) {
+    const data = source();
+    const request = (data.components as { schemas: Record<string, unknown> }).schemas
+      .ChatRequest as { properties: Record<string, unknown> };
+    request.properties[name] = null;
+    assert.throws(() => projectOfficialSchema(data), /Invalid official schema/);
+  }
+  for (const name of [
+    'ChatFunctionTool',
+    'ChatToolChoice',
+    'ChatNamedToolChoice',
+    'ChatToolCall',
+    'ChatToolMessage',
+  ]) {
+    const data = source();
+    (data.components as { schemas: Record<string, unknown> }).schemas[name] = null;
+    assert.throws(() => projectOfficialSchema(data), /Invalid official schema/);
+  }
+  const data = source();
+  const assistant = (data.components as { schemas: Record<string, unknown> }).schemas
+    .ChatAssistantMessage as { properties: Record<string, unknown> };
+  assistant.properties.tool_calls = null;
+  assert.throws(() => projectOfficialSchema(data), /Invalid official schema/);
+});
+
+test('tool annotations are ignored and tool pin shape is closed', () => {
+  const data = source();
+  const schemas = (data.components as { schemas: Record<string, Record<string, unknown>> }).schemas;
+  assert.ok(schemas.ChatToolCall);
+  assert.ok(schemas.ChatToolMessage);
+  schemas.ChatToolCall.description = 'editorial';
+  schemas.ChatToolMessage.example = { content: 'editorial' };
+  assert.equal(compareOfficialSchema(data, pinned), true);
+  const projection = {
+    ...pinned.projection,
+    toolMessages: { ...pinned.projection.toolMessages, Extra: {} },
+  };
+  const projectionSha256 = createHash('sha256').update(canonicalSchema(projection)).digest('hex');
+  assert.throws(
+    () => validateSchemaPin({ ...pinned, projection, projectionSha256 }),
+    /Invalid schema pin/,
+  );
 });
 
 test('editorial and unrelated changes are ignored; schema keywords are preserved', () => {
@@ -275,14 +401,18 @@ for (const name of ['ChatFormatTextConfig', 'ChatFormatJsonObjectConfig']) {
     }
   });
 }
-test('version-3 pin retains exact selected format definitions', () => {
-  assert.equal(pinned.version, 3);
+test('version-4 pin retains exact selected definitions', () => {
+  assert.equal(pinned.version, 4);
   const definitions = (
     projectOfficialSchema(source()) as unknown as { definitions: Record<string, unknown> }
   ).definitions;
   assert.deepEqual(Object.keys(definitions).sort(), [
     'ChatFormatJsonObjectConfig',
     'ChatFormatTextConfig',
+    'ChatFunctionTool',
+    'ChatNamedToolChoice',
+    'ChatToolCall',
+    'ChatToolChoice',
   ]);
 });
 
@@ -438,8 +568,8 @@ test('message name selection ignores editorial and unrelated message changes', (
   for (const value of Object.values(projected.messageNames))
     assert.deepEqual(value, { schema: { type: 'string' }, required: false });
 });
-test('version-3 message maps reject stale and rehashed malformed pins', () => {
-  for (const version of [1, 2])
+test('version-4 message maps reject stale and rehashed malformed pins', () => {
+  for (const version of [1, 2, 3])
     assert.throws(() => validateSchemaPin({ ...pinned, version }), /Invalid schema pin/);
   for (const messageNames of [
     undefined,

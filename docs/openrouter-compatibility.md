@@ -84,7 +84,7 @@ Fixed metadata.error_type is available alongside numeric codes and local reasons
 
 ## Official request schema drift coverage
 
-A provenance-checked structural pin covers thirteen source-declared chat request fields and the two supported text/json_object format definitions, required fields and request reference/document versions. The offline gate checks integrity; an explicit fixed-host network command detects selected structural drift without auto-updating the pin. Other referenced definitions and full schema instance validation remain uncovered. Version-3 pin integrity rejects stale or malformed definition maps. The retrieved ChatRequest does not declare n; local n=1 is SDK support. The four nullable token/sampling controls are supported; optional model and other broader source behaviors remain gaps. See [plan](plans/138-openrouter-schema-drift.md) and [contract](../contracts/openrouter-schema-drift.md).
+A provenance-checked version-4 structural pin covers sixteen source-declared chat request fields, six selected definitions, four message-name fields and tool-call/result message structures, plus required fields and request reference/document versions. The offline gate checks integrity; an explicit fixed-host network command detects selected structural drift without auto-updating the pin. Other referenced definitions and full schema instance validation remain uncovered. The retrieved ChatRequest does not declare n; local n=1 is SDK support. Optional model and broader source behaviors remain gaps. See [base plan](plans/138-openrouter-schema-drift.md), [tool plan](plans/186-function-tool-schema-drift.md) and [contract](../contracts/openrouter-schema-drift.md).
 
 ## Nullable optional chat controls
 
@@ -143,7 +143,7 @@ String name is supported on all four existing text roles and normalized text arr
 
 ## Referenced message-name source drift
 
-The version-3 pin tracks structural name schemas and name-required status for the four supported text-role definitions while retaining thirteen request fields and two format definitions. Malformed source containers, required lists and rehashed maps fail safely. Annotation and unrelated message-field changes are ignored. Full ChatMessages traversal, other fields and instance/tool/stream/response conformance remain open. See [plan](plans/168-message-name-schema.md) and [contract](../contracts/openrouter-schema-drift.md).
+The message-name subset introduced in version 3 remains selected in version 4. Malformed source containers, required lists and rehashed maps fail safely. Annotation and unrelated message-field changes are ignored. Full ChatMessages traversal, other fields and instance/stream/response conformance remain open. See [plan](plans/168-message-name-schema.md) and [contract](../contracts/openrouter-schema-drift.md).
 
 ## Non-streaming system fingerprint subset
 
