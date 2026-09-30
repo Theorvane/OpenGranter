@@ -12,6 +12,11 @@ import {
   validTopK,
   validTopP,
 } from '../gateway/chat-parameters.ts';
+import {
+  snapshotFunctionTools,
+  snapshotParallelToolCalls,
+  snapshotToolChoice,
+} from '../gateway/chat-tools.ts';
 import type { RouteCandidate } from '../routing/authorize-candidates.ts';
 import { DirectProviderFailure } from '../routing/invoke-jev-managed-route.ts';
 import { normalizeProviderUsage } from '../usage/normalize-provider-tokens.ts';
@@ -262,6 +267,9 @@ function prepare(
   presencePenalty: number | undefined,
   responseFormat: ReturnType<typeof snapshotResponseFormat>,
   logitBias: ReturnType<typeof snapshotLogitBias>,
+  tools: ReturnType<typeof snapshotFunctionTools>,
+  toolChoice: ReturnType<typeof snapshotToolChoice>,
+  parallelToolCalls: ReturnType<typeof snapshotParallelToolCalls>,
   topK: number | undefined,
 
   seed: number | undefined,
@@ -286,6 +294,9 @@ function prepare(
         ...(presencePenalty === undefined ? {} : { presence_penalty: presencePenalty }),
         ...(responseFormat === undefined ? {} : { response_format: responseFormat }),
         ...(logitBias === undefined ? {} : { logit_bias: logitBias }),
+        ...(tools === undefined ? {} : { tools }),
+        ...(toolChoice === undefined ? {} : { tool_choice: toolChoice }),
+        ...(parallelToolCalls === undefined ? {} : { parallel_tool_calls: parallelToolCalls }),
         ...(outputLimit === undefined ? {} : { max_tokens: outputLimit }),
         ...(temperature === undefined ? {} : { temperature }),
         ...(topP === undefined ? {} : { top_p: topP }),
@@ -432,6 +443,21 @@ export function createDirectChatInvoker(
       fail('other');
     }
     if (registration.kind !== 'openai' && logitBias !== undefined) fail('other');
+    let tools: ReturnType<typeof snapshotFunctionTools>;
+    let toolChoice: ReturnType<typeof snapshotToolChoice>;
+    let parallelToolCalls: ReturnType<typeof snapshotParallelToolCalls>;
+    try {
+      tools = snapshotFunctionTools(request.tools);
+      toolChoice = snapshotToolChoice(request.tool_choice);
+      parallelToolCalls = snapshotParallelToolCalls(request.parallel_tool_calls);
+    } catch {
+      fail('other');
+    }
+    if (
+      registration.kind !== 'openai' &&
+      (tools !== undefined || toolChoice !== undefined || parallelToolCalls !== undefined)
+    )
+      fail('other');
     const n = request.n;
     if (!validSingleChoice(n)) fail('other');
     const topP = request.top_p ?? undefined;
@@ -479,6 +505,9 @@ export function createDirectChatInvoker(
       presencePenalty,
       responseFormat,
       logitBias,
+      tools,
+      toolChoice,
+      parallelToolCalls,
       topK,
 
       seed,

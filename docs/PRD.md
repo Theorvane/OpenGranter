@@ -249,3 +249,7 @@ Anthropic and Gemini text responses retain only supported completed/truncated st
 ### Client token-bias maps
 
 Both compatible chat bases accept nullable logit_bias maps. Direct OpenAI and delegated OpenRouter preserve them; direct Anthropic/Gemini reject supplied maps before credentials. IAM, limits and usage/audit attribution remain based on authenticated authority. See [plan](plans/178-client-logit-bias.md).
+
+## Function-tool request subset
+
+Both OpenRouter-compatible chat paths accept validated non-streaming function-tool declarations, selection and nullable parallel-call controls. Delegated OpenRouter and direct OpenAI receive captured requests; direct Anthropic/Gemini reject supplied controls before credential access. Existing IAM, limits, audit and usage remain authoritative. Upstream tool-call responses, tool-result history, streaming and OpenRouter server tools remain unsupported, so this is not an end-to-end tool workflow. See [plan](plans/180-function-tool-requests.md) and [contract](../contracts/client-function-tools.md).

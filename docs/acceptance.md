@@ -502,3 +502,10 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Reject malformed HTTP maps before routing and native malformed/unsupported maps before secrets; only direct OpenAI and delegated OpenRouter forward non-null maps.
 - Capture maps before credential awaits. IAM, limits, required audit, principal attribution and safe failed-attempt usage remain effective without key/value leakage.
 - Per-model native support, source-drift coverage for this field, tool/stream/client completeness remain open. See [plan](plans/178-client-logit-bias.md).
+
+## Function-tool request subset
+
+- Both chat paths and the installed OpenAI SDK carry validated function-tool declarations, choice and parallel-call flags to OpenAI/OpenRouter with exact nested schema snapshots.
+- Malformed controls and OpenRouter server tools reject before HTTP routing; native malformed controls and direct Anthropic/Gemini supported controls reject before credential lookup.
+- IAM deny, explicit deny, limits and required audit prevent transport; failed attempts retain safe usage attribution without tool payloads in metadata or errors.
+- Upstream tool-call outputs and tool-result history still fail or reject safely. Full external-tool compatibility remains open. See [plan](plans/180-function-tool-requests.md) and [contract](../contracts/client-function-tools.md).

@@ -27,7 +27,7 @@ Tools with a hardcoded openrouter.ai host need a configurable endpoint or an int
 | Model discovery | Authorized alias IDs and basic model fields | Context window, capability, supported-parameter and price metadata from trusted catalog sources |
 | Non-streaming text chat | Text messages, one normalized text choice with max_tokens/max_completion_tokens and portable stop/top_p/temperature/n=1 across four adapters | Remaining request/response schema, sampling and capability metadata |
 | Streaming | Not implemented | SSE framing, termination, usage, backpressure, cancellation, safe interruption/failure audit |
-| Tool calling | Not implemented | Tool definitions, choice, assistant tool calls, tool results and provider mappings |
+| Tool calling | Function-tool declarations, choice and parallel-call request controls for delegated OpenRouter/direct OpenAI | Assistant tool calls, tool results, server tools, native mappings and streaming |
 | Rich inputs and outputs | Text-only parts on system/developer/user/assistant normalize to strings | Multimodal/cached content, native block semantics, structured output and reasoning handling |
 | Client routing controls | Rejected today | Client preferences narrow approved model/provider scope; no arbitrary destinations or authority widening |
 | Errors | /api/v1 numeric status codes, fixed messages, safe local reason/typed metadata and request ID; legacy /v1 symbolic codes | Precise upstream error_type propagation, retry hints and streaming errors |
@@ -164,3 +164,5 @@ Anthropic end_turn/stop_sequence/max_tokens and Gemini STOP/MAX_TOKENS map to th
 ## Nullable client logit-bias subset
 
 Omitted/null or exact finite numeric maps enter both compatible paths and SDK serialization. OpenAI/OpenRouter forward captured maps; direct Anthropic/Gemini reject non-null maps before secrets. IAM/limits/audit and usage attribution remain shared, with malformed inputs and failed attempts safely accounted for. The reviewed source-drift pin does not yet select this official field; native model ranges and full tool/stream/client conformance remain open. See [plan](plans/178-client-logit-bias.md) and [contract](../contracts/client-logit-bias.md).
+
+Validated non-streaming function-tool request controls now pass through both compatible paths and the installed OpenAI SDK to delegated OpenRouter/direct OpenAI. Malformed and server-tool requests reject before route lookup; direct Anthropic/Gemini reject supplied controls before credentials. This is request-only: an upstream tool-call response still fails safely and tool-result history is unsupported. Full tool/client compatibility remains open. See [plan](plans/180-function-tool-requests.md) and [contract](../contracts/client-function-tools.md).

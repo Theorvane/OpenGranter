@@ -442,3 +442,7 @@ The direct Anthropic/Gemini normalizer accepts only explicit text completion/tru
 ### Captured logit bias
 
 The gateway snapshots a finite numeric map with exact own string keys before asynchronous routing. Direct and delegated invokers validate native calls independently before secret resolution; only OpenAI/OpenRouter emit maps. Null omits the field. This changes no IAM, route eligibility, audit attribution or fallback policy. See [contract](../contracts/client-logit-bias.md).
+
+## Function-tool request boundary
+
+The chat HTTP validator and both native invokers use a shared bounded snapshot of function-tool declarations, choice and parallel-call controls. The HTTP boundary rejects malformed or non-function tools before route lookup. Native adapters snapshot before credential awaits; OpenAI/OpenRouter forward, and Anthropic/Gemini reject supported controls before credentials. IAM and selected final-provider scope are unchanged. The response guard still rejects tool-call outputs; the full lifecycle is tracked in #116. See [plan](plans/180-function-tool-requests.md) and [contract](../contracts/client-function-tools.md).

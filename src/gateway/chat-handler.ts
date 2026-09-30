@@ -46,11 +46,17 @@ import {
   validTopP,
 } from './chat-parameters.ts';
 import {
+  type FunctionTool,
+  snapshotFunctionTools,
+  snapshotParallelToolCalls,
+  snapshotToolChoice,
+  type ToolChoice,
+} from './chat-tools.ts';
+import {
   type ClientErrorCode,
   clientErrorFormat,
   createClientErrorResponse,
 } from './client-errors.ts';
-
 import { normalizeClientTextMessages } from './client-text-messages.ts';
 
 const MAX_BODY_BYTES = 1024 * 1024;
@@ -71,6 +77,9 @@ export interface ChatRequest {
   readonly top_p?: number;
   readonly top_k?: number;
   readonly logit_bias?: Readonly<Record<string, number>>;
+  readonly tools?: readonly FunctionTool[];
+  readonly tool_choice?: ToolChoice;
+  readonly parallel_tool_calls?: boolean;
   readonly stop?: string | readonly string[] | null;
 }
 
@@ -320,6 +329,9 @@ function validateChat(value: unknown): ChatRequest | undefined {
           'top_p',
           'top_k',
           'logit_bias',
+          'tools',
+          'tool_choice',
+          'parallel_tool_calls',
           'n',
           'seed',
           'frequency_penalty',
@@ -342,8 +354,14 @@ function validateChat(value: unknown): ChatRequest | undefined {
   const topK = value.top_k ?? undefined;
   if (!validTopK(topK)) return undefined;
   let logitBias: ReturnType<typeof snapshotLogitBias>;
+  let tools: ReturnType<typeof snapshotFunctionTools>;
+  let toolChoice: ReturnType<typeof snapshotToolChoice>;
+  let parallelToolCalls: ReturnType<typeof snapshotParallelToolCalls>;
   try {
     logitBias = snapshotLogitBias(value.logit_bias);
+    tools = snapshotFunctionTools(value.tools);
+    toolChoice = snapshotToolChoice(value.tool_choice);
+    parallelToolCalls = snapshotParallelToolCalls(value.parallel_tool_calls);
   } catch {
     return undefined;
   }
@@ -382,6 +400,9 @@ function validateChat(value: unknown): ChatRequest | undefined {
     ...(topP === undefined ? {} : { top_p: topP }),
     ...(topK === undefined ? {} : { top_k: topK }),
     ...(logitBias === undefined ? {} : { logit_bias: logitBias }),
+    ...(tools === undefined ? {} : { tools }),
+    ...(toolChoice === undefined ? {} : { tool_choice: toolChoice }),
+    ...(parallelToolCalls === undefined ? {} : { parallel_tool_calls: parallelToolCalls }),
     ...(value.n === undefined ? {} : { n: value.n }),
     ...(stop === undefined ? {} : { stop }),
   };
