@@ -136,6 +136,17 @@ function source(): Record<string, unknown> {
   Object.assign(data.components.schemas, structuredClone(pinned.projection.definitions), {
     ChatToolMessage: structuredClone(pinned.projection.toolMessages.ChatToolMessage),
   });
+  Object.assign(
+    data.components.schemas,
+    structuredClone(
+      pinned.projection.streamDefinitions ?? {
+        ChatStreamChunk: { type: 'object', properties: { choices: { type: 'array' } } },
+        ChatStreamChoice: { type: 'object', properties: { index: { type: 'integer' } } },
+        ChatStreamDelta: { type: 'object', properties: { content: { type: 'string' } } },
+        ChatStreamOptions: { type: 'object', properties: { include_usage: { type: 'boolean' } } },
+      },
+    ),
+  );
   Object.assign(data.components.schemas.ChatAssistantMessage.properties, {
     tool_calls: structuredClone(pinned.projection.toolMessages.ChatAssistantMessage.schema),
   });
@@ -211,6 +222,59 @@ test('function-tool request, definition and history changes cause drift', () => 
     const changed = source();
     alter((changed.components as { schemas: Record<string, unknown> }).schemas);
     assert.equal(compareOfficialSchema(changed, pinned), false);
+  }
+});
+
+const streamDefinitions = [
+  'ChatStreamChunk',
+  'ChatStreamChoice',
+  'ChatStreamDelta',
+  'ChatStreamOptions',
+];
+test('official projection selects streaming response definitions', () => {
+  const projected = projectOfficialSchema(source()) as unknown as {
+    streamDefinitions: Record<string, unknown>;
+  };
+  assert.deepEqual(Object.keys(projected.streamDefinitions).sort(), [...streamDefinitions].sort());
+});
+
+for (const name of streamDefinitions) {
+  test(`${name}: structural drift and malformed source definitions fail safely`, () => {
+    const changed = source();
+    (changed.components as { schemas: Record<string, unknown> }).schemas[name] = { type: 'string' };
+    assert.equal(compareOfficialSchema(changed, pinned), false);
+    for (const malformed of [undefined, null, [], 'private value']) {
+      const data = source();
+      (data.components as { schemas: Record<string, unknown> }).schemas[name] = malformed;
+      assert.throws(() => projectOfficialSchema(data), /Invalid official schema/);
+    }
+  });
+}
+
+test('stream definition annotations and unrelated definitions do not cause drift', () => {
+  const data = source();
+  const schemas = (data.components as { schemas: Record<string, Record<string, unknown>> }).schemas;
+  assert.ok(schemas.ChatStreamChunk);
+  schemas.ChatStreamChunk.description = 'editorial';
+  schemas.UnrelatedStream = { type: 'number' };
+  assert.equal(compareOfficialSchema(data, pinned), true);
+});
+
+test('rehashed streaming maps reject missing, extra and malformed definitions', () => {
+  for (const streamDefinitions of [
+    undefined,
+    {},
+    [],
+    { ...pinned.projection.streamDefinitions, Extra: { type: 'object' } },
+    { ...pinned.projection.streamDefinitions, ChatStreamDelta: null },
+  ]) {
+    const projection = { ...pinned.projection, streamDefinitions };
+    if (streamDefinitions === undefined) delete projection.streamDefinitions;
+    const projectionSha256 = createHash('sha256').update(canonicalSchema(projection)).digest('hex');
+    assert.throws(
+      () => validateSchemaPin({ ...pinned, projection, projectionSha256 }),
+      /Invalid schema pin/,
+    );
   }
 });
 
@@ -401,8 +465,8 @@ for (const name of ['ChatFormatTextConfig', 'ChatFormatJsonObjectConfig']) {
     }
   });
 }
-test('version-4 pin retains exact selected definitions', () => {
-  assert.equal(pinned.version, 4);
+test('version-5 pin retains exact selected request definitions', () => {
+  assert.equal(pinned.version, 5);
   const definitions = (
     projectOfficialSchema(source()) as unknown as { definitions: Record<string, unknown> }
   ).definitions;
@@ -568,8 +632,8 @@ test('message name selection ignores editorial and unrelated message changes', (
   for (const value of Object.values(projected.messageNames))
     assert.deepEqual(value, { schema: { type: 'string' }, required: false });
 });
-test('version-4 message maps reject stale and rehashed malformed pins', () => {
-  for (const version of [1, 2, 3])
+test('version-5 message maps reject stale and rehashed malformed pins', () => {
+  for (const version of [1, 2, 3, 4])
     assert.throws(() => validateSchemaPin({ ...pinned, version }), /Invalid schema pin/);
   for (const messageNames of [
     undefined,

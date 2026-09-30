@@ -1,9 +1,9 @@
 {
-  "version": 4,
+  "version": 5,
   "source": "https://openrouter.ai/openapi.json",
   "retrievedAt": "2026-09-30",
   "sourceSha256": "80ba515f0bf637b39411def07ad0ca0aea37c6b95fe1ad5a9d9d09f88e842185",
-  "projectionSha256": "aaf05dcba496954470fbef742853023e38a313a24f6a9d2f4935a8e4bcfe9dbc",
+  "projectionSha256": "7c1ee32bc34637621261226ab7466f35edff2159261cf8c4077539ecaf068bfc",
   "projection": {
     "openapi": "3.1.0",
     "documentVersion": "1.0.0",
@@ -336,6 +336,167 @@
           "function"
         ],
         "type": "object"
+      }
+    },
+    "streamDefinitions": {
+      "ChatStreamChunk": {
+        "properties": {
+          "choices": {
+            "items": {
+              "$ref": "#/components/schemas/ChatStreamChoice"
+            },
+            "type": "array"
+          },
+          "created": {
+            "type": "integer"
+          },
+          "error": {
+            "properties": {
+              "code": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "message": {
+                "type": "string"
+              },
+              "metadata": {
+                "properties": {
+                  "error_type": {
+                    "$ref": "#/components/schemas/ApiErrorType"
+                  },
+                  "provider_code": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "error_type"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "message",
+              "code"
+            ],
+            "type": "object"
+          },
+          "id": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "object": {
+            "enum": [
+              "chat.completion.chunk"
+            ],
+            "type": "string"
+          },
+          "openrouter_metadata": {
+            "$ref": "#/components/schemas/OpenRouterMetadata"
+          },
+          "service_tier": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "system_fingerprint": {
+            "type": "string"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/ChatUsage"
+          }
+        },
+        "required": [
+          "id",
+          "choices",
+          "created",
+          "model",
+          "object"
+        ],
+        "type": "object",
+        "x-speakeasy-entity": "ChatStreamChunk"
+      },
+      "ChatStreamChoice": {
+        "properties": {
+          "delta": {
+            "$ref": "#/components/schemas/ChatStreamDelta"
+          },
+          "finish_reason": {
+            "$ref": "#/components/schemas/ChatFinishReasonEnum"
+          },
+          "index": {
+            "type": "integer"
+          },
+          "logprobs": {
+            "$ref": "#/components/schemas/ChatTokenLogprobs"
+          }
+        },
+        "required": [
+          "delta",
+          "finish_reason",
+          "index"
+        ],
+        "type": "object"
+      },
+      "ChatStreamDelta": {
+        "properties": {
+          "audio": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ChatAudioOutput"
+              },
+              {}
+            ]
+          },
+          "content": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reasoning": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reasoning_details": {
+            "$ref": "#/components/schemas/ChatStreamReasoningDetails"
+          },
+          "refusal": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "role": {
+            "enum": [
+              "assistant"
+            ],
+            "type": "string"
+          },
+          "tool_calls": {
+            "items": {
+              "$ref": "#/components/schemas/ChatStreamToolCall"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ChatStreamOptions": {
+        "properties": {
+          "include_usage": {
+            "deprecated": true,
+            "type": "boolean"
+          }
+        },
+        "type": [
+          "object",
+          "null"
+        ]
       }
     },
     "messageNames": {

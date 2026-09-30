@@ -365,6 +365,7 @@ Both chat paths support literal stop strings or dense arrays of up to four strin
 - Offline validation rejects corrupted pins and records fixed official provenance. Explicit network checks compare selected request constraints with bounded time/bytes and no credentials or redirects.
 - Type, required-field and request-reference changes fail; editorial/unrelated changes do not. Transport/malformed/oversized/time failures do not expose source content.
 - Version-4 selection detects structural and required-list changes to function-tool request controls, tool definitions, assistant tool calls and tool-result messages; missing/malformed selections reject safely and editorial changes remain ignored.
+- Version-5 selection detects structural and required-list changes to four official streaming response definitions. Missing/malformed/rehashed maps fail safely; editorial and unrelated schemas are ignored.
 - Other referenced schemas, full request/response instance validation and streaming/tool/client gates remain open. See [contract](../contracts/openrouter-schema-drift.md).
 
 ## Streaming SSE framing preparation
