@@ -1,34 +1,132 @@
-export interface ChatMessage {
-  readonly role: 'system' | 'developer' | 'user' | 'assistant';
-  readonly content: string;
-  readonly name?: string;
+export interface ChatFunctionCall {
+  readonly id: string;
+  readonly type: 'function';
+  readonly function: { readonly name: string; readonly arguments: string };
 }
 
-/** Capture the portable text protocol before callers can mutate an async request. */
+export type ChatMessage =
+  | {
+      readonly role: 'system' | 'developer' | 'user' | 'assistant';
+      readonly content: string;
+      readonly name?: string;
+      readonly tool_calls?: never;
+      readonly tool_call_id?: never;
+    }
+  | {
+      readonly role: 'assistant';
+      readonly content: string | null;
+      readonly name?: string;
+      readonly tool_calls: readonly ChatFunctionCall[];
+      readonly tool_call_id?: never;
+    }
+  | {
+      readonly role: 'tool';
+      readonly content: string;
+      readonly tool_call_id: string;
+      readonly name?: never;
+      readonly tool_calls?: never;
+    };
+
+function record(value: unknown): Record<string, unknown> | undefined {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
+function exact(value: Record<string, unknown>, allowed: readonly string[]): boolean {
+  return Object.keys(value).every((key) => allowed.includes(key));
+}
+
+function snapshotCalls(value: unknown): readonly ChatFunctionCall[] {
+  if (!Array.isArray(value) || value.length > 128) throw new TypeError('Invalid chat messages');
+  const ids = new Set<string>();
+  const calls: ChatFunctionCall[] = [];
+  for (const item of value) {
+    const call = record(item);
+    const operation = record(call?.function);
+    if (
+      !call ||
+      !exact(call, ['id', 'type', 'function']) ||
+      typeof call.id !== 'string' ||
+      !call.id ||
+      ids.has(call.id) ||
+      call.type !== 'function' ||
+      !operation ||
+      !exact(operation, ['name', 'arguments']) ||
+      typeof operation.name !== 'string' ||
+      !operation.name ||
+      typeof operation.arguments !== 'string'
+    )
+      throw new TypeError('Invalid chat messages');
+    ids.add(call.id);
+    calls.push(
+      Object.freeze({
+        id: call.id,
+        type: 'function',
+        function: Object.freeze({ name: operation.name, arguments: operation.arguments }),
+      }),
+    );
+  }
+  return Object.freeze(calls);
+}
+
+/** Capture a complete portable text/function history before asynchronous routing. */
 export function snapshotChatMessages(value: unknown): readonly ChatMessage[] {
   if (!Array.isArray(value) || value.length === 0) throw new TypeError('Invalid chat messages');
   const messages: ChatMessage[] = [];
   let conversationSeen = false;
-  for (const item of value) {
-    if (
-      !item ||
-      typeof item !== 'object' ||
-      Array.isArray(item) ||
-      Object.keys(item).some((key) => key !== 'role' && key !== 'content' && key !== 'name')
-    ) {
-      throw new TypeError('Invalid chat messages');
+  const pending = new Set<string>();
+  for (const raw of value) {
+    const item = record(raw);
+    if (!item || typeof item.role !== 'string') throw new TypeError('Invalid chat messages');
+    const { role, content, name } = item;
+    if (role === 'tool') {
+      if (
+        !exact(item, ['role', 'content', 'tool_call_id']) ||
+        typeof content !== 'string' ||
+        typeof item.tool_call_id !== 'string' ||
+        !pending.delete(item.tool_call_id)
+      )
+        throw new TypeError('Invalid chat messages');
+      messages.push(Object.freeze({ role, content, tool_call_id: item.tool_call_id }));
+      continue;
     }
-    const { role, content, name } = item as Record<string, unknown>;
-    if (
-      (role !== 'system' && role !== 'developer' && role !== 'user' && role !== 'assistant') ||
-      typeof content !== 'string' ||
-      (name !== undefined && typeof name !== 'string')
-    )
+    if (pending.size > 0) throw new TypeError('Invalid chat messages');
+    if (role !== 'system' && role !== 'developer' && role !== 'user' && role !== 'assistant')
       throw new TypeError('Invalid chat messages');
     const instruction = role === 'system' || role === 'developer';
     if (instruction && conversationSeen) throw new TypeError('Invalid chat messages');
     if (!instruction) conversationSeen = true;
+    if (name !== undefined && typeof name !== 'string')
+      throw new TypeError('Invalid chat messages');
+    if (
+      role === 'assistant' &&
+      Object.hasOwn(item, 'tool_calls') &&
+      item.tool_calls !== undefined
+    ) {
+      if (!exact(item, ['role', 'content', 'name', 'tool_calls']))
+        throw new TypeError('Invalid chat messages');
+      const calls = snapshotCalls(item.tool_calls);
+      if (
+        (calls.length === 0 && typeof content !== 'string') ||
+        (content !== null && content !== undefined && typeof content !== 'string')
+      )
+        throw new TypeError('Invalid chat messages');
+      for (const call of calls) pending.add(call.id);
+      messages.push(
+        Object.freeze({
+          role,
+          content: content === undefined ? null : content,
+          ...(name === undefined ? {} : { name }),
+          tool_calls: calls,
+        }),
+      );
+      continue;
+    }
+    if (!exact(item, ['role', 'content', 'name']) || typeof content !== 'string')
+      throw new TypeError('Invalid chat messages');
     messages.push(Object.freeze({ role, content, ...(name === undefined ? {} : { name }) }));
   }
+  if (pending.size > 0) throw new TypeError('Invalid chat messages');
   return Object.freeze(messages);
 }
