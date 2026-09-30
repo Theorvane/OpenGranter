@@ -66,6 +66,37 @@ test('bounded OpenRouter chat uses the fixed endpoint and exact authorized provi
   assert.equal(JSON.stringify(completion).includes('sensitive-upstream-key'), false);
 });
 
+test('credential await cannot change the authorized model or provider scope', async () => {
+  const mutable = {
+    upstreamModelId: attempt.upstreamModelId,
+    authorizedProviderSlugs: [...attempt.authorizedProviderSlugs],
+  };
+  let submitted: unknown;
+  const invoker = createOpenRouterChatInvoker({
+    credentialRef: 'secret/openrouter',
+    resolveSecret: async () => {
+      await Promise.resolve();
+      mutable.upstreamModelId = 'other/unapproved';
+      mutable.authorizedProviderSlugs[0] = 'Unapproved';
+      mutable.authorizedProviderSlugs.push('Another');
+      mutable.authorizedProviderSlugs = ['Replacement'];
+      return 'sensitive-upstream-key';
+    },
+    fetcher: async (_url, init) => {
+      submitted = JSON.parse(String(init?.body)) as unknown;
+      return new Response(JSON.stringify(responseBody));
+    },
+  });
+  const completion = await invoker(mutable, request);
+  assert.deepEqual(submitted, {
+    model: 'openai/gpt-4o',
+    messages: request.messages,
+    stream: false,
+    provider: { only: ['OpenAI', 'Azure'] },
+  });
+  assert.equal(completion.model, 'approved-chat');
+});
+
 test('invalid bounds or model fail before secret resolution and network access', async () => {
   const { invoker, calls, refs } = setup();
   for (const invalid of [

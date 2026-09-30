@@ -298,6 +298,8 @@ The direct invoker captures and validates the attempt timeout before asynchronou
 
 The delegated invoker reads the optional timeout once, validates its resolved duration before credential lookup, and uses that local value for the upstream signal. Source configuration updates during lookup affect later attempts only. See [contract](../contracts/openrouter-timeout-snapshot.md).
 
+The delegated invoker also copies and validates the exact IAM-approved upstream model and final-provider slug set before awaiting credential resolution. Request construction and response model validation use that immutable attempt snapshot, so mutations of the caller-owned attempt during an await cannot widen or replace the evaluated scope. See [plan](plans/200-openrouter-attempt-snapshot.md) and [contract](../contracts/openrouter-attempt-snapshot.md).
+
 ## Usage container boundary
 
 A shared pure boundary validates the upstream usage container before provider-specific known-counter projection. Absent/null means missing; a non-null primitive or array becomes a sanitized null-counter marker for the existing invalid ledger state. Empty/unrecognized-only objects remain missing. Response and accounting retain no raw malformed value. See [contract](../contracts/provider-usage-containers.md).
