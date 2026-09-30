@@ -160,3 +160,7 @@ OpenAI/OpenRouter preserve stop/length/content_filter/explicit null. Unsupported
 ## Direct native stop reason validation
 
 Anthropic end_turn/stop_sequence/max_tokens and Gemini STOP/MAX_TOKENS map to the supported stop/length text subset. Existing bounded refusal/SAFETY mappings stay intact. Other, malformed or missing native reasons now fail safely rather than reporting successful null-finish text. HTTP/SDK bases, failed-attempt accounting and shared security gates are covered. Other native blocked outcomes, tools, streams and complete response/client conformance remain open. See [plan](plans/176-native-stop-reasons.md) and [contract](../contracts/native-stop-reasons.md).
+
+## Nullable client logit-bias subset
+
+Omitted/null or exact finite numeric maps enter both compatible paths and SDK serialization. OpenAI/OpenRouter forward captured maps; direct Anthropic/Gemini reject non-null maps before secrets. IAM/limits/audit and usage attribution remain shared, with malformed inputs and failed attempts safely accounted for. The reviewed source-drift pin does not yet select this official field; native model ranges and full tool/stream/client conformance remain open. See [plan](plans/178-client-logit-bias.md) and [contract](../contracts/client-logit-bias.md).

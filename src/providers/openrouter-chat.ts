@@ -2,6 +2,7 @@ import type { ChatRequest } from '../gateway/chat-handler.ts';
 import { type ChatMessage, snapshotChatMessages } from '../gateway/chat-messages.ts';
 import {
   resolveOutputTokenLimit,
+  snapshotLogitBias,
   snapshotResponseFormat,
   snapshotStopSequences,
   validPenalty,
@@ -147,6 +148,12 @@ export function createOpenRouterChatInvoker(
     } catch {
       fail('configuration');
     }
+    let logitBias: ReturnType<typeof snapshotLogitBias>;
+    try {
+      logitBias = snapshotLogitBias(request.logit_bias);
+    } catch {
+      fail('configuration');
+    }
     const n = request.n;
     if (!validSingleChoice(n)) fail('configuration');
     const topP = request.top_p ?? undefined;
@@ -204,6 +211,7 @@ export function createOpenRouterChatInvoker(
           ...(frequencyPenalty === undefined ? {} : { frequency_penalty: frequencyPenalty }),
           ...(presencePenalty === undefined ? {} : { presence_penalty: presencePenalty }),
           ...(responseFormat === undefined ? {} : { response_format: responseFormat }),
+          ...(logitBias === undefined ? {} : { logit_bias: logitBias }),
           ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
           ...(temperature === undefined ? {} : { temperature }),
           ...(topP === undefined ? {} : { top_p: topP }),
