@@ -429,7 +429,7 @@ OpenAI/OpenRouter normalizers validate and preserve the optional string/null ups
 
 ### Function invocation response normalization
 
-The shared assistant normalizer preserves valid non-streaming function tool calls only when the tool_calls finish reason matches. It rejects malformed, duplicate, mismatched and legacy calls; adapters translate rejection into safe post-response failure/accounting. Native Anthropic/Gemini mapping and tool-result history remain separate. See [contract](../contracts/function-tool-responses.md).
+The shared assistant normalizer preserves valid non-streaming function tool calls only when the tool_calls finish reason matches. It rejects malformed, duplicate, mismatched and legacy calls; adapters translate rejection into safe post-response failure/accounting. Native Anthropic/Gemini mapping remains separate; tool-result history is handled by the shared request validator. See [contract](../contracts/function-tool-responses.md).
 
 ### Validated text completion finish reasons
 
@@ -445,4 +445,8 @@ The gateway snapshots a finite numeric map with exact own string keys before asy
 
 ## Function-tool request boundary
 
-The chat HTTP validator and both native invokers use a shared bounded snapshot of function-tool declarations, choice and parallel-call controls. The HTTP boundary rejects malformed or non-function tools before route lookup. Native adapters snapshot before credential awaits; OpenAI/OpenRouter forward, and Anthropic/Gemini reject supported controls before credentials. IAM and selected final-provider scope are unchanged. Validated function-call responses are preserved; tool-result continuation remains open under #116. See [plan](plans/180-function-tool-requests.md) and [contract](../contracts/client-function-tools.md).
+The chat HTTP validator and both native invokers use a shared bounded snapshot of function-tool declarations, choice and parallel-call controls. The HTTP boundary rejects malformed or non-function tools before route lookup. Native adapters snapshot before credential awaits; OpenAI/OpenRouter forward, and Anthropic/Gemini reject supported controls before credentials. IAM and selected final-provider scope are unchanged. Validated function-call responses and text-only tool-result continuation are supported; broader tool compatibility remains open under #116. See [plan](plans/180-function-tool-requests.md) and [contract](../contracts/client-function-tools.md).
+
+## Function-tool history boundary
+
+The shared message snapshot validator tracks pending function-call IDs across one assistant group and its tool-result messages. It rejects orphan, duplicate, interrupted and unresolved groups before routing or credential lookup. The HTTP text-part normalizer handles tool-result text arrays and preserves assistant null/omitted content for call groups. Direct OpenAI and delegated OpenRouter forward the immutable history; native Anthropic/Gemini reject it before secrets. Each continuation is a new authenticated, policy-evaluated, limited and audited model request. See [plan](plans/184-function-tool-history.md) and [contract](../contracts/function-tool-history.md).

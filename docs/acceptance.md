@@ -509,4 +509,11 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Malformed controls and OpenRouter server tools reject before HTTP routing; native malformed controls and direct Anthropic/Gemini supported controls reject before credential lookup.
 - Both compatible bases and actual OpenAI SDK preserve valid non-streaming function call IDs, names, argument strings and tool_calls finish reason; string/null/omitted content normalizes safely.
 - Malformed, duplicate, mismatched and legacy calls fail with possibly-billed usage and no sensitive metadata. Ordinary text/refusal/filter outcomes stay unchanged.
-- IAM deny, explicit deny, limits and required audit prevent transport. Tool-result history, streaming and native Anthropic/Gemini mappings remain open. See [request plan](plans/180-function-tool-requests.md), [response plan](plans/182-function-tool-responses.md) and [response contract](../contracts/function-tool-responses.md).
+- IAM deny, explicit deny, limits and required audit prevent transport. Text-only tool-result history is covered separately; streaming and native Anthropic/Gemini mappings remain open. See [request plan](plans/180-function-tool-requests.md), [response plan](plans/182-function-tool-responses.md) and [response contract](../contracts/function-tool-responses.md).
+
+## Function-tool history subset
+
+- Both chat bases and the installed OpenAI SDK complete a non-streaming function declaration, assistant call, tool result and second model response on direct OpenAI and delegated OpenRouter.
+- Multiple call IDs preserve exact arguments and match one result each in either order; text-part tool results normalize to strings, omitted assistant call content becomes null, and an empty call array preserves ordinary text history.
+- Orphan, duplicate, interrupted and unresolved call groups reject before routing; valid history on direct Anthropic/Gemini rejects before credentials.
+- Continuation requests retain IAM, limits, required audit and usage accounting without tool payloads in metadata or errors. Streaming, server tools, rich content and native tool translation remain open. See [plan](plans/184-function-tool-history.md) and [contract](../contracts/function-tool-history.md).

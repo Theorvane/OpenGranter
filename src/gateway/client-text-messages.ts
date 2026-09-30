@@ -12,7 +12,15 @@ export function normalizeClientTextMessages(value: unknown): readonly Record<str
     const message = record(item);
     if (!message) throw new TypeError('Invalid client messages');
     let content = message.content;
-    if (typeof content !== 'string') {
+    if (
+      typeof content !== 'string' &&
+      !(
+        (content === null || content === undefined) &&
+        message.role === 'assistant' &&
+        Array.isArray(message.tool_calls) &&
+        message.tool_calls.length > 0
+      )
+    ) {
       if (!Array.isArray(content) || content.length === 0)
         throw new TypeError('Invalid client messages');
       let text = '';
@@ -28,7 +36,7 @@ export function normalizeClientTextMessages(value: unknown): readonly Record<str
       }
       content = text;
     }
-    messages.push({ ...message, content });
+    messages.push({ ...message, content: content === undefined ? null : content });
   }
   return messages;
 }

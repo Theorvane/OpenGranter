@@ -485,7 +485,15 @@ export function createDirectChatInvoker(
     let messages: readonly ChatMessage[];
     try {
       messages = snapshotChatMessages(request.messages);
-      if (registration.kind !== 'openai' && messages.some((message) => message.name !== undefined))
+      if (
+        registration.kind !== 'openai' &&
+        messages.some(
+          (message) =>
+            message.name !== undefined ||
+            message.role === 'tool' ||
+            message.tool_calls !== undefined,
+        )
+      )
         fail('other');
     } catch {
       fail('other');
