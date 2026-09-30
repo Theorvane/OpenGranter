@@ -559,3 +559,10 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - The delegated adapter copies and validates the selected upstream model and exact authorized provider slug set before credential resolution.
 - Mutating model or provider slugs, including array elements or replacement, during the credential await cannot change the outgoing HTTP scope or the accepted response model.
 - Invalid initial attempts stop before secret/network access; existing safe failure, IAM, limits, audit and usage behavior remains in force. The same scope boundary is available to the future streaming invoker. See [plan](plans/200-openrouter-attempt-snapshot.md) and [contract](../contracts/openrouter-attempt-snapshot.md).
+
+## Internal delegated OpenRouter text-stream invocation
+
+- A fixed-endpoint `stream:true` POST uses the captured authorized model/provider set, server-held key, redirect rejection, bounded timeout and shared text/sampling request snapshots. The response reaches the bounded SSE validator; validated deltas arrive in order and final usage is returned only after terminal/usage/`[DONE]`.
+- Invalid scope, tool controls, request shape, timeout and missing credential fail before HTTP. Mutating model/provider inputs during credential resolution does not change the outgoing scope.
+- HTTP errors, malformed/incomplete SSE, redirect/transport failures and pre-/post-header timeouts remain fixed safe possibly-billed failures. A partial response cannot be replayed.
+- The public chat handler still rejects client `stream:true`. Gateway IAM, limits, required audit, usage persistence, client SSE and direct-provider stream mappings remain integration gates. See [plan](plans/202-openrouter-stream-invoker.md) and [contract](../contracts/openrouter-stream-invoker.md).

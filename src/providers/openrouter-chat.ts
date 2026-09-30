@@ -117,7 +117,7 @@ function count(value: unknown): number | undefined {
 
 function normalize(
   body: unknown,
-  request: ChatRequest,
+  clientModelAlias: string,
   attempt: OpenRouterChatAttempt,
 ): ChatCompletion {
   const value = record(body);
@@ -151,11 +151,172 @@ function normalize(
     id: value.id,
     object: 'chat.completion',
     created: value.created as number,
-    model: request.model,
+    model: clientModelAlias,
     ...(fingerprint === undefined ? {} : { system_fingerprint: fingerprint }),
     choices: [{ index: 0, message, finish_reason: finish }],
     ...(stats ? { usage: stats } : {}),
   };
+}
+
+interface PreparedOpenRouterChatRequest {
+  readonly attempt: OpenRouterChatAttempt;
+  readonly clientModelAlias: string;
+  readonly credentialRef: string;
+  readonly timeoutMs: number;
+  readonly body: Readonly<Record<string, unknown>>;
+}
+
+/** Snapshot one authorized delegated request before credential or transport awaits. */
+function prepareOpenRouterChatRequest(
+  ports: OpenRouterChatPorts,
+  attempt: OpenRouterChatAttempt,
+  request: ChatRequest,
+  stream: boolean,
+): PreparedOpenRouterChatRequest {
+  const fixedAttempt = snapshotOpenRouterChatAttempt(attempt);
+  const topK = request.top_k ?? undefined;
+  if (!validTopK(topK)) fail('configuration');
+
+  const seed = request.seed ?? undefined;
+  if (!validSeed(seed)) fail('configuration');
+  const frequencyPenalty = request.frequency_penalty ?? undefined;
+  const presencePenalty = request.presence_penalty ?? undefined;
+  if (!validPenalty(frequencyPenalty) || !validPenalty(presencePenalty)) fail('configuration');
+  let responseFormat: ReturnType<typeof snapshotResponseFormat>;
+  try {
+    responseFormat = snapshotResponseFormat(request.response_format);
+  } catch {
+    fail('configuration');
+  }
+  let logitBias: ReturnType<typeof snapshotLogitBias>;
+  let tools: ReturnType<typeof snapshotFunctionTools>;
+  let toolChoice: ReturnType<typeof snapshotToolChoice>;
+  let parallelToolCalls: ReturnType<typeof snapshotParallelToolCalls>;
+  try {
+    logitBias = snapshotLogitBias(request.logit_bias);
+    if (
+      stream &&
+      (request.tools !== undefined ||
+        request.tool_choice !== undefined ||
+        request.parallel_tool_calls !== undefined)
+    )
+      fail('configuration');
+    tools = snapshotFunctionTools(request.tools);
+    toolChoice = snapshotToolChoice(request.tool_choice);
+    parallelToolCalls = snapshotParallelToolCalls(request.parallel_tool_calls);
+  } catch {
+    fail('configuration');
+  }
+  const n = request.n;
+  if (!validSingleChoice(n)) fail('configuration');
+  const topP = request.top_p ?? undefined;
+  if (!validTopP(topP)) fail('configuration');
+  const temperature = request.temperature ?? undefined;
+  if (!validTemperature(temperature)) fail('configuration');
+  let maxTokens: number | undefined;
+  try {
+    maxTokens = resolveOutputTokenLimit(request.max_tokens, request.max_completion_tokens);
+  } catch {
+    fail('configuration');
+  }
+  let stop: ReturnType<typeof snapshotStopSequences>;
+  try {
+    stop = snapshotStopSequences(request.stop);
+  } catch {
+    fail('configuration');
+  }
+  const configuredTimeout = ports.timeoutMs;
+  const timeoutMs = configuredTimeout === undefined ? 30_000 : configuredTimeout;
+  if (
+    !ports.credentialRef ||
+    !Number.isSafeInteger(timeoutMs) ||
+    timeoutMs <= 0 ||
+    timeoutMs > 2_147_483_647
+  )
+    fail('configuration');
+  let messages: readonly ChatMessage[];
+  try {
+    messages = snapshotChatMessages(request.messages);
+  } catch {
+    fail('configuration');
+  }
+  return Object.freeze({
+    attempt: fixedAttempt,
+    clientModelAlias: request.model,
+    credentialRef: ports.credentialRef,
+    timeoutMs,
+    body: Object.freeze({
+      model: fixedAttempt.upstreamModelId,
+      messages,
+      stream,
+      ...(n === undefined ? {} : { n }),
+      ...(seed === undefined ? {} : { seed }),
+      ...(frequencyPenalty === undefined ? {} : { frequency_penalty: frequencyPenalty }),
+      ...(presencePenalty === undefined ? {} : { presence_penalty: presencePenalty }),
+      ...(responseFormat === undefined ? {} : { response_format: responseFormat }),
+      ...(logitBias === undefined ? {} : { logit_bias: logitBias }),
+      ...(tools === undefined ? {} : { tools }),
+      ...(toolChoice === undefined ? {} : { tool_choice: toolChoice }),
+      ...(parallelToolCalls === undefined ? {} : { parallel_tool_calls: parallelToolCalls }),
+      ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
+      ...(temperature === undefined ? {} : { temperature }),
+      ...(topP === undefined ? {} : { top_p: topP }),
+      ...(topK === undefined ? {} : { top_k: topK }),
+      ...(stop === undefined ? {} : { stop }),
+      provider: Object.freeze({ only: fixedAttempt.authorizedProviderSlugs }),
+    }),
+  });
+}
+
+/** Send a prepared request to the fixed OpenRouter endpoint. */
+async function fetchOpenRouterChatResponse(
+  ports: OpenRouterChatPorts,
+  prepared: PreparedOpenRouterChatRequest,
+): Promise<{ readonly response: Response; readonly timeout: AbortSignal }> {
+  let key: string | undefined;
+  try {
+    key = await ports.resolveSecret(prepared.credentialRef);
+  } catch {
+    fail('credential');
+  }
+  if (!key) fail('credential');
+
+  const timeout = AbortSignal.timeout(prepared.timeoutMs);
+  let response: Response;
+  try {
+    response = await (ports.fetcher ?? fetch)(OPENROUTER_CHAT_URL, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
+      body: JSON.stringify(prepared.body),
+      redirect: 'error',
+      signal: timeout,
+    });
+  } catch (error) {
+    if (
+      timeout.aborted ||
+      (error instanceof DOMException && ['AbortError', 'TimeoutError'].includes(error.name))
+    ) {
+      fail('timeout', false, true);
+    }
+    fail('upstream', false, true);
+  }
+  return { response, timeout };
+}
+
+/** Keep preparation and transport inside one validated adapter boundary. */
+export async function invokeOpenRouterChatTransport(
+  ports: OpenRouterChatPorts,
+  attempt: OpenRouterChatAttempt,
+  request: ChatRequest,
+  stream: boolean,
+): Promise<{
+  readonly prepared: PreparedOpenRouterChatRequest;
+  readonly response: Response;
+  readonly timeout: AbortSignal;
+}> {
+  const prepared = prepareOpenRouterChatRequest(ports, attempt, request, stream);
+  const { response, timeout } = await fetchOpenRouterChatResponse(ports, prepared);
+  return { prepared, response, timeout };
 }
 
 /** Invoke one previously authorized delegated route without forwarding caller routing controls. */
@@ -163,112 +324,12 @@ export function createOpenRouterChatInvoker(
   ports: OpenRouterChatPorts,
 ): (attempt: OpenRouterChatAttempt, request: ChatRequest) => Promise<ChatCompletion> {
   return async (attempt, request) => {
-    const fixedAttempt = snapshotOpenRouterChatAttempt(attempt);
-    const topK = request.top_k ?? undefined;
-    if (!validTopK(topK)) fail('configuration');
-
-    const seed = request.seed ?? undefined;
-    if (!validSeed(seed)) fail('configuration');
-    const frequencyPenalty = request.frequency_penalty ?? undefined;
-    const presencePenalty = request.presence_penalty ?? undefined;
-    if (!validPenalty(frequencyPenalty) || !validPenalty(presencePenalty)) fail('configuration');
-    let responseFormat: ReturnType<typeof snapshotResponseFormat>;
-    try {
-      responseFormat = snapshotResponseFormat(request.response_format);
-    } catch {
-      fail('configuration');
-    }
-    let logitBias: ReturnType<typeof snapshotLogitBias>;
-    let tools: ReturnType<typeof snapshotFunctionTools>;
-    let toolChoice: ReturnType<typeof snapshotToolChoice>;
-    let parallelToolCalls: ReturnType<typeof snapshotParallelToolCalls>;
-    try {
-      logitBias = snapshotLogitBias(request.logit_bias);
-      tools = snapshotFunctionTools(request.tools);
-      toolChoice = snapshotToolChoice(request.tool_choice);
-      parallelToolCalls = snapshotParallelToolCalls(request.parallel_tool_calls);
-    } catch {
-      fail('configuration');
-    }
-    const n = request.n;
-    if (!validSingleChoice(n)) fail('configuration');
-    const topP = request.top_p ?? undefined;
-    if (!validTopP(topP)) fail('configuration');
-    const temperature = request.temperature ?? undefined;
-    if (!validTemperature(temperature)) fail('configuration');
-    let maxTokens: number | undefined;
-    try {
-      maxTokens = resolveOutputTokenLimit(request.max_tokens, request.max_completion_tokens);
-    } catch {
-      fail('configuration');
-    }
-    let stop: ReturnType<typeof snapshotStopSequences>;
-    try {
-      stop = snapshotStopSequences(request.stop);
-    } catch {
-      fail('configuration');
-    }
-    const configuredTimeout = ports.timeoutMs;
-    const timeoutMs = configuredTimeout === undefined ? 30_000 : configuredTimeout;
-    if (
-      !ports.credentialRef ||
-      !Number.isSafeInteger(timeoutMs) ||
-      timeoutMs <= 0 ||
-      timeoutMs > 2_147_483_647
-    )
-      fail('configuration');
-    let messages: readonly ChatMessage[];
-    try {
-      messages = snapshotChatMessages(request.messages);
-    } catch {
-      fail('configuration');
-    }
-    let key: string | undefined;
-    try {
-      key = await ports.resolveSecret(ports.credentialRef);
-    } catch {
-      fail('credential');
-    }
-    if (!key) fail('credential');
-
-    const timeout = AbortSignal.timeout(timeoutMs);
-    let response: Response;
-    try {
-      response = await (ports.fetcher ?? fetch)(OPENROUTER_CHAT_URL, {
-        method: 'POST',
-        headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
-        body: JSON.stringify({
-          model: fixedAttempt.upstreamModelId,
-          messages,
-          stream: false,
-          ...(n === undefined ? {} : { n }),
-          ...(seed === undefined ? {} : { seed }),
-          ...(frequencyPenalty === undefined ? {} : { frequency_penalty: frequencyPenalty }),
-          ...(presencePenalty === undefined ? {} : { presence_penalty: presencePenalty }),
-          ...(responseFormat === undefined ? {} : { response_format: responseFormat }),
-          ...(logitBias === undefined ? {} : { logit_bias: logitBias }),
-          ...(tools === undefined ? {} : { tools }),
-          ...(toolChoice === undefined ? {} : { tool_choice: toolChoice }),
-          ...(parallelToolCalls === undefined ? {} : { parallel_tool_calls: parallelToolCalls }),
-          ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
-          ...(temperature === undefined ? {} : { temperature }),
-          ...(topP === undefined ? {} : { top_p: topP }),
-          ...(topK === undefined ? {} : { top_k: topK }),
-          ...(stop === undefined ? {} : { stop }),
-          provider: { only: fixedAttempt.authorizedProviderSlugs },
-        }),
-        redirect: 'error',
-        signal: timeout,
-      });
-    } catch (error) {
-      if (
-        timeout.aborted ||
-        (error instanceof DOMException && ['AbortError', 'TimeoutError'].includes(error.name))
-      ) {
-        fail('timeout', false, true);
-      }
-      fail('upstream', false, true);
-    }
+    const { prepared, response } = await invokeOpenRouterChatTransport(
+      ports,
+      attempt,
+      request,
+      false,
+    );
     if (response.status === 429) fail('rate-limit', true, true);
     if (response.status >= 500) fail('server-error', true, true);
     if (!response.ok) fail('upstream', true, true);
@@ -278,6 +339,6 @@ export function createOpenRouterChatInvoker(
     } catch {
       fail('upstream', true, true);
     }
-    return normalize(body, request, fixedAttempt);
+    return normalize(body, prepared.clientModelAlias, prepared.attempt);
   };
 }

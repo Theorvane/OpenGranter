@@ -26,7 +26,7 @@ Tools with a hardcoded openrouter.ai host need a configurable endpoint or an int
 | Base paths and Bearer token | /api/v1 chat/models aliases; shared proxy authorization; pinned OpenAI SDK smoke tests | Streaming/tool SDK workflows and named external-tool registration tests |
 | Model discovery | Authorized alias IDs and basic model fields | Context window, capability, supported-parameter and price metadata from trusted catalog sources |
 | Non-streaming text chat | Text messages, one normalized text choice with max_tokens/max_completion_tokens and portable stop/top_p/temperature/n=1 across four adapters | Remaining request/response schema, sampling and capability metadata |
-| Streaming | Bounded internal SSE parser, text-only OpenRouter chunk decoder, sequence validator, byte-stream consumer and HTTP response validator; client stream:true still rejected | Provider request, direct-provider mappings, client HTTP delivery, usage persistence, cancellation, safe interruption/failure audit |
+| Streaming | Internal delegated OpenRouter text-stream request and bounded SSE validation; client stream:true still rejected | Direct-provider mappings, client HTTP delivery, usage persistence, cancellation, safe interruption/failure audit |
 | Tool calling | Validated function-tool requests, non-streaming assistant calls and text-only tool-result history for delegated OpenRouter/direct OpenAI | Server tools, rich content, native mappings and streaming |
 | Rich inputs and outputs | Text-only parts on system/developer/user/assistant normalize to strings | Multimodal/cached content, native block semantics, structured output and reasoning handling |
 | Client routing controls | Rejected today | Client preferences narrow approved model/provider scope; no arbitrary destinations or authority widening |
@@ -55,6 +55,8 @@ The internal byte-stream consumer composes framing, text-chunk decoding and sequ
 The internal HTTP response boundary checks status, SSE media type and body before invoking that consumer. It classifies non-200 responses without reading their bodies and converts incomplete or invalid streams to existing safe delegated failures. It does not issue the HTTP request, write audit/usage or enable a client stream. See [plan](plans/198-openrouter-stream-response.md) and [contract](../contracts/openrouter-stream-response.md).
 
 The delegated OpenRouter request adapter captures the IAM-approved upstream model and final-provider slug set before resolving a credential. Its HTTP body and response-scope check use that immutable attempt, even if a caller-owned object changes during the await. The future streaming request must reuse this boundary. See [plan](plans/200-openrouter-attempt-snapshot.md) and [contract](../contracts/openrouter-attempt-snapshot.md).
+
+The internal delegated text-stream invoker now sends one `stream:true` request to the same fixed endpoint with the same captured model/provider scope and text/sampling request preparation as the non-streaming adapter. It rejects tool controls before credential lookup, awaits validated SSE deltas, and returns final usage only after a complete sequence. It is not wired to either client chat path or the gateway accounting/audit flow; `stream:true` remains rejected at the public boundary. See [plan](plans/202-openrouter-stream-invoker.md) and [contract](../contracts/openrouter-stream-invoker.md).
 
 ## Sources checked 2026-09-28
 
