@@ -364,7 +364,8 @@ Both chat paths support literal stop strings or dense arrays of up to four strin
 
 - Offline validation rejects corrupted pins and records fixed official provenance. Explicit network checks compare selected request constraints with bounded time/bytes and no credentials or redirects.
 - Type, required-field and request-reference changes fail; editorial/unrelated changes do not. Transport/malformed/oversized/time failures do not expose source content.
-- Referenced schemas, full request/response instance validation and streaming/tool/client gates remain open. See [contract](../contracts/openrouter-schema-drift.md).
+- Version-4 selection detects structural and required-list changes to function-tool request controls, tool definitions, assistant tool calls and tool-result messages; missing/malformed selections reject safely and editorial changes remain ignored.
+- Other referenced schemas, full request/response instance validation and streaming/tool/client gates remain open. See [contract](../contracts/openrouter-schema-drift.md).
 
 ## Nullable optional chat controls
 

@@ -16,8 +16,18 @@ const FIELD_NAMES = [
   'presence_penalty',
   'seed',
   'top_k',
+  'tools',
+  'tool_choice',
+  'parallel_tool_calls',
 ] as const;
-const DEFINITION_NAMES = ['ChatFormatTextConfig', 'ChatFormatJsonObjectConfig'] as const;
+const DEFINITION_NAMES = [
+  'ChatFormatTextConfig',
+  'ChatFormatJsonObjectConfig',
+  'ChatFunctionTool',
+  'ChatToolChoice',
+  'ChatNamedToolChoice',
+  'ChatToolCall',
+] as const;
 const MESSAGE_NAMES = [
   'ChatSystemMessage',
   'ChatDeveloperMessage',
@@ -41,6 +51,7 @@ export interface SchemaProjection {
   fields: Record<string, unknown>;
   definitions: Record<string, unknown>;
   messageNames: Record<string, unknown>;
+  toolMessages: Record<string, unknown>;
 }
 function record(value: unknown): Record<string, unknown> | undefined {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -88,6 +99,7 @@ function projection(value: unknown): SchemaProjection {
   const fields = record(data?.fields);
   const definitions = record(data?.definitions);
   const messageNames = record(data?.messageNames);
+  const toolMessages = record(data?.toolMessages);
   const required = data?.required;
   if (
     data?.openapi !== '3.1.0' ||
@@ -113,7 +125,12 @@ function projection(value: unknown): SchemaProjection {
         !record(entry.schema) ||
         typeof entry.required !== 'boolean'
       );
-    })
+    }) ||
+    !toolMessages ||
+    Object.keys(toolMessages).length !== 2 ||
+    !record(record(toolMessages.ChatAssistantMessage)?.schema) ||
+    typeof record(toolMessages.ChatAssistantMessage)?.required !== 'boolean' ||
+    !record(toolMessages.ChatToolMessage)
   )
     throw new TypeError('Invalid official schema');
   return {
@@ -127,6 +144,12 @@ function projection(value: unknown): SchemaProjection {
     ),
     messageNames: Object.fromEntries(
       MESSAGE_NAMES.map((name) => [name, ordered(messageNames[name], true)]),
+    ),
+    toolMessages: Object.fromEntries(
+      ['ChatAssistantMessage', 'ChatToolMessage'].map((name) => [
+        name,
+        ordered(toolMessages[name], true),
+      ]),
     ),
   };
 }
@@ -164,13 +187,37 @@ export function projectOfficialSchema(value: unknown): SchemaProjection {
         return [name, { schema, required: required.includes('name') }];
       }),
     ),
+    toolMessages: (() => {
+      const assistant = record(schemas?.ChatAssistantMessage);
+      const tool = record(schemas?.ChatToolMessage);
+      const assistantRequired = assistant?.required === undefined ? [] : assistant.required;
+      const toolRequired = tool?.required;
+      const calls = record(record(assistant?.properties)?.tool_calls);
+      if (
+        assistant?.type !== 'object' ||
+        tool?.type !== 'object' ||
+        !Array.isArray(assistantRequired) ||
+        assistantRequired.some((name) => typeof name !== 'string' || !name) ||
+        new Set(assistantRequired).size !== assistantRequired.length ||
+        !calls ||
+        !Array.isArray(toolRequired) ||
+        toolRequired.some((name) => typeof name !== 'string' || !name) ||
+        new Set(toolRequired).size !== toolRequired.length ||
+        !record(tool.properties)
+      )
+        throw new TypeError('Invalid official schema');
+      return {
+        ChatAssistantMessage: { schema: calls, required: assistantRequired.includes('tool_calls') },
+        ChatToolMessage: tool,
+      };
+    })(),
   });
 }
 export function validateSchemaPin(value: unknown): { projection: SchemaProjection } {
   try {
     const data = record(value);
     if (
-      data?.version !== 3 ||
+      data?.version !== 4 ||
       data.source !== OFFICIAL_SCHEMA_URL ||
       typeof data.retrievedAt !== 'string' ||
       !/^\d{4}-\d{2}-\d{2}$/.test(data.retrievedAt) ||
