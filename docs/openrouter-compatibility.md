@@ -26,7 +26,7 @@ Tools with a hardcoded openrouter.ai host need a configurable endpoint or an int
 | Base paths and Bearer token | /api/v1 chat/models aliases; shared proxy authorization; pinned OpenAI SDK smoke tests | Streaming/tool SDK workflows and named external-tool registration tests |
 | Model discovery | Authorized alias IDs and basic model fields | Context window, capability, supported-parameter and price metadata from trusted catalog sources |
 | Non-streaming text chat | Text messages, one normalized text choice with max_tokens/max_completion_tokens and portable stop/top_p/temperature/n=1 across four adapters | Remaining request/response schema, sampling and capability metadata |
-| Streaming | Bounded internal SSE parser and text-only OpenRouter chunk decoder; client stream:true still rejected | Sequence validation, direct-provider mappings, HTTP integration, termination, usage persistence, cancellation, safe interruption/failure audit |
+| Streaming | Bounded internal SSE parser, text-only OpenRouter chunk decoder and sequence validator; client stream:true still rejected | Direct-provider mappings, HTTP integration, termination, usage persistence, cancellation, safe interruption/failure audit |
 | Tool calling | Validated function-tool requests, non-streaming assistant calls and text-only tool-result history for delegated OpenRouter/direct OpenAI | Server tools, rich content, native mappings and streaming |
 | Rich inputs and outputs | Text-only parts on system/developer/user/assistant normalize to strings | Multimodal/cached content, native block semantics, structured output and reasoning handling |
 | Client routing controls | Rejected today | Client preferences narrow approved model/provider scope; no arbitrary destinations or authority widening |
@@ -47,6 +47,8 @@ Every feature needs its own issue, English plan and red/green contract cases. Ro
 The first streaming preparation slice parses bounded SSE data events without exposing a streaming client route. It handles line and byte boundaries, comments, multiline data, strict UTF-8, incomplete EOF, backpressure and early reader cancellation. It leaves `[DONE]`, provider chunks, usage and midstream errors to later layers. See [plan](plans/188-bounded-sse-parser.md) and [contract](../contracts/streaming-sse-framing.md).
 
 The next internal decoder classifies individual delegated OpenRouter text chunks, the documented content-free repeated-finish usage chunk, an empty-choice usage compatibility variant, `[DONE]` and top-level midstream errors. It validates selected model scope and rejects malformed, multi-choice, tool and rich deltas with fixed errors. It does not validate sequence, persist usage or emit client SSE. See [plan](plans/190-openrouter-stream-chunks.md) and [contract](../contracts/openrouter-stream-chunks.md).
+
+The internal sequence validator checks stable response identity and client model alias, terminal ordering, final usage and `[DONE]` over decoded text events. It treats upstream errors, malformed order and incomplete streams as possibly billed failures, without retaining response text. It does not integrate transport, accounting, audit or client SSE. See [plan](plans/192-openrouter-stream-sequence.md) and [contract](../contracts/openrouter-stream-sequence.md).
 
 ## Sources checked 2026-09-28
 
