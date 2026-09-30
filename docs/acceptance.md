@@ -373,6 +373,12 @@ Both chat paths support literal stop strings or dense arrays of up to four strin
 - Invalid UTF-8, oversized lines/events and transport failures produce fixed diagnostics without upstream content. Early iteration cancellation closes the source; successful EOF releases its lock.
 - Gateway `stream:true` requests remain rejected until provider chunk validation, HTTP delivery, usage and audit lifecycle are implemented. See [contract](../contracts/streaming-sse-framing.md).
 
+## OpenRouter text-stream chunk validation
+
+- A pure decoder identifies single-choice text deltas, supported finish reasons, OpenRouter's content-free usage chunk, an empty-choice usage compatibility variant, `[DONE]` and a top-level error even as the first payload.
+- Wrong model, malformed identity, multiple choices, unsupported tool/rich deltas and ambiguous usage frames reject with a fixed message. Upstream error details never appear in returned error markers.
+- Usage counters retain known, missing and invalid markers for later accounting. Stream ordering, native provider mappings, client SSE, IAM, limits, audit and usage persistence remain separate gates. See [contract](../contracts/openrouter-stream-chunks.md).
+
 ## Nullable optional chat controls
 
 Both chat paths and four adapters normalize optional null token/sampling controls to omission. Null+numeric aliases preserve the numeric maximum and configured caps; mutation cannot add fields after capture. IAM/limits/audit denials prevent transport and upstream failures retain safe accounting. See [plan](plans/140-nullable-chat-controls.md) and [output contract](../contracts/client-output-limits.md).
