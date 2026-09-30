@@ -539,3 +539,10 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Identity changes, out-of-order or duplicate terminal/usage/done events and incomplete EOF fail with one fixed safe error marked possibly billed. The first invalid event permanently invalidates the sequence.
 - First-event and midstream upstream error events produce a distinct safe possibly billed failure. Neither result contains upstream error details or response content.
 - This is an internal validator only. Client `stream:true` remains rejected pending transport, IAM/limits, usage/audit and provider/client stream integration. See [plan](plans/192-openrouter-stream-sequence.md) and [contract](../contracts/openrouter-stream-sequence.md).
+
+## Internal OpenRouter byte-stream consumption
+
+- Fragmented upstream SSE bytes are framed and decoded under a captured authorized model scope; each validated text delta reaches an awaited callback in order. Terminal usage and `[DONE]` produce a complete immutable summary.
+- `[DONE]` and first/midstream upstream errors stop reading and cancel the remaining source. Upstream errors return a distinct safe possibly-billed outcome.
+- Malformed framing/chunks/order, interrupted transport, incomplete EOF and callback rejection fail with a fixed possibly-billed error, release the reader, and omit sensitive causes and response content.
+- The internal consumer does not call a provider, send client SSE, persist usage/audit or enable `stream:true`. See [plan](plans/196-openrouter-stream-consumer.md) and [contract](../contracts/openrouter-stream-consumer.md).
