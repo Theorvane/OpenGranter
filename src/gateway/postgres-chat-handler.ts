@@ -21,6 +21,7 @@ export interface PostgresChatHandlerPorts<T>
     | 'invokeDirect'
     | 'resolveVerifiedProviderSlug'
     | 'invokeOpenRouter'
+    | 'invokeOpenRouterTextStream'
     | 'fetchJev'
   > {
   readonly client: GatewayAuditSqlClient;

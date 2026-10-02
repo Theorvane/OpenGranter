@@ -15,7 +15,7 @@ For tools supporting a configurable OpenRouter/OpenAI-compatible endpoint:
 - Base URL: `https://<gateway-host>/api/v1` (existing `/v1` also remains available).
 - API key: the user's OpenGranter proxy token; provider keys stay server held.
 - Model: an administrator-published alias visible to that token. An OpenRouter-style alias such as `openai/example-model` must be explicitly published; arbitrary model IDs do not become eligible.
-- Current text-chat request: model plus string-content messages (exact text-part arrays on supported roles also normalize to strings), optional stream false, optional n=1 and positive-integer max_tokens or max_completion_tokens and optional stop (string or up to four strings), optional top_p (finite number in 0..1), and optional temperature (finite number in 0..2; direct Anthropic 0..1). Discovery uses GET models; chat uses POST chat/completions relative to the base.
+- Current text-chat request: model plus string-content messages (exact text-part arrays on supported roles also normalize to strings), optional stream false (or true for the delegated text-stream subset), optional n=1 and positive-integer max_tokens or max_completion_tokens and optional stop (string or up to four strings), optional top_p (finite number in 0..1), and optional temperature (finite number in 0..2; direct Anthropic 0..1). Discovery uses GET models; chat uses POST chat/completions relative to the base.
 
 Tools with a hardcoded openrouter.ai host need a configurable endpoint or an integration change. Path aliases alone do not make tools needing streaming, function calls or advanced parameters work.
 
@@ -23,14 +23,14 @@ Tools with a hardcoded openrouter.ai host need a configurable endpoint or an int
 
 | Area | Current state | Remaining acceptance gate |
 | --- | --- | --- |
-| Base paths and Bearer token | /api/v1 chat/models aliases; shared proxy authorization; pinned OpenAI SDK smoke tests | Streaming/tool SDK workflows and named external-tool registration tests |
+| Base paths and Bearer token | /api/v1 chat/models aliases; shared proxy authorization; pinned OpenAI SDK smoke tests | Direct/tool streaming SDK workflows and named external-tool registration tests |
 | Model discovery | Authorized alias IDs and basic model fields | Context window, capability, supported-parameter and price metadata from trusted catalog sources |
 | Non-streaming text chat | Text messages, one normalized text choice with max_tokens/max_completion_tokens and portable stop/top_p/temperature/n=1 across four adapters | Remaining request/response schema, sampling and capability metadata |
-| Streaming | Internal delegated OpenRouter text-stream request, bounded SSE validation, client text-frame encoder and controlled route composition; client stream:true still rejected | Direct-provider mappings, client HTTP delivery, cancellation, safe interruption/failure audit |
+| Streaming | Delegated HTTP text streams with bounded validation, awaited delivery, cancellation, usage and interruption audit | Direct-provider/tool/multimodal mappings, stream_options, incomplete usage and full external-client conformance |
 | Tool calling | Validated function-tool requests, non-streaming assistant calls and text-only tool-result history for delegated OpenRouter/direct OpenAI | Server tools, rich content, native mappings and streaming |
 | Rich inputs and outputs | Text-only parts on system/developer/user/assistant normalize to strings | Multimodal/cached content, native block semantics, structured output and reasoning handling |
 | Client routing controls | Rejected today | Client preferences narrow approved model/provider scope; no arbitrary destinations or authority widening |
-| Errors | /api/v1 numeric status codes, fixed messages, safe local reason/typed metadata and request ID; legacy /v1 symbolic codes | Precise upstream error_type propagation, retry hints and streaming errors |
+| Errors | /api/v1 numeric status codes, fixed messages, safe local reason/typed metadata and request ID; legacy /v1 symbolic codes | Precise upstream error_type propagation, retry hints and full provider streaming errors |
 | Other model-use endpoints | Not implemented | Inventory completions, responses, embeddings and generation lookup against external-tool requirements and authorization |
 | Operational OpenGranter APIs | Usage/audit extensions on /v1 | Keep their authorization and contracts explicit during compatibility expansion |
 
@@ -56,7 +56,7 @@ The internal HTTP response boundary checks status, SSE media type and body befor
 
 The delegated OpenRouter request adapter captures the IAM-approved upstream model and final-provider slug set before resolving a credential. Its HTTP body and response-scope check use that immutable attempt, even if a caller-owned object changes during the await. The future streaming request must reuse this boundary. See [plan](plans/200-openrouter-attempt-snapshot.md) and [contract](../contracts/openrouter-attempt-snapshot.md).
 
-The internal delegated text-stream invoker now sends one `stream:true` request to the same fixed endpoint with the same captured model/provider scope and text/sampling request preparation as the non-streaming adapter. It rejects tool controls before credential lookup, awaits validated SSE deltas, and returns final usage only after a complete sequence. It is not wired to either client chat path or the gateway accounting/audit flow; `stream:true` remains rejected at the public boundary. See [plan](plans/202-openrouter-stream-invoker.md) and [contract](../contracts/openrouter-stream-invoker.md).
+The internal delegated text-stream invoker now sends one `stream:true` request to the same fixed endpoint with the same captured model/provider scope and text/sampling request preparation as the non-streaming adapter. It rejects tool controls before credential lookup, awaits validated SSE deltas, and returns final usage only after a complete sequence. The delegated HTTP composition now wires it to both chat paths through shared IAM, limits, accounting and audit; direct/tool streams remain unsupported. See [plan](plans/202-openrouter-stream-invoker.md) and [contract](../contracts/openrouter-stream-invoker.md).
 
 The internal client SSE encoder projects validated text deltas, complete usage and `[DONE]` into OpenRouter-shaped frames using the authorized client model alias. It escapes text within a single data frame and suppresses incomplete usage instead of fabricating counters. This suppression is an explicit gap against OpenRouter's documented final usage frame. The encoder does not validate event order, send HTTP bytes, record usage/audit or enable client `stream:true`. See [plan](plans/204-openrouter-client-sse.md) and [contract](../contracts/openrouter-client-sse.md).
 
@@ -187,8 +187,12 @@ Validated non-streaming function-tool request controls pass through both compati
 
 ## Client socket cancellation prerequisite
 
-The Node bridge propagates interrupted uploads and premature response disconnections through Request.signal and preserves progressive backpressure-aware response delivery. Handlers and providers still need to observe that signal. Delegated/direct upstream cancellation, HTTP SSE failures and interruption accounting/audit remain open; public stream:true stays disabled. See [plan](plans/208-http-client-disconnection.md) and [contract](../contracts/http-client-disconnection.md).
+The Node bridge propagates interrupted uploads and premature response disconnections through Request.signal and preserves progressive backpressure-aware response delivery. The delegated HTTP text composition now observes that signal through upstream cancellation and separate interruption audit; direct/tool streaming remains open. See [plan](plans/208-http-client-disconnection.md) and [contract](../contracts/http-client-disconnection.md).
 
 ## Internal upstream cancellation prerequisite
 
-The delegated text-stream invoker accepts a per-call abort signal, combines it with timeout, prevents cancelled pre-dispatch HTTP and terminates stalled SSE reads. Dispatched cancellation remains possibly billed with existing failed-attempt accounting and no replay. The public HTTP handler does not yet supply the signal or enable stream:true; delivery interruption events, safe midstream errors and direct-provider cancellation remain open. See [plan](plans/210-openrouter-stream-cancellation.md) and [contract](../contracts/openrouter-stream-cancellation.md).
+The delegated text-stream invoker accepts a per-call abort signal, combines it with timeout, prevents cancelled pre-dispatch HTTP and terminates stalled SSE reads. Dispatched cancellation remains possibly billed with existing failed-attempt accounting and no replay. The delegated HTTP handler now supplies that signal and supports text streaming with interruption metadata and safe midstream errors; direct-provider cancellation remains open. See [plan](plans/210-openrouter-stream-cancellation.md) and [contract](../contracts/openrouter-stream-cancellation.md).
+
+## Delegated client HTTP text streaming subset
+
+Both bases accept delegated text-only stream:true with a configured trusted port; PostgreSQL dual composition supplies it. IAM, final-provider scope, limits, attempt usage and audit remain shared. Bounded delivery propagates request/body cancellation and uses safe JSON errors before frames or fixed SSE errors afterward, without terminal success on failure. Separate interruption metadata preserves accounted upstream success after delivery loss. Direct/tool/multimodal streams, stream_options, incomplete final usage and named external-tool workflows remain gaps. See [plan](plans/212-delegated-http-stream.md) and [contract](../contracts/delegated-http-stream.md).

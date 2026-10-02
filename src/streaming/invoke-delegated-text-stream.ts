@@ -18,12 +18,14 @@ type Terminal = Pick<Delta, 'id' | 'model' | 'created'> & {
 
 export interface DelegatedTextStreamInput extends Omit<DelegatedRouteInput<Complete>, 'ports'> {
   readonly onFrame: (frame: string) => void | Promise<void>;
+  readonly signal?: AbortSignal;
   readonly ports: Omit<DelegatedRoutePorts<Complete>, 'invokeOpenRouter'> & {
     readonly invokeOpenRouterTextStream?: (
       credentialRef: string,
       attempt: OpenRouterChatAttempt,
       request: ChatRequest,
       onDelta: (delta: Delta) => void | Promise<void>,
+      signal?: AbortSignal,
     ) => Promise<Complete>;
   };
 }
@@ -53,19 +55,25 @@ export async function invokeDelegatedTextStream(
               attempt: OpenRouterChatAttempt,
               request: ChatRequest,
             ): Promise<Complete> => {
-              const complete = await invoker(credentialRef, attempt, request, async (delta) => {
-                if (delta.finishReason !== null) {
-                  terminal = {
-                    id: delta.id,
-                    model: delta.model,
-                    created: delta.created,
-                    finishReason: delta.finishReason,
-                  };
-                }
-                const frame = encodeOpenRouterTextSse(delta);
-                if (frame === undefined) throw new OpenRouterChatFailure('upstream', true, true);
-                await input.onFrame(frame);
-              });
+              const complete = await invoker(
+                credentialRef,
+                attempt,
+                request,
+                async (delta) => {
+                  if (delta.finishReason !== null) {
+                    terminal = {
+                      id: delta.id,
+                      model: delta.model,
+                      created: delta.created,
+                      finishReason: delta.finishReason,
+                    };
+                  }
+                  const frame = encodeOpenRouterTextSse(delta);
+                  if (frame === undefined) throw new OpenRouterChatFailure('upstream', true, true);
+                  await input.onFrame(frame);
+                },
+                input.signal,
+              );
               if (
                 terminal === undefined ||
                 terminal.id !== complete.id ||

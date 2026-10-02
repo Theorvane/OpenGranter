@@ -52,7 +52,7 @@ async function fixture(direct = true) {
   });
   const secrets: string[] = [];
   const hosts: string[] = [];
-  const state = { limit: true, secret: true, upstreamStatus: 200 };
+  const state = { limit: true, secret: true, upstreamStatus: 200, streamFailure: false };
   let sequence = 0;
   const server = await createNodePostgresDualRouteChatServer({
     client,
@@ -80,13 +80,32 @@ async function fixture(direct = true) {
       if (String(url).includes('openrouter.ai')) {
         assert.equal(body.model, 'openai/gpt-fixture');
         assert.deepEqual(body.provider, { only: ['openai'] });
-        assert.equal(body.stream, false);
+        assert.equal(typeof body.stream, 'boolean');
       } else {
         assert.equal(String(url), 'https://api.openai.com/v1/chat/completions');
         assert.equal(body.model, 'gpt-fixture');
       }
       if (state.upstreamStatus !== 200)
         return new Response('private-upstream-failure', { status: state.upstreamStatus });
+      if (body.stream === true) {
+        const frame = (delta: object, finish: string | null, usage?: object) =>
+          `data: ${JSON.stringify({
+            id: 'stream-fixture',
+            object: 'chat.completion.chunk',
+            created: 1000,
+            model: body.model,
+            choices: [{ index: 0, delta, finish_reason: finish }],
+            ...(usage ? { usage } : {}),
+          })}\n\n`;
+        const source =
+          frame({ content: 'private-response' }, null) +
+          (state.streamFailure
+            ? `data: ${JSON.stringify({ error: { code: 502, message: 'private-stream-failure' } })}\n\n`
+            : frame({}, 'stop') +
+              frame({}, 'stop', { prompt_tokens: 2, completion_tokens: 3, total_tokens: 5 }) +
+              'data: [DONE]\n\n');
+        return new Response(source, { headers: { 'content-type': 'text/event-stream' } });
+      }
       return Response.json({
         id: 'completion-fixture',
         created: 1000,
@@ -166,6 +185,61 @@ test('one persisted socket and token invoke both route kinds and retain content-
       'delegated',
       'managed',
     ]);
+  } finally {
+    await close();
+  }
+});
+
+test('persisted dual composition streams both bases and stores sanitized interruption metadata', async () => {
+  const { db, base, headers, close, state } = await fixture(false);
+  try {
+    for (const prefix of ['/v1', '/api/v1']) {
+      const response = await fetch(`${base}${prefix}/chat/completions`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          model: 'or-chat',
+          messages: [{ role: 'user', content: 'private-prompt' }],
+          stream: true,
+        }),
+      });
+      assert.equal(response.status, 200);
+      const text = await response.text();
+      assert.ok(text.includes('"model":"or-chat"'));
+      assert.ok(text.endsWith('data: [DONE]\n\n'));
+    }
+    state.streamFailure = true;
+    const failed = await fetch(`${base}/api/v1/chat/completions`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        model: 'or-chat',
+        messages: [{ role: 'user', content: 'private-prompt' }],
+        stream: true,
+      }),
+    });
+    const text = await failed.text();
+    assert.ok(text.includes('upstream_failed'));
+    assert.equal(text.includes('[DONE]'), false);
+    assert.equal(text.includes('private-stream-failure'), false);
+    const audit = await db.query<{ details: unknown }>(
+      "SELECT details FROM gateway_audit_events WHERE kind = 'stream-interrupted'",
+    );
+    assert.deepEqual(
+      audit.rows.map((row) => row.details),
+      [{ routeVersion: 'v1', modelAlias: 'or-chat', outcome: 'failed', upstreamCompleted: false }],
+    );
+    const usage = await db.query<{ record: { outcome: string } }>(
+      'SELECT record FROM usage_records ORDER BY attempt_id',
+    );
+    assert.deepEqual(
+      usage.rows.map((row) => row.record.outcome),
+      ['succeeded', 'succeeded', 'failed'],
+    );
+    assert.equal(
+      JSON.stringify({ audit: audit.rows, usage: usage.rows }).includes('private'),
+      false,
+    );
   } finally {
     await close();
   }
