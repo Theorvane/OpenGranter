@@ -23,6 +23,7 @@ export async function consumeOpenRouterTextResponse(
   response: Response,
   scope: StreamModelScope,
   onDelta: (delta: Delta) => void | Promise<void>,
+  signal?: AbortSignal,
 ): Promise<Complete> {
   if (response.status !== 200) {
     const category =
@@ -38,7 +39,7 @@ export async function consumeOpenRouterTextResponse(
 
   let result: OpenRouterTextStreamOutcome;
   try {
-    result = await consumeOpenRouterTextStream(response.body, scope, onDelta);
+    result = await consumeOpenRouterTextStream(response.body, scope, onDelta, signal);
   } catch {
     return fail(response, 'upstream');
   }

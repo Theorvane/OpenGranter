@@ -458,3 +458,7 @@ The shared message snapshot validator tracks pending function-call IDs across on
 ## HTTP client disconnection signal
 
 The shared Node HTTP bridge attaches a per-request AbortSignal, aborts it on interrupted upload or premature response closure, and removes its lifecycle listeners when handling and delivery finish. Existing pipeline streaming preserves downstream backpressure and cancels the active body on connection loss. A response returned after disconnection is cancelled without a fallback socket write. Normal completed responses do not abort. Upstream signal propagation, audited interruption and public chat streaming remain pending. See [contract](../contracts/http-client-disconnection.md) and [plan](plans/208-http-client-disconnection.md).
+
+## Internal OpenRouter stream cancellation
+
+The text-stream invoker accepts an optional per-call AbortSignal, captured before secret awaits and combined with the attempt timeout. Early cancellation prevents HTTP; dispatched and response-started cancellation retain conservative billing metadata. The SSE parser owns the reader abort listener, cancellation and lock cleanup, and stops buffered event emission after abort. Output callbacks remain cooperatively cancellable. Existing non-streaming defaults and route failure accounting remain intact; public streaming and delivery interruption semantics remain pending. See [plan](plans/210-openrouter-stream-cancellation.md) and [contract](../contracts/openrouter-stream-cancellation.md).

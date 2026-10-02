@@ -19,13 +19,15 @@ export function createOpenRouterTextStreamInvoker(
   attempt: OpenRouterChatAttempt,
   request: ChatRequest,
   onDelta: (delta: Delta) => void | Promise<void>,
+  cancellation?: AbortSignal,
 ) => Promise<Complete> {
-  return async (attempt, request, onDelta) => {
-    const { prepared, response, timeout } = await invokeOpenRouterChatTransport(
+  return async (attempt, request, onDelta, cancellation) => {
+    const { prepared, response, timeout, signal } = await invokeOpenRouterChatTransport(
       ports,
       attempt,
       request,
       true,
+      cancellation,
     );
     try {
       return await consumeOpenRouterTextResponse(
@@ -35,6 +37,7 @@ export function createOpenRouterTextStreamInvoker(
           clientModelAlias: prepared.clientModelAlias,
         },
         onDelta,
+        signal,
       );
     } catch (error) {
       if (timeout.aborted) throw new OpenRouterChatFailure('timeout', true, true);

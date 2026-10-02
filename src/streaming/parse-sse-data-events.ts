@@ -10,6 +10,7 @@ function invalidStream(): Error {
 export async function* parseSseDataEvents(
   source: ReadableStream<Uint8Array>,
   maxEventBytes = DEFAULT_MAX_EVENT_BYTES,
+  signal?: AbortSignal,
 ): AsyncGenerator<string> {
   if (
     !Number.isSafeInteger(maxEventBytes) ||
@@ -34,6 +35,14 @@ export async function* parseSseDataEvents(
   let afterCr = false;
   let atStart = true;
   let complete = false;
+  let cancelled = false;
+  const abort = () => {
+    if (cancelled) return;
+    cancelled = true;
+    void reader.cancel().catch(() => {});
+  };
+  signal?.addEventListener('abort', abort, { once: true });
+  if (signal?.aborted) abort();
 
   function consumeLine(): string | undefined {
     const current = line;
@@ -60,7 +69,9 @@ export async function* parseSseDataEvents(
 
   try {
     for (;;) {
+      if (signal?.aborted) throw invalidStream();
       const next = await reader.read();
+      if (signal?.aborted) throw invalidStream();
       if (next.done) {
         decoder.decode();
         complete = true;
@@ -68,6 +79,7 @@ export async function* parseSseDataEvents(
       }
       const decoded = decoder.decode(next.value, { stream: true });
       for (const char of decoded) {
+        if (signal?.aborted) throw invalidStream();
         if (atStart) {
           atStart = false;
           if (char === '\uFEFF') continue;
@@ -92,7 +104,12 @@ export async function* parseSseDataEvents(
   } catch {
     throw invalidStream();
   } finally {
-    if (!complete) await reader.cancel().catch(() => {});
+    signal?.removeEventListener('abort', abort);
+    if (!complete && !cancelled) {
+      const cleanup = reader.cancel().catch(() => {});
+      // Signal-aware invocation must not hang awaiting an uncooperative source cleanup.
+      if (!signal) await cleanup;
+    }
     reader.releaseLock();
   }
 }

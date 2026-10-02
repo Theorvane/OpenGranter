@@ -1,0 +1,9 @@
+# Scoped OpenRouter text-stream cancellation
+
+The internal streaming invoker accepts an optional per-invocation AbortSignal. An already aborted signal prevents credential lookup and HTTP; cancellation while credentials are pending prevents HTTP after the await. These failures have fixed upstream category, responseStarted=false and possiblyBilled=false. Configuration validation still applies before an attempt can start.
+
+Transport combines the captured caller signal with the existing timeout and sends only one request to the fixed allowed endpoint with immutable model/provider scope. Cancellation after dispatch is possibly billed; cancellation after receiving headers is response-started. A timeout retains the safe timeout category. No cancellation reason, raw error, secret or response text enters failure metadata.
+
+The SSE reader observes the combined signal directly, so a body stalled in read terminates even when the supplied transport does not error its body on abort. It cancels the owned reader without an external reason, checks for abort before emitting buffered events, removes the abort listener and releases the lock on every exit. Source cancellation acknowledgment cannot indefinitely block a signal-aware invocation, including after a validated complete sequence. The invocation stops awaiting pending credentials, fetch or delta callbacks on cancellation, observes late rejection and cancels late response bodies. Injected operations must observe cancellation to stop their own work.
+
+When used by the existing delegated composition, a cancelled dispatched attempt receives one failed possibly-billed usage handoff and outcome audit, with unknown usage and no terminal success frames. No inference retry occurs. Optional-signal omission preserves existing invocation behavior. HTTP wiring, new interruption audit semantics, final delivery acknowledgment, direct-provider streaming and client stream:true remain separate release work.
