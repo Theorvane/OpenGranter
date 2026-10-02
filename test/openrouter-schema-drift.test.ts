@@ -129,6 +129,7 @@ function source(): Record<string, unknown> {
     },
   };
   Object.assign(data.components.schemas.ChatRequest.properties, {
+    logit_bias: structuredClone(pinned.projection.fields.logit_bias),
     stream_options: structuredClone(pinned.projection.fields.stream_options),
     tools: structuredClone(pinned.projection.fields.tools),
     tool_choice: structuredClone(pinned.projection.fields.tool_choice),
@@ -162,6 +163,7 @@ test('official projection and reviewed pin agree; key order is immaterial', () =
   assert.equal(canonicalSchema({ b: 2, a: 1 }), canonicalSchema({ a: 1, b: 2 }));
   assert.deepEqual(Object.keys(projectOfficialSchema(source()).fields).sort(), [
     'frequency_penalty',
+    'logit_bias',
     'max_completion_tokens',
     'max_tokens',
     'messages',
@@ -467,8 +469,8 @@ for (const name of ['ChatFormatTextConfig', 'ChatFormatJsonObjectConfig']) {
     }
   });
 }
-test('version-6 pin retains exact selected request definitions', () => {
-  assert.equal(pinned.version, 6);
+test('version-7 pin retains exact selected request definitions', () => {
+  assert.equal(pinned.version, 7);
   const definitions = (
     projectOfficialSchema(source()) as unknown as { definitions: Record<string, unknown> }
   ).definitions;
@@ -634,8 +636,8 @@ test('message name selection ignores editorial and unrelated message changes', (
   for (const value of Object.values(projected.messageNames))
     assert.deepEqual(value, { schema: { type: 'string' }, required: false });
 });
-test('version-6 message maps reject stale and rehashed malformed pins', () => {
-  for (const version of [1, 2, 3, 4, 5])
+test('version-7 message maps reject stale and rehashed malformed pins', () => {
+  for (const version of [1, 2, 3, 4, 5, 6])
     assert.throws(() => validateSchemaPin({ ...pinned, version }), /Invalid schema pin/);
   for (const messageNames of [
     undefined,
@@ -694,4 +696,97 @@ test('stream option reference, boolean type and deprecation changes are detected
     if (variant === 'deprecated') option.deprecated = false;
     assert.equal(compareOfficialSchema(data, pinned), false);
   }
+});
+
+test('logit_bias projection includes nullable numeric map structure', () => {
+  const data = source();
+  const schemas = (
+    data.components as { schemas: Record<string, { properties: Record<string, unknown> }> }
+  ).schemas;
+  assert.ok(schemas.ChatRequest);
+  schemas.ChatRequest.properties.logit_bias = {
+    type: ['object', 'null'],
+    additionalProperties: { type: 'number', format: 'double' },
+  };
+  assert.deepEqual(projectOfficialSchema(data).fields.logit_bias, {
+    type: ['object', 'null'],
+    additionalProperties: { type: 'number', format: 'double' },
+  });
+});
+
+test('logit_bias nullable map, numeric values, format and constraints cause drift', () => {
+  const shape = {
+    type: ['object', 'null'],
+    additionalProperties: { type: 'number', format: 'double' },
+  };
+  for (const replacement of [
+    { ...shape, type: 'object' },
+    { ...shape, additionalProperties: { type: 'integer', format: 'double' } },
+    { ...shape, additionalProperties: { type: 'string' } },
+    { ...shape, additionalProperties: false },
+    { ...shape, additionalProperties: { type: 'number', format: 'float' } },
+    {
+      ...shape,
+      additionalProperties: { type: 'number', format: 'double', minimum: -100, maximum: 100 },
+    },
+    { ...shape, propertyNames: { pattern: '^[0-9]+$' } },
+    { ...shape, maxProperties: 10 },
+    { ...shape, default: { description: 1 } },
+  ]) {
+    const data = source();
+    const schemas = (
+      data.components as { schemas: Record<string, { properties: Record<string, unknown> }> }
+    ).schemas;
+    assert.ok(schemas.ChatRequest);
+    schemas.ChatRequest.properties.logit_bias = replacement;
+    assert.equal(compareOfficialSchema(data, pinned), false);
+  }
+});
+
+test('logit_bias malformed source and rehashed selected maps fail safely', () => {
+  for (const malformed of [undefined, null, [], 'private invalid']) {
+    const data = source();
+    const schemas = (
+      data.components as { schemas: Record<string, { properties: Record<string, unknown> }> }
+    ).schemas;
+    assert.ok(schemas.ChatRequest);
+    schemas.ChatRequest.properties.logit_bias = malformed;
+    assert.throws(() => projectOfficialSchema(data), { message: 'Invalid official schema' });
+  }
+  for (const operation of ['missing', 'extra', 'malformed']) {
+    const fields = { ...pinned.projection.fields };
+    if (operation === 'missing') delete fields.logit_bias;
+    if (operation === 'extra') fields.unselected = { type: 'object' };
+    if (operation === 'malformed') fields.logit_bias = null;
+    const projection = { ...pinned.projection, fields };
+    const hash = createHash('sha256').update(canonicalSchema(projection)).digest('hex');
+    assert.throws(() => validateSchemaPin({ ...pinned, projection, projectionSha256: hash }), {
+      message: 'Invalid schema pin',
+    });
+  }
+});
+
+test('logit_bias annotations remain ignored without dropping literal default keys', () => {
+  const data = source();
+  const schemas = (
+    data.components as { schemas: Record<string, { properties: Record<string, unknown> }> }
+  ).schemas;
+  assert.ok(schemas.ChatRequest);
+  schemas.ChatRequest.properties.logit_bias = {
+    type: ['object', 'null'],
+    description: 'editorial',
+    example: { '1': 1 },
+    additionalProperties: { type: 'number', format: 'double', description: 'editorial value' },
+  };
+  assert.equal(compareOfficialSchema(data, pinned), true);
+  schemas.ChatRequest.properties.logit_bias = {
+    type: ['object', 'null'],
+    additionalProperties: { type: 'number', format: 'double' },
+    default: { description: 1, example: 2 },
+  };
+  assert.deepEqual(projectOfficialSchema(data).fields.logit_bias, {
+    type: ['object', 'null'],
+    additionalProperties: { type: 'number', format: 'double' },
+    default: { description: 1, example: 2 },
+  });
 });

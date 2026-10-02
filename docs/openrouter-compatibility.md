@@ -102,7 +102,7 @@ Fixed metadata.error_type is available alongside numeric codes and local reasons
 
 ## Official request schema drift coverage
 
-A provenance-checked version-6 structural pin covers seventeen source-declared chat request fields, six selected request definitions, four streaming response definitions, four message-name fields and tool-call/result message structures, plus required fields and request reference/document versions. The offline gate checks integrity; an explicit fixed-host network command detects selected structural drift without auto-updating the pin. Other referenced definitions and full schema instance validation remain uncovered. The retrieved ChatRequest does not declare n; local n=1 is SDK support. Optional model and broader source behaviors remain gaps. See [base plan](plans/138-openrouter-schema-drift.md), [tool plan](plans/186-function-tool-schema-drift.md), [stream plan](plans/193-stream-response-schema-drift.md) and [contract](../contracts/openrouter-schema-drift.md).
+A provenance-checked version-7 structural pin covers eighteen source-declared chat request fields, six selected request definitions, four streaming response definitions, four message-name fields and tool-call/result message structures, plus required fields and request reference/document versions. The offline gate checks integrity; an explicit fixed-host network command detects selected structural drift without auto-updating the pin. Other referenced definitions and full schema instance validation remain uncovered. The retrieved ChatRequest does not declare n; local n=1 is SDK support. Optional model and broader source behaviors remain gaps. See [base plan](plans/138-openrouter-schema-drift.md), [tool plan](plans/186-function-tool-schema-drift.md), [stream plan](plans/193-stream-response-schema-drift.md) and [contract](../contracts/openrouter-schema-drift.md).
 
 ## Nullable optional chat controls
 
@@ -161,7 +161,7 @@ String name is supported on all four existing text roles and normalized text arr
 
 ## Referenced message-name source drift
 
-The message-name subset introduced in version 3 remains selected in version 6. Malformed source containers, required lists and rehashed maps fail safely. Annotation and unrelated message-field changes are ignored. Full ChatMessages traversal, other fields and instance/stream/response conformance remain open. See [plan](plans/168-message-name-schema.md) and [contract](../contracts/openrouter-schema-drift.md).
+The message-name subset introduced in version 3 remains selected in version 7. Malformed source containers, required lists and rehashed maps fail safely. Annotation and unrelated message-field changes are ignored. Full ChatMessages traversal, other fields and instance/stream/response conformance remain open. See [plan](plans/168-message-name-schema.md) and [contract](../contracts/openrouter-schema-drift.md).
 
 ## System fingerprint subset
 
@@ -183,7 +183,7 @@ Anthropic end_turn/stop_sequence/max_tokens and Gemini STOP/MAX_TOKENS map to th
 
 ## Nullable client logit-bias subset
 
-Omitted/null or exact finite numeric maps enter both compatible paths and SDK serialization. OpenAI/OpenRouter forward captured maps; direct Anthropic/Gemini reject non-null maps before secrets. IAM/limits/audit and usage attribution remain shared, with malformed inputs and failed attempts safely accounted for. The reviewed source-drift pin does not yet select this official field; native model ranges and full tool/stream/client conformance remain open. See [plan](plans/178-client-logit-bias.md) and [contract](../contracts/client-logit-bias.md).
+Omitted/null or exact finite numeric maps enter both compatible paths and SDK serialization. OpenAI/OpenRouter forward captured maps; direct Anthropic/Gemini reject non-null maps before secrets. IAM/limits/audit and usage attribution remain shared, with malformed inputs and failed attempts safely accounted for. The reviewed version-7 source-drift pin selects this official field; native model ranges and full tool/stream/client conformance remain open. See [plan](plans/178-client-logit-bias.md) and [contract](../contracts/client-logit-bias.md).
 
 Validated non-streaming function-tool request controls pass through both compatible paths and the installed OpenAI SDK to delegated OpenRouter/direct OpenAI. Malformed and server-tool requests reject before route lookup; direct Anthropic/Gemini reject supplied controls before credentials. Valid assistant function-call responses preserve IDs, names, serialized arguments and matching finish reason; malformed, duplicate, mismatched or legacy calls fail with safe possible-billing accounting. Streaming, rich content, server tools and native mappings still block full compatibility. See [request plan](plans/180-function-tool-requests.md), [response plan](plans/182-function-tool-responses.md) and [response contract](../contracts/function-tool-responses.md).
 
@@ -222,3 +222,7 @@ Actual SDK validation rejects omitted nonstream fingerprints, the current basic 
 ## Delegated streaming refusal subset
 
 Both chat bases support validated optional string/null refusal deltas and content_filter termination without fallback/replay. JSON framing preserves exact response text, with safe malformed-value failures and shared security/accounting controls. Usage-only events cannot discard substantive refusal text; missing usage remains unknown. Direct/tool/multimodal/reasoning streams and full external-client conformance remain open. See [plan](plans/218-stream-refusals.md) and [contract](../contracts/stream-refusals.md).
+
+## Logit-bias source drift subset
+
+Version 7 selects nullable logit_bias object/numeric-map structure as the eighteenth request field. Nullability, numeric type/format, key/count/value constraints and literal defaults cause drift; editorial annotations remain ignored. Exact-map/integrity gates reject malformed/rehashed/stale pins. Existing selected structures are unchanged. Runtime behavior, provider capability certification, full instance validation and other compatibility gaps remain unchanged. See [plan](plans/220-logit-bias-schema.md) and [contract](../contracts/openrouter-schema-drift.md).

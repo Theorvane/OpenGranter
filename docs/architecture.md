@@ -487,3 +487,7 @@ Managed/delegated nonstream success returns share a narrow client projection aft
 ## Delegated streaming refusal projection
 
 The bounded decoder captures refusal string/null alongside optional role/content and the serializer independently validates and JSON-encodes it. Sequence state and complete outcomes retain no refusal transcript. Usage-only events remain content-free, including refusal; synthesized final frames never replay earlier text. See [contract](../contracts/stream-refusals.md).
+
+## Logit-bias structural selection
+
+Version 7 adds logit_bias to the exact source field map while preserving the existing definitions and streaming/message selections. Canonical provenance/projection digests require an explicit review; source comparison never updates the pin automatically. Runtime validation and security/accounting paths are unchanged. See [plan](plans/220-logit-bias-schema.md).
