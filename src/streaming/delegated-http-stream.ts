@@ -9,6 +9,7 @@ import {
   type DelegatedTextStreamInput,
   type DelegatedTextStreamResult,
   invokeDelegatedTextStream,
+  type StreamChunkIdentity,
 } from './invoke-delegated-text-stream.ts';
 
 interface HttpStreamInput extends Omit<DelegatedTextStreamInput, 'onFrame' | 'ports' | 'signal'> {
@@ -59,6 +60,7 @@ export function createDelegatedHttpStreamResponse(input: HttpStreamInput): Promi
   let started = false;
   let upstreamCompleted = false;
   let interruption: Promise<boolean> | undefined;
+  let delivered: StreamChunkIdentity | undefined;
 
   function flush() {
     if (!demand || !pending || closed) return;
@@ -147,14 +149,32 @@ export function createDelegatedHttpStreamResponse(input: HttpStreamInput): Promi
       resolveResponse(error);
       return;
     }
-    if (!closed) await send(`data: ${await error.text()}\n\n`);
+    if (!closed) {
+      if (input.format === 'openrouter' && delivered) {
+        const payload: unknown = await error.json();
+        if (typeof payload !== 'object' || payload === null || !('error' in payload))
+          throw new Error('Invalid client error payload');
+        await send(
+          `data: ${JSON.stringify({
+            ...delivered,
+            object: 'chat.completion.chunk',
+            error: payload.error,
+            request_id: input.requestId,
+            choices: [{ index: 0, delta: { content: '' }, finish_reason: 'error' }],
+          })}\n\n`,
+        );
+      } else await send(`data: ${await error.text()}\n\n`);
+    }
   }
   async function run() {
     try {
       const result = await invokeDelegatedTextStream({
         ...input,
         signal: cancellation.signal,
-        onFrame: send,
+        onFrame: async (frame, identity) => {
+          await send(frame);
+          delivered = identity;
+        },
         ports: {
           ...input.ports,
           ...(writeUsage

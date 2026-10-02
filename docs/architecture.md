@@ -474,3 +474,7 @@ A shared pure snapshot validates nullable options and freezes only the optional 
 ## Delegated stream fingerprint projection
 
 The decoder captures optional fingerprint scalars, the encoder validates their bounded type independently, and the sequence retains only the actual final usage-event fingerprint for the complete outcome. The coordinator projects that metadata after required usage/audit persistence. Fingerprints do not participate in IAM, route identity or usage attribution. See [contract](../contracts/stream-fingerprints.md).
+
+## Midstream error identity capture
+
+The coordinator supplies a frozen allowlisted id/created/model projection with validated frame callbacks. The HTTP adapter caches only completed body handoffs and uses this narrow identity for compatible error chunks, without retaining response content or widening operational metadata. See [contract](../contracts/midstream-error-chunks.md).

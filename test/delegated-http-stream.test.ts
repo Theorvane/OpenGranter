@@ -728,3 +728,162 @@ test('SDK sees exact streamed fingerprints on both socket bases and final omissi
     }
   }
 });
+
+test('compatible started error chunks retain delivered identity while legacy stays unchanged', async () => {
+  for (const base of ['/v1', '/api/v1']) {
+    for (const variant of ['upstream', 'usage', 'audit'] as const) {
+      const f = fixture();
+      if (variant === 'upstream')
+        f.ports = {
+          ...f.ports,
+          invokeOpenRouterTextStream: async (_ref, _scope, _chat, onDelta) => {
+            await onDelta(delta());
+            throw new Error('private upstream');
+          },
+        };
+      if (variant === 'usage')
+        f.ports = {
+          ...f.ports,
+          writeUsage: async () => {
+            throw new Error('private ledger');
+          },
+        };
+      if (variant === 'audit')
+        f.ports = {
+          ...f.ports,
+          writeAudit: async (event) => {
+            if (event.kind === 'delegated-attempt') throw new Error('private audit');
+            f.audit.push(event);
+          },
+        };
+      const response = await createChatHandler(f.ports)(f.request(base));
+      assert.equal(response.status, 200);
+      const frames = (await response.text()).trim().split('\n\n');
+      const first = JSON.parse(frames[0]?.slice(6) ?? '{}');
+      const failure = JSON.parse(frames.at(-1)?.slice(6) ?? '{}');
+      if (base === '/api/v1') {
+        assert.equal(failure.id, first.id);
+        assert.equal(failure.created, first.created);
+        assert.equal(failure.model, 'chat');
+        assert.equal(failure.object, 'chat.completion.chunk');
+        assert.deepEqual(failure.choices, [
+          { index: 0, delta: { content: '' }, finish_reason: 'error' },
+        ]);
+        assert.equal(failure.request_id, 'req-stream');
+      } else {
+        for (const key of ['id', 'created', 'model', 'object', 'choices'])
+          assert.equal(Object.hasOwn(failure, key), false);
+      }
+      assert.equal(JSON.stringify(failure).includes('private'), false);
+      assert.equal(
+        frames.some((frame) => frame.includes('[DONE]')),
+        false,
+      );
+      assert.equal(Object.hasOwn(failure, 'usage'), false);
+    }
+  }
+});
+
+test('invalid first/later frames cannot invent or replace compatible failure identity', async () => {
+  for (const first of [true, false]) {
+    const f = fixture();
+    f.ports = {
+      ...f.ports,
+      invokeOpenRouterTextStream: async (_ref, _scope, _chat, onDelta) => {
+        if (!first) await onDelta(delta());
+        await onDelta({ ...delta(), id: 'private-invalid', created: -1, model: 'private-model' });
+        assert.fail('invalid frame continued');
+      },
+    };
+    const response = await createChatHandler(f.ports)(f.request());
+    assert.equal(response.status, first ? 502 : 200);
+    const text = await response.text();
+    assert.equal(text.includes('private-invalid'), false);
+    assert.equal(text.includes('private-model'), false);
+    if (first) {
+      const failure = JSON.parse(text);
+      assert.equal(Object.hasOwn(failure, 'choices'), false);
+      assert.equal(Object.hasOwn(failure, 'id'), false);
+    } else {
+      const failure = JSON.parse(text.trim().split('\n\n').at(-1)?.slice(6) ?? '{}');
+      assert.equal(failure.id, 'gen-1');
+      assert.equal(failure.created, 42);
+      assert.equal(failure.model, 'chat');
+      assert.equal(failure.choices[0].finish_reason, 'error');
+    }
+    assert.equal(f.records[0]?.outcome, 'failed');
+    assert.equal(f.records[0]?.possiblyBilled, true);
+  }
+});
+
+test('required interruption audit failure retains compatible chunk identity and safe replacement', async () => {
+  const f = fixture();
+  f.ports = {
+    ...f.ports,
+    invokeOpenRouterTextStream: async (_ref, _scope, _chat, onDelta) => {
+      await onDelta(delta());
+      throw new Error('private upstream');
+    },
+    writeAudit: async (event) => {
+      if (event.kind === 'stream-interrupted') throw new Error('private audit');
+      f.audit.push(event);
+    },
+  };
+  const response = await createChatHandler(f.ports)(f.request());
+  const text = await response.text();
+  const failure = JSON.parse(text.trim().split('\n\n').at(-1)?.slice(6) ?? '{}');
+  assert.equal(failure.id, 'gen-1');
+  assert.equal(failure.error.code, 503);
+  assert.equal(failure.error.metadata.opengranter_code, 'audit_unavailable');
+  assert.equal(failure.choices[0].finish_reason, 'error');
+  assert.equal(JSON.stringify(failure).includes('private'), false);
+  assert.equal(text.includes('[DONE]'), false);
+});
+
+test('SDK socket fails safely on compatible error chunk and persists failed attempt', {
+  timeout: 5000,
+}, async () => {
+  const f = fixture();
+  f.ports = {
+    ...f.ports,
+    invokeOpenRouterTextStream: async (_ref, _scope, _chat, onDelta) => {
+      await onDelta(delta());
+      throw new Error('private provider');
+    },
+  };
+  const server = createNodeChatServer(f.ports);
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  try {
+    const address = server.address() as AddressInfo;
+    const client = new OpenAI({
+      apiKey: 'fixture-key',
+      baseURL: `http://127.0.0.1:${address.port}/api/v1`,
+    });
+    const stream = await client.chat.completions.create({
+      model: 'chat',
+      messages: [{ role: 'user', content: 'text' }],
+      stream: true,
+    });
+    const iterator = stream[Symbol.asyncIterator]();
+    assert.equal((await iterator.next()).value?.choices[0]?.delta.content, 'private answer');
+    await assert.rejects(iterator.next(), (error: unknown) => {
+      assert.ok(error instanceof OpenAI.APIError);
+      assert.equal(error.message.includes('Upstream model request failed.'), true);
+      assert.equal(error.message.includes('private provider'), false);
+      assert.equal(error.code, 502);
+      return true;
+    });
+    assert.equal(f.records.length, 1);
+    assert.equal(f.records[0]?.outcome, 'failed');
+    assert.equal(f.records[0]?.possiblyBilled, true);
+    assert.equal(
+      f.audit.some((event) => (event as { kind: string }).kind === 'stream-interrupted'),
+      true,
+    );
+  } finally {
+    server.closeAllConnections();
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
+  }
+});
