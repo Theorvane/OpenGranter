@@ -290,3 +290,7 @@ Normalized /api/v1 nonstream completions represent absent upstream fingerprint a
 ## Delegated streaming refusal deltas
 
 Delegated streamed refusal string/null deltas are delivered as successful upstream responses under existing IAM, limits, required accounting/audit and cancellation controls. Refusal text remains response content, never operational metadata. Malformed values fail safely; usage-only chunks reject substantive refusal text rather than silently discard it. See [contract](../contracts/stream-refusals.md).
+
+## Logit-bias source drift coverage
+
+The reviewed structural pin tracks the already-supported logit_bias request field, including object/null and numeric-map structure. This does not expand runtime capabilities or assert provider/model support. See [plan](plans/220-logit-bias-schema.md) and [contract](../contracts/openrouter-schema-drift.md).

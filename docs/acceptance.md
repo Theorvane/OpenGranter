@@ -633,3 +633,8 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Both chat bases and SDK streaming preserve exact refusal string/null/omission, content coexistence and content_filter termination, with successful usage persistence before final frames.
 - Malformed first/later refusal values and substantive refusal in usage-only chunks fail safely with possible-billing accounting and no DONE.
 - IAM/limits and required audit/ledger failure gates still apply; refusal text and framing tokens stay out of operational metadata/errors and cannot inject SSE. Missing usage stays unknown. See [contract](../contracts/stream-refusals.md).
+
+## Logit-bias schema drift
+
+- Source object/null, additionalProperties numeric type/format and key/count/value constraints cause drift; missing/malformed fields fail safely. Editorial annotations/unrelated source fields are ignored while literal defaults remain data.
+- Version 7 requires an exact eighteen-field map and valid provenance/integrity. Rehashed missing/extra/malformed maps and stale versions reject. Runtime IAM/limits/audit/usage behavior is unchanged. See [plan](plans/220-logit-bias-schema.md) and [contract](../contracts/openrouter-schema-drift.md).

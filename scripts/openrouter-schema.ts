@@ -17,6 +17,7 @@ const FIELD_NAMES = [
   'presence_penalty',
   'seed',
   'top_k',
+  'logit_bias',
   'tools',
   'tool_choice',
   'parallel_tool_calls',
@@ -235,7 +236,7 @@ export function validateSchemaPin(value: unknown): { projection: SchemaProjectio
   try {
     const data = record(value);
     if (
-      data?.version !== 6 ||
+      data?.version !== 7 ||
       data.source !== OFFICIAL_SCHEMA_URL ||
       typeof data.retrievedAt !== 'string' ||
       !/^\d{4}-\d{2}-\d{2}$/.test(data.retrievedAt) ||
