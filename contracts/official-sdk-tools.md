@@ -1,0 +1,11 @@
+# Official SDK non-streaming function-tool lifecycle
+
+The development-only official OpenRouter SDK 1.4.18 is tested over real local Node/HTTP sockets on both /v1 and /api/v1, through delegated OpenRouter and managed direct OpenAI invokers. Controlled upstream fixtures replace only fixed-host HTTP transport; no provider network calls or automatic tool execution occur.
+
+The first request supplies function declarations, named toolChoice and parallelToolCalls. Tests inspect their exact snake_case upstream serialization, authorized native model and delegated provider.only. SDK response validation preserves two calls with IDs, names, serialized argument strings, null assistant content and finishReason:tool_calls. Supplied fixture fingerprints satisfy both SDK paths without changing the legacy unknown-fingerprint gap.
+
+The second request is constructed from the returned SDK toolCalls, with only bounded assistant history fields and text-only tool results. Result order may differ from call order; SDK toolCallId serialization and text-part normalization preserve each association. The gateway returns a final text response, separately authenticates/checks limits and records one attributed usage entry for each inference request. Tool execution is the caller's responsibility.
+
+Fresh authentication, explicit model/provider Deny, exhausted limits and required selection-audit failure suppress the follow-up before another credential lookup or upstream request. Orphan tool results reject before route lookup. Malformed upstream function arguments produce safe HTTP 502 and one failed possibly-billed attempt; required outcome-audit failure suppresses HTTP success after retaining successful upstream usage. Tests inspect gateway metadata and fixed client error messages for content/credential leakage without logging raw SDK error objects.
+
+This verifies the existing bounded non-streaming subset, not named external-tool registration or full compatibility. Native Anthropic/Gemini tools, streaming tool deltas, server tools, richer results, arbitrary returned assistant fields and complete external workflows remain open. See [plan](../docs/plans/234-official-sdk-tools.md), [request contract](client-function-tools.md), [response contract](function-tool-responses.md) and [history contract](function-tool-history.md).

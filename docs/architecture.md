@@ -527,3 +527,7 @@ Migration 010 adds a nullable bounded JSONB snapshot to catalog_models. The read
 ## Visible model-list paging
 
 A pure strict query parser permits only compatible offset/limit. The handler validates the entire catalog, captures metadata and applies unchanged enabled/model/provider IAM filtering before slicing and projecting the selected page. Fixed relative continuation links avoid incoming-host influence; total_count reflects the visible list while audit count reflects returned entries. Current SQL catalog order is preserved. Fresh authorization/catalog is read on every page; stable multi-request snapshots are not inferred. See [plan](plans/230-model-list-paging.md).
+
+## Official SDK non-streaming tool harness
+
+Real local sockets connect the pinned official SDK to the Node/HTTP boundary and existing direct/delegated invokers with fixed-host controlled transport. A returned assistant call group supplies the subsequent bounded history; the SDK's camelCase fields are checked against exact upstream snake_case data. Fresh security gates and per-request usage are observed at public boundaries. The SDK remains development-only. See [contract](../contracts/official-sdk-tools.md).

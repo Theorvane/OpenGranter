@@ -680,3 +680,9 @@ Direct Gemini maps optional minimal/low/medium/high to generationConfig.thinking
 - Denied/disabled/provider-denied aliases never consume offsets or leak counts/links; both route kinds retain explicit Deny. Complete invalid out-of-page configuration and required audit failure suppress successful responses.
 - Malformed/duplicate/unknown/unsafe query values reject before catalog reads with safe audit; anonymous requests reject before query/catalog access. Relative links never use the incoming host.
 - Every SDK page reevaluates current IAM; newly denied metadata disappears. Cross-request snapshot stability and broader filters remain open. See [contract](../contracts/model-list-paging.md).
+
+## Official SDK function-tool lifecycle
+
+- Actual SDK sockets on both bases and both supported route kinds serialize function declarations, named choice and parallel controls, deserialize exact call IDs/names/arguments, and send returned calls with complete text-only results to obtain a final text response.
+- Each inference request authenticates/checks limits and records separately attributed usage. Fresh authentication, explicit model/provider Deny, limits and required selection audit prevent a second dispatch; orphan results reject before route lookup.
+- Malformed upstream calls fail with safe possibly-billed accounting. Required outcome-audit failure suppresses success after upstream usage persistence. Operational metadata excludes credentials, prompts, tool arguments/results and response content. See [contract](../contracts/official-sdk-tools.md).

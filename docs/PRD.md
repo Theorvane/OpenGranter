@@ -330,3 +330,7 @@ Administrator-published aliases can carry bounded informational OpenRouter metad
 ## Compatible discovery paging
 
 /api/v1 model lists accept bounded offset/limit within the IAM-filtered visible sequence and expose only visible total_count and relative next links. No-query lists remain complete; legacy queries and unknown filters still reject. Every request reevaluates current authorization/catalog, retaining required audit and no inference-side effects. See [contract](../contracts/model-list-paging.md).
+
+## Official SDK tool lifecycle evidence
+
+The existing bounded non-streaming function-tool subset is validated through the pinned official OpenRouter SDK on both client bases and delegated OpenRouter/direct OpenAI. Caller-supplied results form a separate authenticated inference request with unchanged IAM, limits, audit and usage controls. No gateway tool execution or runtime behavior is added. See [contract](../contracts/official-sdk-tools.md).
