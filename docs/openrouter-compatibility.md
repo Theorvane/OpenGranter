@@ -204,3 +204,9 @@ Both bases accept nullable stream_options and exact optional boolean include_usa
 ## Delegated streaming fingerprint subset
 
 Both bases and pinned SDK streamed chunks preserve opaque system_fingerprint string/null/omission, including independently supplied final usage metadata. The official OpenRouter stream schema selects strings; null is a local compatibility allowance. Malformed values fail safely with possible-billing accounting. Fingerprints stay outside IAM, limits, audit and ledger metadata, and missing token counters still yield no fabricated final usage frame. Other metadata, direct/tool/multimodal streams and full client conformance remain open. See [plan](plans/216-stream-fingerprints.md) and [contract](../contracts/stream-fingerprints.md).
+
+## Pinned official OpenRouter SDK subset
+
+Development-only @openrouter/sdk 1.4.18 runs twelve actual socket tests across both bases, through the real HTTP/Node boundary and delegated invoker with fixed-host fake upstream transport. Stream text/complete or unknown usage, portable serialized controls, supplied nonstream fingerprints, authorization/limit status and failed accounting are covered. No live inference or production dependency is added.
+
+Actual SDK validation rejects omitted nonstream fingerprints, the current basic discovery catalog and standalone midstream error envelopes. The pending compatible error PR addresses the last gap; the official stream schema also rejects the gateway's local null fingerprint allowance. Tests recording gaps are an inventory and must evolve with implementing features, not certification of full compatibility. Named external-tool workflows, trusted model metadata, richer/direct/tool streams and complete conformance remain open. See [plan](plans/224-official-sdk.md) and [contract](../contracts/official-openrouter-sdk.md).
