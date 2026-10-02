@@ -588,3 +588,37 @@ test('combined verbosity and reasoning effort retain independent delegated HTTP 
     }
   }
 });
+
+test('issue 252 combined sampling verbosity and effort preserve HTTP and credential snapshots', async () => {
+  const controls = { verbosity: 'max', reasoning_effort: 'none', min_p: 0.2 };
+  for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
+    for (const stream of [false, true]) {
+      const f = httpFixture('openrouter');
+      const response = await f.handler(
+        request(path, { ...controls, ...(stream ? { stream: true } : {}) }),
+      );
+      assert.equal(response.status, 200);
+      await response.text();
+      assert.equal(f.sent.length, 1);
+      for (const [key, value] of Object.entries(controls)) assert.equal(f.sent[0]?.[key], value);
+      assert.deepEqual(f.sent[0]?.provider, { only: ['provider'] });
+      assert.equal(f.usage.length, 1);
+      for (const key of Object.keys(controls))
+        assert.equal(JSON.stringify([f.audits, f.usage]).includes(key), false);
+    }
+  }
+  for (const stream of [false, true]) {
+    const mutable = input(controls) as unknown as ChatRequest;
+    const f = adapter('openrouter', undefined, () =>
+      Object.assign(mutable, { verbosity: 'low', reasoning_effort: 'high', min_p: 0 }),
+    );
+    if (stream)
+      await f.stream(
+        { upstreamModelId: 'model', authorizedProviderSlugs: ['provider'] },
+        mutable,
+        () => {},
+      );
+    else await f.call(mutable);
+    for (const [key, value] of Object.entries(controls)) assert.equal(f.sent[0]?.[key], value);
+  }
+});

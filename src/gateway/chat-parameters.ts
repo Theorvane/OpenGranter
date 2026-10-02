@@ -154,3 +154,8 @@ export function validReasoningEffort(value: unknown): value is ReasoningEffort |
     value === 'none'
   );
 }
+
+/** Optional sampling control; omission preserves the upstream default. */
+export function validMinP(value: unknown): value is number | undefined {
+  return validTopP(value);
+}

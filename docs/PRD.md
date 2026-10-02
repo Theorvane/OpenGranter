@@ -371,3 +371,8 @@ Direct OpenAI/delegated OpenRouter nonstream completions preserve optional exact
 ## Delegated stream service tier metadata
 
 Delegated OpenRouter text streams preserve optional string/null service_tier response metadata, including the actual final usage event, without changing IAM, limits or accounting. Reported tiers cannot establish authority or price. Direct/tool/native stream and tier request semantics remain separate. See [contract](../contracts/stream-service-tiers.md).
+
+
+## Delegated min-p sampling subset
+
+Optional nullable finite min_p in 0..1 is accepted on both chat bases and forwarded exactly for delegated OpenRouter nonstream/text streams. Registered direct adapters reject supplied non-null controls before credentials rather than silently discard them. Defaults and security/accounting remain shared; model support and structural drift selection remain open. See [contract](../contracts/client-min-p.md).

@@ -730,3 +730,8 @@ Both public chat bases and pinned SDK sockets preserve exact service-tier string
 ## Delegated stream service tier metadata
 
 Both bases and actual official SDK sockets preserve exact streamed tier string/null/omission with safe JSON framing and independent final usage metadata. Missing usage emits no invented frame. Malformed first/later values fail safely with possible-billing accounting and no DONE; denial/limit/required ledger/audit gates remain. Callback identity and operational metadata contain no tier. See [plan](plans/250-stream-service-tier.md).
+
+
+## Delegated min-p sampling subset
+
+Both prefixes and actual OpenRouter/OpenAI SDKs preserve min_p zero/fractions/one on delegated nonstream and text-stream requests; null/omission retains defaults. Malformed HTTP/native/nonfinite values reject before routes/secrets, unsupported direct mappings fail before transport, and single-read/credential-await capture remains immutable. Denial/limits/required ledger/audit and safe transport accounting remain shared. Source pin does not yet select min_p. See [plan](plans/252-min-p.md).
