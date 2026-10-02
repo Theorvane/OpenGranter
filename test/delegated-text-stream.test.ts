@@ -284,3 +284,25 @@ test('missing final usage remains missing in the ledger and sends only DONE', as
     totalTokens: null,
   });
 });
+
+test('frame callbacks receive frozen identity-only metadata', async () => {
+  const f = fixture();
+  const identities: unknown[] = [];
+  const result = await invokeDelegatedTextStream({
+    ...f.input,
+    onFrame: async (frame, identity) => {
+      assert.equal(Object.isFrozen(identity), true);
+      assert.deepEqual(Object.keys(identity).sort(), ['created', 'id', 'model']);
+      const payload = JSON.parse(frame.slice(6));
+      assert.deepEqual(identity, {
+        id: payload.id,
+        created: payload.created,
+        model: payload.model,
+      });
+      identities.push(identity);
+    },
+  });
+  assert.equal(result.status, 'invoked');
+  assert.equal(identities.length, 2);
+  assert.equal(JSON.stringify(identities).includes('private'), false);
+});

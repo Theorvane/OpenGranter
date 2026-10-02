@@ -11,3 +11,5 @@ A separate stream-interrupted audit records authenticated attribution, request I
 Direct-provider/tool/multimodal streams, additional stream option fields, provider-specific complete conformance and named external applications remain release gaps. This bounded delegated feature is not complete OpenRouter compatibility.
 
 Delegated text streaming preserves bounded optional system_fingerprint metadata per the [stream fingerprint contract](stream-fingerprints.md). The final usage fingerprint comes from its own upstream event, with no carry-forward or authority semantics. Null is a local OpenAI compatibility allowance; the official streamed schema selects string only. Malformed values fail safely and fingerprints stay outside audit/ledger metadata.
+
+Started /api/v1 failures add validated delivered chunk identity and one content-free finish_reason:error choice under the [midstream error contract](midstream-error-chunks.md); legacy symbolic errors and pre-frame JSON remain unchanged. This does not expose raw upstream error messages or widen metadata accounting.

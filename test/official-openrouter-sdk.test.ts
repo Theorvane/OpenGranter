@@ -258,7 +258,7 @@ for (const base of ['/v1', '/api/v1']) {
     }
   });
 
-  test(`official SDK ${base} current standalone midstream error is an explicit schema gap`, {
+  test(`official SDK ${base} midstream failure retains compatible error or legacy schema gap`, {
     timeout: 10000,
   }, async () => {
     const f = fixture({ failure: 'later' });
@@ -269,13 +269,25 @@ for (const base of ['/v1', '/api/v1']) {
       assert.ok(Symbol.asyncIterator in result);
       const iterator = result[Symbol.asyncIterator]();
       assert.equal((await iterator.next()).value?.choices[0]?.delta.content, 'private answer');
-      await assert.rejects(iterator.next(), (error: unknown) => {
-        assert.ok(error instanceof Error);
-        assert.equal(error.name, 'ZodError');
-        assert.ok('issues' in error && Array.isArray(error.issues));
-        assert.ok(error.issues.some((issue: { path: unknown[] }) => issue.path.includes('id')));
-        return true;
-      });
+      if (base === '/api/v1') {
+        const failure = await iterator.next();
+        assert.equal(failure.done, false);
+        assert.equal(failure.value?.id, 'gen-1');
+        assert.equal(failure.value?.model, 'chat');
+        assert.equal(failure.value?.choices[0]?.finishReason, 'error');
+        assert.equal(failure.value?.error?.code, 502);
+        assert.equal(failure.value?.error?.message, 'Upstream model request failed.');
+        assert.equal(JSON.stringify(failure.value).includes('private'), false);
+        assert.equal((await iterator.next()).done, true);
+      } else {
+        await assert.rejects(iterator.next(), (error: unknown) => {
+          assert.ok(error instanceof Error);
+          assert.equal(error.name, 'ZodError');
+          assert.ok('issues' in error && Array.isArray(error.issues));
+          assert.ok(error.issues.some((issue: { path: unknown[] }) => issue.path.includes('id')));
+          return true;
+        });
+      }
     });
     assert.equal(f.usage[0]?.outcome, 'failed');
     assert.equal(f.usage[0]?.possiblyBilled, true);

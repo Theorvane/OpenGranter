@@ -12,12 +12,13 @@ import type { OpenRouterTextStreamOutcome } from './openrouter-stream-sequence.t
 
 type Delta = Extract<OpenRouterTextStreamPayload, { kind: 'delta' }>;
 type Complete = Extract<OpenRouterTextStreamOutcome, { status: 'complete' }>;
+export type StreamChunkIdentity = Readonly<Pick<Delta, 'id' | 'created' | 'model'>>;
 type Terminal = Pick<Delta, 'id' | 'model' | 'created'> & {
   readonly finishReason: NonNullable<Delta['finishReason']>;
 };
 
 export interface DelegatedTextStreamInput extends Omit<DelegatedRouteInput<Complete>, 'ports'> {
-  readonly onFrame: (frame: string) => void | Promise<void>;
+  readonly onFrame: (frame: string, identity: StreamChunkIdentity) => void | Promise<void>;
   readonly signal?: AbortSignal;
   readonly ports: Omit<DelegatedRoutePorts<Complete>, 'invokeOpenRouter'> & {
     readonly invokeOpenRouterTextStream?: (
@@ -70,7 +71,10 @@ export async function invokeDelegatedTextStream(
                   }
                   const frame = encodeOpenRouterTextSse(delta);
                   if (frame === undefined) throw new OpenRouterChatFailure('upstream', true, true);
-                  await input.onFrame(frame);
+                  await input.onFrame(
+                    frame,
+                    Object.freeze({ id: delta.id, created: delta.created, model: delta.model }),
+                  );
                 },
                 input.signal,
               );
