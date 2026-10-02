@@ -1,13 +1,153 @@
 {
-  "version": 8,
+  "version": 9,
   "source": "https://openrouter.ai/openapi.json",
   "retrievedAt": "2026-10-02",
   "sourceSha256": "b02d61edfa13dd8f531f1d4429e62164fe28ddb6bb048aac64dca2f2b8bcfe66",
-  "projectionSha256": "512b38d2b0ba3789202b1058caec9aa928c2ec64a23f8e03bda12cf164fd215d",
+  "projectionSha256": "030431683f696067586ca9a3aee51b4ed078a14d84f2229f684509a1209e77a4",
   "projection": {
     "openapi": "3.1.0",
     "documentVersion": "1.0.0",
     "requestRef": "#/components/schemas/ChatRequest",
+    "responseRef": "#/components/schemas/ChatResult",
+    "responseDefinitions": {
+      "ChatResult": {
+        "properties": {
+          "choices": {
+            "items": {
+              "$ref": "#/components/schemas/ChatChoice"
+            },
+            "type": "array"
+          },
+          "created": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "object": {
+            "enum": [
+              "chat.completion"
+            ],
+            "type": "string"
+          },
+          "openrouter_metadata": {
+            "$ref": "#/components/schemas/OpenRouterMetadata"
+          },
+          "service_tier": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "system_fingerprint": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "usage": {
+            "$ref": "#/components/schemas/ChatUsage"
+          }
+        },
+        "required": [
+          "id",
+          "choices",
+          "created",
+          "model",
+          "object",
+          "system_fingerprint"
+        ],
+        "type": "object"
+      },
+      "ChatChoice": {
+        "properties": {
+          "finish_reason": {
+            "$ref": "#/components/schemas/ChatFinishReasonEnum"
+          },
+          "index": {
+            "type": "integer"
+          },
+          "logprobs": {
+            "$ref": "#/components/schemas/ChatTokenLogprobs"
+          },
+          "message": {
+            "$ref": "#/components/schemas/ChatAssistantMessage"
+          }
+        },
+        "required": [
+          "finish_reason",
+          "index",
+          "message"
+        ],
+        "type": "object"
+      },
+      "ChatAssistantMessage": {
+        "properties": {
+          "audio": {
+            "$ref": "#/components/schemas/ChatAudioOutput"
+          },
+          "content": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ChatContentItems"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "images": {
+            "$ref": "#/components/schemas/ChatAssistantImages"
+          },
+          "model": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "reasoning": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reasoning_details": {
+            "$ref": "#/components/schemas/ChatReasoningDetails"
+          },
+          "refusal": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "role": {
+            "enum": [
+              "assistant"
+            ],
+            "type": "string"
+          },
+          "tool_calls": {
+            "items": {
+              "$ref": "#/components/schemas/ChatToolCall"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "role"
+        ],
+        "type": "object"
+      }
+    },
     "required": [
       "messages"
     ],

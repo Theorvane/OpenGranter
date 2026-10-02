@@ -282,3 +282,8 @@ Both bases preserve optional string/null reasoning through bounded delegated str
 ## Non-streaming reasoning text subset
 
 Already-valid direct OpenAI/delegated OpenRouter assistant responses preserve optional reasoning string/null through both bases and actual SDK 1.4.18 sockets. Current text/refusal/tool validation, IAM/limits, required accounting/audit and safe failed-attempt semantics stay shared; reasoning never enters operational metadata and missing usage stays unknown. Reasoning-only null/missing-content success, reasoning_details/encrypted blocks, request/history controls, native mappings and full external-client conformance remain open. See [plan](plans/240-nonstream-reasoning.md) and [contract](../contracts/nonstream-reasoning.md).
+
+
+## Nonstream response source drift
+
+Version 9 tracks the official successful nonstream response reference plus ChatResult, ChatChoice and ChatAssistantMessage structures. Required fields, nullability, references and structural constraints cause drift; annotations remain ignored. Previously selected structures and source digest are unchanged. This is structural source tracking, not runtime certification or recursive usage/rich-content/reasoning-detail conformance. Release gate #116 remains partial. See [plan](plans/242-response-schema.md) and [contract](../contracts/openrouter-schema-drift.md).

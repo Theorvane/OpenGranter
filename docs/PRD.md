@@ -346,3 +346,8 @@ Optional upstream reasoning string/null deltas are preserved as response content
 ## Non-streaming reasoning response content
 
 Already-valid direct OpenAI/delegated OpenRouter assistant outcomes preserve optional reasoning string/null on both client bases. It remains response content under existing authentication/IAM/limits/audit/usage controls, with malformed values rejected safely and no operational retention. Reasoning alone does not relax content validation or infer usage. See [contract](../contracts/nonstream-reasoning.md).
+
+
+## Nonstream response source drift
+
+The version-9 source guard tracks successful nonstream response, choice and assistant-message structures, including required fields and nullable fingerprints/reasoning. This improves drift detection without expanding runtime capabilities or resolving remaining compatibility requirements. See [plan](plans/242-response-schema.md).

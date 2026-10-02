@@ -705,3 +705,8 @@ The independent SSE encoder rejects substantive or malformed reasoning on inject
 - Both supported route kinds/prefixes preserve omitted/null/empty/Unicode reasoning on already-valid text/refusal/filter/tool responses. Empty length-terminated text remains valid; reasoning-only null/missing-content output remains rejected.
 - Malformed values fail safely after dispatch with failed possible-billing accounting and no content in errors/metadata. Fresh authentication, explicit model/provider Deny, limits and required selection/outcome audit/usage failures retain delivery gates. Missing usage stays unknown.
 - Actual official SDK sockets receive omitted/null/string reasoning on both bases and supported route kinds. No native/request/structured reasoning support is claimed. See [contract](../contracts/nonstream-reasoning.md).
+
+
+## Nonstream response source drift
+
+Required-field, fingerprint nullability, choice references and assistant content/reasoning/refusal/tool-call structure changes cause drift even when references remain unchanged. Editorial annotations remain ignored and literal defaults remain data. Missing/malformed paths or selected definitions, rehashed incomplete/extra/malformed maps and stale versions 1..8 reject safely. Version 9 preserves prior projections and source provenance. See [plan](plans/242-response-schema.md).
