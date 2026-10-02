@@ -67,6 +67,10 @@ import {
   createClientErrorResponse,
 } from './client-errors.ts';
 import { normalizeClientTextMessages } from './client-text-messages.ts';
+import {
+  type OpenRouterModelMetadata,
+  snapshotOpenRouterMetadata,
+} from './model-discovery-metadata.ts';
 
 const MAX_BODY_BYTES = 1024 * 1024;
 
@@ -122,6 +126,7 @@ export interface DelegatedChatRoute {
 }
 
 export interface PublishedModel {
+  readonly openRouterMetadata?: OpenRouterModelMetadata;
   readonly alias: string;
   readonly created: number;
   readonly enabled: boolean;
@@ -303,7 +308,10 @@ function projectClientCompletion(value: unknown, format: ClientErrorFormat): unk
   return value;
 }
 
-function validCatalog(value: unknown): value is readonly PublishedModel[] {
+function validCatalog(
+  value: unknown,
+  metadata: Map<object, OpenRouterModelMetadata>,
+): value is readonly PublishedModel[] {
   if (!Array.isArray(value)) return false;
   const aliases = new Set<string>();
   for (const item of value) {
@@ -321,6 +329,14 @@ function validCatalog(value: unknown): value is readonly PublishedModel[] {
     )
       return false;
     aliases.add(item.alias);
+    const discovery = item.openRouterMetadata;
+    if (discovery !== undefined) {
+      try {
+        metadata.set(item, snapshotOpenRouterMetadata(discovery));
+      } catch {
+        return false;
+      }
+    }
     for (const route of item.routes) {
       if (
         !isRecord(route) ||
@@ -823,7 +839,8 @@ export function createChatHandler<T>(
       } catch {
         catalog = undefined;
       }
-      if (!validCatalog(catalog)) {
+      const metadata = new Map<object, OpenRouterModelMetadata>();
+      if (!validCatalog(catalog, metadata)) {
         try {
           await ports.writeAudit({ ...attribution, kind: 'model-list-unavailable', requestId });
         } catch {
@@ -847,6 +864,7 @@ export function createChatHandler<T>(
             ),
         )
         .map((model) => ({
+          ...(format === 'openrouter' ? metadata.get(model) : {}),
           id: model.alias,
           object: 'model',
           created: model.created,
@@ -863,7 +881,11 @@ export function createChatHandler<T>(
         return errorResponse(503, 'audit_unavailable', requestId);
       }
       return Response.json(
-        { object: 'list', data },
+        {
+          object: 'list',
+          data,
+          ...(format === 'openrouter' ? { total_count: data.length, links: { next: null } } : {}),
+        },
         { status: 200, headers: { 'x-request-id': requestId } },
       );
     }

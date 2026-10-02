@@ -17,6 +17,7 @@ const names = [
   '007_direct_provider_registrations.sql',
   '008_token_management_decisions.sql',
   '009_openrouter_provider_mappings.sql',
+  '010_model_discovery_metadata.sql',
 ];
 const migrations = await Promise.all(
   names.map(async (name) => ({
@@ -48,7 +49,7 @@ test('apply all migration files once and retain matching checksums', async () =>
   const db = new PGlite();
   try {
     const first = await applyPostgresMigrations(connection(db), migrations, () => 1_000);
-    assert.deepEqual(first, ['001', '002', '003', '004', '005', '006', '007', '008', '009']);
+    assert.deepEqual(first, ['001', '002', '003', '004', '005', '006', '007', '008', '009', '010']);
     const second = await applyPostgresMigrations(connection(db), migrations, () => 2_000);
     assert.deepEqual(second, []);
     const result = await db.query<{ version: string; checksum: string; applied_at_ms: string }>(
@@ -56,7 +57,7 @@ test('apply all migration files once and retain matching checksums', async () =>
     );
     assert.deepEqual(
       result.rows.map((row) => row.version),
-      ['001', '002', '003', '004', '005', '006', '007', '008', '009'],
+      ['001', '002', '003', '004', '005', '006', '007', '008', '009', '010'],
     );
     assert.equal(
       result.rows.every((row) => /^[a-f0-9]{64}$/u.test(row.checksum)),

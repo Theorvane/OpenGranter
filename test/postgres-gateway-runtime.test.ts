@@ -310,7 +310,7 @@ test('dual runtime migrates before configuration and invokes both persisted rout
           );
           assert.deepEqual(
             history.rows.map((row) => row.version),
-            ['001', '002', '003', '004', '005', '006', '007', '008', '009'],
+            ['001', '002', '003', '004', '005', '006', '007', '008', '009', '010'],
           );
           await db.exec(`
             INSERT INTO iam_principals VALUES ('service-1', 'service', true);

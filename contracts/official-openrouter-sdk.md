@@ -16,3 +16,7 @@ Both bases deliver delegated streamed text with portable maxTokens/topP and stre
 - The published stream schema accepts optional string fingerprints but rejects null. That restriction differs from the gateway's documented local null allowance. Present official usage requires complete prompt/completion/total counters; unknown stream usage is correctly omitted.
 
 These are measured/explicit release gaps, not supported workflows or client-side success claims. Raw SDK validation errors can retain response/request data for debugging; tests never put those objects into gateway audit/logging stores. Primary [SDK documentation](https://openrouter.ai/docs/client-sdks/typescript/overview) and published 1.4.18 package were checked 2026-10-02.
+
+## Configured trusted discovery subset
+
+Configured /api/v1 discovery snapshots now deserialize through the exact SDK over sockets, including zero visible models. Its models.list return contains result; metadata is explicitly supplied by the administrator and never fabricated. The basic unconfigured and legacy catalog rejection regressions remain valid. Paging/filter queries, source refresh and full discovery workflows remain open; see [contract](model-discovery-metadata.md).
