@@ -281,3 +281,7 @@ Delegated text and final usage frames preserve optional opaque system_fingerprin
 ## Compatible midstream failure delivery
 
 Started /api/v1 delegated failures retain delivered chunk identity and one content-free finish_reason:error choice alongside fixed safe errors. Pre-frame JSON and legacy errors remain unchanged; no DONE or fabricated usage follows failure. See [contract](../contracts/midstream-error-chunks.md).
+
+## Unknown compatible completion fingerprints
+
+Normalized /api/v1 nonstream completions represent absent upstream fingerprint as null so compatible clients can deserialize unavailable metadata. Exact supplied fingerprints, native/legacy omission, streaming and accounting remain unchanged. See [contract](../contracts/compatible-completion-fingerprints.md).

@@ -10,7 +10,7 @@ Both bases deliver delegated streamed text with portable maxTokens/topP and stre
 
 ## Explicit SDK validation gaps
 
-- Nonstream ChatResult requires system_fingerprint; the gateway's omission-preserving contract fails SDK response validation when upstream omits it. Successful upstream accounting remains recorded despite client schema rejection.
+- Nonstream ChatResult requires system_fingerprint. Compatible /api/v1 completions with unavailable upstream metadata deserialize as null under the [projection contract](compatible-completion-fingerprints.md). Legacy /v1 retains omission and SDK validation rejection. Successful upstream accounting remains recorded on both paths.
 - Compatible /api/v1 midstream errors deserialize as chunks with delivered identity, numeric safe error and finishReason:error, followed by EOF. The official SDK yields the error chunk; callers must inspect it rather than assume iteration throws. Failed-attempt accounting and interruption audit remain required. Legacy /v1 standalone symbolic errors still fail the official SDK stream parser and remain outside its numeric error schema. See [midstream contract](midstream-error-chunks.md).
 - Official models.list requires richer catalog metadata, including context_length; the current basic OpenAI-style authorized alias list fails response validation. Do not invent trusted metadata to satisfy the client.
 - The published stream schema accepts optional string fingerprints but rejects null. That restriction differs from the gateway's documented local null allowance. Present official usage requires complete prompt/completion/total counters; unknown stream usage is correctly omitted.

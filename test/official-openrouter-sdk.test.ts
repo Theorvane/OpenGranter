@@ -193,25 +193,30 @@ for (const base of ['/v1', '/api/v1']) {
     assert.equal(JSON.stringify({ audit: f.audit, usage: f.usage }).includes('private'), false);
   });
 
-  test(`official SDK ${base} rejects existing omitted nonstream fingerprint as a documented gap`, {
+  test(`official SDK ${base} handles unknown nonstream fingerprint under its path contract`, {
     timeout: 10000,
   }, async () => {
     const f = fixture();
     await socket(f, base, async (client) => {
-      await assert.rejects(
-        client.chat.send({
-          chatRequest: {
-            model: 'chat',
-            messages: [{ role: 'user', content: 'text' }],
-            stream: false,
-          },
-        }),
-        (error: unknown) => {
+      const completion = client.chat.send({
+        chatRequest: {
+          model: 'chat',
+          messages: [{ role: 'user', content: 'text' }],
+          stream: false,
+        },
+      });
+      if (base === '/api/v1') {
+        const result = await completion;
+        assert.ok('choices' in result);
+        assert.equal(result.systemFingerprint, null);
+        assert.equal(result.choices[0]?.message.content, 'private answer');
+      } else {
+        await assert.rejects(completion, (error: unknown) => {
           assert.ok(error instanceof Error);
           assert.equal(error.name, 'ResponseValidationError');
           return true;
-        },
-      );
+        });
+      }
     });
     assert.equal(f.usage[0]?.outcome, 'succeeded');
     assert.equal(f.sent.length, 1);

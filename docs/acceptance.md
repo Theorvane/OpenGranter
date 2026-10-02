@@ -621,3 +621,8 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - /api/v1 started upstream/ledger/audit failures include delivered chunk identity and one index-zero content-free finish_reason:error choice. Numeric safe error/request_id remain; EOF and no DONE follow.
 - Pre-frame invalid deltas retain JSON/status; invalid later deltas cannot replace delivered identity. Legacy /v1 has no added chunk fields.
 - Callback metadata is frozen and contains only id/created/model. Actual SDK failures retain safe error messages, failed-attempt accounting and interruption audit. See [contract](../contracts/midstream-error-chunks.md).
+
+## Unknown compatible completion fingerprint
+
+- Omitted/undefined native fingerprints become null on /api/v1 normalized nonstream completions and deserialize in the pinned official SDK. Supplied exact strings/null survive; /v1 and native omission remain unchanged.
+- Managed/delegated success returns clone rather than mutate response objects; opaque payloads, SSE and errors are unchanged. Native malformed failures, IAM/limits and required audit/ledger failures retain safe accounting. See [contract](../contracts/compatible-completion-fingerprints.md).

@@ -1,6 +1,6 @@
 # Non-streaming System Fingerprint Contract
 
-Direct OpenAI and delegated OpenRouter preserve optional string/null system_fingerprint from valid upstream singleton completions on both chat prefixes. Values are opaque and exact, including empty/Unicode strings; omission remains omission. Normal text, refusal and content_filter responses retain the field. Native Anthropic/Gemini mappings omit it, including unexpected similarly named native fields.
+Direct OpenAI and delegated OpenRouter preserve supplied string/null system_fingerprint from valid upstream singleton completions on both chat prefixes. Values are opaque and exact, including empty/Unicode strings. Native adapters and /v1 preserve omission. Compatible nonstream /api/v1 normalized chat completions project unavailable fingerprints as null; see [compatible completion contract](compatible-completion-fingerprints.md). Normal text, refusal and content_filter responses retain supplied values. Native Anthropic/Gemini mappings omit fingerprints internally, including unexpected similarly named native fields; their compatible client responses carry null.
 
 Non-string/non-null upstream values fail via the existing safe post-response provider failure path. The attempt can be billed; failed-attempt usage remains visible without fabricated token totals or exposing response details. Existing IAM, limit, audit and accounting controls continue across the same boundaries.
 

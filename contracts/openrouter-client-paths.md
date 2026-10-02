@@ -6,4 +6,4 @@ Clients configure the gateway origin plus /api/v1 as base URL and their OpenGran
 
 Wrong methods, near-miss paths and unknown /api/v1 endpoints remain 404. OpenGranter history extensions retain their documented /v1 paths. Existing unsupported fields fail validation; this contract provides path compatibility, not complete OpenRouter schema compatibility. See [compatibility status](../docs/openrouter-compatibility.md).
 
-Execution and successful payloads are shared; failure envelopes use [numeric OpenRouter codes](openrouter-error-schema.md) on /api/v1 and retain legacy symbolic codes on /v1. Status and safe reason semantics remain identical.
+Execution and supplied completion metadata are shared. Compatible nonstream /api/v1 completions project unavailable system_fingerprint as null while /v1 retains omission; see [fingerprint projection](compatible-completion-fingerprints.md). Failure envelopes use [numeric OpenRouter codes](openrouter-error-schema.md) on /api/v1 and retain legacy symbolic codes on /v1. Status and safe reason semantics remain identical.

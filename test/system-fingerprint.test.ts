@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { OpenRouter } from '@openrouter/sdk';
 import OpenAI from 'openai';
 import { createChatHandler } from '../src/gateway/chat-handler.ts';
 import { createNodeRequestServer } from '../src/gateway/node-request-server.ts';
@@ -114,8 +115,15 @@ for (const kind of ['openai', 'openrouter'] as const) {
           const response = await f.handler(request(path));
           assert.equal(response.status, 200);
           const body = (await response.json()) as Record<string, unknown>;
-          assert.equal(body.system_fingerprint, fingerprint);
-          assert.equal(Object.hasOwn(body, 'system_fingerprint'), fingerprint !== undefined);
+          const compatible = path.startsWith('/api/v1/');
+          assert.equal(
+            body.system_fingerprint,
+            compatible && fingerprint === undefined ? null : fingerprint,
+          );
+          assert.equal(
+            Object.hasOwn(body, 'system_fingerprint'),
+            compatible || fingerprint !== undefined,
+          );
           assert.equal(f.usage.length, 1);
           assert.doesNotMatch(
             JSON.stringify([f.audits, f.usage]),
@@ -217,5 +225,106 @@ for (const kind of ['anthropic', 'google'] as const) {
       { ...input, max_tokens: 17 },
     );
     assert.equal(Object.hasOwn(result, 'system_fingerprint'), false);
+    const handler = projectionFixture(Object.freeze(result));
+    const compatible = await handler(request('/api/v1/chat/completions'));
+    assert.equal(compatible.status, 200);
+    assert.equal(((await compatible.json()) as Record<string, unknown>).system_fingerprint, null);
+    const legacy = await handler(request('/v1/chat/completions'));
+    assert.equal(Object.hasOwn((await legacy.json()) as object, 'system_fingerprint'), false);
+    assert.equal(Object.hasOwn(result, 'system_fingerprint'), false);
+  });
+}
+
+function projectionFixture(response: unknown) {
+  return createChatHandler({
+    newRequestId: () => 'request',
+    authenticate: async () => ({
+      id: 'user',
+      active: true,
+      credentialId: 'credential',
+      policyVersions: [],
+      statements: [{ effect: 'Allow', actions: ['*'], resources: ['*'] }],
+    }),
+    resolveRoute: async () => ({
+      version: 'v1',
+      candidates: [
+        {
+          id: 'candidate',
+          kind: 'managed',
+          providerId: 'provider',
+          upstreamModelId: 'model',
+        },
+      ],
+    }),
+    checkLimit: async () => true,
+    resolveSecret: async () => 'fixture-key',
+    writeAudit: async () => {},
+    writeUsage: async () => {},
+    invokeDirect: async () => response,
+    invokeOpenRouter: async () => response,
+  });
+}
+
+test('compatible projection clones completions and preserves opaque responses', async () => {
+  for (const response of [
+    Object.freeze({ object: 'chat.completion', id: 'completion' }),
+    Object.freeze({ id: 'opaque' }),
+    Object.freeze({ object: 'other' }),
+    ['opaque'],
+    null,
+    'opaque',
+  ]) {
+    const handler = projectionFixture(response);
+    const result = await handler(request('/api/v1/chat/completions'));
+    assert.equal(result.status, 200);
+    const expected =
+      response &&
+      typeof response === 'object' &&
+      'object' in response &&
+      response.object === 'chat.completion'
+        ? { ...response, system_fingerprint: null }
+        : response;
+    assert.deepEqual(await result.json(), expected);
+    if (response && typeof response === 'object')
+      assert.equal(Object.hasOwn(response, 'system_fingerprint'), false);
+  }
+});
+
+test('compatible managed/delegated unknown fingerprints are explicit null while legacy omits', async () => {
+  for (const kind of ['openai', 'openrouter'] as const) {
+    const f = fixture(kind, 'private answer', undefined);
+    const compatible = await f.handler(request('/api/v1/chat/completions'));
+    assert.equal(compatible.status, 200);
+    assert.equal(((await compatible.json()) as Record<string, unknown>).system_fingerprint, null);
+    const legacy = await f.handler(request('/v1/chat/completions'));
+    assert.equal(Object.hasOwn((await legacy.json()) as object, 'system_fingerprint'), false);
+    assert.equal(f.usage.length, 2);
+  }
+});
+
+for (const kind of ['openai', 'openrouter'] as const) {
+  test(`${kind}: official OpenRouter SDK accepts compatible unknown fingerprint`, async () => {
+    const f = fixture(kind, 'response', undefined);
+    const server = createNodeRequestServer(f.handler);
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    try {
+      const address = server.address();
+      assert.ok(address && typeof address === 'object');
+      const sdk = new OpenRouter({
+        apiKey: 'fixture',
+        serverURL: `http://127.0.0.1:${address.port}/api/v1`,
+        retryConfig: { strategy: 'none' },
+        timeoutMs: 3000,
+      });
+      const result = await sdk.chat.send({ chatRequest: input });
+      assert.ok('choices' in result);
+      assert.equal(result.systemFingerprint, null);
+      assert.equal(result.usage?.totalTokens, 3);
+      assert.equal(f.usage.length, 1);
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
   });
 }
