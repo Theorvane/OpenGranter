@@ -686,3 +686,8 @@ Direct Gemini maps optional minimal/low/medium/high to generationConfig.thinking
 - Actual SDK sockets on both bases and both supported route kinds serialize function declarations, named choice and parallel controls, deserialize exact call IDs/names/arguments, and send returned calls with complete text-only results to obtain a final text response.
 - Each inference request authenticates/checks limits and records separately attributed usage. Fresh authentication, explicit model/provider Deny, limits and required selection audit prevent a second dispatch; orphan results reject before route lookup.
 - Malformed upstream calls fail with safe possibly-billed accounting. Required outcome-audit failure suppresses success after upstream usage persistence. Operational metadata excludes credentials, prompts, tool arguments/results and response content. See [contract](../contracts/official-sdk-tools.md).
+
+## Referenced finish-reason schema drift
+
+- Changing enum membership, nullability/type, constraints, unknown-value extension or literal defaults causes drift even when ChatStreamChoice.finish_reason keeps the same reference. Editorial annotations and unrelated definitions remain ignored.
+- Missing/malformed source definitions and rehashed invalid selected maps fail safely. Version 8 retains eighteen request fields and exactly seven selected definitions, rejects versions 1..7 and preserves prior projections/provenance. No runtime reason is newly accepted. See [plan](plans/236-finish-reason-schema.md).

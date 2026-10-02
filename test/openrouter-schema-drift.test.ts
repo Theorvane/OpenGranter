@@ -469,12 +469,13 @@ for (const name of ['ChatFormatTextConfig', 'ChatFormatJsonObjectConfig']) {
     }
   });
 }
-test('version-7 pin retains exact selected request definitions', () => {
-  assert.equal(pinned.version, 7);
+test('version-8 pin retains exact selected definitions', () => {
+  assert.equal(pinned.version, 8);
   const definitions = (
     projectOfficialSchema(source()) as unknown as { definitions: Record<string, unknown> }
   ).definitions;
   assert.deepEqual(Object.keys(definitions).sort(), [
+    'ChatFinishReasonEnum',
     'ChatFormatJsonObjectConfig',
     'ChatFormatTextConfig',
     'ChatFunctionTool',
@@ -636,8 +637,8 @@ test('message name selection ignores editorial and unrelated message changes', (
   for (const value of Object.values(projected.messageNames))
     assert.deepEqual(value, { schema: { type: 'string' }, required: false });
 });
-test('version-7 message maps reject stale and rehashed malformed pins', () => {
-  for (const version of [1, 2, 3, 4, 5, 6])
+test('version-8 message maps reject stale and rehashed malformed pins', () => {
+  for (const version of [1, 2, 3, 4, 5, 6, 7])
     assert.throws(() => validateSchemaPin({ ...pinned, version }), /Invalid schema pin/);
   for (const messageNames of [
     undefined,
@@ -789,4 +790,84 @@ test('logit_bias annotations remain ignored without dropping literal default key
     additionalProperties: { type: 'number', format: 'double' },
     default: { description: 1, example: 2 },
   });
+});
+
+const finishReasonShape = {
+  enum: ['tool_calls', 'stop', 'length', 'content_filter', 'error', null],
+  type: ['string', 'null'],
+  'x-speakeasy-unknown-values': 'allow',
+};
+function finishReasonSource(shape: unknown = finishReasonShape) {
+  const data = source();
+  const schemas = (data.components as { schemas: Record<string, unknown> }).schemas;
+  schemas.ChatFinishReasonEnum = structuredClone(shape);
+  return data;
+}
+
+test('finish-reason projection selects the referenced enum without changing its reference', () => {
+  const data = finishReasonSource();
+  assert.deepEqual(projectOfficialSchema(data).definitions.ChatFinishReasonEnum, finishReasonShape);
+});
+
+test('finish-reason enum, nullability, type, constraints and literal defaults cause drift', () => {
+  for (const shape of [
+    { ...finishReasonShape, enum: [...finishReasonShape.enum, 'new_reason'] },
+    { ...finishReasonShape, enum: finishReasonShape.enum.filter((value) => value !== 'error') },
+    { ...finishReasonShape, enum: finishReasonShape.enum.filter((value) => value !== null) },
+    { ...finishReasonShape, type: 'string' },
+    { ...finishReasonShape, type: ['integer', 'null'] },
+    { ...finishReasonShape, maxLength: 64 },
+    { ...finishReasonShape, default: 'stop' },
+    { ...finishReasonShape, 'x-speakeasy-unknown-values': 'reject' },
+  ]) {
+    assert.equal(compareOfficialSchema(finishReasonSource(shape), pinned), false);
+  }
+});
+
+test('finish-reason annotations and unrelated response definitions remain ignored', () => {
+  const data = finishReasonSource({
+    ...finishReasonShape,
+    description: 'editorial',
+    example: 'stop',
+  });
+  (data.components as { schemas: Record<string, unknown> }).schemas.UnselectedResponse = {
+    type: 'string',
+  };
+  assert.equal(compareOfficialSchema(data, pinned), true);
+  assert.deepEqual(
+    projectOfficialSchema(
+      finishReasonSource({
+        ...finishReasonShape,
+        default: { description: 'literal', example: null },
+      }),
+    ).definitions.ChatFinishReasonEnum,
+    {
+      ...finishReasonShape,
+      default: { description: 'literal', example: null },
+    },
+  );
+});
+
+test('finish-reason missing and malformed source definitions fail safely', () => {
+  for (const shape of [undefined, null, [], 'private invalid']) {
+    const data = finishReasonSource();
+    const schemas = (data.components as { schemas: Record<string, unknown> }).schemas;
+    if (shape === undefined) delete schemas.ChatFinishReasonEnum;
+    else schemas.ChatFinishReasonEnum = shape;
+    assert.throws(() => projectOfficialSchema(data), { message: 'Invalid official schema' });
+  }
+});
+
+test('finish-reason rehashed missing, extra and malformed definition maps fail integrity', () => {
+  for (const operation of ['missing', 'extra', 'malformed']) {
+    const definitions = { ...pinned.projection.definitions };
+    if (operation === 'missing') delete definitions.ChatFinishReasonEnum;
+    if (operation === 'extra') definitions.UnselectedResponse = { type: 'object' };
+    if (operation === 'malformed') definitions.ChatFinishReasonEnum = null;
+    const projection = { ...pinned.projection, definitions };
+    const hash = createHash('sha256').update(canonicalSchema(projection)).digest('hex');
+    assert.throws(() => validateSchemaPin({ ...pinned, projection, projectionSha256: hash }), {
+      message: 'Invalid schema pin',
+    });
+  }
 });

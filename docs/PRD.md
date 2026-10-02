@@ -334,3 +334,7 @@ Administrator-published aliases can carry bounded informational OpenRouter metad
 ## Official SDK tool lifecycle evidence
 
 The existing bounded non-streaming function-tool subset is validated through the pinned official OpenRouter SDK on both client bases and delegated OpenRouter/direct OpenAI. Caller-supplied results form a separate authenticated inference request with unchanged IAM, limits, audit and usage controls. No gateway tool execution or runtime behavior is added. See [contract](../contracts/official-sdk-tools.md).
+
+## Referenced finish-reason source drift
+
+The version-8 structural pin tracks the shared official finish-reason definition so enum/nullability changes cannot evade detection through an unchanged reference. This guards existing runtime contracts without accepting new reasons or certifying full response conformance. See [plan](plans/236-finish-reason-schema.md).
