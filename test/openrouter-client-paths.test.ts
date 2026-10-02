@@ -134,7 +134,9 @@ for (const delegated of [false, true]) {
     );
     assert.equal(response.status, 200);
     assert.equal(response.headers.get('x-request-id'), 'request');
-    assert.deepEqual(await response.json(), await baseline.json());
+    const legacy = (await baseline.json()) as Record<string, unknown>;
+    assert.equal(Object.hasOwn(legacy, 'system_fingerprint'), false);
+    assert.deepEqual(await response.json(), { ...legacy, system_fingerprint: null });
     assert.deepEqual(alias.activity, expected.activity);
     assert.deepEqual(alias.events, expected.events);
   });
@@ -224,7 +226,7 @@ test('external-client /api/v1 base works through the real Node socket', async ()
       }),
     });
     assert.equal(chat.status, 200);
-    assert.deepEqual(await chat.json(), f.completion);
+    assert.deepEqual(await chat.json(), { ...f.completion, system_fingerprint: null });
     assert.equal(f.activity.includes('delegated'), true);
     assert.equal(f.activity.includes('usage'), true);
   } finally {

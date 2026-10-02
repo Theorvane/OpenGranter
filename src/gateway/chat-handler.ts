@@ -58,6 +58,7 @@ import {
 } from './chat-tools.ts';
 import {
   type ClientErrorCode,
+  type ClientErrorFormat,
   clientErrorFormat,
   createClientErrorResponse,
 } from './client-errors.ts';
@@ -282,6 +283,18 @@ function snapshotPrincipal(value: unknown): AuthenticatedPrincipal | undefined {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function projectClientCompletion(value: unknown, format: ClientErrorFormat): unknown {
+  if (
+    format === 'openrouter' &&
+    isRecord(value) &&
+    value.object === 'chat.completion' &&
+    value.system_fingerprint === undefined
+  ) {
+    return { ...value, system_fingerprint: null };
+  }
+  return value;
 }
 
 function validCatalog(value: unknown): value is readonly PublishedModel[] {
@@ -955,7 +968,7 @@ export function createChatHandler<T>(
           },
         });
         if (result.status === 'invoked') {
-          return Response.json(result.response, {
+          return Response.json(projectClientCompletion(result.response, format), {
             status: 200,
             headers: { 'x-request-id': requestId },
           });
@@ -1048,7 +1061,7 @@ export function createChatHandler<T>(
         },
       });
       if (result.status === 'invoked') {
-        return Response.json(result.response, {
+        return Response.json(projectClientCompletion(result.response, format), {
           status: 200,
           headers: { 'x-request-id': requestId },
         });

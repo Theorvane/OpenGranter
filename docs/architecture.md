@@ -478,3 +478,7 @@ The decoder captures optional fingerprint scalars, the encoder validates their b
 ## Midstream error identity capture
 
 The coordinator supplies a frozen allowlisted id/created/model projection with validated frame callbacks. The HTTP adapter caches only completed body handoffs and uses this narrow identity for compatible error chunks, without retaining response content or widening operational metadata. See [contract](../contracts/midstream-error-chunks.md).
+
+## Compatible completion projection
+
+Managed/delegated nonstream success returns share a narrow client projection after required accounting/audit. Only compatible chat.completion objects with unavailable fingerprint are cloned with null; native adapters and opaque results are unchanged. See [plan](plans/226-compatible-fingerprint-null.md) and [contract](../contracts/compatible-completion-fingerprints.md).
