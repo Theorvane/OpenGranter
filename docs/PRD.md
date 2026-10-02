@@ -257,3 +257,7 @@ Both OpenRouter-compatible chat paths accept validated non-streaming function-to
 ## Function-tool continuation subset
 
 OpenRouter-compatible clients can return a completed assistant function-call group and matching tool results through either chat prefix. Direct OpenAI and delegated OpenRouter receive an immutable, ordered history; direct Anthropic/Gemini reject that history before credentials. Each model request repeats IAM, limits, audit and usage controls. The gateway never executes a function. Streaming, server tools, rich content and native tool mappings remain release gaps. See [plan](plans/184-function-tool-history.md) and [contract](../contracts/function-tool-history.md).
+
+## HTTP client disconnection prerequisite
+
+The Node transport supplies a per-request signal for interrupted uploads and premature response disconnections, preserves progressive body delivery, and avoids fallback writes after socket loss. Upstream cancellation and audited client chat streaming remain release work; this transport prerequisite alone does not enable stream:true. See [contract](../contracts/http-client-disconnection.md).
