@@ -596,4 +596,10 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Both bases and the pinned SDK receive incremental delegated text frames only after authentication, model/provider IAM, verified mapping, limits and selection audit. Slow body consumers bound pending output to one frame.
 - Pre-frame denials/failures retain safe JSON statuses. Started upstream, usage or required audit failures emit one sanitized SSE error, EOF and no DONE. Final usage/DONE follow successful required handoffs.
 - Request/body cancellation stops pending writes and upstream work. Interrupted delivery emits metadata-only audit. Cancellation after accounting preserves one successful attempt without replay/duplicate accounting.
-- Managed/tool streaming and stream_options reject before inference; non-streaming behavior remains covered. See [contract](../contracts/delegated-http-stream.md).
+- Managed/tool streaming and unknown stream options reject before inference; non-streaming behavior remains covered. See [contract](../contracts/delegated-http-stream.md).
+
+## Delegated stream usage options
+
+- Both bases and the pinned SDK accept null/empty/true/false options on delegated streams. False retains final usage, required handoffs and all denial/limit/interruption controls; missing usage remains unknown.
+- Malformed, unknown-field and non-null nonstream options reject before routing/secrets. Native requests retain frozen values across credential awaits.
+- Source drift detects the request reference and nested option type/deprecation changes. See [contract](../contracts/stream-usage-options.md).

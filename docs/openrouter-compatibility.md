@@ -26,7 +26,7 @@ Tools with a hardcoded openrouter.ai host need a configurable endpoint or an int
 | Base paths and Bearer token | /api/v1 chat/models aliases; shared proxy authorization; pinned OpenAI SDK smoke tests | Direct/tool streaming SDK workflows and named external-tool registration tests |
 | Model discovery | Authorized alias IDs and basic model fields | Context window, capability, supported-parameter and price metadata from trusted catalog sources |
 | Non-streaming text chat | Text messages, one normalized text choice with max_tokens/max_completion_tokens and portable stop/top_p/temperature/n=1 across four adapters | Remaining request/response schema, sampling and capability metadata |
-| Streaming | Delegated HTTP text streams with bounded validation, awaited delivery, cancellation, usage and interruption audit | Direct-provider/tool/multimodal mappings, stream_options, incomplete usage and full external-client conformance |
+| Streaming | Delegated HTTP text streams with bounded validation, awaited delivery, cancellation, usage and interruption audit | Direct-provider/tool/multimodal mappings, additional stream option fields, incomplete usage and full external-client conformance |
 | Tool calling | Validated function-tool requests, non-streaming assistant calls and text-only tool-result history for delegated OpenRouter/direct OpenAI | Server tools, rich content, native mappings and streaming |
 | Rich inputs and outputs | Text-only parts on system/developer/user/assistant normalize to strings | Multimodal/cached content, native block semantics, structured output and reasoning handling |
 | Client routing controls | Rejected today | Client preferences narrow approved model/provider scope; no arbitrary destinations or authority widening |
@@ -102,7 +102,7 @@ Fixed metadata.error_type is available alongside numeric codes and local reasons
 
 ## Official request schema drift coverage
 
-A provenance-checked version-5 structural pin covers sixteen source-declared chat request fields, six selected request definitions, four streaming response definitions, four message-name fields and tool-call/result message structures, plus required fields and request reference/document versions. The offline gate checks integrity; an explicit fixed-host network command detects selected structural drift without auto-updating the pin. Other referenced definitions and full schema instance validation remain uncovered. The retrieved ChatRequest does not declare n; local n=1 is SDK support. Optional model and broader source behaviors remain gaps. See [base plan](plans/138-openrouter-schema-drift.md), [tool plan](plans/186-function-tool-schema-drift.md), [stream plan](plans/193-stream-response-schema-drift.md) and [contract](../contracts/openrouter-schema-drift.md).
+A provenance-checked version-6 structural pin covers seventeen source-declared chat request fields, six selected request definitions, four streaming response definitions, four message-name fields and tool-call/result message structures, plus required fields and request reference/document versions. The offline gate checks integrity; an explicit fixed-host network command detects selected structural drift without auto-updating the pin. Other referenced definitions and full schema instance validation remain uncovered. The retrieved ChatRequest does not declare n; local n=1 is SDK support. Optional model and broader source behaviors remain gaps. See [base plan](plans/138-openrouter-schema-drift.md), [tool plan](plans/186-function-tool-schema-drift.md), [stream plan](plans/193-stream-response-schema-drift.md) and [contract](../contracts/openrouter-schema-drift.md).
 
 ## Nullable optional chat controls
 
@@ -161,7 +161,7 @@ String name is supported on all four existing text roles and normalized text arr
 
 ## Referenced message-name source drift
 
-The message-name subset introduced in version 3 remains selected in version 5. Malformed source containers, required lists and rehashed maps fail safely. Annotation and unrelated message-field changes are ignored. Full ChatMessages traversal, other fields and instance/stream/response conformance remain open. See [plan](plans/168-message-name-schema.md) and [contract](../contracts/openrouter-schema-drift.md).
+The message-name subset introduced in version 3 remains selected in version 6. Malformed source containers, required lists and rehashed maps fail safely. Annotation and unrelated message-field changes are ignored. Full ChatMessages traversal, other fields and instance/stream/response conformance remain open. See [plan](plans/168-message-name-schema.md) and [contract](../contracts/openrouter-schema-drift.md).
 
 ## Non-streaming system fingerprint subset
 
@@ -195,4 +195,8 @@ The delegated text-stream invoker accepts a per-call abort signal, combines it w
 
 ## Delegated client HTTP text streaming subset
 
-Both bases accept delegated text-only stream:true with a configured trusted port; PostgreSQL dual composition supplies it. IAM, final-provider scope, limits, attempt usage and audit remain shared. Bounded delivery propagates request/body cancellation and uses safe JSON errors before frames or fixed SSE errors afterward, without terminal success on failure. Separate interruption metadata preserves accounted upstream success after delivery loss. Direct/tool/multimodal streams, stream_options, incomplete final usage and named external-tool workflows remain gaps. See [plan](plans/212-delegated-http-stream.md) and [contract](../contracts/delegated-http-stream.md).
+Both bases accept delegated text-only stream:true with a configured trusted port; PostgreSQL dual composition supplies it. IAM, final-provider scope, limits, attempt usage and audit remain shared. Bounded delivery propagates request/body cancellation and uses safe JSON errors before frames or fixed SSE errors afterward, without terminal success on failure. Separate interruption metadata preserves accounted upstream success after delivery loss. Direct/tool/multimodal streams, additional stream option fields, incomplete final usage and named external-tool workflows remain gaps. See [plan](plans/212-delegated-http-stream.md) and [contract](../contracts/delegated-http-stream.md).
+
+## Bounded stream usage options
+
+Both bases accept nullable stream_options and exact optional boolean include_usage on delegated streams. The official [OpenAPI](https://openrouter.ai/openapi.json), checked 2026-10-02, marks that flag deprecated with no effect: false preserves final usage and all shared accounting/security gates. Non-null nonstream options reject as a local restriction; unknown options, direct/tool streams and missing final usage remain gaps. Version 6 selects the request field plus nested option structure. See [plan](plans/214-stream-usage-options.md) and [contract](../contracts/stream-usage-options.md).

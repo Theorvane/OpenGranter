@@ -5,6 +5,7 @@ import {
   snapshotLogitBias,
   snapshotResponseFormat,
   snapshotStopSequences,
+  snapshotStreamOptions,
   validPenalty,
   validSeed,
   validSingleChoice,
@@ -190,10 +191,13 @@ function prepareOpenRouterChatRequest(
     fail('configuration');
   }
   let logitBias: ReturnType<typeof snapshotLogitBias>;
+  let streamOptions: ReturnType<typeof snapshotStreamOptions>;
   let tools: ReturnType<typeof snapshotFunctionTools>;
   let toolChoice: ReturnType<typeof snapshotToolChoice>;
   let parallelToolCalls: ReturnType<typeof snapshotParallelToolCalls>;
   try {
+    streamOptions = snapshotStreamOptions(request.stream_options);
+    if (streamOptions !== undefined && !stream) fail('configuration');
     logitBias = snapshotLogitBias(request.logit_bias);
     if (
       stream &&
@@ -250,6 +254,7 @@ function prepareOpenRouterChatRequest(
       model: fixedAttempt.upstreamModelId,
       messages,
       stream,
+      ...(streamOptions === undefined ? {} : { stream_options: streamOptions }),
       ...(n === undefined ? {} : { n }),
       ...(seed === undefined ? {} : { seed }),
       ...(frequencyPenalty === undefined ? {} : { frequency_penalty: frequencyPenalty }),

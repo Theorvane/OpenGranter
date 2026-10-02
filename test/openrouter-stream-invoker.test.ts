@@ -273,3 +273,61 @@ test('timeout during a started SSE response is marked possibly billed', async ()
   }
   assert.deepEqual(delivered, ['private partial']);
 });
+
+test('stream options are captured before credentials and preserve complete usage', async () => {
+  for (const option of [undefined, {}, { include_usage: true }, { include_usage: false }]) {
+    const original = option === undefined ? undefined : structuredClone(option);
+    const invoker = createOpenRouterTextStreamInvoker({
+      credentialRef: 'secret/openrouter',
+      resolveSecret: async () => {
+        if (option && 'include_usage' in option) option.include_usage = !option.include_usage;
+        return 'private-key';
+      },
+      fetcher: async (_url, init) => {
+        assert.deepEqual(JSON.parse(String(init?.body)).stream_options, original);
+        return success();
+      },
+    });
+    const outcome = await invoker(
+      attempt,
+      { ...request, ...(option === undefined ? {} : { stream_options: option }) },
+      async () => {},
+    );
+    assert.equal(outcome.usage?.total_tokens, 5);
+  }
+});
+
+test('malformed native stream options fail safely before credential access', async () => {
+  for (const option of [true, [], { include_usage: null }, { extra: 'private' }]) {
+    const invoker = createOpenRouterTextStreamInvoker({
+      credentialRef: 'secret/openrouter',
+      resolveSecret: async () => assert.fail('unexpected secret access'),
+      fetcher: async () => assert.fail('unexpected upstream call'),
+    });
+    await assert.rejects(
+      invoker(attempt, { ...request, stream_options: option as never }, async () => {}),
+      (error: unknown) => {
+        assert.ok(error instanceof OpenRouterChatFailure);
+        assert.equal(error.category, 'configuration');
+        assert.equal(error.possiblyBilled, false);
+        assert.equal(error.message.includes('private'), false);
+        return true;
+      },
+    );
+  }
+});
+
+test('nonstream delegated calls reject usage options before credentials', async () => {
+  const { createOpenRouterChatInvoker } = await import('../src/providers/openrouter-chat.ts');
+  const invoker = createOpenRouterChatInvoker({
+    credentialRef: 'secret/openrouter',
+    resolveSecret: async () => assert.fail('unexpected secret access'),
+    fetcher: async () => assert.fail('unexpected upstream call'),
+  });
+  await assert.rejects(invoker(attempt, { ...request, stream_options: {} }), (error: unknown) => {
+    assert.ok(error instanceof OpenRouterChatFailure);
+    assert.equal(error.category, 'configuration');
+    assert.equal(error.possiblyBilled, false);
+    return true;
+  });
+});

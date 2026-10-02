@@ -268,4 +268,8 @@ An optional per-call signal stops internal OpenRouter text-stream work before HT
 
 ## Delegated client text streaming
 
-Both chat paths support delegated text-only stream:true through the same IAM, limits, usage and audit controls. First-frame errors remain JSON; later failures use fixed SSE errors without DONE. Client cancellation stops upstream work, with separate interruption metadata preserving already accounted successes. Managed/tool streams and stream_options remain unsupported; incomplete usage remains unknown. See [contract](../contracts/delegated-http-stream.md).
+Both chat paths support delegated text-only stream:true through the same IAM, limits, usage and audit controls. First-frame errors remain JSON; later failures use fixed SSE errors without DONE. Client cancellation stops upstream work, with separate interruption metadata preserving already accounted successes. Managed/tool streams and unknown stream options remain unsupported; incomplete usage remains unknown. See [contract](../contracts/delegated-http-stream.md).
+
+## Delegated stream usage options
+
+Nullable stream_options and exact optional boolean include_usage are supported on delegated streams. The deprecated OpenRouter flag does not suppress final usage or any ledger/audit control, including when false. Non-null nonstream options and unknown fields reject explicitly. See [contract](../contracts/stream-usage-options.md).

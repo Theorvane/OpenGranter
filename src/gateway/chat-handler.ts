@@ -37,9 +37,11 @@ import { type ChatMessage, snapshotChatMessages } from './chat-messages.ts';
 import {
   type ResponseFormat,
   resolveOutputTokenLimit,
+  type StreamOptions,
   snapshotLogitBias,
   snapshotResponseFormat,
   snapshotStopSequences,
+  snapshotStreamOptions,
   validPenalty,
   validSeed,
   validSingleChoice,
@@ -66,6 +68,7 @@ const MAX_BODY_BYTES = 1024 * 1024;
 export type { ChatMessage } from './chat-messages.ts';
 
 export interface ChatRequest {
+  readonly stream_options?: StreamOptions;
   readonly model: string;
   readonly messages: readonly ChatMessage[];
   readonly max_tokens?: number;
@@ -337,6 +340,7 @@ function validateChat(value: unknown, streaming = false): ValidatedChatRequest |
           'model',
           'messages',
           'stream',
+          'stream_options',
           'max_tokens',
           'max_completion_tokens',
           'stop',
@@ -377,10 +381,13 @@ function validateChat(value: unknown, streaming = false): ValidatedChatRequest |
   const topK = value.top_k ?? undefined;
   if (!validTopK(topK)) return undefined;
   let logitBias: ReturnType<typeof snapshotLogitBias>;
+  let streamOptions: ReturnType<typeof snapshotStreamOptions>;
   let tools: ReturnType<typeof snapshotFunctionTools>;
   let toolChoice: ReturnType<typeof snapshotToolChoice>;
   let parallelToolCalls: ReturnType<typeof snapshotParallelToolCalls>;
   try {
+    streamOptions = snapshotStreamOptions(value.stream_options);
+    if (streamOptions !== undefined && value.stream !== true) return undefined;
     logitBias = snapshotLogitBias(value.logit_bias);
     tools = snapshotFunctionTools(value.tools);
     toolChoice = snapshotToolChoice(value.tool_choice);
@@ -420,6 +427,7 @@ function validateChat(value: unknown, streaming = false): ValidatedChatRequest |
     model: value.model,
     messages,
     ...(value.stream === true ? { stream: true } : {}),
+    ...(streamOptions === undefined ? {} : { stream_options: streamOptions }),
     ...(seed === undefined ? {} : { seed }),
     ...(frequencyPenalty === undefined ? {} : { frequency_penalty: frequencyPenalty }),
     ...(presencePenalty === undefined ? {} : { presence_penalty: presencePenalty }),

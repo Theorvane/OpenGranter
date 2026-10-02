@@ -1,9 +1,9 @@
 {
-  "version": 5,
+  "version": 6,
   "source": "https://openrouter.ai/openapi.json",
-  "retrievedAt": "2026-09-30",
-  "sourceSha256": "80ba515f0bf637b39411def07ad0ca0aea37c6b95fe1ad5a9d9d09f88e842185",
-  "projectionSha256": "7c1ee32bc34637621261226ab7466f35edff2159261cf8c4077539ecaf068bfc",
+  "retrievedAt": "2026-10-02",
+  "sourceSha256": "b02d61edfa13dd8f531f1d4429e62164fe28ddb6bb048aac64dca2f2b8bcfe66",
+  "projectionSha256": "1781033b3905ed053d3d9d03a7e21f112f2410920050762a192917378adfbcf0",
   "projection": {
     "openapi": "3.1.0",
     "documentVersion": "1.0.0",
@@ -25,6 +25,9 @@
       "stream": {
         "default": false,
         "type": "boolean"
+      },
+      "stream_options": {
+        "$ref": "#/components/schemas/ChatStreamOptions"
       },
       "max_tokens": {
         "type": [
@@ -246,6 +249,9 @@
           },
           {
             "$ref": "#/components/schemas/ChatWebSearchShorthand"
+          },
+          {
+            "$ref": "#/components/schemas/ChatDynamicServerTool"
           }
         ]
       },
