@@ -590,3 +590,10 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Already aborted and credential-await cancellation prevent HTTP and billable attempt creation. A pending fetch or stalled body abort is safe, possibly billed once dispatched, and never retried.
 - Cancellation after headers keeps response-started metadata, stops buffered delta delivery and cleans up reader locks/listeners. Caller reasons and provider content remain outside error, audit and usage metadata.
 - The delegated composition records a dispatched cancellation as one failed attempt with unknown usage and emits no terminal success frames. Omitted signals and timeouts retain existing behavior. See [contract](../contracts/openrouter-stream-cancellation.md).
+
+## Delegated client HTTP text streaming
+
+- Both bases and the pinned SDK receive incremental delegated text frames only after authentication, model/provider IAM, verified mapping, limits and selection audit. Slow body consumers bound pending output to one frame.
+- Pre-frame denials/failures retain safe JSON statuses. Started upstream, usage or required audit failures emit one sanitized SSE error, EOF and no DONE. Final usage/DONE follow successful required handoffs.
+- Request/body cancellation stops pending writes and upstream work. Interrupted delivery emits metadata-only audit. Cancellation after accounting preserves one successful attempt without replay/duplicate accounting.
+- Managed/tool streaming and stream_options reject before inference; non-streaming behavior remains covered. See [contract](../contracts/delegated-http-stream.md).

@@ -20,6 +20,8 @@ import {
   type ManagedRouteAuditEvent,
 } from '../routing/invoke-jev-managed-route.ts';
 import type { JevFetcher } from '../routing/jev-managed-routing.ts';
+import { createDelegatedHttpStreamResponse } from '../streaming/delegated-http-stream.ts';
+import type { DelegatedTextStreamInput } from '../streaming/invoke-delegated-text-stream.ts';
 import { serializeUsageCsv } from '../usage/csv.ts';
 import {
   encodeUsageCursor,
@@ -120,6 +122,14 @@ export interface PublishedModel {
 }
 
 export type GatewayAuditEvent =
+  | (AuditAttribution & {
+      readonly kind: 'stream-interrupted';
+      readonly requestId: string;
+      readonly routeVersion: string;
+      readonly modelAlias: string;
+      readonly outcome: 'cancelled' | 'failed';
+      readonly upstreamCompleted: boolean;
+    })
   | { readonly kind: 'auth-denied'; readonly requestId: string }
   | { readonly kind: 'auth-unavailable'; readonly requestId: string }
   | (AuditAttribution & {
@@ -168,6 +178,7 @@ export type GatewayAuditEvent =
     });
 
 export interface ChatHandlerPorts<T> {
+  readonly invokeOpenRouterTextStream?: DelegatedTextStreamInput['ports']['invokeOpenRouterTextStream'];
   readonly newRequestId: () => string;
   readonly authenticate: (proxyToken: string) => Promise<AuthenticatedPrincipal | undefined>;
   readonly resolveRoute: (
@@ -313,7 +324,11 @@ function validCatalog(value: unknown): value is readonly PublishedModel[] {
   return true;
 }
 
-function validateChat(value: unknown): ChatRequest | undefined {
+interface ValidatedChatRequest extends ChatRequest {
+  readonly stream?: true;
+}
+
+function validateChat(value: unknown, streaming = false): ValidatedChatRequest | undefined {
   if (!isRecord(value)) return undefined;
   if (
     Object.keys(value).some(
@@ -342,7 +357,15 @@ function validateChat(value: unknown): ChatRequest | undefined {
   ) {
     return undefined;
   }
-  if (value.stream !== undefined && value.stream !== false) return undefined;
+  if (value.stream !== undefined && value.stream !== false && !(streaming && value.stream === true))
+    return undefined;
+  if (
+    value.stream === true &&
+    (value.tools !== undefined ||
+      value.tool_choice !== undefined ||
+      value.parallel_tool_calls !== undefined)
+  )
+    return undefined;
   const seed = value.seed ?? undefined;
   if (!validSeed(seed)) return undefined;
   const temperature = value.temperature ?? undefined;
@@ -388,9 +411,15 @@ function validateChat(value: unknown): ChatRequest | undefined {
   } catch {
     return undefined;
   }
+  if (
+    value.stream === true &&
+    messages.some((message) => message.role === 'tool' || 'tool_calls' in message)
+  )
+    return undefined;
   return {
     model: value.model,
     messages,
+    ...(value.stream === true ? { stream: true } : {}),
     ...(seed === undefined ? {} : { seed }),
     ...(frequencyPenalty === undefined ? {} : { frequency_penalty: frequencyPenalty }),
     ...(presencePenalty === undefined ? {} : { presence_penalty: presencePenalty }),
@@ -439,7 +468,7 @@ async function readJsonBody(request: Request): Promise<unknown> {
   }
 }
 
-/** A text-only, non-streaming HTTP request boundary with injected trusted infrastructure. */
+/** A controlled chat HTTP boundary with optional delegated text streaming. */
 export function createChatHandler<T>(
   ports: ChatHandlerPorts<T>,
 ): (request: Request) => Promise<Response> {
@@ -804,7 +833,10 @@ export function createChatHandler<T>(
       );
     }
 
-    const chat = validateChat(await readJsonBody(request).catch(() => undefined));
+    const chat = validateChat(
+      await readJsonBody(request).catch(() => undefined),
+      typeof ports.invokeOpenRouterTextStream === 'function',
+    );
     if (!chat) {
       try {
         await ports.writeAudit({
@@ -865,6 +897,33 @@ export function createChatHandler<T>(
     }
 
     if (route.kind === 'delegated') {
+      if (chat.stream) {
+        return createDelegatedHttpStreamResponse({
+          ...attribution,
+          requestId,
+          routeVersion: route.version,
+          credentialRef: route.credentialRef,
+          principalActive: principal.active,
+          modelAlias: chat.model,
+          candidates: route.candidates,
+          statements: principal.statements,
+          request: chat,
+          signal: request.signal,
+          format,
+          ports: {
+            checkLimit: () => ports.checkLimit(principal.id, requestId),
+            writeAudit: ports.writeAudit,
+            writeUsage: ports.writeUsage,
+            ...(ports.now ? { now: ports.now } : {}),
+            ...(ports.resolveVerifiedProviderSlug
+              ? { resolveVerifiedProviderSlug: ports.resolveVerifiedProviderSlug }
+              : {}),
+            ...(ports.invokeOpenRouterTextStream
+              ? { invokeOpenRouterTextStream: ports.invokeOpenRouterTextStream }
+              : {}),
+          },
+        });
+      }
       try {
         const result = await invokeDelegatedRoute({
           ...attribution,
@@ -925,6 +984,20 @@ export function createChatHandler<T>(
       }
     }
 
+    if (chat.stream) {
+      try {
+        await ports.writeAudit({
+          ...attribution,
+          kind: 'request-denied',
+          requestId,
+          reason: 'invalid-request',
+          modelAlias: chat.model,
+        });
+      } catch {
+        return errorResponse(503, 'audit_unavailable', requestId);
+      }
+      return errorResponse(400, 'invalid_request', requestId);
+    }
     try {
       if (
         'jev' in route &&

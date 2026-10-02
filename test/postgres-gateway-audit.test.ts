@@ -253,3 +253,35 @@ test('managed and delegated usage handoff failures retain distinct safe candidat
   });
   assert.throws(() => projectGatewayAuditEvent(common, -1), { name: 'InvalidGatewayAuditEvent' });
 });
+
+test('stream interruption projection strips content and rejects malformed outcomes', async () => {
+  const input = {
+    ...attribution,
+    kind: 'stream-interrupted',
+    requestId: 'req-stream',
+    routeVersion: 'v1',
+    modelAlias: 'chat',
+    outcome: 'cancelled',
+    upstreamCompleted: true,
+    prompt: 'private prompt',
+    token: 'private token',
+    reason: 'private abort reason',
+  };
+  const result = projectGatewayAuditEvent(input, 1000);
+  assert.deepEqual(result.details, {
+    routeVersion: 'v1',
+    modelAlias: 'chat',
+    outcome: 'cancelled',
+    upstreamCompleted: true,
+  });
+  assert.equal(JSON.stringify(result).includes('private'), false);
+  for (const change of [
+    { outcome: 'unknown' },
+    { upstreamCompleted: 'true' },
+    { principalId: undefined },
+  ]) {
+    assert.throws(() => projectGatewayAuditEvent({ ...input, ...change }, 1000), {
+      name: 'InvalidGatewayAuditEvent',
+    });
+  }
+});

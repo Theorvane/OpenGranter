@@ -137,6 +137,13 @@ function decision(value: unknown): RecordValue {
 
 function details(event: RecordValue): RecordValue {
   switch (event.kind) {
+    case 'stream-interrupted':
+      return {
+        routeVersion: identifier(event.routeVersion),
+        modelAlias: identifier(event.modelAlias),
+        outcome: oneOf(event.outcome, ['cancelled', 'failed'] as const),
+        upstreamCompleted: boolean(event.upstreamCompleted),
+      };
     case 'auth-denied':
     case 'auth-unavailable':
     case 'model-list-unavailable':
