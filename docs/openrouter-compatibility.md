@@ -278,3 +278,7 @@ Version 8 selects the common ChatFinishReasonEnum definition referenced by non-s
 ## Delegated streaming reasoning text subset
 
 Both bases preserve optional string/null reasoning through bounded delegated streams and actual SDK 1.4.18 validation. Decoder/encoder checks, safe framing/failure, existing IAM/limits/usage/audit and cancellation controls remain shared; reasoning never enters operational metadata or completed summaries. Final usage cannot discard substantive reasoning or replay earlier text. reasoning_details/encrypted formats, request controls, non-streaming/native reasoning and full external-client conformance remain open. The existing ChatStreamDelta source pin already selects this field. See [plan](plans/238-stream-reasoning.md) and [contract](../contracts/stream-reasoning.md).
+
+## Non-streaming reasoning text subset
+
+Already-valid direct OpenAI/delegated OpenRouter assistant responses preserve optional reasoning string/null through both bases and actual SDK 1.4.18 sockets. Current text/refusal/tool validation, IAM/limits, required accounting/audit and safe failed-attempt semantics stay shared; reasoning never enters operational metadata and missing usage stays unknown. Reasoning-only null/missing-content success, reasoning_details/encrypted blocks, request/history controls, native mappings and full external-client conformance remain open. See [plan](plans/240-nonstream-reasoning.md) and [contract](../contracts/nonstream-reasoning.md).

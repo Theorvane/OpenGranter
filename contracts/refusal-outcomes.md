@@ -7,3 +7,5 @@ The gateway preserves stop, length and content_filter finish reasons. Other reas
 Valid refusal/filter completions are delivered with HTTP 200 through both prefixes and retain provider usage. Delivery counts as a successful attempt and never triggers fallback. IAM, limits and required audit still apply before invocation. Refusal/content stays in the API response and out of metadata audit, usage and error payloads. Malformed responses fail safely after the upstream response with possible billing recorded.
 
 Delegated streaming supports optional string/null refusal deltas separately under the [stream refusal contract](stream-refusals.md). Valid refusal streams are successful deliveries with shared required accounting/audit and no fallback; malformed values fail safely. No transcript enters operational metadata.
+
+Already-valid non-streaming refusal/filter responses additionally preserve optional reasoning string/null under the [reasoning contract](nonstream-reasoning.md), without relaxing content validation or copying reasoning into operational metadata.

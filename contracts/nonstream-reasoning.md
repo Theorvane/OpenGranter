@@ -1,0 +1,11 @@
+# Non-streaming assistant reasoning content
+
+The shared direct OpenAI/delegated OpenRouter normalizer preserves optional reasoning string/null on already-valid assistant text, refusal/filter and function-call responses. Both HTTP bases retain omission, null, empty, Unicode and newline values exactly. Supplied reasoning is captured once and projected in both existing normalization branches; no reasoning is fabricated when a provider omits it.
+
+This projection does not relax content/finish/refusal/tool validation. Ordinary null/missing-content reasoning-only stop/length output still fails; existing null-content filtered/refusal/tool-call outcomes remain valid. Empty text with length termination retains its existing meaning. Supplied malformed reasoning, including an explicitly present undefined at the normalizer boundary, fails safely after upstream dispatch with one possibly-billed failed attempt and unknown usage, rather than reporting success or exposing response text.
+
+Authentication, model/final-provider IAM, limits and required selection audit precede credentials/inference. Required usage/outcome audit precede client delivery; their failures suppress success, including after usage persistence. Reasoning never enters operational audit, ledger metadata, logs or errors and grants no routing authority. Missing provider usage stays unknown; reasoning text is not a token counter or billed-cost estimate.
+
+Official SDK 1.4.18 socket cases on both bases and supported route kinds deserialize omitted/null/string reasoning with supplied fingerprints. The direct adapter preserves the field if actually returned; this does not claim that OpenAI models expose reasoning. Request reasoning controls, reasoning_details/encrypted blocks, reasoning history, native Anthropic/Gemini mappings, aggregation and full compatibility remain open. Streaming reasoning is a separate subset and is not enabled by this change.
+
+Sources reviewed 2026-10-02: [official reasoning guide](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens) and installed SDK ChatAssistantMessage schema. See [plan](../docs/plans/240-nonstream-reasoning.md), [refusal contract](refusal-outcomes.md) and [function response contract](function-tool-responses.md). No content-audit policy or source pin changes.

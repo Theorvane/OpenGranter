@@ -342,3 +342,7 @@ The version-8 structural pin tracks the shared official finish-reason definition
 ## Delegated streaming reasoning text
 
 Optional upstream reasoning string/null deltas are preserved as response content on both client bases through unchanged IAM, limits, audit, usage and cancellation controls. No transcript enters operational metadata or completed summaries. Structured/native/non-streaming reasoning and request controls remain separate work. See [contract](../contracts/stream-reasoning.md).
+
+## Non-streaming reasoning response content
+
+Already-valid direct OpenAI/delegated OpenRouter assistant outcomes preserve optional reasoning string/null on both client bases. It remains response content under existing authentication/IAM/limits/audit/usage controls, with malformed values rejected safely and no operational retention. Reasoning alone does not relax content validation or infer usage. See [contract](../contracts/nonstream-reasoning.md).

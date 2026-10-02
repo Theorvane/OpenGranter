@@ -539,3 +539,7 @@ Version 8 adds ChatFinishReasonEnum to the exact selected definitions map and re
 ## Delegated reasoning delta projection
 
 The bounded decoder captures optional reasoning string/null alongside role/content/refusal and the client encoder independently validates and JSON-frames it. Sequence state, complete outcomes and accounting retain no transcript. Usage-only deltas reject substantive reasoning rather than discard content; synthesized usage never replays reasoning. Existing HTTP backpressure/cancellation/security gates remain shared. See [plan](plans/238-stream-reasoning.md) and [contract](../contracts/stream-reasoning.md).
+
+## Non-streaming reasoning capture
+
+The shared assistant normalizer captures optional reasoning once, validates string/null and projects it through both ordinary/refusal and function-call branches. Existing invokers already carry the normalized message through required accounting/audit and alias projection. Content/finish validation and native Anthropic/Gemini handling remain unchanged; no reasoning enters operational metadata or accounting schema. See [plan](plans/240-nonstream-reasoning.md) and [contract](../contracts/nonstream-reasoning.md).

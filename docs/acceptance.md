@@ -699,3 +699,9 @@ Direct Gemini maps optional minimal/low/medium/high to generationConfig.thinking
 - Authentication/IAM/limits and required audit/usage failure gates remain effective. Reasoning text stays out of operational metadata, errors and completed summaries. See [contract](../contracts/stream-reasoning.md).
 
 The independent SSE encoder rejects substantive or malformed reasoning on injected usage events before missing-token early returns, preserves absent/null/empty markers without transcript replay, and projects the same once-captured delta value it validated. See [review correction](plans/238-stream-reasoning.md).
+
+## Non-streaming assistant reasoning content
+
+- Both supported route kinds/prefixes preserve omitted/null/empty/Unicode reasoning on already-valid text/refusal/filter/tool responses. Empty length-terminated text remains valid; reasoning-only null/missing-content output remains rejected.
+- Malformed values fail safely after dispatch with failed possible-billing accounting and no content in errors/metadata. Fresh authentication, explicit model/provider Deny, limits and required selection/outcome audit/usage failures retain delivery gates. Missing usage stays unknown.
+- Actual official SDK sockets receive omitted/null/string reasoning on both bases and supported route kinds. No native/request/structured reasoning support is claimed. See [contract](../contracts/nonstream-reasoning.md).
