@@ -287,3 +287,8 @@ Already-valid direct OpenAI/delegated OpenRouter assistant responses preserve op
 ## Nonstream response source drift
 
 Version 9 tracks the official successful nonstream response reference plus ChatResult, ChatChoice and ChatAssistantMessage structures. Required fields, nullability, references and structural constraints cause drift; annotations remain ignored. Previously selected structures and source digest are unchanged. This is structural source tracking, not runtime certification or recursive usage/rich-content/reasoning-detail conformance. Release gate #116 remains partial. See [plan](plans/242-response-schema.md) and [contract](../contracts/openrouter-schema-drift.md).
+
+
+## Chat usage source drift
+
+Version 10 selects ChatUsage, CostDetails and ServerToolUseDetails, including inline token details, as bounded structural source coverage shared by chat and stream responses. Source selection does not imply runtime support for every field, server tools or complete usage/SDK conformance. Unknown usage and estimated versus billed costs retain existing behavior. All previous selections and the official source digest are unchanged. See [plan](plans/244-usage-schema.md) and [contract](../contracts/openrouter-schema-drift.md).

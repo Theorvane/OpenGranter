@@ -160,6 +160,7 @@ function source(): Record<string, unknown> {
     tool_calls: structuredClone(pinned.projection.toolMessages.ChatAssistantMessage.schema),
   });
   Object.assign(data.components.schemas, structuredClone(pinned.projection.responseDefinitions));
+  Object.assign(data.components.schemas, structuredClone(pinned.projection.usageDefinitions));
   return data;
 }
 const pinned = JSON.parse(
@@ -477,8 +478,8 @@ for (const name of ['ChatFormatTextConfig', 'ChatFormatJsonObjectConfig']) {
     }
   });
 }
-test('version-9 pin retains exact selected definitions', () => {
-  assert.equal(pinned.version, 9);
+test('version-10 pin retains exact selected definitions', () => {
+  assert.equal(pinned.version, 10);
   const definitions = (
     projectOfficialSchema(source()) as unknown as { definitions: Record<string, unknown> }
   ).definitions;
@@ -647,8 +648,8 @@ test('message name selection ignores editorial and unrelated message changes', (
   for (const value of Object.values(projected.messageNames))
     assert.deepEqual(value, { schema: { type: 'string' }, required: false });
 });
-test('version-9 message maps reject stale and rehashed malformed pins', () => {
-  for (const version of [1, 2, 3, 4, 5, 6, 7, 8])
+test('version-10 message maps reject stale and rehashed malformed pins', () => {
+  for (const version of [1, 2, 3, 4, 5, 6, 7, 8, 9])
     assert.throws(() => validateSchemaPin({ ...pinned, version }), /Invalid schema pin/);
   for (const messageNames of [
     undefined,
@@ -997,4 +998,111 @@ test('nonstream response rehashed incomplete/extra/malformed maps and references
   assert.throws(() => validateSchemaPin({ ...pinned, projection, projectionSha256: hash }), {
     message: 'Invalid schema pin',
   });
+});
+
+test('chat usage projection selects exact usage and billing definitions', () => {
+  const value = projectOfficialSchema(source()) as unknown as {
+    usageDefinitions?: Record<string, unknown>;
+  };
+  assert.ok(value.usageDefinitions);
+  assert.deepEqual(Object.keys(value.usageDefinitions).sort(), [
+    'ChatUsage',
+    'CostDetails',
+    'ServerToolUseDetails',
+  ]);
+});
+
+function usageSchema(data: Record<string, unknown>, name: string) {
+  const schemas = (
+    data.components as {
+      schemas: Record<string, { required?: string[]; properties: Record<string, unknown> }>;
+    }
+  ).schemas;
+  const schema = schemas[name];
+  assert.ok(schema);
+  return schema;
+}
+test('chat usage counters, details, costs and references cause drift', () => {
+  for (const [name, field, shape] of [
+    ['ChatUsage', 'prompt_tokens', { type: ['integer', 'null'] }],
+    ['ChatUsage', 'completion_tokens', { type: 'number' }],
+    ['ChatUsage', 'total_tokens', { type: 'integer', minimum: 0 }],
+    ['ChatUsage', 'cost', { type: 'number', format: 'float' }],
+    ['ChatUsage', 'cost_details', { $ref: '#/components/schemas/OtherCost' }],
+    ['ChatUsage', 'server_tool_use_details', { $ref: '#/components/schemas/OtherTools' }],
+    [
+      'ChatUsage',
+      'prompt_tokens_details',
+      { type: 'object', properties: { cached_tokens: { type: ['integer', 'null'] } } },
+    ],
+    [
+      'ChatUsage',
+      'completion_tokens_details',
+      { type: ['object', 'null'], properties: { reasoning_tokens: { type: 'integer' } } },
+    ],
+    [
+      'CostDetails',
+      'upstream_inference_prompt_cost',
+      { type: ['number', 'null'], format: 'double' },
+    ],
+    ['CostDetails', 'server_tool_cost', { type: 'number', format: 'double' }],
+    ['ServerToolUseDetails', 'tool_calls_executed', { type: 'integer', maximum: 10 }],
+  ] as const) {
+    const data = source();
+    usageSchema(data, name).properties[field] = shape;
+    assert.equal(compareOfficialSchema(data, pinned), false);
+  }
+  for (const name of ['ChatUsage', 'CostDetails', 'ServerToolUseDetails']) {
+    const data = source(),
+      schema = usageSchema(data, name);
+    schema.required = [...(schema.required ?? []), 'new_required'];
+    assert.equal(compareOfficialSchema(data, pinned), false);
+  }
+});
+test('chat usage annotations and unrelated native definitions remain ignored', () => {
+  const data = source();
+  for (const name of ['ChatUsage', 'CostDetails', 'ServerToolUseDetails'])
+    Object.assign(usageSchema(data, name), {
+      description: 'editorial',
+      examples: [{ private: 'annotation' }],
+    });
+  (data.components as { schemas: Record<string, unknown> }).schemas.AnthropicUsage = {
+    type: 'number',
+  };
+  assert.equal(compareOfficialSchema(data, pinned), true);
+  Object.assign(usageSchema(data, 'ChatUsage'), {
+    default: { description: 'literal', example: null },
+  });
+  const projected = projectOfficialSchema(data) as unknown as {
+    usageDefinitions: Record<string, { default?: unknown }>;
+  };
+  assert.deepEqual(projected.usageDefinitions.ChatUsage?.default, {
+    description: 'literal',
+    example: null,
+  });
+  assert.equal(compareOfficialSchema(data, pinned), false);
+});
+test('chat usage missing and malformed definitions fail safely', () => {
+  for (const name of ['ChatUsage', 'CostDetails', 'ServerToolUseDetails'])
+    for (const value of [undefined, null, [], 'private invalid']) {
+      const data = source();
+      const schemas = (data.components as { schemas: Record<string, unknown> }).schemas;
+      if (value === undefined) delete schemas[name];
+      else schemas[name] = value;
+      assert.throws(() => projectOfficialSchema(data), { message: 'Invalid official schema' });
+    }
+});
+test('chat usage rehashed missing, extra and malformed maps fail integrity', () => {
+  for (const operation of ['missing', 'extra', 'malformed', 'absent']) {
+    const map = { ...pinned.projection.usageDefinitions };
+    if (operation === 'missing') delete map.ChatUsage;
+    if (operation === 'extra') map.Extra = {};
+    if (operation === 'malformed') map.CostDetails = null;
+    const projection = { ...pinned.projection, usageDefinitions: map };
+    if (operation === 'absent') delete projection.usageDefinitions;
+    const hash = createHash('sha256').update(canonicalSchema(projection)).digest('hex');
+    assert.throws(() => validateSchemaPin({ ...pinned, projection, projectionSha256: hash }), {
+      message: 'Invalid schema pin',
+    });
+  }
 });

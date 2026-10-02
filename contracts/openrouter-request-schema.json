@@ -1,9 +1,9 @@
 {
-  "version": 9,
+  "version": 10,
   "source": "https://openrouter.ai/openapi.json",
   "retrievedAt": "2026-10-02",
   "sourceSha256": "b02d61edfa13dd8f531f1d4429e62164fe28ddb6bb048aac64dca2f2b8bcfe66",
-  "projectionSha256": "030431683f696067586ca9a3aee51b4ed078a14d84f2229f684509a1209e77a4",
+  "projectionSha256": "2a406e7f35ffd6c82987b72ed25eb434bb8a16879bbac1bc5dacec8f9aa206db",
   "projection": {
     "openapi": "3.1.0",
     "documentVersion": "1.0.0",
@@ -146,6 +146,155 @@
           "role"
         ],
         "type": "object"
+      }
+    },
+    "usageDefinitions": {
+      "ChatUsage": {
+        "properties": {
+          "completion_tokens": {
+            "type": "integer"
+          },
+          "completion_tokens_details": {
+            "properties": {
+              "accepted_prediction_tokens": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "audio_tokens": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "reasoning_tokens": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "rejected_prediction_tokens": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            },
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "cost": {
+            "format": "double",
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "cost_details": {
+            "$ref": "#/components/schemas/CostDetails"
+          },
+          "is_byok": {
+            "type": "boolean"
+          },
+          "prompt_tokens": {
+            "type": "integer"
+          },
+          "prompt_tokens_details": {
+            "properties": {
+              "audio_tokens": {
+                "type": "integer"
+              },
+              "cache_write_tokens": {
+                "type": "integer"
+              },
+              "cached_tokens": {
+                "type": "integer"
+              },
+              "video_tokens": {
+                "type": "integer"
+              }
+            },
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "server_tool_use_details": {
+            "$ref": "#/components/schemas/ServerToolUseDetails"
+          },
+          "total_tokens": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "completion_tokens",
+          "prompt_tokens",
+          "total_tokens"
+        ],
+        "type": "object"
+      },
+      "CostDetails": {
+        "properties": {
+          "server_tool_cost": {
+            "format": "double",
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "upstream_inference_completions_cost": {
+            "format": "double",
+            "type": "number"
+          },
+          "upstream_inference_cost": {
+            "format": "double",
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "upstream_inference_prompt_cost": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "upstream_inference_prompt_cost",
+          "upstream_inference_completions_cost"
+        ],
+        "type": [
+          "object",
+          "null"
+        ]
+      },
+      "ServerToolUseDetails": {
+        "properties": {
+          "tool_calls_executed": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "tool_calls_requested": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "web_search_requests": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "type": [
+          "object",
+          "null"
+        ]
       }
     },
     "required": [

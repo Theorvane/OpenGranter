@@ -548,3 +548,8 @@ The shared assistant normalizer captures optional reasoning once, validates stri
 ## Nonstream response source drift
 
 Version 9 projects the fixed successful JSON response reference and exactly ChatResult, ChatChoice and ChatAssistantMessage in responseDefinitions. Existing bounded annotation-aware canonicalization and integrity gates remain; prior projections and source digest are unchanged. Referenced usage, rich content and multimodal/reasoning-detail definitions are not traversed. Runtime validation and security/accounting controls remain unchanged. See [contract](../contracts/openrouter-schema-drift.md).
+
+
+## Chat usage source drift
+
+Version 10 adds an exact usageDefinitions map for ChatUsage, CostDetails and ServerToolUseDetails using existing bounded annotation-aware canonicalization. Inline token details and the two explicit referenced definitions are tracked without recursive schema traversal. Prior selections and official source hash are preserved. No runtime usage/accounting or security path changes. See [contract](../contracts/openrouter-schema-drift.md).
