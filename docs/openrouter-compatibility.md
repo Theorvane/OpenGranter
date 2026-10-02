@@ -216,3 +216,9 @@ Compatible nonstream unknown fingerprints now deserialize as null. Actual SDK va
 ## Compatible midstream error subset
 
 Started /api/v1 delegated failures now use delivered chunk identity and finish_reason:error alongside existing fixed numeric errors. Pre-frame JSON and legacy /v1 remain unchanged. EOF/no DONE, required accounting/audit and cancellation controls stay shared. Raw upstream error propagation, precise retry types and complete client conformance remain gaps. See [plan](plans/222-midstream-error-chunks.md) and [contract](../contracts/midstream-error-chunks.md).
+
+Actual SDK validation rejects omitted nonstream fingerprints, the current basic discovery catalog and standalone midstream error envelopes. The pending compatible error PR addresses the last gap; the official stream schema also rejects the gateway's local null fingerprint allowance. Tests recording gaps are an inventory and must evolve with implementing features, not certification of full compatibility. Named external-tool workflows, trusted model metadata, richer/direct/tool streams and complete conformance remain open. See [plan](plans/224-official-sdk.md) and [contract](../contracts/official-openrouter-sdk.md).
+
+## Delegated streaming refusal subset
+
+Both chat bases support validated optional string/null refusal deltas and content_filter termination without fallback/replay. JSON framing preserves exact response text, with safe malformed-value failures and shared security/accounting controls. Usage-only events cannot discard substantive refusal text; missing usage remains unknown. Direct/tool/multimodal/reasoning streams and full external-client conformance remain open. See [plan](plans/218-stream-refusals.md) and [contract](../contracts/stream-refusals.md).

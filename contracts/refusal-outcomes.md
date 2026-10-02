@@ -5,3 +5,5 @@ OpenAI and delegated OpenRouter responses contain exactly one choice at index ze
 The gateway preserves stop, length and content_filter finish reasons. Other reasons retain the existing null mapping; tool-call support remains incomplete. Native subsets are defined in the [Anthropic refusal contract](anthropic-refusals.md) and [Gemini SAFETY contract](gemini-safety.md); richer native filtering remains pending.
 
 Valid refusal/filter completions are delivered with HTTP 200 through both prefixes and retain provider usage. Delivery counts as a successful attempt and never triggers fallback. IAM, limits and required audit still apply before invocation. Refusal/content stays in the API response and out of metadata audit, usage and error payloads. Malformed responses fail safely after the upstream response with possible billing recorded.
+
+Delegated streaming supports optional string/null refusal deltas separately under the [stream refusal contract](stream-refusals.md). Valid refusal streams are successful deliveries with shared required accounting/audit and no fallback; malformed values fail safely. No transcript enters operational metadata.

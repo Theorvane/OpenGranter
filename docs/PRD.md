@@ -285,3 +285,8 @@ Started /api/v1 delegated failures retain delivered chunk identity and one conte
 ## Unknown compatible completion fingerprints
 
 Normalized /api/v1 nonstream completions represent absent upstream fingerprint as null so compatible clients can deserialize unavailable metadata. Exact supplied fingerprints, native/legacy omission, streaming and accounting remain unchanged. See [contract](../contracts/compatible-completion-fingerprints.md).
+
+
+## Delegated streaming refusal deltas
+
+Delegated streamed refusal string/null deltas are delivered as successful upstream responses under existing IAM, limits, required accounting/audit and cancellation controls. Refusal text remains response content, never operational metadata. Malformed values fail safely; usage-only chunks reject substantive refusal text rather than silently discard it. See [contract](../contracts/stream-refusals.md).
