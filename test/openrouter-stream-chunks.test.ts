@@ -142,3 +142,59 @@ test('rejects malformed, out-of-scope and unsupported chunks with fixed errors',
     });
   }
 });
+
+test('preserves bounded opaque fingerprints on text and both final usage layouts', () => {
+  for (const fingerprint of [undefined, null, '', 'fp_한글\n\ndata: forged']) {
+    const extra = fingerprint === undefined ? {} : { system_fingerprint: fingerprint };
+    for (const payload of [
+      chunk({ content: 'text' }, null, extra),
+      chunk({}, 'stop', { ...extra, usage: { prompt_tokens: 1, completion_tokens: 2 } }),
+      JSON.stringify({
+        ...JSON.parse(chunk({}, 'stop', extra)),
+        choices: [],
+        usage: { prompt_tokens: 1, completion_tokens: 2 },
+      }),
+    ]) {
+      const event = decodeOpenRouterStreamPayload(payload, scope);
+      assert.equal('systemFingerprint' in event ? event.systemFingerprint : undefined, fingerprint);
+      assert.equal(Object.hasOwn(event, 'systemFingerprint'), fingerprint !== undefined);
+    }
+  }
+});
+
+test('malformed fingerprints cannot be silently dropped', () => {
+  for (const fingerprint of [true, 42, [], { secret: 'private' }]) {
+    for (const payload of [
+      chunk({}, null, { system_fingerprint: fingerprint }),
+      chunk({}, 'stop', { system_fingerprint: fingerprint, usage: { total_tokens: 3 } }),
+    ]) {
+      assert.throws(() => decodeOpenRouterStreamPayload(payload, scope), {
+        message: 'Invalid OpenRouter stream chunk',
+      });
+    }
+  }
+});
+
+test('client encoder independently validates and safely frames fingerprint metadata', async () => {
+  const { encodeOpenRouterTextSse } = await import('../src/streaming/openrouter-client-sse.ts');
+  const event = decodeOpenRouterStreamPayload(chunk({ content: 'text' }), scope);
+  assert.equal(event.kind, 'delta');
+  if (event.kind !== 'delta') assert.fail('expected delta');
+  for (const fingerprint of [undefined, null, '', 'fp_한글\n\ndata: forged']) {
+    const frame = encodeOpenRouterTextSse({
+      ...event,
+      ...(fingerprint === undefined ? {} : { systemFingerprint: fingerprint }),
+    });
+    assert.ok(frame);
+    const value = JSON.parse(frame.slice(6));
+    assert.equal(value.system_fingerprint, fingerprint);
+    assert.equal(Object.hasOwn(value, 'system_fingerprint'), fingerprint !== undefined);
+    assert.equal(frame.trim().split('\n\n').length, 1);
+  }
+  for (const malformed of [true, 42, [], { secret: 'private' }]) {
+    assert.throws(
+      () => encodeOpenRouterTextSse({ ...event, systemFingerprint: malformed as never }),
+      { message: 'Unsupported OpenRouter text stream event' },
+    );
+  }
+});

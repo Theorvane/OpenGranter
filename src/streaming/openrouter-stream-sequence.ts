@@ -11,6 +11,7 @@ export type OpenRouterTextStreamOutcome =
       model: string;
       finishReason: FinishReason;
       usage: Usage;
+      systemFingerprint?: string | null;
     }>
   | Readonly<{ status: 'failed'; possiblyBilled: true }>;
 
@@ -31,6 +32,7 @@ export class OpenRouterTextStreamSequence {
   private model: string | undefined;
   private finishReason: FinishReason | undefined;
   private usage: Usage;
+  private systemFingerprint: string | null | undefined;
 
   private fail(): never {
     this.phase = 'invalid';
@@ -73,6 +75,7 @@ export class OpenRouterTextStreamSequence {
     )
       this.fail();
     this.usage = event.usage === undefined ? undefined : Object.freeze({ ...event.usage });
+    this.systemFingerprint = event.systemFingerprint;
     this.phase = 'usage';
   }
 
@@ -96,6 +99,9 @@ export class OpenRouterTextStreamSequence {
       model: this.model,
       finishReason: this.finishReason,
       usage: this.usage,
+      ...(this.systemFingerprint === undefined
+        ? {}
+        : { systemFingerprint: this.systemFingerprint }),
     });
   }
 }

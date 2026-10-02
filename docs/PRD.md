@@ -273,3 +273,7 @@ Both chat paths support delegated text-only stream:true through the same IAM, li
 ## Delegated stream usage options
 
 Nullable stream_options and exact optional boolean include_usage are supported on delegated streams. The deprecated OpenRouter flag does not suppress final usage or any ledger/audit control, including when false. Non-null nonstream options and unknown fields reject explicitly. See [contract](../contracts/stream-usage-options.md).
+
+## Delegated streaming fingerprint metadata
+
+Delegated text and final usage frames preserve optional opaque system_fingerprint strings; null is a local OpenAI compatibility allowance. Final usage preserves its own source metadata rather than borrowing a previous fingerprint. Malformed values fail safely with possible-billing accounting. Fingerprints cannot establish authority and remain outside operational metadata. See [contract](../contracts/stream-fingerprints.md).

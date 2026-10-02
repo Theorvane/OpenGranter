@@ -163,9 +163,9 @@ String name is supported on all four existing text roles and normalized text arr
 
 The message-name subset introduced in version 3 remains selected in version 6. Malformed source containers, required lists and rehashed maps fail safely. Annotation and unrelated message-field changes are ignored. Full ChatMessages traversal, other fields and instance/stream/response conformance remain open. See [plan](plans/168-message-name-schema.md) and [contract](../contracts/openrouter-schema-drift.md).
 
-## Non-streaming system fingerprint subset
+## System fingerprint subset
 
-Direct OpenAI and delegated OpenRouter preserve optional string/null system_fingerprint, including normal/refusal/filter outcomes and SDK paths. Malformed fields fail safely with post-response accounting; native Anthropic/Gemini do not fabricate metadata. Fingerprints stay out of operational metadata and cannot establish authority, provider identity or deterministic output. Response-schema drift, full validation and streaming remain open. See [plan](plans/170-system-fingerprint.md) and [contract](../contracts/system-fingerprint.md).
+Direct OpenAI and delegated OpenRouter preserve optional string/null system_fingerprint, including normal/refusal/filter outcomes and SDK paths. Malformed fields fail safely with post-response accounting; native Anthropic/Gemini do not fabricate metadata. Fingerprints stay out of operational metadata and cannot establish authority, provider identity or deterministic output. Delegated text streaming also preserves validated chunk metadata and the actual usage-event fingerprint; null is a local OpenAI compatibility allowance. Direct/tool streams, full validation and other response metadata remain open. See [stream plan](plans/216-stream-fingerprints.md), [stream contract](../contracts/stream-fingerprints.md) and [plan](plans/170-system-fingerprint.md) and [contract](../contracts/system-fingerprint.md).
 
 ## Function invocation response normalization
 
@@ -200,3 +200,7 @@ Both bases accept delegated text-only stream:true with a configured trusted port
 ## Bounded stream usage options
 
 Both bases accept nullable stream_options and exact optional boolean include_usage on delegated streams. The official [OpenAPI](https://openrouter.ai/openapi.json), checked 2026-10-02, marks that flag deprecated with no effect: false preserves final usage and all shared accounting/security gates. Non-null nonstream options reject as a local restriction; unknown options, direct/tool streams and missing final usage remain gaps. Version 6 selects the request field plus nested option structure. See [plan](plans/214-stream-usage-options.md) and [contract](../contracts/stream-usage-options.md).
+
+## Delegated streaming fingerprint subset
+
+Both bases and pinned SDK streamed chunks preserve opaque system_fingerprint string/null/omission, including independently supplied final usage metadata. The official OpenRouter stream schema selects strings; null is a local compatibility allowance. Malformed values fail safely with possible-billing accounting. Fingerprints stay outside IAM, limits, audit and ledger metadata, and missing token counters still yield no fabricated final usage frame. Other metadata, direct/tool/multimodal streams and full client conformance remain open. See [plan](plans/216-stream-fingerprints.md) and [contract](../contracts/stream-fingerprints.md).

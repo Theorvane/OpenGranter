@@ -470,3 +470,7 @@ The chat boundary dispatches validated delegated stream:true through the existin
 ## Stream usage option capture
 
 A shared pure snapshot validates nullable options and freezes only the optional include_usage boolean at HTTP and delegated native boundaries before awaits. Streaming requests forward the captured object; null/omission add no field. Non-null nonstream options reject before secrets. Final framing and accounting ignore the deprecated flag, preserving OpenRouter's unconditional usage convention. Version 6 pins the request reference and nested option definition. See [plan](plans/214-stream-usage-options.md) and [contract](../contracts/stream-usage-options.md).
+
+## Delegated stream fingerprint projection
+
+The decoder captures optional fingerprint scalars, the encoder validates their bounded type independently, and the sequence retains only the actual final usage-event fingerprint for the complete outcome. The coordinator projects that metadata after required usage/audit persistence. Fingerprints do not participate in IAM, route identity or usage attribution. See [contract](../contracts/stream-fingerprints.md).

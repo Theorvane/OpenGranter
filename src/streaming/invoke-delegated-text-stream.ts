@@ -96,6 +96,9 @@ export async function invokeDelegatedTextStream(
     created: terminal.created,
     finishReason: terminal.finishReason,
     usage: result.response.usage,
+    ...(result.response.systemFingerprint === undefined
+      ? {}
+      : { systemFingerprint: result.response.systemFingerprint }),
   });
   return {
     ...result,

@@ -175,3 +175,25 @@ test('an invalid event poisons the sequence even if a later valid event arrives'
   invalid(() => sequence.accept(usage()));
   invalid(() => sequence.finish());
 });
+
+test('complete fingerprint comes only from the actual usage event', () => {
+  for (const fingerprint of [undefined, null, '', 'fp_usage']) {
+    const sequence = new OpenRouterTextStreamSequence();
+    const end = terminal();
+    const finalUsage = usage();
+    assert.equal(end.kind, 'delta');
+    assert.equal(finalUsage.kind, 'usage');
+    if (end.kind !== 'delta' || finalUsage.kind !== 'usage') assert.fail('fixture shape');
+    sequence.accept({ ...end, systemFingerprint: 'fp_terminal' });
+    sequence.accept({
+      ...finalUsage,
+      ...(fingerprint === undefined ? {} : { systemFingerprint: fingerprint }),
+    });
+    sequence.accept(done());
+    const outcome = sequence.finish();
+    assert.equal(outcome.status, 'complete');
+    if (outcome.status !== 'complete') assert.fail('expected completion');
+    assert.equal(outcome.systemFingerprint, fingerprint);
+    assert.equal(Object.hasOwn(outcome, 'systemFingerprint'), fingerprint !== undefined);
+  }
+});

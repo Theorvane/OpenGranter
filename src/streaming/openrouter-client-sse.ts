@@ -15,7 +15,11 @@ function frame(value: object): string {
 }
 
 function base(event: Chunk): object {
+  const systemFingerprint = event.systemFingerprint;
   if (
+    (systemFingerprint !== undefined &&
+      systemFingerprint !== null &&
+      typeof systemFingerprint !== 'string') ||
     typeof event.id !== 'string' ||
     !event.id ||
     event.id.length > 256 ||
@@ -30,6 +34,7 @@ function base(event: Chunk): object {
     object: 'chat.completion.chunk',
     created: event.created,
     model: event.model,
+    ...(systemFingerprint === undefined ? {} : { system_fingerprint: systemFingerprint }),
   };
 }
 
