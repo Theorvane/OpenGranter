@@ -13,3 +13,6 @@ Direct-provider/tool/multimodal streams, additional stream option fields, provid
 Delegated text streaming preserves bounded optional system_fingerprint metadata per the [stream fingerprint contract](stream-fingerprints.md). The final usage fingerprint comes from its own upstream event, with no carry-forward or authority semantics. Null is a local OpenAI compatibility allowance; the official streamed schema selects string only. Malformed values fail safely and fingerprints stay outside audit/ledger metadata.
 
 Started /api/v1 failures add validated delivered chunk identity and one content-free finish_reason:error choice under the [midstream error contract](midstream-error-chunks.md); legacy symbolic errors and pre-frame JSON remain unchanged. This does not expose raw upstream error messages or widen metadata accounting.
+
+
+Delegated streaming supports optional string/null refusal deltas separately under the [stream refusal contract](stream-refusals.md). Valid refusal streams are successful deliveries with shared required accounting/audit and no fallback; malformed values fail safely. No transcript enters operational metadata.

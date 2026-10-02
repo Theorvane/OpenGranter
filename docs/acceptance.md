@@ -626,3 +626,10 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 
 - Omitted/undefined native fingerprints become null on /api/v1 normalized nonstream completions and deserialize in the pinned official SDK. Supplied exact strings/null survive; /v1 and native omission remain unchanged.
 - Managed/delegated success returns clone rather than mutate response objects; opaque payloads, SSE and errors are unchanged. Native malformed failures, IAM/limits and required audit/ledger failures retain safe accounting. See [contract](../contracts/compatible-completion-fingerprints.md).
+
+
+## Delegated streaming refusal outcomes
+
+- Both chat bases and SDK streaming preserve exact refusal string/null/omission, content coexistence and content_filter termination, with successful usage persistence before final frames.
+- Malformed first/later refusal values and substantive refusal in usage-only chunks fail safely with possible-billing accounting and no DONE.
+- IAM/limits and required audit/ledger failure gates still apply; refusal text and framing tokens stay out of operational metadata/errors and cannot inject SSE. Missing usage stays unknown. See [contract](../contracts/stream-refusals.md).

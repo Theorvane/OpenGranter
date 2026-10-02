@@ -19,6 +19,7 @@ export type OpenRouterTextStreamPayload =
       readonly systemFingerprint?: string | null;
       readonly role?: 'assistant';
       readonly content?: string | null;
+      readonly refusal?: string | null;
       readonly finishReason: FinishReason | null;
     }
   | {
@@ -113,9 +114,10 @@ export function decodeOpenRouterStreamPayload(
     !choice ||
     choice.index !== 0 ||
     !delta ||
-    Object.keys(delta).some((key) => key !== 'role' && key !== 'content') ||
+    Object.keys(delta).some((key) => key !== 'role' && key !== 'content' && key !== 'refusal') ||
     (delta.role !== undefined && delta.role !== 'assistant') ||
     (delta.content !== undefined && delta.content !== null && typeof delta.content !== 'string') ||
+    (delta.refusal !== undefined && delta.refusal !== null && typeof delta.refusal !== 'string') ||
     (finish !== null && finish !== 'stop' && finish !== 'length' && finish !== 'content_filter')
   )
     throw invalidChunk();
@@ -123,7 +125,8 @@ export function decodeOpenRouterStreamPayload(
   if (hasOwn(value, 'usage')) {
     if (
       finish === null ||
-      (delta.content !== undefined && delta.content !== null && delta.content !== '')
+      (delta.content !== undefined && delta.content !== null && delta.content !== '') ||
+      (delta.refusal !== undefined && delta.refusal !== null && delta.refusal !== '')
     )
       throw invalidChunk();
     const usage = normalizeProviderUsage(value.usage);
@@ -139,6 +142,7 @@ export function decodeOpenRouterStreamPayload(
     ...common,
     ...(delta.role === undefined ? {} : { role: delta.role }),
     ...(delta.content === undefined ? {} : { content: delta.content }),
+    ...(delta.refusal === undefined ? {} : { refusal: delta.refusal }),
     finishReason: finish,
   });
 }

@@ -482,3 +482,8 @@ The coordinator supplies a frozen allowlisted id/created/model projection with v
 ## Compatible completion projection
 
 Managed/delegated nonstream success returns share a narrow client projection after required accounting/audit. Only compatible chat.completion objects with unavailable fingerprint are cloned with null; native adapters and opaque results are unchanged. See [plan](plans/226-compatible-fingerprint-null.md) and [contract](../contracts/compatible-completion-fingerprints.md).
+
+
+## Delegated streaming refusal projection
+
+The bounded decoder captures refusal string/null alongside optional role/content and the serializer independently validates and JSON-encodes it. Sequence state and complete outcomes retain no refusal transcript. Usage-only events remain content-free, including refusal; synthesized final frames never replay earlier text. See [contract](../contracts/stream-refusals.md).

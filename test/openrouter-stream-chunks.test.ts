@@ -198,3 +198,69 @@ test('client encoder independently validates and safely frames fingerprint metad
     );
   }
 });
+
+test('stream refusal deltas preserve exact string/null/omission and safe framing', async () => {
+  const { encodeOpenRouterTextSse } = await import('../src/streaming/openrouter-client-sse.ts');
+  for (const refusal of [undefined, null, '', 'private 拒否\n\ndata: forged']) {
+    const event = decodeOpenRouterStreamPayload(
+      chunk({ content: null, ...(refusal === undefined ? {} : { refusal }) }, 'content_filter'),
+      scope,
+    );
+    assert.equal(event.kind, 'delta');
+    const frame = encodeOpenRouterTextSse(event);
+    assert.ok(frame);
+    const value = JSON.parse(frame.slice(6)).choices[0];
+    assert.equal(value.delta.refusal, refusal);
+    assert.equal(Object.hasOwn(value.delta, 'refusal'), refusal !== undefined);
+    assert.equal(value.finish_reason, 'content_filter');
+    assert.equal(value.delta.content, null);
+    assert.equal(frame.trim().split('\n\n').length, 1);
+  }
+});
+
+test('usage-only refusal text cannot silently disappear', () => {
+  for (const refusal of ['private refusal', true, 42, [], {}]) {
+    assert.throws(
+      () =>
+        decodeOpenRouterStreamPayload(
+          chunk({ refusal }, 'content_filter', { usage: { total_tokens: 3 } }),
+          scope,
+        ),
+      { message: 'Invalid OpenRouter stream chunk' },
+    );
+  }
+});
+
+test('refusal validation at decoder and independent encoder rejects malformed values', async () => {
+  const { encodeOpenRouterTextSse } = await import('../src/streaming/openrouter-client-sse.ts');
+  const text = decodeOpenRouterStreamPayload(chunk({ content: 'ordinary text' }), scope);
+  assert.equal(text.kind, 'delta');
+  if (text.kind !== 'delta') assert.fail('fixture shape');
+  for (const refusal of [true, 42, [], { secret: 'private-refusal' }]) {
+    assert.throws(() => decodeOpenRouterStreamPayload(chunk({ refusal }), scope), {
+      message: 'Invalid OpenRouter stream chunk',
+    });
+    assert.throws(() => encodeOpenRouterTextSse({ ...text, refusal: refusal as never }), {
+      message: 'Unsupported OpenRouter text stream event',
+    });
+  }
+  const event = decodeOpenRouterStreamPayload(
+    chunk({ content: 'ordinary text', refusal: 'refusal fragment' }),
+    scope,
+  );
+  const frame = encodeOpenRouterTextSse(event);
+  assert.ok(frame);
+  assert.deepEqual(JSON.parse(frame.slice(6)).choices[0].delta, {
+    content: 'ordinary text',
+    refusal: 'refusal fragment',
+  });
+  for (const refusal of [null, '']) {
+    assert.equal(
+      decodeOpenRouterStreamPayload(
+        chunk({ refusal }, 'content_filter', { usage: { total_tokens: 3 } }),
+        scope,
+      ).kind,
+      'usage',
+    );
+  }
+});

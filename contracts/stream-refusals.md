@@ -1,0 +1,7 @@
+# Delegated streaming refusals
+
+Delegated assistant/text/terminal deltas preserve exact optional string/null refusal. Ordinary text content may coexist; omission, null and empty strings remain distinct and no refusal text is fabricated or accumulated. content_filter retains its existing terminal meaning. Unlike complete non-streaming messages, incremental deltas may omit content or have null content before the full sequence is known.
+
+A valid refusal stream is a successful upstream delivery, subject to model/final-provider IAM, limits, required usage/outcome audit, cancellation and backpressure. It does not trigger fallback/replay or imply a gateway policy denial. Refusal text remains API response content and stays outside logs, metadata audit, ledger metadata and errors.
+
+Malformed refusal values fail with safe JSON before first-frame delivery, or a fixed SSE error/EOF and no DONE afterward; dispatched attempts remain possibly billed. Usage-only chunks allow absent/null/empty refusal but reject substantive refusal text to prevent silent loss. Final synthetic usage frames never copy earlier refusal content. Missing/invalid token counters remain unknown and produce no fabricated complete usage frame. Direct/tool/multimodal/reasoning streams, rich refusal structures and full schema/client conformance remain gaps.

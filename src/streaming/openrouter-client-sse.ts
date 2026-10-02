@@ -45,6 +45,9 @@ export function encodeOpenRouterTextSse(event: OpenRouterTextStreamPayload): str
   if (event.kind === 'delta') {
     if (
       (event.role !== undefined && event.role !== 'assistant') ||
+      (event.refusal !== undefined &&
+        event.refusal !== null &&
+        typeof event.refusal !== 'string') ||
       (event.content !== undefined &&
         event.content !== null &&
         typeof event.content !== 'string') ||
@@ -62,6 +65,7 @@ export function encodeOpenRouterTextSse(event: OpenRouterTextStreamPayload): str
           delta: {
             ...(event.role === undefined ? {} : { role: event.role }),
             ...(event.content === undefined ? {} : { content: event.content }),
+            ...(event.refusal === undefined ? {} : { refusal: event.refusal }),
           },
           finish_reason: event.finishReason,
         },
