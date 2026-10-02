@@ -603,3 +603,9 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Both bases and the pinned SDK accept null/empty/true/false options on delegated streams. False retains final usage, required handoffs and all denial/limit/interruption controls; missing usage remains unknown.
 - Malformed, unknown-field and non-null nonstream options reject before routing/secrets. Native requests retain frozen values across credential awaits.
 - Source drift detects the request reference and nested option type/deprecation changes. See [contract](../contracts/stream-usage-options.md).
+
+## Delegated stream fingerprints
+
+- Both bases and SDK streamed text/terminal/final usage frames preserve exact string/null metadata and omission; source usage metadata may differ from prior text/terminal metadata.
+- Malformed first/later values produce safe JSON/SSE failures with failed-attempt accounting and no DONE; IAM/limits and required audit/ledger controls remain enforced.
+- Fingerprint framing text cannot inject SSE, and fingerprint values never appear in operational audit, ledger metadata or errors. Missing token usage still produces no fabricated usage frame. See [contract](../contracts/stream-fingerprints.md).

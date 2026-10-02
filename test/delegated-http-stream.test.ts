@@ -569,3 +569,162 @@ test('malformed and nonstream usage options fail before route or upstream work',
   const nonstream = { ...chat, stream: false, stream_options: {} };
   assert.equal((await createChatHandler(f.ports)(f.request('/api/v1', nonstream))).status, 400);
 });
+
+test('native streamed fingerprints survive both client bases and remain outside accounting metadata', async () => {
+  const { createOpenRouterTextStreamInvoker } = await import(
+    '../src/providers/openrouter-stream.ts'
+  );
+  for (const base of ['/v1', '/api/v1']) {
+    const f = fixture();
+    const invoker = createOpenRouterTextStreamInvoker({
+      credentialRef: 'secret/openrouter',
+      resolveSecret: async () => 'fixture-key',
+      fetcher: async () =>
+        new Response(
+          [
+            {
+              choices: [{ index: 0, delta: { content: 'text' }, finish_reason: null }],
+              system_fingerprint: 'fp_private\n\ndata: forged',
+            },
+            {
+              choices: [{ index: 0, delta: {}, finish_reason: 'stop' }],
+              system_fingerprint: 'fp_terminal',
+            },
+            {
+              choices: [{ index: 0, delta: {}, finish_reason: 'stop' }],
+              usage: { prompt_tokens: 1, completion_tokens: 2 },
+              system_fingerprint: null,
+            },
+          ]
+            .map(
+              (value) =>
+                `data: ${JSON.stringify({ id: 'gen-1', object: 'chat.completion.chunk', created: 42, model: 'openai/example', ...value })}\n\n`,
+            )
+            .join('') + 'data: [DONE]\n\n',
+          { headers: { 'content-type': 'text/event-stream' } },
+        ),
+    });
+    f.ports = { ...f.ports, invokeOpenRouterTextStream: (_ref, ...args) => invoker(...args) };
+    const response = await createChatHandler(f.ports)(f.request(base));
+    assert.equal(response.status, 200);
+    const frames = (await response.text()).trim().split('\n\n');
+    assert.equal(frames.length, 4);
+    assert.equal(
+      JSON.parse(frames[0]?.slice(6) ?? '{}').system_fingerprint,
+      'fp_private\n\ndata: forged',
+    );
+    assert.equal(JSON.parse(frames[1]?.slice(6) ?? '{}').system_fingerprint, 'fp_terminal');
+    assert.equal(JSON.parse(frames[2]?.slice(6) ?? '{}').system_fingerprint, null);
+    assert.equal(f.records[0]?.usage.status, 'reported');
+    assert.equal(JSON.stringify({ audit: f.audit, usage: f.records }).includes('fp_'), false);
+  }
+});
+
+function nativeFingerprintPorts(
+  f: ReturnType<typeof fixture>,
+  first: unknown,
+  final: unknown,
+  invalidAt?: 'first' | 'later',
+) {
+  return import('../src/providers/openrouter-stream.ts').then(
+    ({ createOpenRouterTextStreamInvoker }) => {
+      const invoker = createOpenRouterTextStreamInvoker({
+        credentialRef: 'secret/openrouter',
+        resolveSecret: async () => 'fixture-key',
+        fetcher: async () =>
+          new Response(
+            [
+              {
+                choices: [{ index: 0, delta: { content: 'text' }, finish_reason: null }],
+                ...(first === undefined
+                  ? {}
+                  : {
+                      system_fingerprint: invalidAt === 'first' ? { secret: 'fp_private' } : first,
+                    }),
+              },
+              {
+                choices: [{ index: 0, delta: {}, finish_reason: 'stop' }],
+                system_fingerprint: 'fp_terminal',
+              },
+              {
+                choices: [],
+                usage: { prompt_tokens: 1, completion_tokens: 2 },
+                ...(final === undefined
+                  ? {}
+                  : {
+                      system_fingerprint: invalidAt === 'later' ? { secret: 'fp_private' } : final,
+                    }),
+              },
+            ]
+              .map(
+                (value) =>
+                  `data: ${JSON.stringify({ id: 'gen-1', object: 'chat.completion.chunk', created: 42, model: 'openai/example', ...value })}\n\n`,
+              )
+              .join('') + 'data: [DONE]\n\n',
+            { headers: { 'content-type': 'text/event-stream' } },
+          ),
+      });
+      return {
+        ...f.ports,
+        invokeOpenRouterTextStream: (_ref: string, ...args: Parameters<typeof invoker>) =>
+          invoker(...args),
+      };
+    },
+  );
+}
+
+test('malformed native fingerprints produce safe first/later failures with possible-billing accounting', async () => {
+  for (const base of ['/v1', '/api/v1']) {
+    for (const phase of ['first', 'later'] as const) {
+      const f = fixture();
+      f.ports = await nativeFingerprintPorts(f, 'fp_text', null, phase);
+      const response = await createChatHandler(f.ports)(f.request(base));
+      assert.equal(response.status, phase === 'first' ? 502 : 200);
+      const body = await response.text();
+      assert.equal(body.includes('[DONE]'), false);
+      assert.equal(body.includes('fp_private'), false);
+      assert.equal(f.records[0]?.outcome, 'failed');
+      assert.equal(f.records[0]?.possiblyBilled, true);
+      assert.equal(JSON.stringify({ audit: f.audit, usage: f.records }).includes('fp_'), false);
+    }
+  }
+});
+
+test('SDK sees exact streamed fingerprints on both socket bases and final omission stays omitted', {
+  timeout: 10000,
+}, async () => {
+  for (const base of ['/v1', '/api/v1']) {
+    for (const final of [undefined, null, 'fp_usage']) {
+      const f = fixture();
+      f.ports = await nativeFingerprintPorts(f, 'fp_text', final);
+      const server = createNodeChatServer(f.ports);
+      await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+      try {
+        const address = server.address() as AddressInfo;
+        const client = new OpenAI({
+          apiKey: 'fixture-key',
+          baseURL: `http://127.0.0.1:${address.port}${base}`,
+        });
+        const stream = await client.chat.completions.create({
+          model: 'chat',
+          messages: [{ role: 'user', content: 'text' }],
+          stream: true,
+        });
+        const chunks = [];
+        for await (const chunk of stream) chunks.push(chunk);
+        assert.equal(chunks[0]?.system_fingerprint, 'fp_text');
+        assert.equal(chunks[1]?.system_fingerprint, 'fp_terminal');
+        assert.equal(chunks[2]?.system_fingerprint, final);
+        assert.equal(Object.hasOwn(chunks[2] ?? {}, 'system_fingerprint'), final !== undefined);
+        assert.equal(chunks[2]?.usage?.total_tokens, 3);
+        assert.equal(f.records.length, 1);
+        assert.equal(JSON.stringify({ audit: f.audit, usage: f.records }).includes('fp_'), false);
+      } finally {
+        server.closeAllConnections();
+        await new Promise<void>((resolve, reject) =>
+          server.close((error) => (error ? reject(error) : resolve())),
+        );
+      }
+    }
+  }
+});

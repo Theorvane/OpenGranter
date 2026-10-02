@@ -4,4 +4,6 @@ Direct OpenAI and delegated OpenRouter preserve optional string/null system_fing
 
 Non-string/non-null upstream values fail via the existing safe post-response provider failure path. The attempt can be billed; failed-attempt usage remains visible without fabricated token totals or exposing response details. Existing IAM, limit, audit and accounting controls continue across the same boundaries.
 
-Fingerprints are upstream protocol data, not authenticated identity, verified provider identity, determinism guarantees or usage attribution. Keep them out of operational logs, audit metadata and errors. No generated fingerprints, schema instance validation, response-schema drift expansion or streaming support is introduced.
+Fingerprints are upstream protocol data, not authenticated identity, verified provider identity, determinism guarantees or usage attribution. Keep them out of operational logs, audit metadata and errors. No generated fingerprints, schema instance validation or response-schema drift expansion is introduced. Delegated streaming support is described separately below.
+
+Delegated text streaming preserves bounded optional system_fingerprint metadata per the [stream fingerprint contract](stream-fingerprints.md). The final usage fingerprint comes from its own upstream event, with no carry-forward or authority semantics. Null is a local OpenAI compatibility allowance; the official streamed schema selects string only. Malformed values fail safely and fingerprints stay outside audit/ledger metadata.

@@ -16,6 +16,7 @@ export type OpenRouterTextStreamPayload =
       readonly id: string;
       readonly created: number;
       readonly model: string;
+      readonly systemFingerprint?: string | null;
       readonly role?: 'assistant';
       readonly content?: string | null;
       readonly finishReason: FinishReason | null;
@@ -25,6 +26,7 @@ export type OpenRouterTextStreamPayload =
       readonly id: string;
       readonly created: number;
       readonly model: string;
+      readonly systemFingerprint?: string | null;
       readonly finishReason: FinishReason | null;
       readonly usage: NormalizedUsage;
     };
@@ -70,7 +72,11 @@ export function decodeOpenRouterStreamPayload(
   if (hasOwn(value, 'error')) return Object.freeze({ kind: 'error' });
 
   const choices = value.choices;
+  const systemFingerprint = value.system_fingerprint;
   if (
+    (systemFingerprint !== undefined &&
+      systemFingerprint !== null &&
+      typeof systemFingerprint !== 'string') ||
     typeof value.id !== 'string' ||
     !value.id ||
     value.id.length > 256 ||
@@ -87,6 +93,7 @@ export function decodeOpenRouterStreamPayload(
     id: value.id,
     created: value.created,
     model: scope.clientModelAlias,
+    ...(systemFingerprint === undefined ? {} : { systemFingerprint }),
   };
   if (choices.length === 0) {
     if (!hasOwn(value, 'usage')) throw invalidChunk();
