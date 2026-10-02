@@ -720,3 +720,8 @@ Token counter type/required/bounds, inline cached/reasoning details, nullable co
 ## Compatible nonstream usage availability
 
 Actual official SDK sockets accept missing/partial/invalid normalized usage on /api/v1 with usage omitted and exact text preserved. Complete/zero counters survive; /v1 sparse counters and ledger missing/partial/invalid states remain. Managed/delegated and native normalization, immutable projection, authentication/model-provider Deny/limits and required ledger/outcome-audit failures retain public-boundary security and privacy behavior. See [plan](plans/246-compatible-usage.md).
+
+
+## Nonstream service tier metadata
+
+Both public chat bases and pinned SDK sockets preserve exact service-tier string/null/omission in text/refusal/filter/tool outcomes. Malformed values fail safely with failed-attempt/possibly-billed accounting. Denials, required ledger/outcome-audit failures and metadata privacy remain shared. Scalars are captured once; native unrelated fields stay omitted and client tier controls reject before dispatch. See [plan](plans/248-service-tier.md).

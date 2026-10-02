@@ -91,6 +91,7 @@ export interface ChatCompletion {
   readonly created: number;
   readonly model: string;
   readonly system_fingerprint?: string | null;
+  readonly service_tier?: string | null;
   readonly choices: readonly [
     {
       readonly index: 0;
@@ -158,6 +159,9 @@ function normalize(
   if (!value) fail('other');
   if (kind === 'openai') {
     const fingerprint = value.system_fingerprint;
+    const serviceTier = value.service_tier;
+    if (serviceTier !== undefined && serviceTier !== null && typeof serviceTier !== 'string')
+      fail('other');
     if (fingerprint !== undefined && fingerprint !== null && typeof fingerprint !== 'string')
       fail('other');
     const choices = items(value.choices);
@@ -185,6 +189,7 @@ function normalize(
         message,
       ),
       ...(fingerprint === undefined ? {} : { system_fingerprint: fingerprint }),
+      ...(serviceTier === undefined ? {} : { service_tier: serviceTier }),
     };
   }
   if (kind === 'anthropic') {
