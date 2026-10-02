@@ -6,6 +6,6 @@ Supplied non-string/non-null values fail through existing safe adapter errors an
 
 Native Anthropic/Gemini fields are not translated or fabricated. Client service_tier request controls remain rejected, and stream tier metadata is outside this subset. Gateway fingerprint and compatible usage projections preserve this field through normal object cloning.
 
-Pinned official OpenRouter/OpenAI SDK socket regressions cover both paths. Remaining metadata, native/request/stream tier semantics and full external-client certification remain open. The pending reviewed ChatResult source projection already selects this property; this runtime change does not refresh the source pin.
+Pinned official OpenRouter/OpenAI SDK socket regressions cover both paths. Delegated streamed tier metadata is implemented under the [stream contract](stream-service-tiers.md). Remaining metadata, native/request tier semantics and full external-client certification remain open. The current ChatResult source projection already selects this property; this runtime change does not refresh the source pin.
 
 See [plan](../docs/plans/248-service-tier.md) and [compatibility inventory](../docs/openrouter-compatibility.md).

@@ -4,4 +4,4 @@ Gateway JSON errors now include a nonempty fixed English error.message alongside
 
 Messages come only from a typed allowlist; caller model IDs, prompt/response bodies, proxy/provider tokens, raw upstream responses and thrown exception text never enter them. Audit failure still prevents returning inference or history; success responses are unchanged. Both client base paths and authorized history extensions use the same message projection.
 
-This is additive client display compatibility. Standard upstream error_type metadata, retry hints and streaming error formats remain open in [the compatibility matrix](../docs/openrouter-compatibility.md). Source: [OpenRouter errors](https://openrouter.ai/docs/api_reference/errors-and-debugging).
+This is additive client display compatibility. Precise upstream error_type propagation, retry hints and broader provider streaming-error mappings remain open; sanitized delegated errors are implemented under the [midstream contract](midstream-error-chunks.md), as recorded in [the compatibility matrix](../docs/openrouter-compatibility.md). Source: [OpenRouter errors](https://openrouter.ai/docs/api_reference/errors-and-debugging).

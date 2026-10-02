@@ -8,4 +8,4 @@ The official [parameters](https://openrouter.ai/docs/api_reference/parameters) d
 
 Authentication, model/final-provider IAM, limits, required audit/usage, cancellation/backpressure and safe post-dispatch failures remain shared. Client sampling values cannot select destinations or alter accounting authority. Content/secrets stay out of operational metadata/errors.
 
-The current structural source pin does not select min_p; source drift coverage needs an explicit follow-up and remains partial. This does not claim full request/provider/tool/stream/external-client conformance. See [plan](../docs/plans/252-min-p.md).
+The current version-15 structural source pin selects min_p under the [drift contract](openrouter-schema-drift.md). Source drift coverage remains partial. This does not claim full request/provider/tool/stream/external-client conformance. See [plan](../docs/plans/252-min-p.md).
