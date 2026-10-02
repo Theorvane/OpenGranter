@@ -370,3 +370,94 @@ test('independent encoder rejects usage-only reasoning before missing-token earl
     'private captured reasoning',
   );
 });
+
+test('stream service tier survives decoder and encoder without inferred metadata', async () => {
+  const { encodeOpenRouterTextSse } = await import('../src/streaming/openrouter-client-sse.ts');
+  const event = decodeOpenRouterStreamPayload(
+    chunk({ content: 'text' }, null, { service_tier: 'private-tier' }),
+    scope,
+  );
+  const frame = encodeOpenRouterTextSse(event);
+  assert.ok(frame);
+  assert.equal(JSON.parse(frame.slice(6)).service_tier, 'private-tier');
+});
+
+test('stream tiers preserve exact metadata on delta and both usage forms', async () => {
+  const { encodeOpenRouterTextSse } = await import('../src/streaming/openrouter-client-sse.ts');
+  for (const tier of [undefined, null, '', 'private-tier\n\ndata: forged 한글']) {
+    const metadata = tier === undefined ? {} : { service_tier: tier };
+    for (const payload of [
+      chunk({ content: 'text' }, null, metadata),
+      chunk({}, 'stop', { ...metadata, usage: { prompt_tokens: 1, completion_tokens: 2 } }),
+      chunk({}, null, {
+        ...metadata,
+        choices: [],
+        usage: { prompt_tokens: 1, completion_tokens: 2 },
+      }),
+    ]) {
+      const event = decodeOpenRouterStreamPayload(payload, scope);
+      const frame = encodeOpenRouterTextSse(event);
+      assert.ok(frame);
+      const body = JSON.parse(frame.slice(6));
+      assert.equal(body.service_tier, tier);
+      assert.equal(Object.hasOwn(body, 'service_tier'), tier !== undefined);
+      assert.equal(frame.trim().split('\n\n').length, 1);
+    }
+  }
+});
+test('malformed stream tier rejects at decoder and independent client encoder', async () => {
+  const { encodeOpenRouterTextSse } = await import('../src/streaming/openrouter-client-sse.ts');
+  const event = decodeOpenRouterStreamPayload(chunk({ content: 'text' }), scope);
+  assert.equal(event.kind, 'delta');
+  if (event.kind !== 'delta') assert.fail('fixture');
+  for (const tier of [true, 42, [], { private: 'tier' }]) {
+    for (const payload of [
+      chunk({}, null, { service_tier: tier }),
+      chunk({}, 'stop', { service_tier: tier, usage: { total_tokens: 3 } }),
+    ])
+      assert.throws(() => decodeOpenRouterStreamPayload(payload, scope), {
+        message: 'Invalid OpenRouter stream chunk',
+      });
+    assert.throws(() => encodeOpenRouterTextSse({ ...event, serviceTier: tier as never }), {
+      message: 'Unsupported OpenRouter text stream event',
+    });
+    assert.throws(
+      () =>
+        encodeOpenRouterTextSse({
+          ...event,
+          kind: 'usage',
+          usage: { prompt_tokens: 1, completion_tokens: 2, total_tokens: 3 },
+          serviceTier: tier as never,
+        }),
+      { message: 'Unsupported OpenRouter text stream event' },
+    );
+    assert.throws(
+      () =>
+        encodeOpenRouterTextSse({
+          ...event,
+          kind: 'usage',
+          usage: undefined,
+          serviceTier: tier as never,
+        }),
+      { message: 'Unsupported OpenRouter text stream event' },
+    );
+  }
+});
+
+test('independent stream encoder captures service tier once', async () => {
+  const { encodeOpenRouterTextSse } = await import('../src/streaming/openrouter-client-sse.ts');
+  const event = decodeOpenRouterStreamPayload(chunk({ content: 'text' }), scope);
+  assert.equal(event.kind, 'delta');
+  if (event.kind !== 'delta') assert.fail('fixture');
+  let reads = 0;
+  const observed = Object.defineProperty({ ...event }, 'serviceTier', {
+    get: () => {
+      reads++;
+      return reads === 1 ? 'private-tier' : { invalid: true };
+    },
+  });
+  const frame = encodeOpenRouterTextSse(observed);
+  assert.ok(frame);
+  assert.equal(JSON.parse(frame.slice(6)).service_tier, 'private-tier');
+  assert.equal(reads, 1);
+});

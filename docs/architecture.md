@@ -563,3 +563,8 @@ The shared managed/delegated success projection runs after required usage persis
 ## Nonstream service tier metadata
 
 Both OpenAI-shaped normalizers capture service_tier once, reject non-string/non-null supplied values under existing safe possibly-billed failures and project valid optional scalars on ChatCompletion. Shared gateway cloning retains them; explicit audit/usage extraction excludes them. No native Anthropic/Gemini translation or source-pin refresh. See [contract](../contracts/service-tier-responses.md).
+
+
+## Delegated stream service tier metadata
+
+The decoder common metadata, independent encoder base, sequence outcome and delegated usage handoff carry optional serviceTier scalars. Final metadata comes only from the actual usage event, captured once at serialization; terminal identity remains id/created/model. Required ledger/audit precedes final frames. Existing source projection already selects ChatStreamChunk. See [contract](../contracts/stream-service-tiers.md).

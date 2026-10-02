@@ -306,3 +306,44 @@ test('frame callbacks receive frozen identity-only metadata', async () => {
   assert.equal(identities.length, 2);
   assert.equal(JSON.stringify(identities).includes('private'), false);
 });
+
+test('stream tier final handoff captures once and keeps callback identity/accounting metadata clean', async () => {
+  const f = fixture(),
+    original = f.input.ports.invokeOpenRouterTextStream;
+  assert.ok(original);
+  let reads = 0;
+  const result = await invokeDelegatedTextStream({
+    ...f.input,
+    onFrame: async (frame, identity) => {
+      assert.equal(Object.isFrozen(identity), true);
+      assert.deepEqual(Object.keys(identity).sort(), ['created', 'id', 'model']);
+      assert.equal(JSON.parse(frame.slice(6)).service_tier, 'private-delta-tier');
+    },
+    ports: {
+      ...f.input.ports,
+      invokeOpenRouterTextStream: async (ref, attempt, chat, onDelta, signal) => {
+        const outcome = await original(
+          ref,
+          attempt,
+          chat,
+          (delta) => onDelta({ ...delta, serviceTier: 'private-delta-tier' }),
+          signal,
+        );
+        return Object.defineProperty({ ...outcome }, 'serviceTier', {
+          get: () => {
+            reads++;
+            return reads === 1 ? 'private-final-tier' : { invalid: true };
+          },
+        });
+      },
+    },
+  });
+  assert.equal(result.status, 'invoked');
+  if (result.status !== 'invoked') assert.fail('fixture');
+  assert.equal(
+    JSON.parse(result.finalFrames[0]?.slice(6) ?? '{}').service_tier,
+    'private-final-tier',
+  );
+  assert.equal(reads, 1);
+  assert.doesNotMatch(JSON.stringify([f.usage, f.audit]), /tier/u);
+});

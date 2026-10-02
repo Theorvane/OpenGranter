@@ -93,6 +93,7 @@ export async function invokeDelegatedTextStream(
   });
   if (result.status !== 'invoked') return result;
   if (terminal === undefined) throw new OpenRouterChatFailure('upstream', true, true);
+  const serviceTier = result.response.serviceTier;
   const usageFrame = encodeOpenRouterTextSse({
     kind: 'usage',
     id: terminal.id,
@@ -106,6 +107,7 @@ export async function invokeDelegatedTextStream(
     ...(result.response.systemFingerprint === undefined
       ? {}
       : { systemFingerprint: result.response.systemFingerprint }),
+    ...(serviceTier === undefined ? {} : { serviceTier }),
   });
   return {
     ...result,

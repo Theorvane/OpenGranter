@@ -366,3 +366,8 @@ Normalized /api/v1 nonstream completions omit incomplete/invalid usage instead o
 ## Nonstream service tier metadata
 
 Direct OpenAI/delegated OpenRouter nonstream completions preserve optional exact string/null service_tier response metadata. It cannot change permissions, destinations, limits or usage/cost accounting. Native/request/stream tier semantics remain separate. See [contract](../contracts/service-tier-responses.md).
+
+
+## Delegated stream service tier metadata
+
+Delegated OpenRouter text streams preserve optional string/null service_tier response metadata, including the actual final usage event, without changing IAM, limits or accounting. Reported tiers cannot establish authority or price. Direct/tool/native stream and tier request semantics remain separate. See [contract](../contracts/stream-service-tiers.md).

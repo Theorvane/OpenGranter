@@ -197,3 +197,22 @@ test('complete fingerprint comes only from the actual usage event', () => {
     assert.equal(Object.hasOwn(outcome, 'systemFingerprint'), fingerprint !== undefined);
   }
 });
+
+test('complete service tier comes only from the actual final usage event', () => {
+  for (const tier of [undefined, null, '', 'private-tier']) {
+    const sequence = new OpenRouterTextStreamSequence(),
+      end = terminal(),
+      finalUsage = usage();
+    assert.equal(end.kind, 'delta');
+    assert.equal(finalUsage.kind, 'usage');
+    if (end.kind !== 'delta' || finalUsage.kind !== 'usage') assert.fail('fixture');
+    sequence.accept({ ...end, serviceTier: 'private-terminal' });
+    sequence.accept({ ...finalUsage, ...(tier === undefined ? {} : { serviceTier: tier }) });
+    sequence.accept(done());
+    const outcome = sequence.finish();
+    assert.equal(outcome.status, 'complete');
+    if (outcome.status !== 'complete') assert.fail('fixture');
+    assert.equal(outcome.serviceTier, tier);
+    assert.equal(Object.hasOwn(outcome, 'serviceTier'), tier !== undefined);
+  }
+});

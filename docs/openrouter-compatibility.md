@@ -302,3 +302,8 @@ Normalized nonstream /api/v1 completions omit incomplete usage while keeping int
 ## Nonstream service tier metadata
 
 Optional nonstream service_tier string/null is preserved by direct OpenAI and delegated OpenRouter across both bases and pinned official OpenRouter/OpenAI SDKs. Malformed values fail safely; IAM/limits/accounting remain shared and operational metadata excludes tier values. This is response metadata only; native mappings, request controls, streamed tiers and complete conformance remain open. See [plan](plans/248-service-tier.md) and [contract](../contracts/service-tier-responses.md).
+
+
+## Delegated stream service tier metadata
+
+Delegated text streams preserve optional service_tier string/null in chunks and actual final usage metadata through both bases and pinned official SDK sockets. Values do not influence policy/limits/accounting and remain outside operational metadata/errors. Malformed values retain safe first/later failures; absent final usage/tier is never inferred from prior chunks. Direct/tool/native streams, tier request controls and full conformance remain open. See [plan](plans/250-stream-service-tier.md) and [contract](../contracts/stream-service-tiers.md).

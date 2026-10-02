@@ -725,3 +725,8 @@ Actual official SDK sockets accept missing/partial/invalid normalized usage on /
 ## Nonstream service tier metadata
 
 Both public chat bases and pinned SDK sockets preserve exact service-tier string/null/omission in text/refusal/filter/tool outcomes. Malformed values fail safely with failed-attempt/possibly-billed accounting. Denials, required ledger/outcome-audit failures and metadata privacy remain shared. Scalars are captured once; native unrelated fields stay omitted and client tier controls reject before dispatch. See [plan](plans/248-service-tier.md).
+
+
+## Delegated stream service tier metadata
+
+Both bases and actual official SDK sockets preserve exact streamed tier string/null/omission with safe JSON framing and independent final usage metadata. Missing usage emits no invented frame. Malformed first/later values fail safely with possible-billing accounting and no DONE; denial/limit/required ledger/audit gates remain. Callback identity and operational metadata contain no tier. See [plan](plans/250-stream-service-tier.md).
