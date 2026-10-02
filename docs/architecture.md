@@ -454,3 +454,7 @@ The chat HTTP validator and both native invokers use a shared bounded snapshot o
 ## Function-tool history boundary
 
 The shared message snapshot validator tracks pending function-call IDs across one assistant group and its tool-result messages. It rejects orphan, duplicate, interrupted and unresolved groups before routing or credential lookup. The HTTP text-part normalizer handles tool-result text arrays and preserves assistant null/omitted content for call groups. Direct OpenAI and delegated OpenRouter forward the immutable history; native Anthropic/Gemini reject it before secrets. Each continuation is a new authenticated, policy-evaluated, limited and audited model request. See [plan](plans/184-function-tool-history.md) and [contract](../contracts/function-tool-history.md).
+
+## HTTP client disconnection signal
+
+The shared Node HTTP bridge attaches a per-request AbortSignal, aborts it on interrupted upload or premature response closure, and removes its lifecycle listeners when handling and delivery finish. Existing pipeline streaming preserves downstream backpressure and cancels the active body on connection loss. A response returned after disconnection is cancelled without a fallback socket write. Normal completed responses do not abort. Upstream signal propagation, audited interruption and public chat streaming remain pending. See [contract](../contracts/http-client-disconnection.md) and [plan](plans/208-http-client-disconnection.md).

@@ -10,6 +10,13 @@ import {
 /** Adapt an already-composed Fetch-style request boundary to a Node HTTP socket server. */
 export function createNodeRequestServer(handle: (request: Request) => Promise<Response>): Server {
   return createServer(async (incoming, outgoing) => {
+    const cancellation = new AbortController();
+    const abort = () => cancellation.abort();
+    const onClose = () => {
+      if (!outgoing.writableFinished) abort();
+    };
+    incoming.once('aborted', abort);
+    outgoing.once('close', onClose);
     let errorFormat: ClientErrorFormat = 'opengranter';
     try {
       const headers = new Headers();
@@ -23,12 +30,17 @@ export function createNodeRequestServer(handle: (request: Request) => Promise<Re
       const request = new Request(`http://localhost${path}`, {
         method,
         headers,
+        signal: cancellation.signal,
         ...(['GET', 'HEAD'].includes(method)
           ? {}
           : { body: Readable.toWeb(incoming), duplex: 'half' as const }),
       } as RequestInit & { duplex?: 'half' });
       errorFormat = clientErrorFormat(new URL(request.url).pathname);
       const response = await handle(request);
+      if (cancellation.signal.aborted || outgoing.destroyed) {
+        await response.body?.cancel().catch(() => undefined);
+        return;
+      }
       outgoing.statusCode = response.status;
       response.headers.forEach((value, name) => {
         outgoing.setHeader(name, value);
@@ -39,6 +51,9 @@ export function createNodeRequestServer(handle: (request: Request) => Promise<Re
         outgoing.end();
       }
     } catch {
+      if (outgoing.destroyed) {
+        return;
+      }
       if (outgoing.headersSent) {
         outgoing.destroy();
       } else {
@@ -48,6 +63,9 @@ export function createNodeRequestServer(handle: (request: Request) => Promise<Re
           await createClientErrorResponse(500, 'internal_error', undefined, errorFormat).text(),
         );
       }
+    } finally {
+      incoming.removeListener('aborted', abort);
+      outgoing.removeListener('close', onClose);
     }
   });
 }

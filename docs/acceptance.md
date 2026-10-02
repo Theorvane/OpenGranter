@@ -578,3 +578,9 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Model/final-provider IAM, verified provider mapping, limits and required selection audit run before any scoped upstream stream or client delta frame. Deltas use the authorized client model alias and awaited output callback.
 - A complete validated attempt records usage and a success audit before the composition returns final usage and `[DONE]` frames. Missing/invalid usage is retained in accounting without fabricated client counters.
 - Denial, upstream/output failure, invalid trusted outcome and required usage/audit failure return no terminal success frames. Possibly billed failures use the existing failed-attempt record and audit path. Public `stream:true`, HTTP delivery, interruption and direct-provider streams remain open. See [plan](plans/206-delegated-text-stream.md) and [contract](../contracts/delegated-text-stream.md).
+
+## HTTP client disconnection
+
+- A client disconnect before response creation aborts the Fetch Request signal. Interrupted uploads and disconnects during progressive response delivery do the same; downstream loss cancels the active response body.
+- A normally completed response does not abort the signal. The bridge removes lifecycle listeners and never writes a JSON fallback to a destroyed socket or after streaming headers.
+- This socket boundary does not enable chat streaming or replace required usage and interruption audit. See [contract](../contracts/http-client-disconnection.md).
