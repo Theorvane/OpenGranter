@@ -466,3 +466,7 @@ The text-stream invoker accepts an optional per-call AbortSignal, captured befor
 ## Delegated HTTP text stream delivery
 
 The chat boundary dispatches validated delegated stream:true through the existing scoped coordinator and a one-frame, zero-high-water-mark Fetch response handoff. It returns SSE only at the first validated delta, awaits pulls, and links request/body cancellation to the per-attempt upstream signal. A fixed path-specific SSE error terminates started failures without DONE. Usage and required outcome audit precede final frames. PostgreSQL composition supplies the trusted streaming invoker; a separate allowlisted stream-interrupted event records delivery loss without changing a successful upstream usage record. Physical socket acknowledgment and durable failed-audit recovery remain open. See [plan](plans/212-delegated-http-stream.md) and [contract](../contracts/delegated-http-stream.md).
+
+## Stream usage option capture
+
+A shared pure snapshot validates nullable options and freezes only the optional include_usage boolean at HTTP and delegated native boundaries before awaits. Streaming requests forward the captured object; null/omission add no field. Non-null nonstream options reject before secrets. Final framing and accounting ignore the deprecated flag, preserving OpenRouter's unconditional usage convention. Version 6 pins the request reference and nested option definition. See [plan](plans/214-stream-usage-options.md) and [contract](../contracts/stream-usage-options.md).

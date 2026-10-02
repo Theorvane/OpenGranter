@@ -91,7 +91,7 @@ function fixture() {
       };
     },
   };
-  const request = (base = '/api/v1', body = chat, signal?: AbortSignal) =>
+  const request = (base = '/api/v1', body: unknown = chat, signal?: AbortSignal) =>
     new Request(`http://gateway${base}/chat/completions`, {
       method: 'POST',
       headers: { authorization: 'Bearer proxy-key', 'content-type': 'application/json' },
@@ -104,7 +104,9 @@ function fixture() {
 test('both chat prefixes deliver controlled text SSE and account before final frames', async () => {
   for (const base of ['/v1', '/api/v1']) {
     const f = fixture();
-    const response = await createChatHandler(f.ports)(f.request(base));
+    const response = await createChatHandler(f.ports)(
+      f.request(base, { ...chat, stream_options: { include_usage: false } }),
+    );
     assert.equal(response.status, 200);
     assert.equal(response.headers.get('content-type'), 'text/event-stream; charset=utf-8');
     assert.equal(response.headers.get('x-request-id'), 'req-stream');
@@ -157,7 +159,9 @@ test('pre-frame authentication, IAM, limit and upstream failures remain safe JSO
           throw new OpenRouterChatFailure('upstream', true, true);
         },
       };
-    const response = await createChatHandler(f.ports)(f.request());
+    const response = await createChatHandler(f.ports)(
+      f.request('/api/v1', { ...chat, stream_options: { include_usage: false } }),
+    );
     assert.equal(response.status, status);
     assert.ok(response.headers.get('content-type')?.includes('application/json'));
     assert.equal(((await response.json()) as { error: { code: number } }).error.code, status);
@@ -171,7 +175,7 @@ test('streaming tools and managed routes reject before inference', async () => {
     { tools: [] },
     { tool_choice: 'none' },
     { parallel_tool_calls: false },
-    { stream_options: { include_usage: true } },
+    { stream_options: { include_usage: 'yes' } },
     {
       messages: [
         {
@@ -235,7 +239,9 @@ test('midstream upstream, usage and audit failures send one safe error without D
             f.audit.push(event);
           },
         };
-      const response = await createChatHandler(f.ports)(f.request(base));
+      const response = await createChatHandler(f.ports)(
+        f.request(base, { ...chat, stream_options: { include_usage: false } }),
+      );
       const frames = (await response.text()).trim().split('\n\n');
       const error = JSON.parse(frames.at(-1)?.slice(6) ?? '{}');
       assert.ok(error.error);
@@ -346,6 +352,7 @@ test('pinned SDK consumes delegated streaming over an actual socket', {
       model: 'chat',
       messages: [{ role: 'user', content: 'private prompt' }],
       stream: true,
+      stream_options: { include_usage: true },
     });
     const chunks = [];
     for await (const chunk of stream) chunks.push(chunk);
@@ -507,9 +514,58 @@ test('missing final usage stays unknown and emits no fabricated usage frame', as
       usage: undefined,
     }),
   };
-  const response = await createChatHandler(f.ports)(f.request());
+  const response = await createChatHandler(f.ports)(
+    f.request('/api/v1', { ...chat, stream_options: { include_usage: false } }),
+  );
   const text = await response.text();
   assert.ok(text.endsWith('data: [DONE]\n\n'));
   assert.equal(text.includes('"usage"'), false);
   assert.equal(f.records[0]?.usage.status, 'missing');
+});
+
+test('both bases accept nullable stream usage options without suppressing accounting', async () => {
+  for (const base of ['/v1', '/api/v1']) {
+    for (const options of [null, {}, { include_usage: true }, { include_usage: false }]) {
+      const f = fixture();
+      const payload = { ...chat, stream_options: options };
+      const response = await createChatHandler(f.ports)(f.request(base, payload));
+      assert.equal(response.status, 200);
+      const text = await response.text();
+      assert.ok(text.includes('"total_tokens":3'));
+      assert.ok(text.endsWith('data: [DONE]\n\n'));
+      assert.equal(f.records.length, 1);
+      assert.equal(f.records[0]?.usage.status, 'reported');
+    }
+  }
+});
+
+test('malformed and nonstream usage options fail before route or upstream work', async () => {
+  for (const options of [
+    true,
+    'private invalid',
+    [],
+    { include_usage: null },
+    { include_usage: 1 },
+    { unknown: true },
+    { include_usage: true, extra: 'private' },
+  ]) {
+    const f = fixture();
+    let routes = 0;
+    f.ports = {
+      ...f.ports,
+      resolveRoute: async () => {
+        routes++;
+        assert.fail('invalid options resolved route');
+      },
+    };
+    const payload = { ...chat, stream_options: options };
+    const response = await createChatHandler(f.ports)(f.request('/api/v1', payload));
+    assert.equal(response.status, 400);
+    assert.equal(routes, 0);
+    assert.equal(f.calls(), 0);
+    assert.equal((await response.text()).includes('private'), false);
+  }
+  const f = fixture();
+  const nonstream = { ...chat, stream: false, stream_options: {} };
+  assert.equal((await createChatHandler(f.ports)(f.request('/api/v1', nonstream))).status, 400);
 });

@@ -129,6 +129,7 @@ function source(): Record<string, unknown> {
     },
   };
   Object.assign(data.components.schemas.ChatRequest.properties, {
+    stream_options: structuredClone(pinned.projection.fields.stream_options),
     tools: structuredClone(pinned.projection.fields.tools),
     tool_choice: structuredClone(pinned.projection.fields.tool_choice),
     parallel_tool_calls: structuredClone(pinned.projection.fields.parallel_tool_calls),
@@ -171,6 +172,7 @@ test('official projection and reviewed pin agree; key order is immaterial', () =
     'seed',
     'stop',
     'stream',
+    'stream_options',
     'temperature',
     'tool_choice',
     'tools',
@@ -465,8 +467,8 @@ for (const name of ['ChatFormatTextConfig', 'ChatFormatJsonObjectConfig']) {
     }
   });
 }
-test('version-5 pin retains exact selected request definitions', () => {
-  assert.equal(pinned.version, 5);
+test('version-6 pin retains exact selected request definitions', () => {
+  assert.equal(pinned.version, 6);
   const definitions = (
     projectOfficialSchema(source()) as unknown as { definitions: Record<string, unknown> }
   ).definitions;
@@ -632,8 +634,8 @@ test('message name selection ignores editorial and unrelated message changes', (
   for (const value of Object.values(projected.messageNames))
     assert.deepEqual(value, { schema: { type: 'string' }, required: false });
 });
-test('version-5 message maps reject stale and rehashed malformed pins', () => {
-  for (const version of [1, 2, 3, 4])
+test('version-6 message maps reject stale and rehashed malformed pins', () => {
+  for (const version of [1, 2, 3, 4, 5])
     assert.throws(() => validateSchemaPin({ ...pinned, version }), /Invalid schema pin/);
   for (const messageNames of [
     undefined,
@@ -658,5 +660,38 @@ test('version-5 message maps reject stale and rehashed malformed pins', () => {
       () => validateSchemaPin({ ...pinned, projection, projectionSha256 }),
       /Invalid schema pin/,
     );
+  }
+});
+
+test('request projection selects the stream options reference', () => {
+  const data = source();
+  const schemas = (
+    data.components as { schemas: Record<string, { properties: Record<string, unknown> }> }
+  ).schemas;
+  assert.ok(schemas.ChatRequest);
+  schemas.ChatRequest.properties.stream_options = {
+    $ref: '#/components/schemas/ChatStreamOptions',
+  };
+  assert.deepEqual(projectOfficialSchema(data).fields.stream_options, {
+    $ref: '#/components/schemas/ChatStreamOptions',
+  });
+});
+
+test('stream option reference, boolean type and deprecation changes are detected', () => {
+  for (const variant of ['reference', 'type', 'deprecated']) {
+    const data = source();
+    const schemas = (
+      data.components as {
+        schemas: Record<string, { properties: Record<string, Record<string, unknown>> }>;
+      }
+    ).schemas;
+    const field = schemas.ChatRequest?.properties.stream_options;
+    const option = schemas.ChatStreamOptions?.properties.include_usage;
+    assert.ok(field);
+    assert.ok(option);
+    if (variant === 'reference') field.$ref = '#/components/schemas/OtherOptions';
+    if (variant === 'type') option.type = 'string';
+    if (variant === 'deprecated') option.deprecated = false;
+    assert.equal(compareOfficialSchema(data, pinned), false);
   }
 });

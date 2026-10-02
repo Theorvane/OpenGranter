@@ -107,3 +107,20 @@ export function validTopK(value: unknown): value is number | undefined {
 export function validSeed(value: unknown): value is number | undefined {
   return value === undefined || (typeof value === 'number' && Number.isSafeInteger(value));
 }
+export interface StreamOptions {
+  readonly include_usage?: boolean;
+}
+
+/** Capture the bounded delegated stream options before asynchronous work. */
+export function snapshotStreamOptions(value: unknown): StreamOptions | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== 'object' || Array.isArray(value))
+    throw new TypeError('Invalid stream options');
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null)
+    throw new TypeError('Invalid stream options');
+  const entries = Object.entries(value);
+  if (entries.some(([key, option]) => key !== 'include_usage' || typeof option !== 'boolean'))
+    throw new TypeError('Invalid stream options');
+  return Object.freeze(Object.fromEntries(entries));
+}
