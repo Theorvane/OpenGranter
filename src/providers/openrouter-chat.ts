@@ -17,6 +17,7 @@ import {
   snapshotParallelToolCalls,
   snapshotToolChoice,
 } from '../gateway/chat-tools.ts';
+import { waitForStreamOperation } from '../streaming/wait-for-stream-operation.ts';
 import { normalizeProviderUsage } from '../usage/normalize-provider-tokens.ts';
 import { normalizeAssistantResponse } from './assistant-response.ts';
 import type { ChatCompletion } from './direct-chat.ts';
@@ -272,26 +273,42 @@ function prepareOpenRouterChatRequest(
 async function fetchOpenRouterChatResponse(
   ports: OpenRouterChatPorts,
   prepared: PreparedOpenRouterChatRequest,
-): Promise<{ readonly response: Response; readonly timeout: AbortSignal }> {
+  cancellation?: AbortSignal,
+): Promise<{
+  readonly response: Response;
+  readonly timeout: AbortSignal;
+  readonly signal: AbortSignal;
+}> {
+  if (cancellation?.aborted) fail('upstream');
   let key: string | undefined;
   try {
-    key = await ports.resolveSecret(prepared.credentialRef);
+    key = await waitForStreamOperation(ports.resolveSecret(prepared.credentialRef), cancellation);
   } catch {
+    if (cancellation?.aborted) fail('upstream');
     fail('credential');
   }
+  if (cancellation?.aborted) fail('upstream');
   if (!key) fail('credential');
 
   const timeout = AbortSignal.timeout(prepared.timeoutMs);
+  const signal = cancellation ? AbortSignal.any([cancellation, timeout]) : timeout;
   let response: Response;
   try {
-    response = await (ports.fetcher ?? fetch)(OPENROUTER_CHAT_URL, {
-      method: 'POST',
-      headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
-      body: JSON.stringify(prepared.body),
-      redirect: 'error',
-      signal: timeout,
-    });
+    response = await waitForStreamOperation(
+      (ports.fetcher ?? fetch)(OPENROUTER_CHAT_URL, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
+        body: JSON.stringify(prepared.body),
+        redirect: 'error',
+        signal,
+      }),
+      signal,
+      (lateResponse) => {
+        void lateResponse.body?.cancel().catch(() => {});
+      },
+    );
   } catch (error) {
+    if (cancellation?.aborted && !timeout.aborted) fail('upstream', false, true);
     if (
       timeout.aborted ||
       (error instanceof DOMException && ['AbortError', 'TimeoutError'].includes(error.name))
@@ -300,7 +317,7 @@ async function fetchOpenRouterChatResponse(
     }
     fail('upstream', false, true);
   }
-  return { response, timeout };
+  return { response, timeout, signal };
 }
 
 /** Keep preparation and transport inside one validated adapter boundary. */
@@ -309,14 +326,20 @@ export async function invokeOpenRouterChatTransport(
   attempt: OpenRouterChatAttempt,
   request: ChatRequest,
   stream: boolean,
+  cancellation?: AbortSignal,
 ): Promise<{
   readonly prepared: PreparedOpenRouterChatRequest;
   readonly response: Response;
   readonly timeout: AbortSignal;
+  readonly signal: AbortSignal;
 }> {
   const prepared = prepareOpenRouterChatRequest(ports, attempt, request, stream);
-  const { response, timeout } = await fetchOpenRouterChatResponse(ports, prepared);
-  return { prepared, response, timeout };
+  const { response, timeout, signal } = await fetchOpenRouterChatResponse(
+    ports,
+    prepared,
+    cancellation,
+  );
+  return { prepared, response, timeout, signal };
 }
 
 /** Invoke one previously authorized delegated route without forwarding caller routing controls. */

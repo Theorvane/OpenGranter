@@ -9,6 +9,7 @@ import {
   OpenRouterTextStreamSequence,
 } from './openrouter-stream-sequence.ts';
 import { parseSseDataEvents } from './parse-sse-data-events.ts';
+import { waitForStreamOperation } from './wait-for-stream-operation.ts';
 
 type Delta = Extract<OpenRouterTextStreamPayload, { kind: 'delta' }>;
 
@@ -17,6 +18,7 @@ export async function consumeOpenRouterTextStream(
   source: ReadableStream<Uint8Array>,
   scope: StreamModelScope,
   onDelta: (delta: Delta) => void | Promise<void>,
+  signal?: AbortSignal,
 ): Promise<OpenRouterTextStreamOutcome> {
   const fixedScope = Object.freeze({
     upstreamModelId: scope.upstreamModelId,
@@ -24,10 +26,11 @@ export async function consumeOpenRouterTextStream(
   });
   const sequence = new OpenRouterTextStreamSequence();
   try {
-    for await (const data of parseSseDataEvents(source)) {
+    for await (const data of parseSseDataEvents(source, undefined, signal)) {
       const event = decodeOpenRouterStreamPayload(data, fixedScope);
       sequence.accept(event);
-      if (event.kind === 'delta') await onDelta(event);
+      if (event.kind === 'delta')
+        await waitForStreamOperation(Promise.resolve(onDelta(event)), signal);
       if (event.kind === 'done' || event.kind === 'error') break;
     }
     return sequence.finish();

@@ -261,3 +261,7 @@ OpenRouter-compatible clients can return a completed assistant function-call gro
 ## HTTP client disconnection prerequisite
 
 The Node transport supplies a per-request signal for interrupted uploads and premature response disconnections, preserves progressive body delivery, and avoids fallback writes after socket loss. Upstream cancellation and audited client chat streaming remain release work; this transport prerequisite alone does not enable stream:true. See [contract](../contracts/http-client-disconnection.md).
+
+## Internal delegated streaming cancellation
+
+An optional per-call signal stops internal OpenRouter text-stream work before HTTP or during fetch/body consumption. Pre-dispatch cancellation is non-billable; dispatched attempts retain possible billing, unknown usage and the existing failure accounting path without replay. Client HTTP wiring and audited interruption remain pending. See [contract](../contracts/openrouter-stream-cancellation.md).

@@ -584,3 +584,9 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - A client disconnect before response creation aborts the Fetch Request signal. Interrupted uploads and disconnects during progressive response delivery do the same; downstream loss cancels the active response body.
 - A normally completed response does not abort the signal. The bridge removes lifecycle listeners and never writes a JSON fallback to a destroyed socket or after streaming headers.
 - This socket boundary does not enable chat streaming or replace required usage and interruption audit. See [contract](../contracts/http-client-disconnection.md).
+
+## Internal OpenRouter stream cancellation
+
+- Already aborted and credential-await cancellation prevent HTTP and billable attempt creation. A pending fetch or stalled body abort is safe, possibly billed once dispatched, and never retried.
+- Cancellation after headers keeps response-started metadata, stops buffered delta delivery and cleans up reader locks/listeners. Caller reasons and provider content remain outside error, audit and usage metadata.
+- The delegated composition records a dispatched cancellation as one failed attempt with unknown usage and emits no terminal success frames. Omitted signals and timeouts retain existing behavior. See [contract](../contracts/openrouter-stream-cancellation.md).

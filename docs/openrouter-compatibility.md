@@ -188,3 +188,7 @@ Validated non-streaming function-tool request controls pass through both compati
 ## Client socket cancellation prerequisite
 
 The Node bridge propagates interrupted uploads and premature response disconnections through Request.signal and preserves progressive backpressure-aware response delivery. Handlers and providers still need to observe that signal. Delegated/direct upstream cancellation, HTTP SSE failures and interruption accounting/audit remain open; public stream:true stays disabled. See [plan](plans/208-http-client-disconnection.md) and [contract](../contracts/http-client-disconnection.md).
+
+## Internal upstream cancellation prerequisite
+
+The delegated text-stream invoker accepts a per-call abort signal, combines it with timeout, prevents cancelled pre-dispatch HTTP and terminates stalled SSE reads. Dispatched cancellation remains possibly billed with existing failed-attempt accounting and no replay. The public HTTP handler does not yet supply the signal or enable stream:true; delivery interruption events, safe midstream errors and direct-provider cancellation remain open. See [plan](plans/210-openrouter-stream-cancellation.md) and [contract](../contracts/openrouter-stream-cancellation.md).
