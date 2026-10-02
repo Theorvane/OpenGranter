@@ -15,6 +15,7 @@ const FIELD_NAMES = [
   'stop',
   'temperature',
   'top_p',
+  'min_p',
   'response_format',
   'frequency_penalty',
   'presence_penalty',
@@ -268,7 +269,7 @@ export function validateSchemaPin(value: unknown): { projection: SchemaProjectio
   try {
     const data = record(value);
     if (
-      data?.version !== 10 ||
+      data?.version !== 11 ||
       data.source !== OFFICIAL_SCHEMA_URL ||
       typeof data.retrievedAt !== 'string' ||
       !/^\d{4}-\d{2}-\d{2}$/.test(data.retrievedAt) ||

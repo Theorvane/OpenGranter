@@ -376,3 +376,7 @@ Delegated OpenRouter text streams preserve optional string/null service_tier res
 ## Delegated min-p sampling subset
 
 Optional nullable finite min_p in 0..1 is accepted on both chat bases and forwarded exactly for delegated OpenRouter nonstream/text streams. Registered direct adapters reject supplied non-null controls before credentials rather than silently discard them. Defaults and security/accounting remain shared; model support and structural drift selection remain open. See [contract](../contracts/client-min-p.md).
+
+## Min-p request source drift
+
+The version-11 source guard tracks optional nullable min_p request structure without changing runtime sampling controls or provider capabilities. Existing security and accounting contracts remain unchanged. See [plan](plans/254-min-p-schema.md) and [contract](../contracts/openrouter-schema-drift.md).

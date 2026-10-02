@@ -59,6 +59,7 @@ function source(): Record<string, unknown> {
             },
             temperature: { type: ['number', 'null'], format: 'double' },
             top_p: { type: ['number', 'null'], format: 'double' },
+            min_p: { type: ['number', 'null'], format: 'double' },
             frequency_penalty: { type: ['number', 'null'], format: 'double' },
             presence_penalty: { type: ['number', 'null'], format: 'double' },
             seed: { type: ['integer', 'null'] },
@@ -176,6 +177,7 @@ test('official projection and reviewed pin agree; key order is immaterial', () =
     'max_completion_tokens',
     'max_tokens',
     'messages',
+    'min_p',
     'model',
     'parallel_tool_calls',
     'presence_penalty',
@@ -478,8 +480,8 @@ for (const name of ['ChatFormatTextConfig', 'ChatFormatJsonObjectConfig']) {
     }
   });
 }
-test('version-10 pin retains exact selected definitions', () => {
-  assert.equal(pinned.version, 10);
+test('version-11 pin retains exact selected definitions', () => {
+  assert.equal(pinned.version, 11);
   const definitions = (
     projectOfficialSchema(source()) as unknown as { definitions: Record<string, unknown> }
   ).definitions;
@@ -648,8 +650,8 @@ test('message name selection ignores editorial and unrelated message changes', (
   for (const value of Object.values(projected.messageNames))
     assert.deepEqual(value, { schema: { type: 'string' }, required: false });
 });
-test('version-10 message maps reject stale and rehashed malformed pins', () => {
-  for (const version of [1, 2, 3, 4, 5, 6, 7, 8, 9])
+test('version-11 message maps reject stale and rehashed malformed pins', () => {
+  for (const version of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
     assert.throws(() => validateSchemaPin({ ...pinned, version }), /Invalid schema pin/);
   for (const messageNames of [
     undefined,
@@ -1104,5 +1106,81 @@ test('chat usage rehashed missing, extra and malformed maps fail integrity', () 
     assert.throws(() => validateSchemaPin({ ...pinned, projection, projectionSha256: hash }), {
       message: 'Invalid schema pin',
     });
+  }
+});
+
+test('min_p selection preserves the official nullable number structure', () => {
+  const data = source();
+  const properties = minPProperties(data);
+  properties.min_p = { type: ['number', 'null'], format: 'double' };
+  assert.deepEqual(projectOfficialSchema(data).fields.min_p, {
+    type: ['number', 'null'],
+    format: 'double',
+  });
+});
+
+function minPProperties(data: Record<string, unknown>) {
+  const schemas = (
+    data.components as { schemas: Record<string, { properties: Record<string, unknown> }> }
+  ).schemas;
+  assert.ok(schemas.ChatRequest);
+  return schemas.ChatRequest.properties;
+}
+
+test('min_p type, nullability, format, bounds and default changes cause drift', () => {
+  for (const replacement of [
+    { type: 'number', format: 'double' },
+    { type: ['integer', 'null'], format: 'double' },
+    { type: ['number', 'null'], format: 'float' },
+    ...['minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf', 'default'].map(
+      (key) => ({ type: ['number', 'null'], format: 'double', [key]: 0.5 }),
+    ),
+  ]) {
+    const data = source();
+    minPProperties(data).min_p = replacement;
+    assert.equal(compareOfficialSchema(data, pinned), false);
+  }
+});
+
+test('min_p annotations are ignored but literal default keys remain data', () => {
+  const data = source();
+  minPProperties(data).min_p = {
+    type: ['number', 'null'],
+    format: 'double',
+    description: 'editorial',
+    example: 0.2,
+    title: 'editorial',
+  };
+  assert.equal(compareOfficialSchema(data, pinned), true);
+  const literal = { description: 'literal value', example: 0.3 };
+  minPProperties(data).min_p = { type: ['number', 'null'], format: 'double', default: literal };
+  assert.deepEqual(projectOfficialSchema(data).fields.min_p, {
+    type: ['number', 'null'],
+    format: 'double',
+    default: literal,
+  });
+  assert.equal(compareOfficialSchema(data, pinned), false);
+});
+
+test('missing and malformed min_p source shapes fail safely', () => {
+  for (const value of [undefined, null, [], 'private source value']) {
+    const data = source();
+    minPProperties(data).min_p = value;
+    assert.throws(() => projectOfficialSchema(data), /Invalid official schema/);
+  }
+});
+
+test('min_p exact field map rejects rehashed missing, extra and malformed selections', () => {
+  for (const operation of ['missing', 'extra', 'malformed']) {
+    const fields = { ...pinned.projection.fields };
+    if (operation === 'missing') delete fields.min_p;
+    if (operation === 'extra') fields.unselected = { type: 'number' };
+    if (operation === 'malformed') fields.min_p = [];
+    const projection = { ...pinned.projection, fields };
+    const projectionSha256 = createHash('sha256').update(canonicalSchema(projection)).digest('hex');
+    assert.throws(
+      () => validateSchemaPin({ ...pinned, projection, projectionSha256 }),
+      /Invalid schema pin/,
+    );
   }
 });

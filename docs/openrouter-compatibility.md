@@ -312,3 +312,7 @@ Delegated text streams preserve optional service_tier string/null in chunks and 
 ## Delegated min-p sampling subset
 
 Nullable min_p finite 0..1 now passes both chat bases and pinned official SDKs to delegated OpenRouter nonstream/text-stream requests with exact values and approved provider scope. Direct OpenAI/Anthropic/Gemini supplied controls reject before credentials; null/omission preserves defaults. IAM/limits/audit/usage and safe failures remain shared. Individual model capability, native mappings, min_p structural source selection and complete compatibility remain open. See [plan](plans/252-min-p.md) and [contract](../contracts/client-min-p.md).
+
+## Min-p request source drift
+
+Version 11 selects min_p as the nineteenth request field. This bounded source guard does not certify native-provider support, runtime instance validation or full compatibility. Release gate #116 remains partial. See [plan](plans/254-min-p-schema.md) and [contract](../contracts/openrouter-schema-drift.md).
