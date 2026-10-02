@@ -603,7 +603,8 @@ test('route-store failure is audited without disclosing storage errors', async (
 test('unsupported fields and malformed messages are rejected before upstream calls', async () => {
   const bodies = [
     { ...validBody, stream: true },
-    { ...validBody, top_a: 0.1 },
+    { ...validBody, unrelated_field: 0.1 },
+    { ...validBody, top_a: -0.1 },
     { ...validBody, min_p: -0.1 },
     { ...validBody, top_k: -1 },
     { ...validBody, temperature: 2.1 },

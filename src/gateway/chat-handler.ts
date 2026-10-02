@@ -50,6 +50,7 @@ import {
   validSeed,
   validSingleChoice,
   validTemperature,
+  validTopA,
   validTopK,
   validTopP,
   validVerbosity,
@@ -93,6 +94,7 @@ export interface ChatRequest {
   readonly presence_penalty?: number;
   readonly response_format?: ResponseFormat;
   readonly top_p?: number;
+  readonly top_a?: number;
   readonly min_p?: number;
   readonly top_k?: number;
   readonly logit_bias?: Readonly<Record<string, number>>;
@@ -390,6 +392,7 @@ function validateChat(value: unknown, streaming = false): ValidatedChatRequest |
           'stop',
           'temperature',
           'top_p',
+          'top_a',
           'min_p',
           'top_k',
           'logit_bias',
@@ -448,6 +451,8 @@ function validateChat(value: unknown, streaming = false): ValidatedChatRequest |
   }
   const minP = value.min_p ?? undefined;
   if (!validMinP(minP)) return undefined;
+  const topA = value.top_a ?? undefined;
+  if (!validTopA(topA)) return undefined;
   const topP = value.top_p ?? undefined;
   if (!validTopP(topP)) return undefined;
   let maxTokens: number | undefined;
@@ -490,6 +495,7 @@ function validateChat(value: unknown, streaming = false): ValidatedChatRequest |
     ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
     ...(temperature === undefined ? {} : { temperature }),
     ...(topP === undefined ? {} : { top_p: topP }),
+    ...(topA === undefined ? {} : { top_a: topA }),
     ...(minP === undefined ? {} : { min_p: minP }),
     ...(topK === undefined ? {} : { top_k: topK }),
     ...(logitBias === undefined ? {} : { logit_bias: logitBias }),
