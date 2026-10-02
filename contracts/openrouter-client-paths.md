@@ -4,7 +4,7 @@ POST /api/v1/chat/completions and GET /api/v1/models share execution boundaries 
 
 Clients configure the gateway origin plus /api/v1 as base URL and their OpenGranter proxy token as the Bearer API key. Optional client app-identification headers do not grant authority or replace server-held upstream credentials. Published aliases remain IAM filtered.
 
-Only /api/v1/models adds configured trusted discovery metadata, visible total_count and links.next:null; /v1 remains basic. Missing metadata preserves the basic-entry SDK gap. See [discovery contract](model-discovery-metadata.md).
+Only /api/v1/models adds configured trusted discovery metadata, visible total_count and relative continuation links for bounded offset/limit paging; /v1 remains basic. Missing metadata preserves the basic-entry SDK gap. See [discovery contract](model-discovery-metadata.md) and [paging contract](model-list-paging.md).
 
 Wrong methods, near-miss paths and unknown /api/v1 endpoints remain 404. OpenGranter history extensions retain their documented /v1 paths. Existing unsupported fields fail validation; this contract provides path compatibility, not complete OpenRouter schema compatibility. See [compatibility status](../docs/openrouter-compatibility.md).
 

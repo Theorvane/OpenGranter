@@ -71,6 +71,7 @@ import {
   type OpenRouterModelMetadata,
   snapshotOpenRouterMetadata,
 } from './model-discovery-metadata.ts';
+import { parseModelListQuery } from './model-list-query.ts';
 
 const MAX_BODY_BYTES = 1024 * 1024;
 
@@ -820,7 +821,8 @@ export function createChatHandler<T>(
     }
 
     if (modelListRequest) {
-      if (url.search) {
+      const query = parseModelListQuery(url, format === 'openrouter');
+      if (!query) {
         try {
           await ports.writeAudit({
             ...attribution,
@@ -848,28 +850,36 @@ export function createChatHandler<T>(
         }
         return errorResponse(503, 'catalog_unavailable', requestId);
       }
-      const data = catalog
-        .filter(
-          (model) =>
-            model.enabled &&
-            model.routes.some(
-              (route) =>
-                authorizeCandidates({
-                  principalActive: principal.active,
-                  modelAlias: model.alias,
-                  routeKind: route.kind,
-                  candidates: route.candidates,
-                  statements: principal.statements,
-                }).candidates.length > 0,
-            ),
-        )
-        .map((model) => ({
-          ...(format === 'openrouter' ? metadata.get(model) : {}),
-          id: model.alias,
-          object: 'model',
-          created: model.created,
-          owned_by: 'opengranter',
-        }));
+      const visible = catalog.filter(
+        (model) =>
+          model.enabled &&
+          model.routes.some(
+            (route) =>
+              authorizeCandidates({
+                principalActive: principal.active,
+                modelAlias: model.alias,
+                routeKind: route.kind,
+                candidates: route.candidates,
+                statements: principal.statements,
+              }).candidates.length > 0,
+          ),
+      );
+      const selected =
+        query.limit === undefined
+          ? visible
+          : visible.slice(query.offset, query.offset + query.limit);
+      const data = selected.map((model) => ({
+        ...(format === 'openrouter' ? metadata.get(model) : {}),
+        id: model.alias,
+        object: 'model',
+        created: model.created,
+        owned_by: 'opengranter',
+      }));
+      const nextOffset = query.offset + data.length;
+      const next =
+        query.limit !== undefined && nextOffset < visible.length
+          ? `/api/v1/models?offset=${nextOffset}&limit=${query.limit}`
+          : null;
       try {
         await ports.writeAudit({
           ...attribution,
@@ -884,7 +894,7 @@ export function createChatHandler<T>(
         {
           object: 'list',
           data,
-          ...(format === 'openrouter' ? { total_count: data.length, links: { next: null } } : {}),
+          ...(format === 'openrouter' ? { total_count: visible.length, links: { next } } : {}),
         },
         { status: 200, headers: { 'x-request-id': requestId } },
       );
