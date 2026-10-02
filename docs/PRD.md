@@ -356,3 +356,8 @@ The version-9 source guard tracks successful nonstream response, choice and assi
 ## Chat usage source drift
 
 The version-10 structural source guard tracks chat token and cost usage definitions shared by nonstream and stream responses. Existing unknown usage, estimated versus provider-billed cost and supported field projection remain unchanged; full usage/client conformance remains open. See [plan](plans/244-usage-schema.md).
+
+
+## Compatible nonstream usage availability
+
+Normalized /api/v1 nonstream completions omit incomplete/invalid usage instead of making compatible clients reject successful text or inventing token counters. Internal missing/partial/invalid accounting and protected usage history retain the reported state. Complete counters, legacy /v1 and required security/accounting gates remain unchanged. See [contract](../contracts/compatible-completion-usage.md).

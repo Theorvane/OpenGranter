@@ -292,3 +292,8 @@ Version 9 tracks the official successful nonstream response reference plus ChatR
 ## Chat usage source drift
 
 Version 10 selects ChatUsage, CostDetails and ServerToolUseDetails, including inline token details, as bounded structural source coverage shared by chat and stream responses. Source selection does not imply runtime support for every field, server tools or complete usage/SDK conformance. Unknown usage and estimated versus billed costs retain existing behavior. All previous selections and the official source digest are unchanged. See [plan](plans/244-usage-schema.md) and [contract](../contracts/openrouter-schema-drift.md).
+
+
+## Compatible nonstream usage availability
+
+Normalized nonstream /api/v1 completions omit incomplete usage while keeping internal missing/partial/invalid reporting, allowing official OpenRouter SDK 1.4.18 to deserialize successful responses. Complete safe counters, including zero, remain. Actual socket tests cover direct OpenAI/delegated OpenRouter and sparse native Anthropic/Gemini normalization, shared denials and accounting failures. Detailed billing/token-category projection, incomplete stream usage, legacy SDK sparse usage and full conformance remain open. See [plan](plans/246-compatible-usage.md) and [contract](../contracts/compatible-completion-usage.md).

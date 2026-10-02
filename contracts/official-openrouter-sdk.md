@@ -22,3 +22,6 @@ These are measured/explicit release gaps, not supported workflows or client-side
 ## Configured trusted discovery subset
 
 Configured /api/v1 discovery snapshots now deserialize through the exact SDK over sockets, including zero visible models. Its models.list return contains result; metadata is explicitly supplied by the administrator and never fabricated. The basic unconfigured and legacy catalog rejection regressions remain valid. Bounded offset/limit iteration is verified under the [paging contract](model-list-paging.md). Other query filters, source refresh and full discovery workflows remain open; see [contract](model-discovery-metadata.md).
+
+
+Compatible /api/v1 nonstream completions with partial or invalid usage now deserialize with usage omitted, while complete counters survive and the required internal accounting state is retained. Legacy /v1 sparse reporting is unchanged. See [usage contract](compatible-completion-usage.md) and [plan](../docs/plans/246-compatible-usage.md). This does not resolve detailed usage projection or complete client conformance.
