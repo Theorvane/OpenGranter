@@ -691,3 +691,11 @@ Direct Gemini maps optional minimal/low/medium/high to generationConfig.thinking
 
 - Changing enum membership, nullability/type, constraints, unknown-value extension or literal defaults causes drift even when ChatStreamChoice.finish_reason keeps the same reference. Editorial annotations and unrelated definitions remain ignored.
 - Missing/malformed source definitions and rehashed invalid selected maps fail safely. Version 8 retains eighteen request fields and exactly seven selected definitions, rejects versions 1..7 and preserves prior projections/provenance. No runtime reason is newly accepted. See [plan](plans/236-finish-reason-schema.md).
+
+## Delegated streaming reasoning deltas
+
+- Both bases and official SDK sockets preserve reasoning string/null/omission, Unicode/framing text, content/refusal coexistence and complete/unknown usage with include_usage:false. Final usage never replays reasoning.
+- Malformed first/later reasoning fails safely with possible-billing accounting and no terminal success; substantive reasoning on a final usage-only event rejects instead of disappearing. reasoning_details stays unsupported.
+- Authentication/IAM/limits and required audit/usage failure gates remain effective. Reasoning text stays out of operational metadata, errors and completed summaries. See [contract](../contracts/stream-reasoning.md).
+
+The independent SSE encoder rejects substantive or malformed reasoning on injected usage events before missing-token early returns, preserves absent/null/empty markers without transcript replay, and projects the same once-captured delta value it validated. See [review correction](plans/238-stream-reasoning.md).

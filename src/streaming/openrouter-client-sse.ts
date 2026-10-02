@@ -42,6 +42,7 @@ function base(event: Chunk): object {
 export function encodeOpenRouterTextSse(event: OpenRouterTextStreamPayload): string | undefined {
   if (event.kind === 'done') return 'data: [DONE]\n\n';
   if (event.kind === 'error') unsupported();
+  const reasoning = 'reasoning' in event ? event.reasoning : undefined;
   const nativeFinishReason = event.nativeFinishReason;
   if (
     nativeFinishReason !== undefined &&
@@ -54,6 +55,7 @@ export function encodeOpenRouterTextSse(event: OpenRouterTextStreamPayload): str
   if (event.kind === 'delta') {
     if (
       (event.role !== undefined && event.role !== 'assistant') ||
+      (reasoning !== undefined && reasoning !== null && typeof reasoning !== 'string') ||
       (event.refusal !== undefined &&
         event.refusal !== null &&
         typeof event.refusal !== 'string') ||
@@ -75,6 +77,7 @@ export function encodeOpenRouterTextSse(event: OpenRouterTextStreamPayload): str
             ...(event.role === undefined ? {} : { role: event.role }),
             ...(event.content === undefined ? {} : { content: event.content }),
             ...(event.refusal === undefined ? {} : { refusal: event.refusal }),
+            ...(reasoning === undefined ? {} : { reasoning }),
           },
           finish_reason: event.finishReason,
           ...nativeChoice,
@@ -83,6 +86,7 @@ export function encodeOpenRouterTextSse(event: OpenRouterTextStreamPayload): str
     });
   }
   if (event.kind === 'usage') {
+    if (reasoning !== undefined && reasoning !== null && reasoning !== '') unsupported();
     const usage = event.usage;
     if (
       !validCount(usage?.prompt_tokens) ||

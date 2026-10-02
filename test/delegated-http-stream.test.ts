@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import type { AddressInfo } from 'node:net';
 import test from 'node:test';
+import { OpenRouter } from '@openrouter/sdk';
 import OpenAI from 'openai';
 import { type ChatHandlerPorts, createChatHandler } from '../src/gateway/chat-handler.ts';
 import { createNodeChatServer } from '../src/gateway/node-chat-server.ts';
@@ -1103,5 +1104,249 @@ test('SDK receives refusal deltas and missing usage stays unknown on both bases'
         );
       }
     }
+  }
+});
+
+async function reasoningPorts(
+  f: ReturnType<typeof fixture>,
+  options: { invalidAt?: 'first' | 'later'; missingUsage?: boolean; usageReasoning?: string } = {},
+) {
+  const { createOpenRouterTextStreamInvoker } = await import(
+    '../src/providers/openrouter-stream.ts'
+  );
+  const invoker = createOpenRouterTextStreamInvoker({
+    credentialRef: 'secret/openrouter',
+    resolveSecret: async () => 'fixture-key',
+    fetcher: async () =>
+      new Response(
+        [
+          {
+            choices: [
+              {
+                index: 0,
+                delta: {
+                  role: 'assistant',
+                  content: null,
+                  reasoning:
+                    options.invalidAt === 'first'
+                      ? { secret: 'private-reasoning' }
+                      : 'private-reasoning\n\ndata: forged',
+                },
+                finish_reason: null,
+              },
+            ],
+          },
+          {
+            choices: [
+              {
+                index: 0,
+                delta: { reasoning: options.invalidAt === 'later' ? true : null },
+                finish_reason: 'stop',
+              },
+            ],
+          },
+          {
+            choices: [
+              {
+                index: 0,
+                delta: { reasoning: options.usageReasoning ?? '' },
+                finish_reason: 'stop',
+              },
+            ],
+            usage: options.missingUsage ? {} : { prompt_tokens: 1, completion_tokens: 2 },
+          },
+        ]
+          .map(
+            (value) =>
+              `data: ${JSON.stringify({ id: 'gen-1', object: 'chat.completion.chunk', created: 42, model: 'openai/example', ...value })}\n\n`,
+          )
+          .join('') + 'data: [DONE]\n\n',
+        { headers: { 'content-type': 'text/event-stream' } },
+      ),
+  });
+  return {
+    ...f.ports,
+    invokeOpenRouterTextStream: (_ref: string, ...args: Parameters<typeof invoker>) =>
+      invoker(...args),
+  };
+}
+
+test('official SDK receives reasoning deltas with complete or unknown usage on both bases', {
+  timeout: 10000,
+}, async () => {
+  for (const base of ['/v1', '/api/v1']) {
+    for (const missingUsage of [false, true]) {
+      const f = fixture();
+      f.ports = await reasoningPorts(f, { missingUsage });
+      const server = createNodeChatServer(f.ports);
+      await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+      try {
+        const address = server.address() as AddressInfo;
+        const client = new OpenRouter({
+          apiKey: 'fixture-key',
+          serverURL: `http://127.0.0.1:${address.port}${base}`,
+          retryConfig: { strategy: 'none' },
+          timeoutMs: 3000,
+        });
+        const stream = await client.chat.send({
+          chatRequest: {
+            model: 'chat',
+            messages: [{ role: 'user', content: 'text' }],
+            stream: true,
+            streamOptions: { includeUsage: false },
+          },
+        });
+        assert.ok(Symbol.asyncIterator in stream);
+        const chunks = [];
+        for await (const chunk of stream) chunks.push(chunk);
+        assert.equal(chunks[0]?.choices[0]?.delta.reasoning, 'private-reasoning\n\ndata: forged');
+        assert.equal(chunks[1]?.choices[0]?.delta.reasoning, null);
+        assert.equal(chunks[1]?.choices[0]?.finishReason, 'stop');
+        assert.equal(chunks.length, missingUsage ? 2 : 3);
+        assert.equal(chunks.at(-1)?.usage?.totalTokens, missingUsage ? undefined : 3);
+        if (!missingUsage)
+          assert.equal(Object.hasOwn(chunks[2]?.choices[0]?.delta ?? {}, 'reasoning'), false);
+        assert.equal(f.records[0]?.outcome, 'succeeded');
+        assert.equal(f.records[0]?.usage.status, missingUsage ? 'missing' : 'reported');
+        assert.equal(
+          JSON.stringify({ audit: f.audit, usage: f.records }).includes('private-reasoning'),
+          false,
+        );
+      } finally {
+        server.closeAllConnections();
+        await new Promise<void>((resolve, reject) =>
+          server.close((error) => (error ? reject(error) : resolve())),
+        );
+      }
+    }
+  }
+});
+
+test('native reasoning stream succeeds on both bases without metadata text or fallback', async () => {
+  for (const base of ['/v1', '/api/v1']) {
+    const f = fixture();
+    f.ports = await reasoningPorts(f);
+    const response = await createChatHandler(f.ports)(f.request(base));
+    assert.equal(response.status, 200);
+    const frames = (await response.text()).trim().split('\n\n');
+    assert.equal(frames.length, 4);
+    assert.equal(
+      JSON.parse(frames[0]?.slice(6) ?? '{}').choices[0].delta.reasoning,
+      'private-reasoning\n\ndata: forged',
+    );
+    assert.equal(JSON.parse(frames[1]?.slice(6) ?? '{}').choices[0].delta.reasoning, null);
+    assert.equal(JSON.parse(frames[1]?.slice(6) ?? '{}').choices[0].finish_reason, 'stop');
+    assert.equal(
+      Object.hasOwn(JSON.parse(frames[2]?.slice(6) ?? '{}').choices[0].delta, 'reasoning'),
+      false,
+    );
+    assert.equal(f.records[0]?.outcome, 'succeeded');
+    assert.equal(f.records[0]?.usage.status, 'reported');
+    assert.equal(
+      JSON.stringify({ audit: f.audit, usage: f.records }).includes('private-reasoning'),
+      false,
+    );
+  }
+});
+
+test('malformed reasoning first/later chunks fail safely with possible billing', async () => {
+  for (const base of ['/v1', '/api/v1']) {
+    for (const invalidAt of ['first', 'later'] as const) {
+      const f = fixture();
+      f.ports = await reasoningPorts(f, { invalidAt });
+      const response = await createChatHandler(f.ports)(f.request(base));
+      assert.equal(response.status, invalidAt === 'first' ? 502 : 200);
+      const text = await response.text();
+      assert.equal(text.includes('[DONE]'), false);
+      if (invalidAt === 'first') assert.equal(text.includes('private-reasoning'), false);
+      else assert.equal(text.trim().split('\n\n').at(-1)?.includes('private-reasoning'), false);
+      assert.equal(f.records.length, 1);
+      assert.equal(f.records[0]?.outcome, 'failed');
+      assert.equal(f.records[0]?.possiblyBilled, true);
+      assert.equal(
+        JSON.stringify({ audit: f.audit, usage: f.records }).includes('private-reasoning'),
+        false,
+      );
+    }
+  }
+});
+
+test('reasoning streams retain authentication, IAM and limit denial before invocation', async () => {
+  for (const [variant, status] of [
+    ['auth', 401],
+    ['iam', 403],
+    ['limit', 429],
+  ] as const) {
+    const f = fixture();
+    f.ports = await reasoningPorts(f);
+    f.ports = {
+      ...f.ports,
+      invokeOpenRouterTextStream: async () => assert.fail('denial reached upstream'),
+    };
+    if (variant === 'auth') f.ports = { ...f.ports, authenticate: async () => undefined };
+    if (variant === 'iam')
+      f.ports = {
+        ...f.ports,
+        authenticate: async () => ({
+          id: 'user-1',
+          active: true,
+          credentialId: 'credential-1',
+          policyVersions: [],
+          statements: [],
+        }),
+      };
+    if (variant === 'limit') f.ports = { ...f.ports, checkLimit: async () => false };
+    const response = await createChatHandler(f.ports)(f.request());
+    assert.equal(response.status, status);
+    assert.equal(f.records.length, 0);
+    assert.equal((await response.text()).includes('private-reasoning'), false);
+  }
+});
+
+test('reasoning streams suppress terminal success on required ledger/audit failure', async () => {
+  for (const failure of ['usage', 'audit'] as const) {
+    const f = fixture();
+    f.ports = await reasoningPorts(f);
+    if (failure === 'usage')
+      f.ports = {
+        ...f.ports,
+        writeUsage: async () => {
+          throw new Error('private-reasoning ledger');
+        },
+      };
+    else
+      f.ports = {
+        ...f.ports,
+        writeAudit: async (event) => {
+          if (event.kind === 'delegated-attempt') throw new Error('private-reasoning audit');
+          f.audit.push(event);
+        },
+      };
+    const response = await createChatHandler(f.ports)(f.request());
+    const text = await response.text();
+    assert.equal(text.includes('[DONE]'), false);
+    const last = JSON.parse(text.trim().split('\n\n').at(-1)?.slice(6) ?? '{}');
+    assert.equal(last.error.code, 503);
+    assert.equal(JSON.stringify(last).includes('private-reasoning'), false);
+    assert.equal(
+      JSON.stringify({ audit: f.audit, usage: f.records }).includes('private-reasoning'),
+      false,
+    );
+  }
+});
+
+test('substantive reasoning in final usage fails safely instead of being discarded', async () => {
+  for (const base of ['/v1', '/api/v1']) {
+    const f = fixture();
+    f.ports = await reasoningPorts(f, { usageReasoning: 'private usage reasoning' });
+    const response = await createChatHandler(f.ports)(f.request(base));
+    assert.equal(response.status, 200);
+    const text = await response.text();
+    assert.equal(text.includes('[DONE]'), false);
+    assert.equal(text.includes('private usage reasoning'), false);
+    assert.equal(f.records.length, 1);
+    assert.equal(f.records[0]?.outcome, 'failed');
+    assert.equal(f.records[0]?.possiblyBilled, true);
+    assert.equal(JSON.stringify({ audit: f.audit, usage: f.records }).includes('private'), false);
   }
 });
