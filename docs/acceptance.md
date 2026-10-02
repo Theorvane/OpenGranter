@@ -609,3 +609,9 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Both bases and SDK streamed text/terminal/final usage frames preserve exact string/null metadata and omission; source usage metadata may differ from prior text/terminal metadata.
 - Malformed first/later values produce safe JSON/SSE failures with failed-attempt accounting and no DONE; IAM/limits and required audit/ledger controls remain enforced.
 - Fingerprint framing text cannot inject SSE, and fingerprint values never appear in operational audit, ledger metadata or errors. Missing token usage still produces no fabricated usage frame. See [contract](../contracts/stream-fingerprints.md).
+
+## Official SDK socket conformance
+
+- The exact pinned official OpenRouter TypeScript SDK is exercised against actual local sockets on both bases, with deterministic fake upstream responses through the real delegated invoker.
+- Streamed request controls, text/usage/termination, unknown usage and safe denial/failure cases retain security/accounting; upstream request contents and secrets never enter operational metadata.
+- Actual SDK nonstream/discovery schema gaps are documented explicitly without fabricated metadata or complete-compatibility claims. See [plan](plans/224-official-sdk.md) and [contract](../contracts/official-openrouter-sdk.md).
