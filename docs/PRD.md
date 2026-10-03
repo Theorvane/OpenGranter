@@ -326,3 +326,7 @@ Direct Gemini maps optional minimal/low/medium/high to generationConfig.thinking
 ## Trusted discovery snapshots
 
 Administrator-published aliases can carry bounded informational OpenRouter metadata in the persistent catalog. /api/v1 models exposes reviewed context/capability/price data after unchanged model/final-provider IAM filtering and required audit; alias IDs and publication timestamps remain gateway-owned. Missing snapshots retain basic-list behavior, and /v1 remains basic. No price inference, route aggregation or catalog fetching is introduced. See [contract](../contracts/model-discovery-metadata.md).
+
+## Compatible discovery paging
+
+/api/v1 model lists accept bounded offset/limit within the IAM-filtered visible sequence and expose only visible total_count and relative next links. No-query lists remain complete; legacy queries and unknown filters still reject. Every request reevaluates current authorization/catalog, retaining required audit and no inference-side effects. See [contract](../contracts/model-list-paging.md).

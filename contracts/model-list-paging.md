@@ -1,0 +1,11 @@
+# Compatible model-list paging
+
+Only GET /api/v1/models accepts singleton offset/limit. Decoded values must be canonical unsigned decimal safe integers: offset>=0, limit1..1000. Missing values default to offset0/limit500 when either paging field is supplied. Both omitted retain the full current list. Null SDK offsets serialize as omission; literal query null, duplicates, blank values, signs, fractions, exponents, leading zeros and unknown filters reject before catalog reads with safe invalid-request audit. /v1 continues rejecting every nonempty query.
+
+The gateway authenticates and validates the complete current catalog before filtering enabled aliases through model AND final-provider IAM. Only then does it slice the visible sequence in trusted catalog order. Denied/disabled aliases do not consume offsets, appear in total_count or enter continuation links. Malformed out-of-page or denied entries still invalidate the whole catalog. No partial availability is inferred.
+
+The compatible response contains the selected data, total_count for all currently visible aliases, and links.next. Continuations are fixed relative /api/v1/models?offset=<next>&limit=<limit> URLs; no incoming host, arbitrary filter or source metadata can control the destination. Next is null for no-query full lists, exhausted/empty pages or offsets beyond the visible end. Required models-listed audit records the returned count before delivery. Existing metadata capture, audit failure, no-secret/no-limit/no-inference/no-usage controls remain shared.
+
+Actual SDK 1.4.18 iteration is tested with explicit limits/defaults/null offsets, exact page multiples and a 501-model no-argument response. The SDK advances by returned count rather than links.next/total_count; exact multiples and large unpaged initial results can require an additional empty request, which is supported. Unconfigured metadata retains its existing SDK schema gap.
+
+Every page reevaluates current authentication/IAM/catalog. Catalog or policy changes can shift offsets, causing repeated/missed aliases; no cross-request snapshot or cursor guarantee is made. Wider filters/sorting/count endpoints, metadata freshness and complete external-client conformance remain separate gates. See [plan](../docs/plans/230-model-list-paging.md).

@@ -672,4 +672,11 @@ Direct Gemini maps optional minimal/low/medium/high to generationConfig.thinking
 - Complete administrator snapshots persist and deserialize through the exact official SDK socket client; empty IAM-filtered lists have count zero. Legacy/missing metadata behavior stays explicit.
 - Alias and provider explicit Deny, disabled entries and both route kinds retain filtering; no secret/limit/inference/usage ports run. Filtered counts do not leak hidden aliases.
 - Partial/unknown/malformed snapshots, including disabled or denied entries, fail safely before a partial listing. Required audit failure suppresses metadata; mutation during audit cannot alter client output. SQL reads and route resolution reject invalid stored snapshots.
-- Metadata prices/capabilities are informational, never billing/routing authority. Source refresh, query paging/filtering and complete external-client conformance remain open. See [contract](../contracts/model-discovery-metadata.md).
+- Metadata prices/capabilities are informational, never billing/routing authority. Source refresh, broader query filters and complete external-client conformance remain open; bounded paging is covered below. See [contract](../contracts/model-discovery-metadata.md).
+
+## Compatible model-list paging
+
+- Actual official SDK iteration handles explicit/default/null-offset requests, exact multiples with a terminal empty request and a 501-model no-argument response. No-query full listing and legacy query rejection remain covered.
+- Denied/disabled/provider-denied aliases never consume offsets or leak counts/links; both route kinds retain explicit Deny. Complete invalid out-of-page configuration and required audit failure suppress successful responses.
+- Malformed/duplicate/unknown/unsafe query values reject before catalog reads with safe audit; anonymous requests reject before query/catalog access. Relative links never use the incoming host.
+- Every SDK page reevaluates current IAM; newly denied metadata disappears. Cross-request snapshot stability and broader filters remain open. See [contract](../contracts/model-list-paging.md).

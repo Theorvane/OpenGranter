@@ -19,4 +19,4 @@ These are measured/explicit release gaps, not supported workflows or client-side
 
 ## Configured trusted discovery subset
 
-Configured /api/v1 discovery snapshots now deserialize through the exact SDK over sockets, including zero visible models. Its models.list return contains result; metadata is explicitly supplied by the administrator and never fabricated. The basic unconfigured and legacy catalog rejection regressions remain valid. Paging/filter queries, source refresh and full discovery workflows remain open; see [contract](model-discovery-metadata.md).
+Configured /api/v1 discovery snapshots now deserialize through the exact SDK over sockets, including zero visible models. Its models.list return contains result; metadata is explicitly supplied by the administrator and never fabricated. The basic unconfigured and legacy catalog rejection regressions remain valid. Bounded offset/limit iteration is verified under the [paging contract](model-list-paging.md). Other query filters, source refresh and full discovery workflows remain open; see [contract](model-discovery-metadata.md).
