@@ -1,6 +1,7 @@
 import type { ChatRequest } from '../gateway/chat-handler.ts';
 import { type ChatMessage, snapshotChatMessages } from '../gateway/chat-messages.ts';
 import {
+  type ReasoningEffort,
   resolveOutputTokenLimit,
   snapshotLogitBias,
   snapshotResponseFormat,
@@ -282,6 +283,7 @@ function prepare(
 
   seed: number | undefined,
   verbosity: ChatRequest['verbosity'],
+  reasoningEffort: ReasoningEffort | undefined,
 ): { url: string; headers: Record<string, string>; body: object } {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
   const outputLimit =
@@ -300,6 +302,7 @@ function prepare(
         ...(n === undefined ? {} : { n }),
         ...(seed === undefined ? {} : { seed }),
         ...(verbosity === undefined ? {} : { verbosity }),
+        ...(reasoningEffort === undefined ? {} : { reasoning_effort: reasoningEffort }),
         ...(frequencyPenalty === undefined ? {} : { frequency_penalty: frequencyPenalty }),
         ...(presencePenalty === undefined ? {} : { presence_penalty: presencePenalty }),
         ...(responseFormat === undefined ? {} : { response_format: responseFormat }),
@@ -432,7 +435,11 @@ export function createDirectChatInvoker(
     )
       fail('other');
     const reasoningEffort = request.reasoning_effort ?? undefined;
-    if (!validReasoningEffort(reasoningEffort) || reasoningEffort !== undefined) fail('other');
+    if (
+      !validReasoningEffort(reasoningEffort) ||
+      (reasoningEffort !== undefined && registration.kind !== 'openai')
+    )
+      fail('other');
     const seed = request.seed ?? undefined;
     if (
       !validSeed(seed) ||
@@ -541,6 +548,7 @@ export function createDirectChatInvoker(
 
       seed,
       verbosity,
+      reasoningEffort,
     );
     const timeout = AbortSignal.timeout(timeoutMs);
     let response: Response;

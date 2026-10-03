@@ -217,7 +217,8 @@ for (const kind of kinds)
         'max',
       ]) {
         const f = httpFixture(kind),
-          unsupported = kind !== 'openrouter' && value !== undefined && value !== null;
+          unsupported =
+            kind !== 'openrouter' && kind !== 'openai' && value !== undefined && value !== null;
         const response = await f.handler(
           request(path, value === undefined ? {} : { reasoning_effort: value }),
         );
@@ -247,7 +248,7 @@ test('malformed reasoning_effort rejects before routing and native credential ac
       NaN,
       Infinity,
       -Infinity,
-      ...(kind === 'openrouter'
+      ...(kind === 'openrouter' || kind === 'openai'
         ? []
         : ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']),
     ]) {
