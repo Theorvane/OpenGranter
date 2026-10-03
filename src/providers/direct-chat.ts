@@ -440,6 +440,8 @@ export function createDirectChatInvoker(
     if (minP !== undefined) fail('other');
     const topA = request.top_a ?? undefined;
     if (topA !== undefined) fail('other');
+    const repetitionPenalty = request.repetition_penalty ?? undefined;
+    if (repetitionPenalty !== undefined) fail('other');
     const topK = request.top_k ?? undefined;
     if (
       !validTopK(topK) ||

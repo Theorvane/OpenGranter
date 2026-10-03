@@ -9,6 +9,7 @@ import {
   validMinP,
   validPenalty,
   validReasoningEffort,
+  validRepetitionPenalty,
   validSeed,
   validSingleChoice,
   validTemperature,
@@ -229,6 +230,8 @@ function prepareOpenRouterChatRequest(
   if (!validMinP(minP)) fail('configuration');
   const topA = request.top_a ?? undefined;
   if (!validTopA(topA)) fail('configuration');
+  const repetitionPenalty = request.repetition_penalty ?? undefined;
+  if (!validRepetitionPenalty(repetitionPenalty)) fail('configuration');
   const topP = request.top_p ?? undefined;
   if (!validTopP(topP)) fail('configuration');
   const temperature = request.temperature ?? undefined;
@@ -284,6 +287,7 @@ function prepareOpenRouterChatRequest(
       ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
       ...(temperature === undefined ? {} : { temperature }),
       ...(topP === undefined ? {} : { top_p: topP }),
+      ...(repetitionPenalty === undefined ? {} : { repetition_penalty: repetitionPenalty }),
       ...(topA === undefined ? {} : { top_a: topA }),
       ...(minP === undefined ? {} : { min_p: minP }),
       ...(topK === undefined ? {} : { top_k: topK }),

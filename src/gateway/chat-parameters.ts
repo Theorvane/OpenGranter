@@ -164,3 +164,8 @@ export function validMinP(value: unknown): value is number | undefined {
 export function validTopA(value: unknown): value is number | undefined {
   return validTopP(value);
 }
+
+/** Optional sampling control; omission preserves the upstream default. */
+export function validRepetitionPenalty(value: unknown): value is number | undefined {
+  return validTemperature(value);
+}
