@@ -212,7 +212,7 @@ Both client paths accept nullable penalty controls in [-2,2]. OpenAI/OpenRouter 
 
 ### Portable response formats
 
-Both client paths support exact text/json_object format controls. OpenAI/OpenRouter forward them; Gemini maps native MIME; direct Anthropic supports text only and rejects JSON before credential/transport. Direct OpenAI and delegated OpenRouter also forward the bounded json_schema format with required name/schema and optional description/strict; unsupported direct Anthropic/Gemini reject before credentials. Native output generation is model-dependent; local schema enforcement, native schema mappings and capability selection remain pending. See [contract](../contracts/client-response-formats.md).
+Both client paths support exact text/json_object format controls. OpenAI/OpenRouter forward them; Gemini maps native MIME; direct Anthropic supports text only and rejects JSON before credential/transport. Direct OpenAI and delegated OpenRouter also forward the bounded json_schema format with required name and optional schema/description/strict, preserving schema omission without a default; unsupported direct Anthropic/Gemini reject before credentials. Native output generation is model-dependent; local schema enforcement, native schema mappings and capability selection remain pending. See [contract](../contracts/client-response-formats.md).
 
 ### Nullable top-k sampling
 

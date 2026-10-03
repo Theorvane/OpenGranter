@@ -448,6 +448,14 @@ for (const kind of ['openai', 'openrouter'] as const) {
         );
         assert.equal(result.choices[0]?.message.content, '{"ok":true}');
         assert.deepEqual(f.sent.at(-1)?.response_format, schemaFormat(true));
+        const omitted = { type: 'json_schema', json_schema: { name: 'result', strict: null } };
+        await sdk.chat.completions.create(
+          input(omitted) as OpenAI.ChatCompletionCreateParamsNonStreaming,
+        );
+        assert.deepEqual(f.sent.at(-1)?.response_format, omitted);
+        const forwarded = f.sent.at(-1)?.response_format as { json_schema: object } | undefined;
+        assert.ok(forwarded);
+        assert.equal(Object.hasOwn(forwarded.json_schema, 'schema'), false);
       }
     } finally {
       server.closeAllConnections();
@@ -478,7 +486,6 @@ test('malformed JSON-schema configs reject before routing on both bases', async 
       {},
       ...['', 'name with spaces', 'x'.repeat(65), '非ascii'].map((name) => ({ ...config, name })),
       ...[null, true, []].map((schema) => ({ ...config, schema })),
-      { name: 'missing_schema' },
       { ...config, description: null },
       { ...config, strict: 'true' },
       { ...config, provider: 'private destination' },
@@ -553,46 +560,49 @@ test('official OpenRouter SDK preserves JSON-schema formats on both nonstream an
         timeoutMs: 3000,
       });
       for (const stream of [false, true]) {
-        const result = await sdk.chat.send({
-          chatRequest: {
-            model: 'chat',
-            messages: [{ role: 'user', content: 'private prompt' }],
-            stream,
-            responseFormat: {
-              type: 'json_schema',
-              jsonSchema: {
-                name: 'result',
-                strict: true,
-                schema: { type: 'object', properties: { ok: { type: 'boolean' } } },
+        for (const includeSchema of [false, true]) {
+          const schema = { type: 'object', properties: { ok: { type: 'boolean' } } };
+          const result = await sdk.chat.send({
+            chatRequest: {
+              model: 'chat',
+              messages: [{ role: 'user', content: 'private prompt' }],
+              stream,
+              responseFormat: {
+                type: 'json_schema',
+                jsonSchema: {
+                  name: 'result',
+                  strict: true,
+                  ...(includeSchema ? { schema } : {}),
+                },
               },
             },
-          },
-        });
-        if (stream) {
-          assert.ok(Symbol.asyncIterator in result);
-          let content = '';
-          let usageEvents = 0;
-          for await (const event of result) {
-            content += event.choices[0]?.delta.content ?? '';
-            if (event.usage) usageEvents++;
+          });
+          if (stream) {
+            assert.ok(Symbol.asyncIterator in result);
+            let content = '';
+            let usageEvents = 0;
+            for await (const event of result) {
+              content += event.choices[0]?.delta.content ?? '';
+              if (event.usage) usageEvents++;
+            }
+            assert.equal(content, '{"ok":true}');
+            assert.equal(usageEvents, 1);
+          } else {
+            assert.ok('choices' in result);
+            assert.equal(result.choices[0]?.message.content, '{"ok":true}');
           }
-          assert.equal(content, '{"ok":true}');
-          assert.equal(usageEvents, 1);
-        } else {
-          assert.ok('choices' in result);
-          assert.equal(result.choices[0]?.message.content, '{"ok":true}');
+          assert.deepEqual(f.sent.at(-1)?.response_format, {
+            type: 'json_schema',
+            json_schema: {
+              name: 'result',
+              strict: true,
+              ...(includeSchema ? { schema } : {}),
+            },
+          });
         }
-        assert.deepEqual(f.sent.at(-1)?.response_format, {
-          type: 'json_schema',
-          json_schema: {
-            name: 'result',
-            strict: true,
-            schema: { type: 'object', properties: { ok: { type: 'boolean' } } },
-          },
-        });
       }
     }
-    assert.equal(f.usage.length, 4);
+    assert.equal(f.usage.length, 8);
     assert.doesNotMatch(JSON.stringify([f.audits, f.usage]), /private|fixture-key/u);
   } finally {
     server.closeAllConnections();
@@ -600,4 +610,103 @@ test('official OpenRouter SDK preserves JSON-schema formats on both nonstream an
       server.close((error) => (error ? reject(error) : resolve())),
     );
   }
+});
+
+for (const kind of ['openai', 'openrouter'] as const) {
+  test(`${kind}: optional schema forwards absence or supplied empty object exactly`, async () => {
+    for (const path of ['/v1/chat/completions', '/api/v1/chat/completions'])
+      for (const config of [
+        { name: 'result' },
+        { name: 'result', strict: null },
+        { name: 'result', strict: false, description: 'private description' },
+        { name: 'result', strict: true },
+        { name: 'result', schema: {} },
+      ]) {
+        const format = { type: 'json_schema', json_schema: config };
+        const f = httpFixture(kind);
+        const response = await f.handler(request(path, format));
+        assert.equal(response.status, 200);
+        assert.deepEqual(f.sent[0]?.response_format, format);
+        assert.equal(f.sent.length, 1);
+        assert.equal(f.secrets(), 1);
+        assert.equal(f.usage.length, 1);
+        assert.doesNotMatch(JSON.stringify([f.audits, f.usage]), /private|fixture-key/u);
+      }
+  });
+  test(`${kind}: omitted schema cannot be added during secret awaits`, async () => {
+    for (const http of [false, true]) {
+      const config: { name: string; schema?: object } = { name: 'result' };
+      const format = { type: 'json_schema', json_schema: config };
+      const mutate = () => {
+        config.schema = { private: 'late schema' };
+      };
+      if (http) {
+        const f = httpFixture(kind, { mutate });
+        const req = request('/api/v1/chat/completions', format);
+        Object.defineProperty(req, 'json', { value: async () => input(format) });
+        assert.equal((await f.handler(req)).status, 200);
+        assert.deepEqual(f.sent[0]?.response_format, {
+          type: 'json_schema',
+          json_schema: { name: 'result' },
+        });
+      } else {
+        const f = adapter(kind, undefined, mutate);
+        await f.call(input(format) as unknown as ChatRequest);
+        assert.deepEqual(f.sent[0]?.response_format, {
+          type: 'json_schema',
+          json_schema: { name: 'result' },
+        });
+      }
+    }
+  });
+  test(`${kind}: schema omission retains auth denial persistence and upstream failure controls`, async () => {
+    for (const path of ['/v1/chat/completions', '/api/v1/chat/completions'])
+      for (const [options, status, dispatched] of [
+        [{ auth: true }, 401, false],
+        [{ deny: true }, 403, false],
+        [{ explicitDeny: true }, 403, false],
+        [{ limit: true }, 429, false],
+        [{ audit: true }, 503, false],
+        [{ usageFail: true }, 503, true],
+        [{ outcomeFail: true }, 503, true],
+        [{ fail: true }, 502, true],
+      ] as const) {
+        const f = httpFixture(kind, options);
+        const response = await f.handler(
+          request(path, { type: 'json_schema', json_schema: { name: 'result' } }),
+        );
+        assert.equal(response.status, status);
+        assert.equal(f.secrets(), dispatched ? 1 : 0);
+        assert.equal(f.sent.length, dispatched ? 1 : 0);
+        assert.doesNotMatch(await response.text(), /private|fixture-key/u);
+        assert.doesNotMatch(JSON.stringify([f.audits, f.usage]), /private|fixture-key/u);
+      }
+  });
+}
+test('omitted schemas retain native provider rejection and supplied malformed schema validation', async () => {
+  for (const kind of ['anthropic', 'google'] as const)
+    for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
+      const f = httpFixture(kind);
+      const response = await f.handler(
+        request(path, { type: 'json_schema', json_schema: { name: 'result' } }),
+      );
+      assert.equal(response.status, 502);
+      assert.equal(f.secrets(), 0);
+      assert.equal(f.sent.length, 0);
+      assert.equal(f.usage.length, 0);
+    }
+  for (const kind of ['openai', 'openrouter'] as const)
+    for (const schema of [undefined, null, true, [], new Date()]) {
+      const f = adapter(kind);
+      await assert.rejects(() =>
+        f.call(
+          input({
+            type: 'json_schema',
+            json_schema: { name: 'result', schema },
+          }) as unknown as ChatRequest,
+        ),
+      );
+      assert.equal(f.secrets(), 0);
+      assert.equal(f.sent.length, 0);
+    }
 });

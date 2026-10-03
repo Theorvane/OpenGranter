@@ -85,7 +85,7 @@ export type ResponseFormat =
       readonly type: 'json_schema';
       readonly json_schema: {
         readonly name: string;
-        readonly schema: Readonly<Record<string, unknown>>;
+        readonly schema?: Readonly<Record<string, unknown>>;
         readonly description?: string;
         readonly strict?: boolean | null;
       };
@@ -112,9 +112,8 @@ export function snapshotResponseFormat(value: unknown): ResponseFormat | undefin
       ) ||
       typeof config.name !== 'string' ||
       !/^[A-Za-z0-9_-]{1,64}$/u.test(config.name) ||
-      !config.schema ||
-      typeof config.schema !== 'object' ||
-      Array.isArray(config.schema) ||
+      (Object.hasOwn(config, 'schema') &&
+        (!config.schema || typeof config.schema !== 'object' || Array.isArray(config.schema))) ||
       (Object.hasOwn(config, 'description') && typeof config.description !== 'string') ||
       (Object.hasOwn(config, 'strict') &&
         config.strict !== null &&
