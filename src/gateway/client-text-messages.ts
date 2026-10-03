@@ -18,7 +18,8 @@ export function normalizeClientTextMessages(value: unknown): readonly Record<str
         (content === null || content === undefined) &&
         message.role === 'assistant' &&
         ((Array.isArray(message.tool_calls) && message.tool_calls.length > 0) ||
-          Object.hasOwn(message, 'reasoning'))
+          Object.hasOwn(message, 'reasoning') ||
+          Object.hasOwn(message, 'reasoning_details'))
       )
     ) {
       if (!Array.isArray(content) || content.length === 0)
