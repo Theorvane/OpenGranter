@@ -2,6 +2,8 @@
 
 The development-only @openrouter/sdk client is pinned to 1.4.18. Local socket tests exercise the real Node/HTTP boundary and native delegated stream invoker with controlled upstream fixtures, not live provider calls. SDK serverURL selects the gateway base and fixture apiKey is a proxy credential, never a provider key.
 
+The separate [function-tool SDK contract](official-sdk-tools.md) verifies existing non-streaming declarations, returned calls and caller-supplied text results through both bases and delegated OpenRouter/direct OpenAI. Every follow-up retains fresh security gates and separate accounting; this does not certify streaming/native tools or automatic tool execution.
+
 Record supported streaming request/response/error cases from actual SDK validation and explicitly inventory gaps before claiming compatibility. SDK response validation does not establish trusted model capabilities, provider identity or prices. Named external-tool workflows, broader schema-instance conformance, native/tool/rich streams and discovery metadata remain separate release gates. This test package is not a production runtime dependency.
 
 ## Verified on merged main
