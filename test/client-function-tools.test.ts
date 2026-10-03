@@ -307,3 +307,27 @@ test('function controls preserve denial and failed-attempt accounting', async ()
     );
   }
 });
+
+test('function parameter arrays reject accessor elements before reading them or resolving secrets', async () => {
+  let reads = 0;
+  const values = Object.defineProperty([], '0', {
+    enumerable: true,
+    get: () => {
+      reads++;
+      return 'private schema';
+    },
+  });
+  for (const kind of ['openai', 'openrouter'] as const) {
+    const f = adapter(kind);
+    await assert.rejects(() =>
+      f.call(
+        input({
+          tools: [{ type: 'function', function: { name: 'lookup', parameters: { enum: values } } }],
+        }) as unknown as ChatRequest,
+      ),
+    );
+    assert.equal(f.secrets(), 0);
+    assert.equal(f.sent.length, 0);
+  }
+  assert.equal(reads, 0);
+});

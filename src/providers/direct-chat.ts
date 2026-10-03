@@ -493,6 +493,7 @@ export function createDirectChatInvoker(
       fail('other');
     }
     if (registration.kind === 'anthropic' && responseFormat?.type === 'json_object') fail('other');
+    if (registration.kind !== 'openai' && responseFormat?.type === 'json_schema') fail('other');
     let logitBias: ReturnType<typeof snapshotLogitBias>;
     try {
       logitBias = snapshotLogitBias(request.logit_bias);

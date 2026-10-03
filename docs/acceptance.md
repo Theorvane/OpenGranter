@@ -436,7 +436,7 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Both prefixes and actual SDK map text/JSON on supported adapters with omission parity and immutable capture during credentials; combined controls remain intact.
 - Malformed/null/extra-key/unsupported formats reject before routing; native invalid formats reject before secrets. Anthropic JSON fails before secret/transport, with possiblyBilled=false and no fabricated usage row.
 - IAM/limits/required audit continue to block invocation. Upstream failures retain safe usage accounting and no content/key exposure.
-- Model-dependent native generation, JSON schemas, Anthropic JSON and capability-aware selection remain incomplete. See [contract](../contracts/client-response-formats.md).
+- Model-dependent native generation, local schema enforcement, native schema mappings and capability-aware selection remain incomplete. See [contract](../contracts/client-response-formats.md).
 
 ### Supported-format schema drift
 
@@ -787,3 +787,10 @@ Direct OpenAI and delegated OpenRouter preserve recognized prompt/completion det
 ## Final stream token usage details
 
 Delegated streaming preserves the bounded prompt/completion categories from actual final usage events on both bases, with immutable allowlisted snapshots and independent malformed-group omission. Snapshots never derive missing totals or replay earlier content/metadata; categories do not change aggregate accounting. Complete usage and DONE remain gated by required persistence. IAM/Deny, limits, cancellation/backpressure and interruption audit remain unchanged. Native/direct/tool streams, category ledger/cost reporting and complete certification remain open. See [plan](plans/292-stream-token-details.md) and [contract](../contracts/stream-token-details.md).
+
+## Bounded JSON-schema response formats
+
+- Both compatible bases and actual OpenAI/OpenRouter SDK sockets forward required name/schema, optional description and omitted/null/boolean strict exactly on direct OpenAI/delegated OpenRouter. Existing delegated streaming retains schema payload and one final usage event; managed streaming remains unsupported.
+- Nested schemas are frozen before asynchronous credentials; cycles, accessors, sparse arrays, unsupported objects, malformed envelopes, invalid names and depth/node budget violations reject before dispatch. Extra controls reject before routing. No schema reference URL is fetched.
+- Unsupported direct Anthropic/Gemini reject before secrets without provider usage. Authentication, explicit Deny, limits and required audit/ledger failures retain safe delivery gates; upstream failures retain per-attempt accounting without schema text/key exposure.
+- No local output conformance, repair, capability-aware routing or broader JSON-schema source drift is claimed. See [contract](../contracts/client-response-formats.md).
