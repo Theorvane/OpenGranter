@@ -629,3 +629,7 @@ Delegated streaming preserves the bounded prompt/completion categories from actu
 ## Bounded client JSON-schema format
 
 The shared response-format snapshot captures an immutable, bounded JSON tree before asynchronous routing and provider credentials. Direct OpenAI/delegated OpenRouter forward json_schema, preserving supplied schema objects or exact omission without an invented default; direct Anthropic/Gemini reject it before secret resolution. Schema references remain literal data and grant no URL access or destination authority. Output validation/repair, native schema translation and capability-aware selection remain unresolved follow-up scope, with existing IAM, audit and usage controls unchanged. See [contract](../contracts/client-response-formats.md) and [plan](plans/296-json-schema-formats.md).
+
+## Detail-only assistant completion normalization
+
+The shared nonstream assistant normalizer checks its already-validated immutable detail snapshot for a nonempty summary/text/encrypted payload when stop/length has missing/null content. It projects that same snapshot and normalizes missing content to null, without interpreting signatures or encrypted data. Empty/metadata-only details cannot bypass content/tool/finish validation. Provider invocation, IAM, audit and accounting ordering are unchanged. See [contract](../contracts/nonstream-reasoning-details.md) and [plan](plans/302-detail-only-reasoning.md).

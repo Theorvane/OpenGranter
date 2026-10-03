@@ -702,7 +702,7 @@ The independent SSE encoder rejects substantive or malformed reasoning on inject
 
 ## Non-streaming assistant reasoning content
 
-- Both supported route kinds/prefixes preserve omitted/null/empty/Unicode reasoning on already-valid text/refusal/filter/tool responses. Empty length-terminated text remains valid; nonempty scalar reasoning with stop/length permits null/missing content, normalized to null. Empty/null reasoning, malformed content and detail-only metadata do not grant success.
+- Both supported route kinds/prefixes preserve omitted/null/empty/Unicode reasoning on already-valid text/refusal/filter/tool responses. Empty length-terminated text remains valid; nonempty scalar reasoning with stop/length permits null/missing content, normalized to null. Empty/null scalar reasoning and detail metadata alone do not grant success; validated nonempty detail payloads follow the detail-only allowance below. Malformed content still rejects.
 - Malformed values fail safely after dispatch with failed possible-billing accounting and no content in errors/metadata. Fresh authentication, explicit model/provider Deny, limits and required selection/outcome audit/usage failures retain delivery gates. Missing usage stays unknown.
 - Actual official SDK sockets receive omitted/null/string reasoning on both bases and supported route kinds. No native/request/structured reasoning support is claimed. See [contract](../contracts/nonstream-reasoning.md).
 
@@ -806,3 +806,9 @@ Delegated streaming preserves the bounded prompt/completion categories from actu
 - Both bases preserve a named config with schema omitted or supplied empty object as distinct payloads, with strict omission/null/boolean and optional description intact. Official OpenAI/OpenRouter SDK sockets cover nonstream and existing delegated streaming.
 - Caller mutation during secret awaits cannot add an omitted schema to the captured payload. Supplied null/boolean/array/non-JSON or explicit own undefined remains invalid before credentials; extra/name guards remain unchanged.
 - Schema omission retains authentication, IAM/Deny, limits, required audit/ledger and safe possibly-billed upstream failure handling. Unsupported native Anthropic/Gemini fail before credentials without fabricated usage. No output enforcement or provider/model acceptance is promised. See [plan](plans/300-optional-config-schema.md) and [contract](../contracts/client-response-formats.md).
+
+## Detail-only nonstream reasoning
+
+- Both supported route kinds/prefixes accept stop/length with null/omitted content and validated nonempty summary/text/encrypted data, normalizing omitted content to null. Exact immutable details, finish reason, client alias and missing/complete usage remain preserved.
+- Empty/null payloads and signature/identity/format/index-only metadata never grant success. Malformed content/detail/tool/finish semantics reject safely after dispatch with possibly-billed accounting. Inherited detail fields cannot grant unprojected success.
+- Both actual SDKs cover both socket bases. Once-captured detail getters remain immutable; authentication/model-provider Deny/limits and required audit/usage failures retain their delivery gates. No opaque payload decryption, signature verification, token inference or operational detail exposure occurs. See [contract](../contracts/nonstream-reasoning-details.md) and [plan](plans/302-detail-only-reasoning.md).

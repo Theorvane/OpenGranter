@@ -16,7 +16,7 @@ const text = 'private reasoning 思考\n\ndata: forged';
 function fixture(
   kind: Kind,
   message: object,
-  finish: string = 'stop',
+  finish: string | null = 'stop',
   gate?: Gate,
   missingUsage = false,
 ) {
@@ -138,6 +138,78 @@ const details = [
   { type: 'reasoning.encrypted', data: 'private encrypted', format: 'future-opaque-format' },
 ];
 for (const kind of ['managed', 'delegated'] as const) {
+  test(`${kind}: detail-only stop/length completions preserve exact payloads and missing usage`, async () => {
+    for (const base of ['/v1', '/api/v1'])
+      for (const finish of ['stop', 'length'])
+        for (const payload of [
+          [{ type: 'reasoning.summary', summary: text }],
+          [{ type: 'reasoning.text', text, signature: 'private signature' }],
+          [{ type: 'reasoning.encrypted', data: 'private encrypted' }],
+          details,
+        ])
+          for (const content of [null, undefined])
+            for (const missingUsage of [false, true]) {
+              const f = fixture(
+                kind,
+                { ...(content === undefined ? {} : { content }), reasoning_details: payload },
+                finish,
+                undefined,
+                missingUsage,
+              );
+              const response = await createChatHandler(f.ports)(f.request(base));
+              assert.equal(response.status, 200);
+              const body = (await response.json()) as ChatCompletion;
+              assert.equal(body.choices[0].message.content, null);
+              assert.deepEqual(body.choices[0].message.reasoning_details, payload);
+              assert.equal(body.choices[0].finish_reason, finish);
+              assert.equal(body.model, 'chat');
+              assert.equal(f.usage.length, 1);
+              assert.equal(f.usage[0]?.outcome, 'succeeded');
+              assert.equal(f.usage[0]?.usage.totalTokens, missingUsage ? null : 3);
+              if (missingUsage) assert.equal(body.usage, undefined);
+              safe(f);
+            }
+  });
+  test(`${kind}: detail-only completion guard rejects empty payloads and incompatible semantics`, async () => {
+    for (const base of ['/v1', '/api/v1']) {
+      for (const payload of [
+        [],
+        [{ type: 'reasoning.summary', summary: '' }],
+        [{ type: 'reasoning.encrypted', data: '' }],
+        [{ type: 'reasoning.text' }],
+        [{ type: 'reasoning.text', text: null, signature: 'private signature', id: 'private id' }],
+        [{ type: 'reasoning.text', text: '' }],
+      ])
+        for (const content of [null, undefined]) {
+          const f = fixture(kind, {
+            ...(content === undefined ? {} : { content }),
+            reasoning: null,
+            reasoning_details: payload,
+          });
+          const response = await createChatHandler(f.ports)(f.request(base));
+          assert.equal(response.status, 502);
+          assert.equal(f.usage.length, 1);
+          assert.equal(f.usage[0]?.outcome, 'failed');
+          assert.equal(f.usage[0]?.possiblyBilled, true);
+          safe(f);
+          assert.doesNotMatch(await response.text(), /private/u);
+        }
+      for (const [content, finish] of [
+        [null, null],
+        [null, 'tool_calls'],
+        [null, 'function_call'],
+        [false, 'stop'],
+        [42, 'length'],
+      ] as const) {
+        const f = fixture(kind, { content, reasoning_details: details }, finish);
+        const response = await createChatHandler(f.ports)(f.request(base));
+        assert.equal(response.status, 502);
+        assert.equal(f.usage[0]?.outcome, 'failed');
+        safe(f);
+      }
+    }
+  });
+
   test(`${kind}: nonstream reasoning details preserve omission empty arrays and opaque variants`, async () => {
     for (const base of ['/v1', '/api/v1'])
       for (const value of [undefined, [], details]) {
@@ -215,7 +287,10 @@ for (const kind of ['managed', 'delegated'] as const) {
       if ('tool_calls' in message) assert.deepEqual(body.choices[0].message.tool_calls, calls);
       safe(f);
     }
-    const f = fixture(kind, { content: null, reasoning_details: details });
+    const f = fixture(kind, {
+      content: null,
+      reasoning_details: [{ type: 'reasoning.text', signature: 'private signature' }],
+    });
     assert.equal((await createChatHandler(f.ports)(f.request('/api/v1'))).status, 502);
     assert.equal(f.usage[0]?.outcome, 'failed');
   });
@@ -247,16 +322,13 @@ for (const kind of ['managed', 'delegated'] as const) {
         ['outcome', 503, true],
         ['usage', 503, true],
       ] as const) {
-        const f = fixture(
-          kind,
-          { content: 'private answer', reasoning_details: details },
-          'stop',
-          gate,
-        );
+        const f = fixture(kind, { content: null, reasoning_details: details }, 'stop', gate);
         const response = await createChatHandler(f.ports)(f.request(base));
         assert.equal(response.status, status);
         assert.equal(f.calls(), dispatched ? 1 : 0);
         assert.equal(f.secrets(), dispatched ? 1 : 0);
+        assert.equal(f.usage.length, gate === 'outcome' ? 1 : 0);
+        if (gate === 'outcome') assert.equal(f.usage[0]?.outcome, 'succeeded');
         assert.doesNotMatch(await response.text(), /private|encrypted|signature/u);
         safe(f);
       }
@@ -267,7 +339,7 @@ for (const kind of ['managed', 'delegated'] as const) {
       { type: 'reasoning.text', text, signature: null },
       { type: 'reasoning.encrypted', data: 'private encrypted' },
     ];
-    const f = fixture(kind, { content: 'private answer', reasoning_details: sdkDetails });
+    const f = fixture(kind, { content: null, reasoning_details: sdkDetails });
     const server = createNodeChatServer(f.ports);
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
     try {
@@ -288,6 +360,7 @@ for (const kind of ['managed', 'delegated'] as const) {
         });
         assert.ok('choices' in result);
         assert.deepEqual(result.choices[0]?.message.reasoningDetails, sdkDetails);
+        assert.equal(result.choices[0]?.message.content, null);
         const openai = new OpenAI({
           apiKey: 'fixture-proxy-key',
           baseURL: `http://127.0.0.1:${address.port}${base}`,
@@ -315,16 +388,12 @@ for (const kind of ['managed', 'delegated'] as const) {
 test('detail normalization copies immutable data and captures the message field once', () => {
   const mutable: unknown[] = structuredClone(details);
   let reads = 0;
-  const message = Object.defineProperty(
-    { role: 'assistant', content: 'private answer' },
-    'reasoning_details',
-    {
-      get: () => {
-        reads++;
-        return mutable;
-      },
+  const message = Object.defineProperty({ role: 'assistant', content: null }, 'reasoning_details', {
+    get: () => {
+      reads++;
+      return mutable;
     },
-  );
+  });
   const normalized = normalizeAssistantResponse(message, 'stop');
   assert.ok(normalized);
   mutable[0] = { type: 'reasoning.text', text: 'mutated' };
@@ -345,4 +414,11 @@ test('own undefined detail fields and sparse arrays are malformed', () => {
       ),
       undefined,
     );
+});
+
+test('inherited detail arrays cannot grant unprojected reasoning-only success', () => {
+  const value: Record<string, unknown> = Object.create({ reasoning_details: details });
+  value.role = 'assistant';
+  value.content = null;
+  assert.equal(normalizeAssistantResponse(value, 'stop'), undefined);
 });

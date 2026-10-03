@@ -232,7 +232,7 @@ for (const kind of ['managed', 'delegated'] as const) {
           { ...(reasoning === undefined ? {} : { reasoning }) },
         ]),
         { content: 42, reasoning: text },
-        { content: null, reasoning_details: [{ type: 'reasoning.summary', summary: text }] },
+        { content: null, reasoning_details: [{ type: 'reasoning.summary', summary: '' }] },
         {
           content: null,
           reasoning: true,
