@@ -250,7 +250,15 @@ function normalize(
   }
   if (first.finishReason !== 'MAX_TOKENS' && first.finishReason !== 'STOP') fail('other');
   const parts = items(record(first?.content)?.parts);
-  if (!parts || parts.length === 0 || parts.some((part) => typeof record(part)?.text !== 'string'))
+  if (
+    !parts ||
+    parts.length === 0 ||
+    parts.some(
+      (part) =>
+        typeof record(part)?.text !== 'string' ||
+        (record(part)?.thought !== undefined && record(part)?.thought !== false),
+    )
+  )
     fail('other');
   return completion(
     value.responseId,
@@ -369,10 +377,14 @@ function prepare(
       presencePenalty === undefined &&
       responseFormat === undefined &&
       topK === undefined &&
-      seed === undefined
+      seed === undefined &&
+      reasoningEffort === undefined
         ? {}
         : {
             generationConfig: {
+              ...(reasoningEffort === undefined
+                ? {}
+                : { thinkingConfig: { thinkingLevel: reasoningEffort } }),
               ...(topK === undefined ? {} : { topK }),
               ...(seed === undefined ? {} : { seed }),
               ...(frequencyPenalty === undefined ? {} : { frequencyPenalty }),
@@ -437,7 +449,9 @@ export function createDirectChatInvoker(
     const reasoningEffort = request.reasoning_effort ?? undefined;
     if (
       !validReasoningEffort(reasoningEffort) ||
-      (reasoningEffort !== undefined && registration.kind !== 'openai')
+      (reasoningEffort !== undefined &&
+        (registration.kind === 'anthropic' ||
+          (registration.kind === 'google' && ['none', 'xhigh', 'max'].includes(reasoningEffort))))
     )
       fail('other');
     const seed = request.seed ?? undefined;

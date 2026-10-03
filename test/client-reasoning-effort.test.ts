@@ -218,7 +218,9 @@ for (const kind of kinds)
       ]) {
         const f = httpFixture(kind),
           unsupported =
-            kind !== 'openrouter' && kind !== 'openai' && value !== undefined && value !== null;
+            value != null &&
+            (kind === 'anthropic' ||
+              (kind === 'google' && ['none', 'xhigh', 'max'].includes(value)));
         const response = await f.handler(
           request(path, value === undefined ? {} : { reasoning_effort: value }),
         );
@@ -226,7 +228,15 @@ for (const kind of kinds)
         assert.equal(f.secrets(), unsupported ? 0 : 1);
         assert.equal(f.sent.length, unsupported ? 0 : 1);
         assert.equal(f.usage.length, unsupported ? 0 : 1);
-        if (!unsupported) assert.equal(f.sent[0]?.reasoning_effort, value ?? undefined);
+        if (!unsupported) {
+          if (kind === 'google')
+            assert.deepEqual(
+              (f.sent[0]?.generationConfig as { thinkingConfig?: unknown } | undefined)
+                ?.thinkingConfig,
+              value == null ? undefined : { thinkingLevel: value },
+            );
+          else assert.equal(f.sent[0]?.reasoning_effort, value ?? undefined);
+        }
       }
   });
 const invalids = ['', 'LOW', 'private invalid', 0, 1, true, [], {}];
@@ -250,7 +260,9 @@ test('malformed reasoning_effort rejects before routing and native credential ac
       -Infinity,
       ...(kind === 'openrouter' || kind === 'openai'
         ? []
-        : ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']),
+        : kind === 'google'
+          ? ['none', 'xhigh', 'max']
+          : ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']),
     ]) {
       const f = adapter(kind);
       await assert.rejects(
