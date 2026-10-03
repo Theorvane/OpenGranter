@@ -428,3 +428,7 @@ Direct OpenAI and delegated OpenRouter preserve recognized prompt/completion det
 ## Final stream token usage details
 
 Delegated streaming preserves the bounded prompt/completion categories from actual final usage events on both bases, with immutable allowlisted snapshots and independent malformed-group omission. Snapshots never derive missing totals or replay earlier content/metadata; categories do not change aggregate accounting. Complete usage and DONE remain gated by required persistence. IAM/Deny, limits, cancellation/backpressure and interruption audit remain unchanged. Native/direct/tool streams, category ledger/cost reporting and complete certification remain open. See [plan](plans/292-stream-token-details.md) and [contract](../contracts/stream-token-details.md).
+
+### Detail-only assistant reasoning completions
+
+Direct OpenAI/delegated OpenRouter preserve supported nonempty summary/text/encrypted detail payloads even when stop/length completions omit visible content, normalized to null. Metadata/signature-only details do not certify a successful output. No decryption, signature verification or complete native thinking compatibility is claimed. Existing IAM, audit and usage controls remain required. See [contract](../contracts/nonstream-reasoning-details.md).

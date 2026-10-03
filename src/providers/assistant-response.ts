@@ -95,9 +95,16 @@ export function normalizeAssistantResponse(
   }
   const reasoningOnly =
     (content === null || content === undefined) &&
-    hasReasoning &&
-    typeof reasoning === 'string' &&
-    reasoning.length > 0 &&
+    ((hasReasoning && typeof reasoning === 'string' && reasoning.length > 0) ||
+      details?.some((detail) => {
+        const payload =
+          detail.type === 'reasoning.summary'
+            ? detail.summary
+            : detail.type === 'reasoning.encrypted'
+              ? detail.data
+              : detail.text;
+        return typeof payload === 'string' && payload.length > 0;
+      })) &&
     (finish === 'stop' || finish === 'length');
   if (
     typeof content !== 'string' &&

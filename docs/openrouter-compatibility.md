@@ -288,7 +288,7 @@ Both bases preserve optional string/null reasoning through bounded delegated str
 
 ## Non-streaming reasoning text subset
 
-Already-valid direct OpenAI/delegated OpenRouter assistant responses preserve optional reasoning string/null through both bases and actual SDK 1.4.18 sockets. Current text/refusal/tool validation, IAM/limits, required accounting/audit and safe failed-attempt semantics stay shared; reasoning never enters operational metadata and missing usage stays unknown. Detail-only null/missing-content success, structured request/history controls, native Anthropic/Gemini thinking mappings and full external-client conformance remain open. Summary/text/encrypted detail responses are implemented separately below. See [plan](plans/240-nonstream-reasoning.md) and [contract](../contracts/nonstream-reasoning.md).
+Already-valid direct OpenAI/delegated OpenRouter assistant responses preserve optional reasoning string/null through both bases and actual SDK 1.4.18 sockets. Current text/refusal/tool validation, IAM/limits, required accounting/audit and safe failed-attempt semantics stay shared; reasoning never enters operational metadata and missing usage stays unknown. Structured request/history controls, native Anthropic/Gemini thinking mappings and full external-client conformance remain open. Summary/text/encrypted detail responses are implemented separately below. See [plan](plans/240-nonstream-reasoning.md) and [contract](../contracts/nonstream-reasoning.md).
 
 
 ## Nonstream response source drift
@@ -383,3 +383,7 @@ Version 16 selects the JSON-schema wrapper/config definitions in addition to eve
 ## Optional schema configuration
 
 Named json_schema configurations preserve schema omission exactly through both bases, direct OpenAI/delegated OpenRouter and actual SDK sockets, including existing delegated streams. Supplied object/empty-object validation and bounded immutable snapshots remain intact; native unsupported modes, IAM/limits and required persistence retain their controls. No schema/default or output-conformance guarantee is fabricated. Model capabilities, native mappings, local enforcement and complete external-client compatibility remain open. See [plan](plans/300-optional-config-schema.md) and [contract](../contracts/client-response-formats.md).
+
+## Detail-only nonstream reasoning
+
+Direct OpenAI/delegated OpenRouter support missing/null content on stop/length when the validated detail snapshot contains nonempty summary/text/encrypted data. Empty payloads and signature/metadata-only detail arrays do not grant success. Exact details and existing IAM/limits/required persistence/unknown usage controls remain shared through both bases and actual SDK sockets, without decrypting or verifying opaque data. Native thinking/history, direct/tool streams and complete reasoning/external-client conformance remain open. See [plan](plans/302-detail-only-reasoning.md) and [contract](../contracts/nonstream-reasoning-details.md).
