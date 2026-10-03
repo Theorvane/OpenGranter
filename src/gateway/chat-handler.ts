@@ -35,6 +35,7 @@ import {
 import type { UsageRecord } from '../usage/record-usage.ts';
 import { type ChatMessage, snapshotChatMessages } from './chat-messages.ts';
 import {
+  type ReasoningEffort,
   type ResponseFormat,
   resolveOutputTokenLimit,
   type StreamOptions,
@@ -44,6 +45,7 @@ import {
   snapshotStreamOptions,
   type Verbosity,
   validPenalty,
+  validReasoningEffort,
   validSeed,
   validSingleChoice,
   validTemperature,
@@ -80,6 +82,7 @@ export interface ChatRequest {
   readonly n?: 1;
   readonly seed?: number;
   readonly verbosity?: Verbosity;
+  readonly reasoning_effort?: ReasoningEffort;
   readonly frequency_penalty?: number;
   readonly presence_penalty?: number;
   readonly response_format?: ResponseFormat;
@@ -370,6 +373,7 @@ function validateChat(value: unknown, streaming = false): ValidatedChatRequest |
           'n',
           'seed',
           'verbosity',
+          'reasoning_effort',
           'frequency_penalty',
           'presence_penalty',
           'response_format',
@@ -389,6 +393,8 @@ function validateChat(value: unknown, streaming = false): ValidatedChatRequest |
     return undefined;
   const verbosity = value.verbosity ?? undefined;
   if (!validVerbosity(verbosity)) return undefined;
+  const reasoningEffort = value.reasoning_effort ?? undefined;
+  if (!validReasoningEffort(reasoningEffort)) return undefined;
   const seed = value.seed ?? undefined;
   if (!validSeed(seed)) return undefined;
   const temperature = value.temperature ?? undefined;
@@ -449,6 +455,7 @@ function validateChat(value: unknown, streaming = false): ValidatedChatRequest |
     ...(streamOptions === undefined ? {} : { stream_options: streamOptions }),
     ...(seed === undefined ? {} : { seed }),
     ...(verbosity === undefined ? {} : { verbosity }),
+    ...(reasoningEffort === undefined ? {} : { reasoning_effort: reasoningEffort }),
     ...(frequencyPenalty === undefined ? {} : { frequency_penalty: frequencyPenalty }),
     ...(presencePenalty === undefined ? {} : { presence_penalty: presencePenalty }),
     ...(responseFormat === undefined ? {} : { response_format: responseFormat }),

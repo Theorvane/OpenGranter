@@ -6,6 +6,7 @@ import {
   snapshotResponseFormat,
   snapshotStopSequences,
   validPenalty,
+  validReasoningEffort,
   validSeed,
   validSingleChoice,
   validTemperature,
@@ -430,6 +431,8 @@ export function createDirectChatInvoker(
           (registration.kind === 'openai' && (verbosity === 'xhigh' || verbosity === 'max'))))
     )
       fail('other');
+    const reasoningEffort = request.reasoning_effort ?? undefined;
+    if (!validReasoningEffort(reasoningEffort) || reasoningEffort !== undefined) fail('other');
     const seed = request.seed ?? undefined;
     if (
       !validSeed(seed) ||

@@ -138,3 +138,19 @@ export function validVerbosity(value: unknown): value is Verbosity | undefined {
     value === 'max'
   );
 }
+
+export type ReasoningEffort = 'max' | 'xhigh' | 'high' | 'medium' | 'low' | 'minimal' | 'none';
+
+/** Optional delegated reasoning shorthand; omission preserves upstream defaults. */
+export function validReasoningEffort(value: unknown): value is ReasoningEffort | undefined {
+  return (
+    value === undefined ||
+    value === 'max' ||
+    value === 'xhigh' ||
+    value === 'high' ||
+    value === 'medium' ||
+    value === 'low' ||
+    value === 'minimal' ||
+    value === 'none'
+  );
+}
