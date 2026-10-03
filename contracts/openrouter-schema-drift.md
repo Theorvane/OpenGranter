@@ -1,6 +1,6 @@
 # Official schema drift contract
 
-The pin records source URL, retrieval date, canonical source SHA-256 and a canonical structural projection SHA-256. Source: [official OpenRouter OpenAPI](https://openrouter.ai/openapi.json), retrieved 2026-10-02 for version 11. The snapshot contains selected schema constraints, with examples/descriptions and other annotations removed.
+The pin records source URL, retrieval date, canonical source SHA-256 and a canonical structural projection SHA-256. Source: [official OpenRouter OpenAPI](https://openrouter.ai/openapi.json), retrieved 2026-10-03 for version 12. The snapshot contains selected schema constraints, with examples/descriptions and other annotations removed.
 
 The offline gate validates provenance shape and projection integrity. `npm run compatibility:drift` explicitly fetches only the official HTTPS URL, rejects redirects, bounds time/body size and compares selected chat request and response definitions. It neither changes the pin nor sends credentials or inference calls. Failures expose fixed messages, not downloaded content or transport errors.
 
@@ -37,3 +37,7 @@ Version 10 adds exactly ChatUsage, CostDetails and ServerToolUseDetails in usage
 ## Min-p request source drift
 
 Version 11 adds optional nullable min_p as the nineteenth selected request field. The reviewed official shape is number/null with double format, without encoded bounds or default. Future type/nullability/format, constraint and literal default changes cause drift; editorial annotations remain ignored. Missing/malformed source fields, rehashed missing/extra/malformed field maps and versions 1..10 reject safely. The explicit refresh preserves every version-10 selection and the canonical official source digest. This source guard does not change runtime validation, provider capabilities, IAM, secrets, usage or audit behavior. See [plan](../docs/plans/254-min-p-schema.md).
+
+## Top-a request source drift
+
+Version 12 adds optional nullable top_a as the twentieth selected request field. Its reviewed official shape is number/null with double format and no encoded bounds/default. Structural constraints and literal defaults cause drift; editorial annotations remain ignored. Missing/malformed sources, rehashed invalid field maps and versions 1..11 reject. All version-11 selections remain unchanged. The official source digest is explicitly refreshed to f6041af462fa5dfea4b1ea246bcb02a208a57af2784fb7110a212e637d0e913e after comparing changes outside the selected projection. This guard changes no runtime/provider/security/accounting behavior or complete compatibility claim. See [plan](../docs/plans/258-top-a-schema.md).

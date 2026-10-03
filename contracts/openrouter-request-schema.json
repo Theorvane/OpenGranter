@@ -1,9 +1,9 @@
 {
-  "version": 11,
+  "version": 12,
   "source": "https://openrouter.ai/openapi.json",
-  "retrievedAt": "2026-10-02",
-  "sourceSha256": "b02d61edfa13dd8f531f1d4429e62164fe28ddb6bb048aac64dca2f2b8bcfe66",
-  "projectionSha256": "34e3b0287de8c990cbab826c0fffc297692531d77c22aa53d93cafe63128e2ee",
+  "retrievedAt": "2026-10-03",
+  "sourceSha256": "f6041af462fa5dfea4b1ea246bcb02a208a57af2784fb7110a212e637d0e913e",
+  "projectionSha256": "0bdaed6c0c3cae5c9fb54808944c8d4b6aeadd416a24ec5190a7cf2b29b1b839",
   "projection": {
     "openapi": "3.1.0",
     "documentVersion": "1.0.0",
@@ -362,6 +362,13 @@
         ]
       },
       "min_p": {
+        "format": "double",
+        "type": [
+          "number",
+          "null"
+        ]
+      },
+      "top_a": {
         "format": "double",
         "type": [
           "number",

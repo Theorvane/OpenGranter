@@ -581,3 +581,7 @@ Version 11 adds min_p to the exact nineteen-field request map using the existing
 ## Delegated top-a sampling subset
 
 HTTP parsing captures validated optional top_a, and shared delegated preparation repeats validation before asynchronous credentials and freezes the exact scalar in its body. Both delegated invocation modes reuse this boundary. Direct registered adapters reject non-null values before secrets. No routing/capability/default changes or source-pin refresh. See [contract](../contracts/client-top-a.md).
+
+## Top-a request source drift
+
+Version 12 adds top_a to the exact twenty-field request map using the existing structural projector. All version-11 selections are preserved; source provenance is explicitly refreshed; current number/null and double format have no encoded bounds or default. See [plan](plans/258-top-a-schema.md) and [contract](../contracts/openrouter-schema-drift.md).
