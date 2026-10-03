@@ -763,3 +763,7 @@ Both HTTP bases retain absent/null/empty/Unicode raw native reasons across text/
 ## Reasoning-effort structural drift
 
 The offline gate accepts the reviewed version-14 pin and rejects stale versions 1..13 or rehashed invalid field maps. Enum/type/nullability/default/required/extension changes produce drift; annotations remain ignored and literal defaults remain data. See [plan](plans/276-reasoning-effort-schema.md) and [contract](../contracts/openrouter-schema-drift.md).
+
+## Referenced reasoning-detail source drift
+
+Version 15 adds exactly eight reasoningDefinitions for nonstream/stream arrays, their shared union, summary/encrypted/text/server-tool-call variants and ReasoningFormat. Track structure, references, discriminator mappings, required lists, types/nullability, constraints, extensions and literal defaults while ignoring annotations. Missing/malformed source definitions and rehashed invalid exact maps fail safely; versions 1..14 reject. All version-14 selections and source provenance remain unchanged. Existing whole assistant/stream delta selections retain parent field/reference/required tracking. This does not enable runtime reasoning details, server tools, signatures/history, or complete reasoning/client compatibility. IAM, credentials, usage and audit behavior are unchanged. See [plan](plans/282-reasoning-details-schema.md).

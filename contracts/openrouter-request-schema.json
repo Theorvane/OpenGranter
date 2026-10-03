@@ -1,9 +1,9 @@
 {
-  "version": 14,
+  "version": 15,
   "source": "https://openrouter.ai/openapi.json",
   "retrievedAt": "2026-10-03",
   "sourceSha256": "f6041af462fa5dfea4b1ea246bcb02a208a57af2784fb7110a212e637d0e913e",
-  "projectionSha256": "cd326165d57c04b394e3d03f939dfae76068e25dddd5c84d2f824ea2e1612d64",
+  "projectionSha256": "961b3903e2df5e92d7fe61bb576452705954581e38b338761d887adea7375cac",
   "projection": {
     "openapi": "3.1.0",
     "documentVersion": "1.0.0",
@@ -295,6 +295,206 @@
           "object",
           "null"
         ]
+      }
+    },
+    "reasoningDefinitions": {
+      "ChatReasoningDetails": {
+        "items": {
+          "$ref": "#/components/schemas/ReasoningDetailUnion"
+        },
+        "type": "array"
+      },
+      "ChatStreamReasoningDetails": {
+        "items": {
+          "$ref": "#/components/schemas/ReasoningDetailUnion"
+        },
+        "type": "array"
+      },
+      "ReasoningDetailUnion": {
+        "discriminator": {
+          "mapping": {
+            "reasoning.encrypted": "#/components/schemas/ReasoningDetailEncrypted",
+            "reasoning.server_tool_call": "#/components/schemas/ReasoningDetailServerToolCall",
+            "reasoning.summary": "#/components/schemas/ReasoningDetailSummary",
+            "reasoning.text": "#/components/schemas/ReasoningDetailText"
+          },
+          "propertyName": "type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ReasoningDetailSummary"
+          },
+          {
+            "$ref": "#/components/schemas/ReasoningDetailEncrypted"
+          },
+          {
+            "$ref": "#/components/schemas/ReasoningDetailText"
+          },
+          {
+            "$ref": "#/components/schemas/ReasoningDetailServerToolCall"
+          }
+        ]
+      },
+      "ReasoningDetailSummary": {
+        "properties": {
+          "format": {
+            "$ref": "#/components/schemas/ReasoningFormat"
+          },
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "index": {
+            "type": "integer"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "reasoning.summary"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "summary"
+        ],
+        "type": "object"
+      },
+      "ReasoningDetailEncrypted": {
+        "properties": {
+          "data": {
+            "type": "string"
+          },
+          "format": {
+            "$ref": "#/components/schemas/ReasoningFormat"
+          },
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "index": {
+            "type": "integer"
+          },
+          "type": {
+            "enum": [
+              "reasoning.encrypted"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "data"
+        ],
+        "type": "object"
+      },
+      "ReasoningDetailText": {
+        "properties": {
+          "format": {
+            "$ref": "#/components/schemas/ReasoningFormat"
+          },
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "index": {
+            "type": "integer"
+          },
+          "signature": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "text": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "type": {
+            "enum": [
+              "reasoning.text"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "ReasoningDetailServerToolCall": {
+        "properties": {
+          "arguments": {
+            "type": "string"
+          },
+          "format": {
+            "$ref": "#/components/schemas/ReasoningFormat"
+          },
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "index": {
+            "type": "integer"
+          },
+          "result": {
+            "type": "string"
+          },
+          "tool_call_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tool_name": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "reasoning.server_tool_call"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "tool_name",
+          "arguments",
+          "result"
+        ],
+        "type": "object"
+      },
+      "ReasoningFormat": {
+        "enum": [
+          "unknown",
+          "openai-responses-v1",
+          "azure-openai-responses-v1",
+          "bedrock-openai-responses-v1",
+          "bedrock-xai-responses-v1",
+          "xai-responses-v1",
+          "meta-responses-v1",
+          "anthropic-claude-v1",
+          "google-gemini-v1",
+          null
+        ],
+        "type": [
+          "string",
+          "null"
+        ],
+        "x-speakeasy-unknown-values": "allow"
       }
     },
     "required": [

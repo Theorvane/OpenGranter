@@ -340,3 +340,7 @@ Documented nonstream native_finish_reason now survives both HTTP bases and OpenA
 ## Reasoning-effort source drift subset
 
 Version 14 selects reasoning_effort as the twenty-second request field. This bounded source guard does not certify runtime instance validation, native support or complete compatibility; release gate #116 remains open. See [plan](plans/276-reasoning-effort-schema.md) and [contract](../contracts/openrouter-schema-drift.md).
+
+## Referenced reasoning-detail source drift
+
+Version 15 adds exactly eight reasoningDefinitions for nonstream/stream arrays, their shared union, summary/encrypted/text/server-tool-call variants and ReasoningFormat. Track structure, references, discriminator mappings, required lists, types/nullability, constraints, extensions and literal defaults while ignoring annotations. Missing/malformed source definitions and rehashed invalid exact maps fail safely; versions 1..14 reject. All version-14 selections and source provenance remain unchanged. Existing whole assistant/stream delta selections retain parent field/reference/required tracking. This does not enable runtime reasoning details, server tools, signatures/history, or complete reasoning/client compatibility. IAM, credentials, usage and audit behavior are unchanged. See [plan](plans/282-reasoning-details-schema.md).
