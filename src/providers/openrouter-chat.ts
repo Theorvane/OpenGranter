@@ -126,6 +126,7 @@ function normalize(
 ): ChatCompletion {
   const value = record(body);
   const fingerprint = value?.system_fingerprint;
+  const serviceTier = value?.service_tier;
   const choices = Array.isArray(value?.choices) ? value.choices : undefined;
   const first = record(choices?.[0]);
   const message = normalizeAssistantResponse(record(first?.message), first?.finish_reason);
@@ -137,7 +138,8 @@ function normalize(
     value.model !== attempt.upstreamModelId ||
     first?.index !== 0 ||
     !message ||
-    (fingerprint !== undefined && fingerprint !== null && typeof fingerprint !== 'string')
+    (fingerprint !== undefined && fingerprint !== null && typeof fingerprint !== 'string') ||
+    (serviceTier !== undefined && serviceTier !== null && typeof serviceTier !== 'string')
   )
     fail('upstream', true, true);
 
@@ -157,6 +159,7 @@ function normalize(
     created: value.created as number,
     model: clientModelAlias,
     ...(fingerprint === undefined ? {} : { system_fingerprint: fingerprint }),
+    ...(serviceTier === undefined ? {} : { service_tier: serviceTier }),
     choices: [{ index: 0, message, finish_reason: finish }],
     ...(stats ? { usage: stats } : {}),
   };

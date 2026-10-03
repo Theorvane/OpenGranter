@@ -297,3 +297,8 @@ Version 10 selects ChatUsage, CostDetails and ServerToolUseDetails, including in
 ## Compatible nonstream usage availability
 
 Normalized nonstream /api/v1 completions omit incomplete usage while keeping internal missing/partial/invalid reporting, allowing official OpenRouter SDK 1.4.18 to deserialize successful responses. Complete safe counters, including zero, remain. Actual socket tests cover direct OpenAI/delegated OpenRouter and sparse native Anthropic/Gemini normalization, shared denials and accounting failures. Detailed billing/token-category projection, incomplete stream usage, legacy SDK sparse usage and full conformance remain open. See [plan](plans/246-compatible-usage.md) and [contract](../contracts/compatible-completion-usage.md).
+
+
+## Nonstream service tier metadata
+
+Optional nonstream service_tier string/null is preserved by direct OpenAI and delegated OpenRouter across both bases and pinned official OpenRouter/OpenAI SDKs. Malformed values fail safely; IAM/limits/accounting remain shared and operational metadata excludes tier values. This is response metadata only; native mappings, request controls, streamed tiers and complete conformance remain open. See [plan](plans/248-service-tier.md) and [contract](../contracts/service-tier-responses.md).

@@ -558,3 +558,8 @@ Version 10 adds an exact usageDefinitions map for ChatUsage, CostDetails and Ser
 ## Compatible nonstream usage availability
 
 The shared managed/delegated success projection runs after required usage persistence and outcome audit. On /api/v1 it clones normalized completions needing adjustment and removes usage unless all three counters are safe nonnegative integers. It does not mutate native responses or ledger inputs, derive counters or change streaming/opaque responses. See [contract](../contracts/compatible-completion-usage.md).
+
+
+## Nonstream service tier metadata
+
+Both OpenAI-shaped normalizers capture service_tier once, reject non-string/non-null supplied values under existing safe possibly-billed failures and project valid optional scalars on ChatCompletion. Shared gateway cloning retains them; explicit audit/usage extraction excludes them. No native Anthropic/Gemini translation or source-pin refresh. See [contract](../contracts/service-tier-responses.md).

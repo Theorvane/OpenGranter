@@ -361,3 +361,8 @@ The version-10 structural source guard tracks chat token and cost usage definiti
 ## Compatible nonstream usage availability
 
 Normalized /api/v1 nonstream completions omit incomplete/invalid usage instead of making compatible clients reject successful text or inventing token counters. Internal missing/partial/invalid accounting and protected usage history retain the reported state. Complete counters, legacy /v1 and required security/accounting gates remain unchanged. See [contract](../contracts/compatible-completion-usage.md).
+
+
+## Nonstream service tier metadata
+
+Direct OpenAI/delegated OpenRouter nonstream completions preserve optional exact string/null service_tier response metadata. It cannot change permissions, destinations, limits or usage/cost accounting. Native/request/stream tier semantics remain separate. See [contract](../contracts/service-tier-responses.md).

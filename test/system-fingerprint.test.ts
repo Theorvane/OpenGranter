@@ -14,6 +14,8 @@ function fixture(
   finish = 'stop',
   gate = '',
   fingerprint?: unknown,
+  tier?: unknown,
+  tool = false,
 ) {
   let calls = 0;
   const audits: unknown[] = [];
@@ -25,11 +27,27 @@ function fixture(
       created: 1,
       model: 'model',
       ...(fingerprint === undefined ? {} : { system_fingerprint: fingerprint }),
+      ...(tier === undefined ? {} : { service_tier: tier }),
       choices: [
         {
           index: 0,
-          message: { role: 'assistant', content, ...(refusal === undefined ? {} : { refusal }) },
-          finish_reason: finish,
+          message: {
+            role: 'assistant',
+            content,
+            ...(refusal === undefined ? {} : { refusal }),
+            ...(tool
+              ? {
+                  tool_calls: [
+                    {
+                      id: 'call-1',
+                      type: 'function',
+                      function: { name: 'lookup', arguments: '{}' },
+                    },
+                  ],
+                }
+              : {}),
+          },
+          finish_reason: tool ? 'tool_calls' : finish,
         },
       ],
       usage: { prompt_tokens: 2, completion_tokens: 1, total_tokens: 3 },
@@ -81,10 +99,16 @@ function fixture(
     checkLimit: async () => gate !== 'limit',
     resolveSecret,
     writeAudit: async (event) => {
-      if (gate === 'audit') throw new Error('private audit');
+      if (
+        gate === 'audit' ||
+        (gate === 'outcome-audit' &&
+          (event.kind === 'attempt' || event.kind === 'delegated-attempt'))
+      )
+        throw new Error('private audit');
       audits.push(event);
     },
     writeUsage: async (record) => {
+      if (gate === 'ledger') throw new Error('private ledger');
       usage.push(record);
     },
     invokeDirect: async (_, request) => direct(candidate, request),
@@ -328,3 +352,192 @@ for (const kind of ['openai', 'openrouter'] as const) {
     }
   });
 }
+
+test('delegated service tier survives the public compatible completion boundary', async () => {
+  const f = fixture('openrouter', 'response', undefined, 'stop', '', undefined, 'private-tier');
+  const response = await f.handler(request('/api/v1/chat/completions'));
+  assert.equal(response.status, 200);
+  assert.equal(((await response.json()) as Record<string, unknown>).service_tier, 'private-tier');
+});
+
+for (const kind of ['openai', 'openrouter'] as const) {
+  test(`${kind}: optional service tier survives ordinary, refusal, filter and tool responses`, async () => {
+    for (const path of ['/v1/chat/completions', '/api/v1/chat/completions'])
+      for (const tier of [undefined, null, '', 'private-tier', '등급\ndata: unsafe'])
+        for (const [content, refusal, finish, tool] of [
+          ['private response', undefined, 'stop', false],
+          [null, 'private refusal', 'stop', false],
+          [null, undefined, 'content_filter', false],
+          [null, undefined, 'tool_calls', true],
+        ] as const) {
+          const f = fixture(kind, content, refusal, finish, '', undefined, tier, tool);
+          const response = await f.handler(request(path));
+          assert.equal(response.status, 200);
+          const body = (await response.json()) as Record<string, unknown>;
+          assert.equal(Object.hasOwn(body, 'service_tier'), tier !== undefined);
+          assert.equal(body.service_tier, tier);
+          assert.equal(f.usage.length, 1);
+          assert.doesNotMatch(JSON.stringify([f.audits, f.usage]), /private|unsafe|등급/u);
+        }
+  });
+  test(`${kind}: malformed service tier fails safely with possibly-billed accounting`, async () => {
+    for (const path of ['/v1/chat/completions', '/api/v1/chat/completions'])
+      for (const tier of [42, false, [], { private: 'tier' }]) {
+        const f = fixture(kind, 'response', undefined, 'stop', '', undefined, tier);
+        const response = await f.handler(request(path));
+        assert.equal(response.status, 502);
+        assert.equal(f.calls(), 1);
+        assert.equal((f.usage[0] as { outcome: string }).outcome, 'failed');
+        assert.equal((f.usage[0] as { possiblyBilled: boolean }).possiblyBilled, true);
+        assert.doesNotMatch(await response.text(), /private|tier/u);
+        assert.doesNotMatch(JSON.stringify([f.audits, f.usage]), /private|tier/u);
+      }
+  });
+  test(`${kind}: service tier cannot bypass denials or required accounting failures`, async () => {
+    for (const [gate, status, calls] of [
+      ['deny', 403, 0],
+      ['explicit', 403, 0],
+      ['limit', 429, 0],
+      ['audit', 503, 0],
+      ['ledger', 503, 1],
+      ['outcome-audit', 503, 1],
+    ] as const) {
+      const f = fixture(kind, 'response', undefined, 'stop', gate, undefined, 'private-tier');
+      const response = await f.handler(request('/api/v1/chat/completions'));
+      assert.equal(response.status, status, gate);
+      assert.equal(f.calls(), calls, gate);
+      assert.doesNotMatch(await response.text(), /private-tier/u);
+      assert.doesNotMatch(JSON.stringify([f.audits, f.usage]), /private-tier/u);
+    }
+  });
+  test(`${kind}: official SDK accepts exact optional nonstream service tier on both bases`, async () => {
+    for (const base of ['/v1', '/api/v1'])
+      for (const tier of [undefined, null, '', 'private-tier']) {
+        const f = fixture(kind, 'response', undefined, 'stop', '', 'fp_fixture', tier);
+        const server = createNodeRequestServer(f.handler);
+        await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+        try {
+          const address = server.address();
+          assert.ok(address && typeof address === 'object');
+          const client = new OpenRouter({
+            apiKey: 'fixture',
+            serverURL: `http://127.0.0.1:${address.port}${base}`,
+            retryConfig: { strategy: 'none' },
+          });
+          const result = await client.chat.send({ chatRequest: input });
+          assert.ok('choices' in result);
+          assert.equal(result.serviceTier, tier);
+          assert.equal(result.usage?.totalTokens, 3);
+          assert.doesNotMatch(JSON.stringify([f.audits, f.usage]), /private-tier/u);
+        } finally {
+          server.closeAllConnections();
+          await new Promise<void>((resolve, reject) =>
+            server.close((e) => (e ? reject(e) : resolve())),
+          );
+        }
+      }
+  });
+  test(`${kind}: service tier scalar is read once before validation and projection`, async () => {
+    let reads = 0;
+    const body = {
+      id: 'completion',
+      created: 1,
+      model: 'model',
+      choices: [
+        { index: 0, message: { role: 'assistant', content: 'response' }, finish_reason: 'stop' },
+      ],
+      get service_tier() {
+        reads++;
+        return reads === 1 ? 'private-tier' : { invalid: true };
+      },
+    };
+    const fetcher: typeof fetch = async () => {
+      const response = Response.json({});
+      Object.defineProperty(response, 'json', { value: async () => body });
+      return response;
+    };
+    const ports = { resolveSecret: async () => 'fixture', fetcher };
+    const result =
+      kind === 'openai'
+        ? await createDirectChatInvoker({
+            ...ports,
+            registrations: [{ providerId: 'provider', kind: 'openai', credentialRef: 'ref' }],
+          })(
+            { id: 'candidate', kind: 'managed', providerId: 'provider', upstreamModelId: 'model' },
+            input,
+          )
+        : await createOpenRouterChatInvoker({ ...ports, credentialRef: 'ref' })(
+            { upstreamModelId: 'model', authorizedProviderSlugs: ['provider'] },
+            input,
+          );
+    assert.equal(result.service_tier, 'private-tier');
+    assert.equal(reads, 1);
+  });
+}
+
+test('native Anthropic and Gemini do not translate unrelated service tier fields', async () => {
+  for (const kind of ['anthropic', 'google'] as const) {
+    const invoke = createDirectChatInvoker({
+      registrations: [{ providerId: 'provider', kind, credentialRef: 'ref', maxOutputTokens: 32 }],
+      resolveSecret: async () => 'fixture',
+      fetcher: async () =>
+        Response.json(
+          kind === 'anthropic'
+            ? {
+                content: [{ type: 'text', text: 'answer' }],
+                stop_reason: 'end_turn',
+                service_tier: 'private-tier',
+              }
+            : {
+                candidates: [{ content: { parts: [{ text: 'answer' }] }, finishReason: 'STOP' }],
+                service_tier: 'private-tier',
+              },
+        ),
+    });
+    const result = await invoke(
+      { id: 'candidate', kind: 'managed', providerId: 'provider', upstreamModelId: 'model' },
+      input,
+    );
+    assert.equal(Object.hasOwn(result, 'service_tier'), false);
+  }
+});
+
+test('response tier support does not accept client tier routing controls', async () => {
+  for (const kind of ['openai', 'openrouter'] as const)
+    for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
+      const f = fixture(kind, 'response', undefined, 'stop', '', undefined, 'private-tier');
+      const incoming = new Request(`http://localhost${path}`, {
+        method: 'POST',
+        headers: { authorization: 'Bearer fixture', 'content-type': 'application/json' },
+        body: JSON.stringify({ ...input, service_tier: 'auto' }),
+      });
+      const response = await f.handler(incoming);
+      assert.equal(response.status, 400);
+      assert.equal(f.calls(), 0);
+      assert.equal(f.usage.length, 0);
+    }
+});
+for (const kind of ['openai', 'openrouter'] as const)
+  test(`${kind}: OpenAI SDK preserves supplied service tier on both bases`, async () => {
+    for (const base of ['/v1', '/api/v1']) {
+      const f = fixture(kind, 'response', undefined, 'stop', '', 'fp_fixture', 'default');
+      const server = createNodeRequestServer(f.handler);
+      await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+      try {
+        const address = server.address();
+        assert.ok(address && typeof address === 'object');
+        const client = new OpenAI({
+          apiKey: 'fixture',
+          baseURL: `http://127.0.0.1:${address.port}${base}`,
+          maxRetries: 0,
+        });
+        const result = await client.chat.completions.create(input);
+        assert.equal(result.service_tier, 'default');
+      } finally {
+        server.closeAllConnections();
+        await new Promise<void>((resolve, reject) =>
+          server.close((e) => (e ? reject(e) : resolve())),
+        );
+      }
+    }
+  });
