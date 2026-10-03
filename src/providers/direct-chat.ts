@@ -11,6 +11,7 @@ import {
   validTemperature,
   validTopK,
   validTopP,
+  validVerbosity,
 } from '../gateway/chat-parameters.ts';
 import {
   snapshotFunctionTools,
@@ -418,6 +419,8 @@ export function createDirectChatInvoker(
         (registration.kind === 'openai' || (registration.kind === 'google' && topK > 2147483647)))
     )
       fail('other');
+    const verbosity = request.verbosity ?? undefined;
+    if (!validVerbosity(verbosity) || verbosity !== undefined) fail('other');
     const seed = request.seed ?? undefined;
     if (
       !validSeed(seed) ||

@@ -42,12 +42,14 @@ import {
   snapshotResponseFormat,
   snapshotStopSequences,
   snapshotStreamOptions,
+  type Verbosity,
   validPenalty,
   validSeed,
   validSingleChoice,
   validTemperature,
   validTopK,
   validTopP,
+  validVerbosity,
 } from './chat-parameters.ts';
 import {
   type FunctionTool,
@@ -77,6 +79,7 @@ export interface ChatRequest {
   readonly temperature?: number;
   readonly n?: 1;
   readonly seed?: number;
+  readonly verbosity?: Verbosity;
   readonly frequency_penalty?: number;
   readonly presence_penalty?: number;
   readonly response_format?: ResponseFormat;
@@ -366,6 +369,7 @@ function validateChat(value: unknown, streaming = false): ValidatedChatRequest |
           'parallel_tool_calls',
           'n',
           'seed',
+          'verbosity',
           'frequency_penalty',
           'presence_penalty',
           'response_format',
@@ -383,6 +387,8 @@ function validateChat(value: unknown, streaming = false): ValidatedChatRequest |
       value.parallel_tool_calls !== undefined)
   )
     return undefined;
+  const verbosity = value.verbosity ?? undefined;
+  if (!validVerbosity(verbosity)) return undefined;
   const seed = value.seed ?? undefined;
   if (!validSeed(seed)) return undefined;
   const temperature = value.temperature ?? undefined;
@@ -442,6 +448,7 @@ function validateChat(value: unknown, streaming = false): ValidatedChatRequest |
     ...(value.stream === true ? { stream: true } : {}),
     ...(streamOptions === undefined ? {} : { stream_options: streamOptions }),
     ...(seed === undefined ? {} : { seed }),
+    ...(verbosity === undefined ? {} : { verbosity }),
     ...(frequencyPenalty === undefined ? {} : { frequency_penalty: frequencyPenalty }),
     ...(presencePenalty === undefined ? {} : { presence_penalty: presencePenalty }),
     ...(responseFormat === undefined ? {} : { response_format: responseFormat }),
