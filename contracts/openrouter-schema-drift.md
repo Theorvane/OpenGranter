@@ -1,6 +1,6 @@
 # Official schema drift contract
 
-The pin records source URL, retrieval date, canonical source SHA-256 and a canonical structural projection SHA-256. Source: [official OpenRouter OpenAPI](https://openrouter.ai/openapi.json), retrieved 2026-10-02 for version 10. The snapshot contains selected schema constraints, with examples/descriptions and other annotations removed.
+The pin records source URL, retrieval date, canonical source SHA-256 and a canonical structural projection SHA-256. Source: [official OpenRouter OpenAPI](https://openrouter.ai/openapi.json), retrieved 2026-10-02 for version 11. The snapshot contains selected schema constraints, with examples/descriptions and other annotations removed.
 
 The offline gate validates provenance shape and projection integrity. `npm run compatibility:drift` explicitly fetches only the official HTTPS URL, rejects redirects, bounds time/body size and compares selected chat request and response definitions. It neither changes the pin nor sends credentials or inference calls. Failures expose fixed messages, not downloaded content or transport errors.
 
@@ -33,3 +33,7 @@ Version 9 adds the fixed /chat/completions HTTP 200 application/json responseRef
 ## Chat usage source drift
 
 Version 10 adds exactly ChatUsage, CostDetails and ServerToolUseDetails in usageDefinitions. Both selected nonstream and stream response structures reference ChatUsage, whose prompt/completion token details are inline and whose two referenced detail definitions are included explicitly. Required counters, type/nullability, bounds, cost formats, references and literal defaults cause drift without reference changes; editorial annotations and unrelated/native usage definitions remain ignored. Missing/malformed source definitions and rehashed absent/incomplete/extra/malformed maps fail safely; versions 1..9 reject. All version-9 projections and the canonical official source digest are unchanged. This does not project new runtime usage fields, enable server tools, change estimation or billing, or validate response instances. See [plan](../docs/plans/244-usage-schema.md).
+
+## Min-p request source drift
+
+Version 11 adds optional nullable min_p as the nineteenth selected request field. The reviewed official shape is number/null with double format, without encoded bounds or default. Future type/nullability/format, constraint and literal default changes cause drift; editorial annotations remain ignored. Missing/malformed source fields, rehashed missing/extra/malformed field maps and versions 1..10 reject safely. The explicit refresh preserves every version-10 selection and the canonical official source digest. This source guard does not change runtime validation, provider capabilities, IAM, secrets, usage or audit behavior. See [plan](../docs/plans/254-min-p-schema.md).
