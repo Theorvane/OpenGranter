@@ -597,3 +597,7 @@ Version 13 adds repetition_penalty to the exact twenty-one-field request map. Ev
 ## Nonstream native finish reasons
 
 Two compatible normalizers capture native_finish_reason once, validate string/null/absence and preserve it on the normalized choice. Native adapters omit it; standard reason validation remains unchanged. Metadata stays outside operational accounting/audit/error bodies. See [plan](plans/264-native-finish-reason.md) and [contract](../contracts/native-finish-reason.md).
+
+## Reasoning-effort request schema
+
+Version 14 adds reasoning_effort to the exact twenty-two-field request map. All version-13 selections and the official source digest remain unchanged. The inline string/null enum includes seven string levels and null, with no default; its unknown-value extension remains structural data. See [plan](plans/276-reasoning-effort-schema.md) and [contract](../contracts/openrouter-schema-drift.md).

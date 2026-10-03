@@ -400,3 +400,7 @@ The version-13 source guard tracks optional nullable repetition_penalty request 
 ## Nonstream native finish reasons
 
 Nonstream OpenAI-compatible/OpenRouter choices preserve supplied optional native_finish_reason strings/null independently of the canonical reason. Security/accounting remain shared; streaming, native synthesis and complete compatibility remain open. See [plan](plans/264-native-finish-reason.md) and [contract](../contracts/native-finish-reason.md).
+
+## Reasoning-effort source tracking
+
+The version-14 source guard tracks optional nullable reasoning_effort without changing runtime controls, provider capabilities, security or accounting. See [plan](plans/276-reasoning-effort-schema.md) and [contract](../contracts/openrouter-schema-drift.md).

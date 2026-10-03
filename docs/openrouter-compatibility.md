@@ -336,3 +336,7 @@ Version 13 selects repetition_penalty as the twenty-first request field. This bo
 ## Nonstream native finish reasons
 
 Documented nonstream native_finish_reason now survives both HTTP bases and OpenAI SDK raw JSON. Current official ChatChoice and pinned OpenRouter chat SDK omit the field, and that SDK strips it; source/SDK coverage is not claimed. Native synthesis, streaming and full response/client conformance remain open. See [plan](plans/264-native-finish-reason.md) and [contract](../contracts/native-finish-reason.md).
+
+## Reasoning-effort source drift subset
+
+Version 14 selects reasoning_effort as the twenty-second request field. This bounded source guard does not certify runtime instance validation, native support or complete compatibility; release gate #116 remains open. See [plan](plans/276-reasoning-effort-schema.md) and [contract](../contracts/openrouter-schema-drift.md).

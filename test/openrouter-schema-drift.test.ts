@@ -62,6 +62,11 @@ function source(): Record<string, unknown> {
             min_p: { type: ['number', 'null'], format: 'double' },
             top_a: { type: ['number', 'null'], format: 'double' },
             repetition_penalty: { type: ['number', 'null'], format: 'double' },
+            reasoning_effort: {
+              type: ['string', 'null'],
+              enum: ['max', 'xhigh', 'high', 'medium', 'low', 'minimal', 'none', null],
+              'x-speakeasy-unknown-values': 'allow',
+            },
             frequency_penalty: { type: ['number', 'null'], format: 'double' },
             presence_penalty: { type: ['number', 'null'], format: 'double' },
             seed: { type: ['integer', 'null'] },
@@ -183,6 +188,7 @@ test('official projection and reviewed pin agree; key order is immaterial', () =
     'model',
     'parallel_tool_calls',
     'presence_penalty',
+    'reasoning_effort',
     'repetition_penalty',
     'response_format',
     'seed',
@@ -484,8 +490,8 @@ for (const name of ['ChatFormatTextConfig', 'ChatFormatJsonObjectConfig']) {
     }
   });
 }
-test('version-13 pin retains exact selected definitions', () => {
-  assert.equal(pinned.version, 13);
+test('version-14 pin retains exact selected definitions', () => {
+  assert.equal(pinned.version, 14);
   const definitions = (
     projectOfficialSchema(source()) as unknown as { definitions: Record<string, unknown> }
   ).definitions;
@@ -654,8 +660,8 @@ test('message name selection ignores editorial and unrelated message changes', (
   for (const value of Object.values(projected.messageNames))
     assert.deepEqual(value, { schema: { type: 'string' }, required: false });
 });
-test('version-13 message maps reject stale and rehashed malformed pins', () => {
-  for (const version of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+test('version-14 message maps reject stale and rehashed malformed pins', () => {
+  for (const version of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
     assert.throws(() => validateSchemaPin({ ...pinned, version }), /Invalid schema pin/);
   for (const messageNames of [
     undefined,
@@ -1326,6 +1332,79 @@ test('repetition_penalty exact field map rejects rehashed missing, extra and mal
     if (operation === 'missing') delete fields.repetition_penalty;
     if (operation === 'extra') fields.unselected = { type: 'number' };
     if (operation === 'malformed') fields.repetition_penalty = [];
+    const projection = { ...pinned.projection, fields };
+    const projectionSha256 = createHash('sha256').update(canonicalSchema(projection)).digest('hex');
+    assert.throws(
+      () => validateSchemaPin({ ...pinned, projection, projectionSha256 }),
+      /Invalid schema pin/,
+    );
+  }
+});
+
+const effortSchema = {
+  type: ['string', 'null'],
+  enum: ['max', 'xhigh', 'high', 'medium', 'low', 'minimal', 'none', null],
+  'x-speakeasy-unknown-values': 'allow',
+};
+
+test('reasoning_effort selection preserves the official nullable enum structure', () => {
+  const data = source();
+  chatRequestProperties(data).reasoning_effort = structuredClone(effortSchema);
+  assert.deepEqual(projectOfficialSchema(data).fields.reasoning_effort, effortSchema);
+});
+
+test('reasoning_effort type enum null default extension and required changes cause drift', () => {
+  for (const replacement of [
+    { ...effortSchema, type: 'string' },
+    { ...effortSchema, type: ['number', 'null'] },
+    { ...effortSchema, enum: effortSchema.enum.filter((value) => value !== 'max') },
+    { ...effortSchema, enum: effortSchema.enum.filter((value) => value !== null) },
+    { ...effortSchema, enum: [...effortSchema.enum, 'unknown'] },
+    { ...effortSchema, default: 'medium' },
+    { ...effortSchema, 'x-speakeasy-unknown-values': 'reject' },
+  ]) {
+    const data = source();
+    chatRequestProperties(data).reasoning_effort = replacement;
+    assert.equal(compareOfficialSchema(data, pinned), false);
+  }
+  const data = source();
+  const schemas = data.components as { schemas: { ChatRequest: { required: string[] } } };
+  schemas.schemas.ChatRequest.required.push('reasoning_effort');
+  assert.equal(compareOfficialSchema(data, pinned), false);
+});
+
+test('reasoning_effort annotations are ignored and literal defaults remain data', () => {
+  const data = source();
+  chatRequestProperties(data).reasoning_effort = {
+    ...effortSchema,
+    description: 'editorial',
+    example: 'high',
+    title: 'editorial',
+  };
+  assert.equal(compareOfficialSchema(data, pinned), true);
+  const literal = { description: 'literal value', example: 'high' };
+  chatRequestProperties(data).reasoning_effort = { ...effortSchema, default: literal };
+  assert.deepEqual(projectOfficialSchema(data).fields.reasoning_effort, {
+    ...effortSchema,
+    default: literal,
+  });
+  assert.equal(compareOfficialSchema(data, pinned), false);
+});
+
+test('missing and malformed reasoning_effort source shapes fail safely', () => {
+  for (const value of [undefined, null, [], 'private source value']) {
+    const data = source();
+    chatRequestProperties(data).reasoning_effort = value;
+    assert.throws(() => projectOfficialSchema(data), /Invalid official schema/);
+  }
+});
+
+test('reasoning_effort exact field map rejects rehashed invalid selections', () => {
+  for (const operation of ['missing', 'extra', 'malformed']) {
+    const fields = { ...pinned.projection.fields };
+    if (operation === 'missing') delete fields.reasoning_effort;
+    if (operation === 'extra') fields.unselected = { type: 'string' };
+    if (operation === 'malformed') fields.reasoning_effort = [];
     const projection = { ...pinned.projection, fields };
     const projectionSha256 = createHash('sha256').update(canonicalSchema(projection)).digest('hex');
     assert.throws(
