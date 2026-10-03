@@ -535,3 +535,7 @@ Real local sockets connect the pinned official SDK to the Node/HTTP boundary and
 ## Shared finish-reason structural selection
 
 Version 8 adds ChatFinishReasonEnum to the exact selected definitions map and retains all prior projections unchanged. The existing bounded annotation-aware projector tracks its structural enum/type/nullability and extension data without traversing other non-streaming response definitions. Provenance/hash/version changes are explicit; runtime validation and IAM/accounting remain unchanged. See [contract](../contracts/openrouter-schema-drift.md) and [plan](plans/236-finish-reason-schema.md).
+
+## Delegated reasoning delta projection
+
+The bounded decoder captures optional reasoning string/null alongside role/content/refusal and the client encoder independently validates and JSON-frames it. Sequence state, complete outcomes and accounting retain no transcript. Usage-only deltas reject substantive reasoning rather than discard content; synthesized usage never replays reasoning. Existing HTTP backpressure/cancellation/security gates remain shared. See [plan](plans/238-stream-reasoning.md) and [contract](../contracts/stream-reasoning.md).

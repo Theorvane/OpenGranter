@@ -126,7 +126,7 @@ test('rejects malformed, out-of-scope and unsupported chunks with fixed errors',
     ' [DONE]',
     chunk({ content: 'private' }).replace('openai/example', 'other/model'),
     chunk({ tool_calls: [{ function: { arguments: 'private' } }] }),
-    chunk({ reasoning: 'private' }),
+    chunk({ reasoning_details: [{ type: 'reasoning.text', text: 'private' }] }),
     chunk({ role: 'tool' }),
     chunk({ content: { secret: 'private' } }),
     chunk({ content: 'private' }, 'error'),
@@ -263,4 +263,110 @@ test('refusal validation at decoder and independent encoder rejects malformed va
       'usage',
     );
   }
+});
+
+test('stream reasoning deltas preserve exact string/null/omission and safe framing', async () => {
+  const { encodeOpenRouterTextSse } = await import('../src/streaming/openrouter-client-sse.ts');
+  for (const reasoning of [undefined, null, '', 'private 思考\n\ndata: forged']) {
+    const event = decodeOpenRouterStreamPayload(
+      chunk({ content: null, ...(reasoning === undefined ? {} : { reasoning }) }, 'stop'),
+      scope,
+    );
+    assert.equal(event.kind, 'delta');
+    const frame = encodeOpenRouterTextSse(event);
+    assert.ok(frame);
+    const value = JSON.parse(frame.slice(6)).choices[0];
+    assert.equal(value.delta.reasoning, reasoning);
+    assert.equal(Object.hasOwn(value.delta, 'reasoning'), reasoning !== undefined);
+    assert.equal(value.finish_reason, 'stop');
+    assert.equal(value.delta.content, null);
+    assert.equal(frame.trim().split('\n\n').length, 1);
+  }
+});
+
+test('usage-only reasoning text cannot silently disappear', () => {
+  for (const reasoning of ['private reasoning', true, 42, [], {}]) {
+    assert.throws(
+      () =>
+        decodeOpenRouterStreamPayload(
+          chunk({ reasoning }, 'stop', { usage: { total_tokens: 3 } }),
+          scope,
+        ),
+      { message: 'Invalid OpenRouter stream chunk' },
+    );
+  }
+});
+
+test('reasoning validation at decoder and independent encoder rejects malformed values', async () => {
+  const { encodeOpenRouterTextSse } = await import('../src/streaming/openrouter-client-sse.ts');
+  const text = decodeOpenRouterStreamPayload(chunk({ content: 'ordinary text' }), scope);
+  assert.equal(text.kind, 'delta');
+  if (text.kind !== 'delta') assert.fail('fixture shape');
+  for (const reasoning of [true, 42, [], { secret: 'private-reasoning' }]) {
+    assert.throws(() => decodeOpenRouterStreamPayload(chunk({ reasoning }), scope), {
+      message: 'Invalid OpenRouter stream chunk',
+    });
+    assert.throws(() => encodeOpenRouterTextSse({ ...text, reasoning: reasoning as never }), {
+      message: 'Unsupported OpenRouter text stream event',
+    });
+  }
+  const event = decodeOpenRouterStreamPayload(
+    chunk({ content: 'ordinary text', refusal: null, reasoning: 'reasoning fragment' }),
+    scope,
+  );
+  const frame = encodeOpenRouterTextSse(event);
+  assert.ok(frame);
+  assert.deepEqual(JSON.parse(frame.slice(6)).choices[0].delta, {
+    content: 'ordinary text',
+    refusal: null,
+    reasoning: 'reasoning fragment',
+  });
+  for (const reasoning of [null, '']) {
+    assert.equal(
+      decodeOpenRouterStreamPayload(
+        chunk({ reasoning }, 'stop', { usage: { total_tokens: 3 } }),
+        scope,
+      ).kind,
+      'usage',
+    );
+  }
+});
+
+test('independent encoder rejects usage-only reasoning before missing-token early returns', async () => {
+  const { encodeOpenRouterTextSse } = await import('../src/streaming/openrouter-client-sse.ts');
+  const final = decodeOpenRouterStreamPayload(
+    chunk({}, 'stop', { usage: { prompt_tokens: 1, completion_tokens: 2, total_tokens: 3 } }),
+    scope,
+  );
+  assert.equal(final.kind, 'usage');
+  for (const missing of [false, true]) {
+    for (const reasoning of ['private usage reasoning', 42, {}, true, []]) {
+      const event = { ...final, ...(missing ? { usage: undefined } : {}), reasoning };
+      assert.throws(() => encodeOpenRouterTextSse(event), {
+        message: 'Unsupported OpenRouter text stream event',
+      });
+    }
+    for (const reasoning of [undefined, null, '']) {
+      const event = { ...final, ...(missing ? { usage: undefined } : {}), reasoning };
+      const frame = encodeOpenRouterTextSse(event);
+      if (missing) assert.equal(frame, undefined);
+      else
+        assert.equal(
+          Object.hasOwn(JSON.parse(frame?.slice(6) ?? '{}').choices[0].delta, 'reasoning'),
+          false,
+        );
+    }
+  }
+  const delta = { ...decodeOpenRouterStreamPayload(chunk({ content: 'text' }), scope) };
+  let reads = 0;
+  Object.defineProperty(delta, 'reasoning', {
+    enumerable: true,
+    get: () => (++reads === 1 ? 'private captured reasoning' : { malformed: true }),
+  });
+  const encoded = encodeOpenRouterTextSse(delta);
+  assert.equal(reads, 1);
+  assert.equal(
+    JSON.parse(encoded?.slice(6) ?? '{}').choices[0].delta.reasoning,
+    'private captured reasoning',
+  );
 });

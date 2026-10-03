@@ -338,3 +338,7 @@ The existing bounded non-streaming function-tool subset is validated through the
 ## Referenced finish-reason source drift
 
 The version-8 structural pin tracks the shared official finish-reason definition so enum/nullability changes cannot evade detection through an unchanged reference. This guards existing runtime contracts without accepting new reasons or certifying full response conformance. See [plan](plans/236-finish-reason-schema.md).
+
+## Delegated streaming reasoning text
+
+Optional upstream reasoning string/null deltas are preserved as response content on both client bases through unchanged IAM, limits, audit, usage and cancellation controls. No transcript enters operational metadata or completed summaries. Structured/native/non-streaming reasoning and request controls remain separate work. See [contract](../contracts/stream-reasoning.md).

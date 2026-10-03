@@ -221,7 +221,7 @@ Actual SDK validation rejects omitted nonstream fingerprints, the current basic 
 
 ## Delegated streaming refusal subset
 
-Both chat bases support validated optional string/null refusal deltas and content_filter termination without fallback/replay. JSON framing preserves exact response text, with safe malformed-value failures and shared security/accounting controls. Usage-only events cannot discard substantive refusal text; missing usage remains unknown. Direct/tool/multimodal/reasoning streams and full external-client conformance remain open. See [plan](plans/218-stream-refusals.md) and [contract](../contracts/stream-refusals.md).
+Both chat bases support validated optional string/null refusal deltas and content_filter termination without fallback/replay. JSON framing preserves exact response text, with safe malformed-value failures and shared security/accounting controls. Usage-only events cannot discard substantive refusal text; missing usage remains unknown. Direct/tool/multimodal streams, structured reasoning and full external-client conformance remain open. See [plan](plans/218-stream-refusals.md) and [contract](../contracts/stream-refusals.md).
 
 ## Logit-bias source drift subset
 
@@ -273,3 +273,8 @@ Sixteen actual socket cases verify SDK 1.4.18 declarations/choice serialization,
 ## Referenced finish-reason source drift subset
 
 Version 8 selects the common ChatFinishReasonEnum definition referenced by non-streaming and streaming choices. Enum/type/nullability, constraints, literal defaults and the unknown-value extension now cause drift without a reference change. All prior selected structures and the canonical official source hash remain unchanged. Runtime accepted reasons, native mappings, full response-instance validation and complete client conformance remain separate. See [plan](plans/236-finish-reason-schema.md) and [contract](../contracts/openrouter-schema-drift.md).
+
+
+## Delegated streaming reasoning text subset
+
+Both bases preserve optional string/null reasoning through bounded delegated streams and actual SDK 1.4.18 validation. Decoder/encoder checks, safe framing/failure, existing IAM/limits/usage/audit and cancellation controls remain shared; reasoning never enters operational metadata or completed summaries. Final usage cannot discard substantive reasoning or replay earlier text. reasoning_details/encrypted formats, request controls, non-streaming/native reasoning and full external-client conformance remain open. The existing ChatStreamDelta source pin already selects this field. See [plan](plans/238-stream-reasoning.md) and [contract](../contracts/stream-reasoning.md).

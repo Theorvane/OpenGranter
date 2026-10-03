@@ -20,6 +20,7 @@ export type OpenRouterTextStreamPayload =
       readonly role?: 'assistant';
       readonly content?: string | null;
       readonly refusal?: string | null;
+      readonly reasoning?: string | null;
       readonly finishReason: FinishReason | null;
       readonly nativeFinishReason?: string | null;
     }
@@ -120,10 +121,15 @@ export function decodeOpenRouterStreamPayload(
     !choice ||
     choice.index !== 0 ||
     !delta ||
-    Object.keys(delta).some((key) => key !== 'role' && key !== 'content' && key !== 'refusal') ||
+    Object.keys(delta).some(
+      (key) => key !== 'role' && key !== 'content' && key !== 'refusal' && key !== 'reasoning',
+    ) ||
     (delta.role !== undefined && delta.role !== 'assistant') ||
     (delta.content !== undefined && delta.content !== null && typeof delta.content !== 'string') ||
     (delta.refusal !== undefined && delta.refusal !== null && typeof delta.refusal !== 'string') ||
+    (delta.reasoning !== undefined &&
+      delta.reasoning !== null &&
+      typeof delta.reasoning !== 'string') ||
     (finish !== null && finish !== 'stop' && finish !== 'length' && finish !== 'content_filter')
   )
     throw invalidChunk();
@@ -132,7 +138,8 @@ export function decodeOpenRouterStreamPayload(
     if (
       finish === null ||
       (delta.content !== undefined && delta.content !== null && delta.content !== '') ||
-      (delta.refusal !== undefined && delta.refusal !== null && delta.refusal !== '')
+      (delta.refusal !== undefined && delta.refusal !== null && delta.refusal !== '') ||
+      (delta.reasoning !== undefined && delta.reasoning !== null && delta.reasoning !== '')
     )
       throw invalidChunk();
     const usage = normalizeProviderUsage(value.usage);
@@ -150,6 +157,7 @@ export function decodeOpenRouterStreamPayload(
     ...(delta.role === undefined ? {} : { role: delta.role }),
     ...(delta.content === undefined ? {} : { content: delta.content }),
     ...(delta.refusal === undefined ? {} : { refusal: delta.refusal }),
+    ...(delta.reasoning === undefined ? {} : { reasoning: delta.reasoning }),
     finishReason: finish,
     ...(nativeFinishReason === undefined ? {} : { nativeFinishReason }),
   });
