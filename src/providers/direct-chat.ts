@@ -97,6 +97,7 @@ export interface ChatCompletion {
       readonly index: 0;
       readonly message: AssistantResponse;
       readonly finish_reason: 'stop' | 'length' | 'content_filter' | 'tool_calls' | null;
+      readonly native_finish_reason?: string | null;
     },
   ];
   readonly usage?: {
@@ -132,6 +133,7 @@ function completion(
   finish: 'stop' | 'length' | 'content_filter' | 'tool_calls' | null,
   stats?: ChatCompletion['usage'],
   assistant?: AssistantResponse,
+  nativeReason?: string | null,
 ): ChatCompletion {
   const message = assistant ?? normalizeAssistantResponse({ role: 'assistant', content }, finish);
   if (!message) fail('other');
@@ -145,6 +147,7 @@ function completion(
         index: 0,
         message,
         finish_reason: finish,
+        ...(nativeReason === undefined ? {} : { native_finish_reason: nativeReason }),
       },
     ],
     ...(stats ? { usage: stats } : {}),
@@ -167,6 +170,9 @@ function normalize(
     const choices = items(value.choices);
     const first = record(choices?.[0]);
     if (choices?.length !== 1 || first?.index !== 0) fail('other');
+    const nativeReason = first.native_finish_reason;
+    if (nativeReason !== undefined && nativeReason !== null && typeof nativeReason !== 'string')
+      fail('other');
     const message = normalizeAssistantResponse(record(first.message), first.finish_reason);
     if (!message) fail('other');
     const finish = first.finish_reason;
@@ -187,6 +193,7 @@ function normalize(
         finish,
         normalizeProviderUsage(value.usage),
         message,
+        nativeReason,
       ),
       ...(fingerprint === undefined ? {} : { system_fingerprint: fingerprint }),
       ...(serviceTier === undefined ? {} : { service_tier: serviceTier }),

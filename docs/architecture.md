@@ -593,3 +593,7 @@ HTTP parsing captures validated optional repetition_penalty, and shared delegate
 ## Repetition penalty request source drift
 
 Version 13 adds repetition_penalty to the exact twenty-one-field request map. Every version-12 selection and official source digest are preserved. The current number/null and double shape encodes no bounds or default. See [plan](plans/262-repetition-schema.md) and [contract](../contracts/openrouter-schema-drift.md).
+
+## Nonstream native finish reasons
+
+Two compatible normalizers capture native_finish_reason once, validate string/null/absence and preserve it on the normalized choice. Native adapters omit it; standard reason validation remains unchanged. Metadata stays outside operational accounting/audit/error bodies. See [plan](plans/264-native-finish-reason.md) and [contract](../contracts/native-finish-reason.md).

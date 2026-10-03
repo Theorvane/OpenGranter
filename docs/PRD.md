@@ -396,3 +396,7 @@ Optional nullable finite repetition_penalty in 0..2 is accepted on both chat bas
 ## Repetition penalty request source drift
 
 The version-13 source guard tracks optional nullable repetition_penalty request structure without changing runtime controls, provider capabilities, security or accounting contracts. See [plan](plans/262-repetition-schema.md) and [contract](../contracts/openrouter-schema-drift.md).
+
+## Nonstream native finish reasons
+
+Nonstream OpenAI-compatible/OpenRouter choices preserve supplied optional native_finish_reason strings/null independently of the canonical reason. Security/accounting remain shared; streaming, native synthesis and complete compatibility remain open. See [plan](plans/264-native-finish-reason.md) and [contract](../contracts/native-finish-reason.md).
