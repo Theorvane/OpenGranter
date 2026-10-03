@@ -4,7 +4,8 @@ Both chat bases accept optional assistant reasoning string/null for delegated
 OpenRouter requests, including ordinary delegated text streams. Preserve omission,
 null, empty and Unicode/newline strings exactly when assistant content is string
 or normalized text parts. Ordinary null/missing content requires nonempty scalar
-reasoning and normalizes missing content to null. That guard is a bounded gateway
+reasoning or a validated nonempty detailed payload (see the detail history contract),
+and normalizes missing content to null. That guard is a bounded gateway
 subset, not an official prohibition on empty content-free SDK message shapes.
 
 Existing assistant function-call history preserves reasoning without changing
@@ -33,8 +34,9 @@ Actual OpenRouter SDK sockets cover both bases and delegated nonstream/text
 streams. Official ChatMessages maps assistant inputs to ChatAssistantMessage,
 whose content and reasoning are independent optional nullable fields; pin v16
 selects that definition, but full ChatMessages reference traversal remains open.
-Reasoning details/history signatures, native mappings, structured reasoning
-request controls and complete external-client certification remain under #116.
+Detailed history is covered by [its contract](client-reasoning-details-history.md).
+Native mappings, structured reasoning request controls and complete external-client
+certification remain under #116.
 
 Sources: installed SDK 1.4.18 and [official OpenAPI](https://openrouter.ai/openapi.json).
 See [plan](../docs/plans/304-assistant-reasoning-history.md) and
