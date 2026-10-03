@@ -298,15 +298,21 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function projectClientCompletion(value: unknown, format: ClientErrorFormat): unknown {
-  if (
-    format === 'openrouter' &&
-    isRecord(value) &&
-    value.object === 'chat.completion' &&
-    value.system_fingerprint === undefined
-  ) {
-    return { ...value, system_fingerprint: null };
-  }
-  return value;
+  if (format !== 'openrouter' || !isRecord(value) || value.object !== 'chat.completion')
+    return value;
+  const usage = value.usage;
+  const incompleteUsage =
+    Object.hasOwn(value, 'usage') &&
+    (!isRecord(usage) ||
+      ['prompt_tokens', 'completion_tokens', 'total_tokens'].some(
+        (key) =>
+          typeof usage[key] !== 'number' || !Number.isSafeInteger(usage[key]) || usage[key] < 0,
+      ));
+  if (value.system_fingerprint !== undefined && !incompleteUsage) return value;
+  const projected = { ...value };
+  if (projected.system_fingerprint === undefined) projected.system_fingerprint = null;
+  if (incompleteUsage) delete projected.usage;
+  return projected;
 }
 
 function validCatalog(

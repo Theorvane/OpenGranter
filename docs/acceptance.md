@@ -715,3 +715,8 @@ Required-field, fingerprint nullability, choice references and assistant content
 ## Chat usage source drift
 
 Token counter type/required/bounds, inline cached/reasoning details, nullable cost/format, cost/server-tool references and counters cause drift. Annotation-only and unrelated native usage changes remain ignored; literal default keys remain data. Missing/malformed source definitions and rehashed absent/incomplete/extra/malformed maps fail safely. Version 10 rejects versions 1..9 and preserves every prior projection. See [plan](plans/244-usage-schema.md).
+
+
+## Compatible nonstream usage availability
+
+Actual official SDK sockets accept missing/partial/invalid normalized usage on /api/v1 with usage omitted and exact text preserved. Complete/zero counters survive; /v1 sparse counters and ledger missing/partial/invalid states remain. Managed/delegated and native normalization, immutable projection, authentication/model-provider Deny/limits and required ledger/outcome-audit failures retain public-boundary security and privacy behavior. See [plan](plans/246-compatible-usage.md).

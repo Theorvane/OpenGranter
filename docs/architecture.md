@@ -553,3 +553,8 @@ Version 9 projects the fixed successful JSON response reference and exactly Chat
 ## Chat usage source drift
 
 Version 10 adds an exact usageDefinitions map for ChatUsage, CostDetails and ServerToolUseDetails using existing bounded annotation-aware canonicalization. Inline token details and the two explicit referenced definitions are tracked without recursive schema traversal. Prior selections and official source hash are preserved. No runtime usage/accounting or security path changes. See [contract](../contracts/openrouter-schema-drift.md).
+
+
+## Compatible nonstream usage availability
+
+The shared managed/delegated success projection runs after required usage persistence and outcome audit. On /api/v1 it clones normalized completions needing adjustment and removes usage unless all three counters are safe nonnegative integers. It does not mutate native responses or ledger inputs, derive counters or change streaming/opaque responses. See [contract](../contracts/compatible-completion-usage.md).
