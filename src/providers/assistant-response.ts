@@ -9,6 +9,7 @@ export interface AssistantResponse {
   readonly role: 'assistant';
   readonly content: string | null;
   readonly refusal?: string | null;
+  readonly reasoning?: string | null;
   readonly tool_calls?: readonly AssistantFunctionCall[];
 }
 
@@ -50,6 +51,11 @@ export function normalizeAssistantResponse(
   finish: unknown,
 ): AssistantResponse | undefined {
   if (value?.role !== 'assistant') return undefined;
+  const hasReasoning = Object.hasOwn(value, 'reasoning');
+  const reasoning = value.reasoning;
+  if (hasReasoning && reasoning !== null && typeof reasoning !== 'string') return undefined;
+  const reasoningContent =
+    hasReasoning && (typeof reasoning === 'string' || reasoning === null) ? { reasoning } : {};
   const toolCalls = value.tool_calls;
   if (
     finish === 'function_call' ||
@@ -75,6 +81,7 @@ export function normalizeAssistantResponse(
       role: 'assistant',
       content: content === undefined ? null : content,
       ...(hasRefusal ? { refusal: refusal as null | string } : {}),
+      ...reasoningContent,
       tool_calls: calls,
     };
   }
@@ -90,5 +97,6 @@ export function normalizeAssistantResponse(
     role: 'assistant',
     content,
     ...(hasRefusal && (typeof refusal === 'string' || refusal === null) ? { refusal } : {}),
+    ...reasoningContent,
   };
 }
