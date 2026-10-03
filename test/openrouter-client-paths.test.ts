@@ -148,6 +148,8 @@ for (const denied of [false, true]) {
     assert.equal(response.status, 200);
     assert.deepEqual(await response.json(), {
       object: 'list',
+      total_count: denied ? 0 : 1,
+      links: { next: null },
       data: denied
         ? []
         : [{ id: 'published/model', object: 'model', created: 1, owned_by: 'opengranter' }],

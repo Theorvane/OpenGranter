@@ -1,5 +1,6 @@
 import type { RouteCandidate, RouteKind } from '../routing/authorize-candidates.ts';
 import type { DelegatedChatRoute, ManagedChatRoute, PublishedModel } from './chat-handler.ts';
+import { snapshotOpenRouterMetadata } from './model-discovery-metadata.ts';
 
 export interface ModelCatalogSqlClient {
   readonly query: (
@@ -16,7 +17,7 @@ export class ModelCatalogUnavailable extends Error {
 }
 
 const SELECT = `SELECT m.alias, m.created_at_seconds::text AS created_at_seconds,
-  m.enabled, m.active_route_id, r.route_id, r.kind, r.version,
+  m.enabled, m.openrouter_metadata, m.active_route_id, r.route_id, r.kind, r.version,
   r.credential_ref, r.jev_credential_ref, r.jev_minimum_confidence,
   r.jev_send_prompt, r.candidates
   FROM catalog_models m
@@ -72,12 +73,16 @@ function parseRow(value: unknown): {
     throw new ModelCatalogUnavailable();
   }
   const created = Number(row.created_at_seconds);
+  const metadata =
+    row.openrouter_metadata === null || row.openrouter_metadata === undefined
+      ? {}
+      : { openRouterMetadata: snapshotOpenRouterMetadata(row.openrouter_metadata) };
   if (!Number.isSafeInteger(created) || typeof row.enabled !== 'boolean') {
     throw new ModelCatalogUnavailable();
   }
   if (row.active_route_id === null) {
     if (row.enabled || row.route_id !== null) throw new ModelCatalogUnavailable();
-    return { model: { alias, created, enabled: false, routes: [] }, route: undefined };
+    return { model: { alias, created, enabled: false, routes: [], ...metadata }, route: undefined };
   }
   const routeId = identifier(row.active_route_id);
   if (row.route_id !== routeId) throw new ModelCatalogUnavailable();
@@ -130,6 +135,7 @@ function parseRow(value: unknown): {
   }
   return {
     model: {
+      ...metadata,
       alias,
       created,
       enabled: row.enabled,

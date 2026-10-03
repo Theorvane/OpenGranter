@@ -666,3 +666,10 @@ Direct OpenAI forwards optional none/minimal/low/medium/high/xhigh/max as native
 ## Direct Gemini thinking levels
 
 Direct Gemini maps optional minimal/low/medium/high to generationConfig.thinkingConfig.thinkingLevel without changing maxOutputTokens or other native settings. Null/omission add no thinking config/default; none/xhigh/max reject before credentials. No budget or nearest-level alias is invented. Models support different levels and Gemini 2.5 requires separate budgets; upstream capability rejection remains safely accounted. Returned thought:true or malformed thought flags fail safely instead of merging thinking into visible text; absent/false flags retain ordinary text behavior. IAM, Deny, limits, required audit/ledger and billing uncertainty remain shared. Thinking signatures/history/token details and managed streams remain gaps. Anthropic reasoning-effort mapping and its interaction with verbosity remain unresolved. See [plan](plans/280-gemini-reasoning-effort.md) and [contract](../contracts/client-reasoning-effort.md).
+
+## Trusted OpenRouter discovery metadata
+
+- Complete administrator snapshots persist and deserialize through the exact official SDK socket client; empty IAM-filtered lists have count zero. Legacy/missing metadata behavior stays explicit.
+- Alias and provider explicit Deny, disabled entries and both route kinds retain filtering; no secret/limit/inference/usage ports run. Filtered counts do not leak hidden aliases.
+- Partial/unknown/malformed snapshots, including disabled or denied entries, fail safely before a partial listing. Required audit failure suppresses metadata; mutation during audit cannot alter client output. SQL reads and route resolution reject invalid stored snapshots.
+- Metadata prices/capabilities are informational, never billing/routing authority. Source refresh, query paging/filtering and complete external-client conformance remain open. See [contract](../contracts/model-discovery-metadata.md).

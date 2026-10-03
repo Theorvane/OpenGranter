@@ -5,10 +5,13 @@ import { PGlite } from '@electric-sql/pglite';
 import { createChatHandler } from '../src/gateway/chat-handler.ts';
 import { createPostgresModelCatalogReader } from '../src/gateway/postgres-model-catalog.ts';
 
-const catalogMigration = await readFile(
-  new URL('../migrations/005_model_catalog.sql', import.meta.url),
-  'utf8',
-);
+const catalogMigration =
+  (await readFile(new URL('../migrations/005_model_catalog.sql', import.meta.url), 'utf8')) +
+  '\n' +
+  (await readFile(
+    new URL('../migrations/010_model_discovery_metadata.sql', import.meta.url),
+    'utf8',
+  ));
 const optionalJevMigration = await readFile(
   new URL('../migrations/006_optional_managed_jev.sql', import.meta.url),
   'utf8',

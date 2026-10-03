@@ -24,7 +24,7 @@ Tools with a hardcoded openrouter.ai host need a configurable endpoint or an int
 | Area | Current state | Remaining acceptance gate |
 | --- | --- | --- |
 | Base paths and Bearer token | /api/v1 chat/models aliases; shared proxy authorization; pinned OpenAI SDK smoke tests | Direct/tool streaming SDK workflows and named external-tool registration tests |
-| Model discovery | Authorized alias IDs and basic model fields | Context window, capability, supported-parameter and price metadata from trusted catalog sources |
+| Model discovery | IAM-filtered aliases; optional administrator-published complete OpenRouter metadata and list envelope on /api/v1 | Metadata provisioning/refresh, paging/filter queries, broader optional fields and complete discovery workflows |
 | Non-streaming text chat | Text messages, one normalized text choice with max_tokens/max_completion_tokens and portable stop/top_p/temperature/n=1 across four adapters | Remaining request/response schema, sampling and capability metadata |
 | Streaming | Delegated HTTP text streams with bounded validation, awaited delivery, cancellation, usage and interruption audit | Direct-provider/tool/multimodal mappings, additional stream option fields, incomplete usage and full external-client conformance |
 | Tool calling | Validated function-tool requests, non-streaming assistant calls and text-only tool-result history for delegated OpenRouter/direct OpenAI | Server tools, rich content, native mappings and streaming |
@@ -254,3 +254,10 @@ Direct OpenAI forwards optional none/minimal/low/medium/high/xhigh/max as native
 ## Direct Gemini thinking levels
 
 Direct Gemini maps optional minimal/low/medium/high to generationConfig.thinkingConfig.thinkingLevel without changing maxOutputTokens or other native settings. Null/omission add no thinking config/default; none/xhigh/max reject before credentials. No budget or nearest-level alias is invented. Models support different levels and Gemini 2.5 requires separate budgets; upstream capability rejection remains safely accounted. Returned thought:true or malformed thought flags fail safely instead of merging thinking into visible text; absent/false flags retain ordinary text behavior. IAM, Deny, limits, required audit/ledger and billing uncertainty remain shared. Thinking signatures/history/token details and managed streams remain gaps. Anthropic reasoning-effort mapping and its interaction with verbosity remain unresolved. See [plan](plans/280-gemini-reasoning-effort.md) and [contract](../contracts/client-reasoning-effort.md).
+
+
+## Trusted model discovery subset
+
+Optional administrator-published complete snapshots in the PostgreSQL catalog provide bounded OpenRouter model fields on /api/v1/models. The official SDK 1.4.18 now deserializes configured rich model lists and empty IAM-filtered lists over actual sockets; the page result retains exact context/price/moderation values. Legacy /v1 and unconfigured aliases retain basic behavior and documented SDK gaps. Filtered total_count and links.next:null do not expose denied entries. Strict validation and deep capture preserve required audit, no upstream/secrets/limits/usage calls, and safe malformed-catalog failures.
+
+This is first-response conformance, not complete model discovery. Administrator review/refresh, conservative multi-candidate metadata, publication APIs, broader optional fields, source-pinned model schema tracking and query paging/filtering remain separate work. The SDK can request unsupported offset/limit pages for large lists; no full iteration claim is made. Prices are advertised metadata, not billed cost. See [plan](plans/228-discovery-metadata.md) and [contract](../contracts/model-discovery-metadata.md).
