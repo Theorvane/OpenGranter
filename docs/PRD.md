@@ -432,3 +432,7 @@ Delegated streaming preserves the bounded prompt/completion categories from actu
 ### Detail-only assistant reasoning completions
 
 Direct OpenAI/delegated OpenRouter preserve supported nonempty summary/text/encrypted detail payloads even when stop/length completions omit visible content, normalized to null. Metadata/signature-only details do not certify a successful output. No decryption, signature verification or complete native thinking compatibility is claimed. Existing IAM, audit and usage controls remain required. See [contract](../contracts/nonstream-reasoning-details.md).
+
+### Scalar assistant reasoning history
+
+Delegated OpenRouter accepts optional string/null reasoning in assistant conversation history, preserving ordinary text and complete function-call groups. Null/missing ordinary content requires nonempty scalar reasoning; unsupported direct OpenAI/Anthropic/Gemini reject the field before credentials. Client reasoning stays untrusted data and retains IAM, limits, audit and usage controls. Detailed history/native thinking and complete compatibility remain open. See [contract](../contracts/client-reasoning-history.md).
