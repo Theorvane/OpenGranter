@@ -438,6 +438,8 @@ export function createDirectChatInvoker(
       fail('other');
     const minP = request.min_p ?? undefined;
     if (minP !== undefined) fail('other');
+    const topA = request.top_a ?? undefined;
+    if (topA !== undefined) fail('other');
     const topK = request.top_k ?? undefined;
     if (
       !validTopK(topK) ||

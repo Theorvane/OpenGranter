@@ -12,6 +12,7 @@ import {
   validSeed,
   validSingleChoice,
   validTemperature,
+  validTopA,
   validTopK,
   validTopP,
   validVerbosity,
@@ -226,6 +227,8 @@ function prepareOpenRouterChatRequest(
   if (!validSingleChoice(n)) fail('configuration');
   const minP = request.min_p ?? undefined;
   if (!validMinP(minP)) fail('configuration');
+  const topA = request.top_a ?? undefined;
+  if (!validTopA(topA)) fail('configuration');
   const topP = request.top_p ?? undefined;
   if (!validTopP(topP)) fail('configuration');
   const temperature = request.temperature ?? undefined;
@@ -281,6 +284,7 @@ function prepareOpenRouterChatRequest(
       ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
       ...(temperature === undefined ? {} : { temperature }),
       ...(topP === undefined ? {} : { top_p: topP }),
+      ...(topA === undefined ? {} : { top_a: topA }),
       ...(minP === undefined ? {} : { min_p: minP }),
       ...(topK === undefined ? {} : { top_k: topK }),
       ...(stop === undefined ? {} : { stop }),

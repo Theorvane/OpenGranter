@@ -577,3 +577,7 @@ HTTP parsing captures validated optional min_p, and shared delegated preparation
 ## Min-p request source drift
 
 Version 11 adds min_p to the exact nineteen-field request map using the existing structural projector. All version-10 selections and source digest are preserved; current number/null and double format have no encoded bounds or default. See [plan](plans/254-min-p-schema.md) and [contract](../contracts/openrouter-schema-drift.md).
+
+## Delegated top-a sampling subset
+
+HTTP parsing captures validated optional top_a, and shared delegated preparation repeats validation before asynchronous credentials and freezes the exact scalar in its body. Both delegated invocation modes reuse this boundary. Direct registered adapters reject non-null values before secrets. No routing/capability/default changes or source-pin refresh. See [contract](../contracts/client-top-a.md).

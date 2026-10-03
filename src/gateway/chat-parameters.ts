@@ -159,3 +159,8 @@ export function validReasoningEffort(value: unknown): value is ReasoningEffort |
 export function validMinP(value: unknown): value is number | undefined {
   return validTopP(value);
 }
+
+/** Optional sampling control; omission preserves the upstream default. */
+export function validTopA(value: unknown): value is number | undefined {
+  return validTopP(value);
+}
