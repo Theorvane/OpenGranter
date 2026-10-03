@@ -779,3 +779,7 @@ Both chat bases preserve validated reasoning_details arrays on delegated text-st
 ## Independent SSE content validation
 
 The client encoder captures delta content/refusal once and rejects injected substantive or malformed fields on usage-only events before incomplete-count suppression. Absent/null/empty usage fields remain permitted without replay; exact delta strings/null/omission and JSON frame escaping remain intact. Authentication, IAM/Deny, limits, required audit/usage and operational content exclusion remain unchanged. This bounded validation does not certify all fields or complete external-client conformance. See [plan](plans/288-sse-content-validation.md) and [contract](../contracts/openrouter-client-sse.md).
+
+## Nonstream token usage details
+
+Direct OpenAI and delegated OpenRouter preserve recognized prompt/completion detail categories with exact omission/null/empty/zero semantics on both chat bases. Immutable allowlisted projection omits malformed groups independently and preserves aggregate accounting; details never fabricate totals or add ledger charges. Compatible incomplete usage remains omitted. Authentication/IAM/Deny/limits and required audit/usage gates stay unchanged. Native/stream category mappings, detailed ledger/cost projection and complete certification remain open. See [plan](plans/290-nonstream-token-details.md) and [contract](../contracts/nonstream-token-details.md).

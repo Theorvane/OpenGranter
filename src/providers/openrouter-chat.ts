@@ -24,9 +24,9 @@ import {
   snapshotToolChoice,
 } from '../gateway/chat-tools.ts';
 import { waitForStreamOperation } from '../streaming/wait-for-stream-operation.ts';
-import { normalizeProviderUsage } from '../usage/normalize-provider-tokens.ts';
 import { normalizeAssistantResponse } from './assistant-response.ts';
 import type { ChatCompletion } from './direct-chat.ts';
+import { normalizeNonstreamChatUsage } from './nonstream-chat-usage.ts';
 
 const OPENROUTER_CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const SAFE_SLUG = /^[A-Za-z0-9][A-Za-z0-9._/+:-]*$/u;
@@ -148,7 +148,7 @@ function normalize(
   )
     fail('upstream', true, true);
 
-  const stats = normalizeProviderUsage(value.usage);
+  const stats = normalizeNonstreamChatUsage(value.usage);
   const finish = first.finish_reason;
   if (
     finish !== 'stop' &&

@@ -32,6 +32,7 @@ Tools with a hardcoded openrouter.ai host need a configurable endpoint or an int
 | Client routing controls | Rejected today | Client preferences narrow approved model/provider scope; no arbitrary destinations or authority widening |
 | Errors | /api/v1 numeric status codes, fixed messages, safe local reason/typed metadata, request ID and compatible midstream error chunks; legacy /v1 symbolic codes | Precise upstream error_type propagation, retry hints and full provider streaming errors |
 | Other model-use endpoints | Not implemented | Inventory completions, responses, embeddings and generation lookup against external-tool requirements and authorization |
+| Usage reporting | Aggregate counters with missing/partial/invalid classifications; bounded nonstream token categories on direct OpenAI/delegated OpenRouter | Stream/native categories, category ledger reporting, provider-billed cost/BYOK/server-tool projection and complete usage certification |
 | Operational OpenGranter APIs | Usage/audit extensions on /v1 | Keep their authorization and contracts explicit during compatibility expansion |
 
 ## Current conformance checkpoint (2026-10-03)
@@ -362,3 +363,7 @@ Both chat bases preserve validated reasoning_details arrays on delegated text-st
 ## Independent SSE content validation
 
 The client encoder captures delta content/refusal once and rejects injected substantive or malformed fields on usage-only events before incomplete-count suppression. Absent/null/empty usage fields remain permitted without replay; exact delta strings/null/omission and JSON frame escaping remain intact. Authentication, IAM/Deny, limits, required audit/usage and operational content exclusion remain unchanged. This bounded validation does not certify all fields or complete external-client conformance. See [plan](plans/288-sse-content-validation.md) and [contract](../contracts/openrouter-client-sse.md).
+
+## Nonstream token usage details
+
+Direct OpenAI and delegated OpenRouter preserve recognized prompt/completion detail categories with exact omission/null/empty/zero semantics on both chat bases. Immutable allowlisted projection omits malformed groups independently and preserves aggregate accounting; details never fabricate totals or add ledger charges. Compatible incomplete usage remains omitted. Authentication/IAM/Deny/limits and required audit/usage gates stay unchanged. Native/stream category mappings, detailed ledger/cost projection and complete certification remain open. See [plan](plans/290-nonstream-token-details.md) and [contract](../contracts/nonstream-token-details.md).
