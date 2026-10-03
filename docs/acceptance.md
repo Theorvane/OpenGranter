@@ -790,7 +790,7 @@ Delegated streaming preserves the bounded prompt/completion categories from actu
 
 ## Bounded JSON-schema response formats
 
-- Both compatible bases and actual OpenAI/OpenRouter SDK sockets forward required name/schema, optional description and omitted/null/boolean strict exactly on direct OpenAI/delegated OpenRouter. Existing delegated streaming retains schema payload and one final usage event; managed streaming remains unsupported.
+- Both compatible bases and actual OpenAI/OpenRouter SDK sockets forward required name, optional schema/description and omitted/null/boolean strict exactly on direct OpenAI/delegated OpenRouter. Existing delegated streaming retains schema payload and one final usage event; managed streaming remains unsupported.
 - Nested schemas are frozen before asynchronous credentials; cycles, accessors, sparse arrays, unsupported objects, malformed envelopes, invalid names and depth/node budget violations reject before dispatch. Extra controls reject before routing. No schema reference URL is fetched.
 - Unsupported direct Anthropic/Gemini reject before secrets without provider usage. Authentication, explicit Deny, limits and required audit/ledger failures retain safe delivery gates; upstream failures retain per-attempt accounting without schema text/key exposure.
 - No local output conformance, repair, capability-aware routing or complete schema traversal is claimed. See [contract](../contracts/client-response-formats.md).
@@ -799,4 +799,10 @@ Delegated streaming preserves the bounded prompt/completion categories from actu
 
 - With unchanged response_format parent references, changes inside ChatFormatJsonSchemaConfig or ChatJsonSchemaConfig cause drift, including wrapper enum/reference, name bounds, required lists, description type, schema object/additionalProperties and strict nullability/default.
 - Annotation-only/unrelated format changes remain ignored. Annotation-like properties and literal default data remain structural. Missing/malformed source definitions and rehashed invalid exact maps reject safely; versions 1..15 reject.
-- Version 16 preserves every prior selected structure and source digest. Offline checks never fetch/rewrite the pin; explicit live checks retain fixed-host credential-free bounds. This is structural coverage, with runtime schema omission, prose-only name restrictions and full instance/output conformance remaining distinct gaps. See [contract](../contracts/openrouter-schema-drift.md).
+- Version 16 preserves every prior selected structure and source digest. Offline checks never fetch/rewrite the pin; explicit live checks retain fixed-host credential-free bounds. This is structural coverage, with prose-only name restrictions and full instance/output conformance remaining distinct gaps. See [contract](../contracts/openrouter-schema-drift.md).
+
+## Optional JSON-schema config schema
+
+- Both bases preserve a named config with schema omitted or supplied empty object as distinct payloads, with strict omission/null/boolean and optional description intact. Official OpenAI/OpenRouter SDK sockets cover nonstream and existing delegated streaming.
+- Caller mutation during secret awaits cannot add an omitted schema to the captured payload. Supplied null/boolean/array/non-JSON or explicit own undefined remains invalid before credentials; extra/name guards remain unchanged.
+- Schema omission retains authentication, IAM/Deny, limits, required audit/ledger and safe possibly-billed upstream failure handling. Unsupported native Anthropic/Gemini fail before credentials without fabricated usage. No output enforcement or provider/model acceptance is promised. See [plan](plans/300-optional-config-schema.md) and [contract](../contracts/client-response-formats.md).
