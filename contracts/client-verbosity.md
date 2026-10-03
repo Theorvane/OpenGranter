@@ -1,0 +1,7 @@
+# Delegated client verbosity
+
+Both chat prefixes accept optional verbosity as low, medium, high, xhigh or max for delegated nonstream and text streaming. Omission and explicit null supply no upstream field; null is a local compatibility allowance. No medium default, coercion or case conversion is injected. Capture once before asynchronous credential resolution and forward the exact validated scalar with the same fixed upstream model/provider scope. Existing sampling, tool history and output controls remain independent.
+
+Unknown strings, booleans, numbers, objects and arrays reject before routing with safe client errors. Native direct adapters reject supplied non-null values before secret access/dispatch until native mappings are implemented. Authentication, explicit Deny, model/provider IAM, limits, required audit/ledger gates and usage outcomes remain shared. Request values, prompt/response content and keys remain outside operational logs, audit, usage and errors.
+
+The [official parameter docs](https://openrouter.ai/docs/api_reference/parameters) document five values, but current official ChatRequest and pinned OpenRouter SDK omit the field. Actual OpenAI SDK raw JSON forwarding is covered; pinned OpenRouter SDK stripping remains an explicit external-client gap. No fabricated schema selection or full compatibility claim. Upstream model support, direct native mappings and source drift selection remain open. See [plan](../docs/plans/268-client-verbosity.md).

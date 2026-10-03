@@ -12,6 +12,7 @@ import {
   validTemperature,
   validTopK,
   validTopP,
+  validVerbosity,
 } from '../gateway/chat-parameters.ts';
 import {
   snapshotFunctionTools,
@@ -179,6 +180,8 @@ function prepareOpenRouterChatRequest(
   const topK = request.top_k ?? undefined;
   if (!validTopK(topK)) fail('configuration');
 
+  const verbosity = request.verbosity ?? undefined;
+  if (!validVerbosity(verbosity)) fail('configuration');
   const seed = request.seed ?? undefined;
   if (!validSeed(seed)) fail('configuration');
   const frequencyPenalty = request.frequency_penalty ?? undefined;
@@ -257,6 +260,7 @@ function prepareOpenRouterChatRequest(
       ...(streamOptions === undefined ? {} : { stream_options: streamOptions }),
       ...(n === undefined ? {} : { n }),
       ...(seed === undefined ? {} : { seed }),
+      ...(verbosity === undefined ? {} : { verbosity }),
       ...(frequencyPenalty === undefined ? {} : { frequency_penalty: frequencyPenalty }),
       ...(presencePenalty === undefined ? {} : { presence_penalty: presencePenalty }),
       ...(responseFormat === undefined ? {} : { response_format: responseFormat }),

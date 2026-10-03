@@ -124,3 +124,17 @@ export function snapshotStreamOptions(value: unknown): StreamOptions | undefined
     throw new TypeError('Invalid stream options');
   return Object.freeze(Object.fromEntries(entries));
 }
+
+export type Verbosity = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+
+/** Optional delegated output detail control; omission preserves upstream defaults. */
+export function validVerbosity(value: unknown): value is Verbosity | undefined {
+  return (
+    value === undefined ||
+    value === 'low' ||
+    value === 'medium' ||
+    value === 'high' ||
+    value === 'xhigh' ||
+    value === 'max'
+  );
+}
