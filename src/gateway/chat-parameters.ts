@@ -1,3 +1,5 @@
+import { snapshotBoundedJsonObject } from './chat-tools.ts';
+
 /** Optional client output maximum; supplied values must be positive safe integers. */
 export function validOutputTokenLimit(value: unknown): value is number | undefined {
   return (
@@ -77,16 +79,50 @@ export function validPenalty(value: unknown): value is number | undefined {
   );
 }
 
-export interface ResponseFormat {
-  readonly type: 'text' | 'json_object';
-}
+export type ResponseFormat =
+  | { readonly type: 'text' | 'json_object' }
+  | {
+      readonly type: 'json_schema';
+      readonly json_schema: {
+        readonly name: string;
+        readonly schema: Readonly<Record<string, unknown>>;
+        readonly description?: string;
+        readonly strict?: boolean | null;
+      };
+    };
 /** Capture the bounded output format without retaining mutable caller objects. */
 export function snapshotResponseFormat(value: unknown): ResponseFormat | undefined {
   if (value === undefined) return undefined;
-  if (!value || typeof value !== 'object' || Array.isArray(value))
-    throw new TypeError('Invalid response format');
-  const format = value as Record<string, unknown>;
+  const format = snapshotBoundedJsonObject(value);
   const keys = Object.keys(format);
+  if (format.type === 'json_schema') {
+    const definition = format.json_schema;
+    if (
+      keys.length !== 2 ||
+      !keys.includes('json_schema') ||
+      !definition ||
+      typeof definition !== 'object' ||
+      Array.isArray(definition)
+    )
+      throw new TypeError('Invalid response format');
+    const config = definition as Readonly<Record<string, unknown>>;
+    if (
+      Object.keys(config).some(
+        (key) => !['name', 'schema', 'description', 'strict'].includes(key),
+      ) ||
+      typeof config.name !== 'string' ||
+      !/^[A-Za-z0-9_-]{1,64}$/u.test(config.name) ||
+      !config.schema ||
+      typeof config.schema !== 'object' ||
+      Array.isArray(config.schema) ||
+      (Object.hasOwn(config, 'description') && typeof config.description !== 'string') ||
+      (Object.hasOwn(config, 'strict') &&
+        config.strict !== null &&
+        typeof config.strict !== 'boolean')
+    )
+      throw new TypeError('Invalid response format');
+    return format as ResponseFormat;
+  }
   if (
     keys.length !== 1 ||
     keys[0] !== 'type' ||

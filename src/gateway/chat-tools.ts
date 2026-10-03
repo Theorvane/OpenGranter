@@ -38,8 +38,9 @@ function json(value: unknown, depth: number, seen: Set<object>, budget: { left: 
       if (value.length > budget.left) throw new TypeError('Invalid function tool');
       const parts: unknown[] = [];
       for (let index = 0; index < value.length; index++) {
-        if (!Object.hasOwn(value, index)) throw new TypeError('Invalid function tool');
-        parts.push(json(value[index], depth + 1, seen, budget));
+        const property = Object.getOwnPropertyDescriptor(value, index);
+        if (!property || !('value' in property)) throw new TypeError('Invalid function tool');
+        parts.push(json(property.value, depth + 1, seen, budget));
       }
       return Object.freeze(parts);
     }
@@ -55,6 +56,12 @@ function json(value: unknown, depth: number, seen: Set<object>, budget: { left: 
   } finally {
     seen.delete(value);
   }
+}
+
+/** Capture a bounded plain JSON object without reading accessor properties. */
+export function snapshotBoundedJsonObject(value: unknown): Readonly<Record<string, unknown>> {
+  if (!record(value)) throw new TypeError('Invalid JSON object');
+  return json(value, 0, new Set(), { left: 20_000 }) as Readonly<Record<string, unknown>>;
 }
 
 export function snapshotFunctionTools(value: unknown): readonly FunctionTool[] | undefined {

@@ -625,3 +625,7 @@ Direct OpenAI and delegated OpenRouter preserve recognized prompt/completion det
 ## Final stream token usage details
 
 Delegated streaming preserves the bounded prompt/completion categories from actual final usage events on both bases, with immutable allowlisted snapshots and independent malformed-group omission. Snapshots never derive missing totals or replay earlier content/metadata; categories do not change aggregate accounting. Complete usage and DONE remain gated by required persistence. IAM/Deny, limits, cancellation/backpressure and interruption audit remain unchanged. Native/direct/tool streams, category ledger/cost reporting and complete certification remain open. See [plan](plans/292-stream-token-details.md) and [contract](../contracts/stream-token-details.md).
+
+## Bounded client JSON-schema format
+
+The shared response-format snapshot captures an immutable, bounded JSON tree before asynchronous routing and provider credentials. Direct OpenAI/delegated OpenRouter forward json_schema; direct Anthropic/Gemini reject it before secret resolution. Schema references remain literal data and grant no URL access or destination authority. Output validation/repair, native schema translation and capability-aware selection remain unresolved follow-up scope, with existing IAM, audit and usage controls unchanged. See [contract](../contracts/client-response-formats.md) and [plan](plans/296-json-schema-formats.md).
