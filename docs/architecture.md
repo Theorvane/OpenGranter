@@ -531,3 +531,7 @@ A pure strict query parser permits only compatible offset/limit. The handler val
 ## Official SDK non-streaming tool harness
 
 Real local sockets connect the pinned official SDK to the Node/HTTP boundary and existing direct/delegated invokers with fixed-host controlled transport. A returned assistant call group supplies the subsequent bounded history; the SDK's camelCase fields are checked against exact upstream snake_case data. Fresh security gates and per-request usage are observed at public boundaries. The SDK remains development-only. See [contract](../contracts/official-sdk-tools.md).
+
+## Shared finish-reason structural selection
+
+Version 8 adds ChatFinishReasonEnum to the exact selected definitions map and retains all prior projections unchanged. The existing bounded annotation-aware projector tracks its structural enum/type/nullability and extension data without traversing other non-streaming response definitions. Provenance/hash/version changes are explicit; runtime validation and IAM/accounting remain unchanged. See [contract](../contracts/openrouter-schema-drift.md) and [plan](plans/236-finish-reason-schema.md).

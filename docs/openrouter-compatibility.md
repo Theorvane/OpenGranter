@@ -269,3 +269,7 @@ Configured metadata supports the model response schema and bounded offset/limit 
 ## Official SDK non-streaming function-tool subset
 
 Sixteen actual socket cases verify SDK 1.4.18 declarations/choice serialization, exact assistant function calls and a second text-result request through both bases and delegated OpenRouter/direct OpenAI. Follow-ups reevaluate authentication/IAM/limits/audit, retain separate attempt usage and keep tool content out of operational metadata. Malformed upstream calls and post-response audit failures remain safe failures. Streaming/native/server tools, rich results, automatic execution and named external-client workflows remain open. See [plan](plans/234-official-sdk-tools.md) and [contract](../contracts/official-sdk-tools.md).
+
+## Referenced finish-reason source drift subset
+
+Version 8 selects the common ChatFinishReasonEnum definition referenced by non-streaming and streaming choices. Enum/type/nullability, constraints, literal defaults and the unknown-value extension now cause drift without a reference change. All prior selected structures and the canonical official source hash remain unchanged. Runtime accepted reasons, native mappings, full response-instance validation and complete client conformance remain separate. See [plan](plans/236-finish-reason-schema.md) and [contract](../contracts/openrouter-schema-drift.md).
