@@ -1,3 +1,4 @@
+import { snapshotReasoningDetails } from '../providers/reasoning-details.ts';
 import type { OpenRouterTextStreamPayload } from './openrouter-stream-chunks.ts';
 
 type Chunk = Extract<OpenRouterTextStreamPayload, { kind: 'delta' | 'usage' }>;
@@ -59,6 +60,9 @@ export function encodeOpenRouterTextSse(event: OpenRouterTextStreamPayload): str
   const nativeChoice =
     nativeFinishReason === undefined ? {} : { native_finish_reason: nativeFinishReason };
   if (event.kind === 'delta') {
+    const hasDetails = Object.hasOwn(event, 'reasoningDetails');
+    const details = hasDetails ? snapshotReasoningDetails(event.reasoningDetails) : undefined;
+    if (hasDetails && details === undefined) unsupported();
     if (
       (event.role !== undefined && event.role !== 'assistant') ||
       (reasoning !== undefined && reasoning !== null && typeof reasoning !== 'string') ||
@@ -84,6 +88,7 @@ export function encodeOpenRouterTextSse(event: OpenRouterTextStreamPayload): str
             ...(event.content === undefined ? {} : { content: event.content }),
             ...(event.refusal === undefined ? {} : { refusal: event.refusal }),
             ...(reasoning === undefined ? {} : { reasoning }),
+            ...(details === undefined ? {} : { reasoning_details: details }),
           },
           finish_reason: event.finishReason,
           ...nativeChoice,
@@ -92,6 +97,7 @@ export function encodeOpenRouterTextSse(event: OpenRouterTextStreamPayload): str
     });
   }
   if (event.kind === 'usage') {
+    if (Object.hasOwn(event, 'reasoningDetails')) unsupported();
     const serviceTier = event.serviceTier;
     if (!validTier(serviceTier)) unsupported();
     if (reasoning !== undefined && reasoning !== null && reasoning !== '') unsupported();
