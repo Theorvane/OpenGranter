@@ -211,6 +211,7 @@ for (const kind of kinds)
             value !== undefined &&
             value !== null &&
             kind !== 'openrouter' &&
+            kind !== 'anthropic' &&
             (kind !== 'openai' || value === 'xhigh' || value === 'max');
         const response = await f.handler(
           request(path, value === undefined ? {} : { verbosity: value }),
@@ -219,7 +220,19 @@ for (const kind of kinds)
         assert.equal(f.secrets(), unsupported ? 0 : 1);
         assert.equal(f.sent.length, unsupported ? 0 : 1);
         assert.equal(f.usage.length, unsupported ? 0 : 1);
-        if (!unsupported) assert.equal(f.sent[0]?.verbosity, value ?? undefined);
+        if (!unsupported) {
+          if (kind === 'anthropic') {
+            assert.equal(
+              (f.sent[0]?.output_config as { effort?: unknown } | undefined)?.effort,
+              value ?? undefined,
+            );
+            assert.equal(
+              Object.hasOwn(f.sent[0] ?? {}, 'output_config'),
+              value !== undefined && value !== null,
+            );
+            assert.equal(f.sent[0]?.verbosity, undefined);
+          } else assert.equal(f.sent[0]?.verbosity, value ?? undefined);
+        }
       }
   });
 const invalids = ['', 'LOW', 'private invalid', 0, 1, true, [], {}];
@@ -241,7 +254,7 @@ test('malformed verbosity rejects before routing and native credential access', 
       NaN,
       Infinity,
       -Infinity,
-      ...(kind === 'openrouter'
+      ...(kind === 'openrouter' || kind === 'anthropic'
         ? []
         : kind === 'openai'
           ? ['xhigh', 'max']

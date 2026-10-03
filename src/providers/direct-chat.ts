@@ -340,6 +340,7 @@ function prepare(
       body: {
         model: candidate.upstreamModelId,
         max_tokens: outputLimit ?? registration.maxOutputTokens,
+        ...(verbosity === undefined ? {} : { output_config: { effort: verbosity } }),
         ...(temperature === undefined ? {} : { temperature }),
         ...(topP === undefined ? {} : { top_p: topP }),
         ...(topK === undefined ? {} : { top_k: topK }),
@@ -425,7 +426,8 @@ export function createDirectChatInvoker(
     if (
       !validVerbosity(verbosity) ||
       (verbosity !== undefined &&
-        (registration.kind !== 'openai' || verbosity === 'xhigh' || verbosity === 'max'))
+        (registration.kind === 'google' ||
+          (registration.kind === 'openai' && (verbosity === 'xhigh' || verbosity === 'max'))))
     )
       fail('other');
     const seed = request.seed ?? undefined;
