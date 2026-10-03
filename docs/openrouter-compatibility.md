@@ -24,15 +24,23 @@ Tools with a hardcoded openrouter.ai host need a configurable endpoint or an int
 | Area | Current state | Remaining acceptance gate |
 | --- | --- | --- |
 | Base paths and Bearer token | /api/v1 chat/models aliases; shared proxy authorization; pinned OpenAI SDK smoke tests | Direct/tool streaming SDK workflows and named external-tool registration tests |
-| Model discovery | IAM-filtered aliases; optional administrator-published complete OpenRouter metadata and bounded offset/limit paging on /api/v1 | Metadata provisioning/refresh, broader filter queries, broader optional fields and complete discovery workflows |
-| Non-streaming text chat | Text messages, one normalized text choice with max_tokens/max_completion_tokens and portable stop/top_p/temperature/n=1 across four adapters | Remaining request/response schema, sampling and capability metadata |
-| Streaming | Delegated HTTP text streams with bounded validation, awaited delivery, cancellation, usage and interruption audit | Direct-provider/tool/multimodal mappings, additional stream option fields, incomplete usage and full external-client conformance |
+| Model discovery | IAM-filtered aliases; optional administrator-published SDK-required discovery metadata and bounded offset/limit paging on /api/v1 | Metadata provisioning/refresh, broader filter queries, broader optional fields and complete discovery workflows |
+| Non-streaming text chat | One normalized choice with portable output/sampling controls, provider-bounded verbosity/effort, and delegated min_p/top_a/repetition_penalty | Remaining request/response schema, sampling and capability metadata |
+| Streaming | Delegated HTTP text/refusal/scalar/detail reasoning streams with bounded validation, awaited delivery, cancellation, final usage metadata and interruption audit | Direct-provider/tool/multimodal mappings, additional stream option fields, incomplete usage and full external-client conformance |
 | Tool calling | Validated function-tool requests, non-streaming assistant calls and text-only tool-result history for delegated OpenRouter/direct OpenAI | Server tools, rich content, native mappings and streaming |
-| Rich inputs and outputs | Text-only parts on system/developer/user/assistant normalize to strings | Multimodal/cached content, native block semantics, structured output and reasoning handling |
+| Rich inputs and outputs | Text-only parts normalize to strings; validated refusal, scalar reasoning and summary/text/encrypted detail responses; service tier/fingerprint/native finish metadata on supported routes | Multimodal/cached content, native thinking/block semantics, structured reasoning request/history controls, JSON-schema output and server-tool details |
 | Client routing controls | Rejected today | Client preferences narrow approved model/provider scope; no arbitrary destinations or authority widening |
-| Errors | /api/v1 numeric status codes, fixed messages, safe local reason/typed metadata and request ID; legacy /v1 symbolic codes | Precise upstream error_type propagation, retry hints and full provider streaming errors |
+| Errors | /api/v1 numeric status codes, fixed messages, safe local reason/typed metadata, request ID and compatible midstream error chunks; legacy /v1 symbolic codes | Precise upstream error_type propagation, retry hints and full provider streaming errors |
 | Other model-use endpoints | Not implemented | Inventory completions, responses, embeddings and generation lookup against external-tool requirements and authorization |
 | Operational OpenGranter APIs | Usage/audit extensions on /v1 | Keep their authorization and contracts explicit during compatibility expansion |
+
+## Current conformance checkpoint (2026-10-03)
+
+The version-15 pin tracks twenty-two selected request fields, seven request definitions, four stream definitions, three successful-response definitions, three usage/billing definitions and eight reasoning definitions, plus the selected message-name and tool-history maps. Structural drift coverage does not validate every runtime instance or certify every referenced capability. In particular, server-tool schema coverage does not enable server tools, and the documented verbosity/native-finish extensions remain outside the published chat schema or pinned OpenRouter SDK surface.
+
+Actual OpenRouter 1.4.18 and OpenAI 7.23.0 SDK socket tests cover the supported subsets with controlled upstream fixtures. They do not certify named external applications or live model capability. Compatible /api/v1 completions project unavailable fingerprints to null and omit incomplete usage, while the ledger preserves known counters and missing/partial/invalid status. Legacy omissions/sparse usage and null stream fingerprints retain their measured SDK gaps. The pinned OpenRouter chat SDK strips native_finish_reason; raw HTTP and the OpenAI SDK preserve that extension.
+
+All supported paths keep authentication, complete destination IAM with explicit Deny precedence, limits, required audit and usage persistence. Sensitive reasoning/opaque details, prompts, responses and credentials stay out of operational records/errors. Complete final usage and DONE require successful persistence; final tier/fingerprint/native metadata comes only from the actual usage event, and scalar/detail reasoning is never replayed there. Physical socket acknowledgment, durable failed-audit recovery, direct/tool/rich streaming, metadata refresh, structured request/history reasoning and named external-client workflows remain release gates under #116.
 
 ## Implementation sequence
 
@@ -54,13 +62,13 @@ The internal byte-stream consumer composes framing, text-chunk decoding and sequ
 
 The internal HTTP response boundary checks status, SSE media type and body before invoking that consumer. It classifies non-200 responses without reading their bodies and converts incomplete or invalid streams to existing safe delegated failures. It does not issue the HTTP request, write audit/usage or enable a client stream. See [plan](plans/198-openrouter-stream-response.md) and [contract](../contracts/openrouter-stream-response.md).
 
-The delegated OpenRouter request adapter captures the IAM-approved upstream model and final-provider slug set before resolving a credential. Its HTTP body and response-scope check use that immutable attempt, even if a caller-owned object changes during the await. The future streaming request must reuse this boundary. See [plan](plans/200-openrouter-attempt-snapshot.md) and [contract](../contracts/openrouter-attempt-snapshot.md).
+The delegated OpenRouter request adapter captures the IAM-approved upstream model and final-provider slug set before resolving a credential. Its HTTP body and response-scope check use that immutable attempt, even if a caller-owned object changes during the await. The delegated streaming invoker reuses this boundary. See [plan](plans/200-openrouter-attempt-snapshot.md) and [contract](../contracts/openrouter-attempt-snapshot.md).
 
 The internal delegated text-stream invoker now sends one `stream:true` request to the same fixed endpoint with the same captured model/provider scope and text/sampling request preparation as the non-streaming adapter. It rejects tool controls before credential lookup, awaits validated SSE deltas, and returns final usage only after a complete sequence. The delegated HTTP composition now wires it to both chat paths through shared IAM, limits, accounting and audit; direct/tool streams remain unsupported. See [plan](plans/202-openrouter-stream-invoker.md) and [contract](../contracts/openrouter-stream-invoker.md).
 
 The internal client SSE encoder projects validated text deltas, complete usage and `[DONE]` into OpenRouter-shaped frames using the authorized client model alias. It escapes text within a single data frame and suppresses incomplete usage instead of fabricating counters. This suppression is an explicit gap against OpenRouter's documented final usage frame. The encoder does not validate event order, send HTTP bytes, record usage/audit or enable client `stream:true`. See [plan](plans/204-openrouter-client-sse.md) and [contract](../contracts/openrouter-client-sse.md).
 
-The delegated text-stream composition now runs validated deltas through the existing IAM, verified provider mapping, limit, usage and audit coordinator. It returns usage and `[DONE]` frames only after the success handoff; partial output on later failures has no terminal success frames. The public HTTP writer, client cancellation, post-accounting delivery failures and direct-provider streams remain open. See [plan](plans/206-delegated-text-stream.md) and [contract](../contracts/delegated-text-stream.md).
+The delegated text-stream composition now runs validated deltas through the existing IAM, verified provider mapping, limit, usage and audit coordinator. It returns usage and `[DONE]` frames only after the success handoff; partial output on later failures has no terminal success frames. The [HTTP composition](../contracts/delegated-http-stream.md) implements bounded delivery, client cancellation and post-accounting interruption audit. Direct-provider streams, physical socket acknowledgment and durable failed-audit recovery remain open. See [plan](plans/206-delegated-text-stream.md) and [contract](../contracts/delegated-text-stream.md).
 
 ## Sources checked 2026-09-28
 
@@ -72,7 +80,7 @@ The current adapters support max_tokens through both client paths, including dir
 
 ## Error display conformance
 
-Fixed error.message is available for all gateway failures and the Node bridge fallback. Legacy /v1 symbolic codes remain unchanged; /api/v1 uses numeric HTTP status, metadata.opengranter_code and allowlisted metadata.error_type. Precise upstream error_type propagation, retry hints and streaming errors remain pending. See [contract](../contracts/safe-client-errors.md).
+Fixed error.message is available for all gateway failures and the Node bridge fallback. Legacy /v1 symbolic codes remain unchanged; /api/v1 uses numeric HTTP status, metadata.opengranter_code and allowlisted metadata.error_type. Pre-frame JSON and sanitized compatible midstream error chunks are implemented. Precise upstream error_type propagation, retry hints and broader provider stream mappings remain open. See [contract](../contracts/safe-client-errors.md).
 
 Numeric error envelope conformance is tracked in [plan](plans/122-openrouter-error-schema.md) and [contract](../contracts/openrouter-error-schema.md).
 
@@ -98,7 +106,7 @@ Optional n=1 maps to the current one-choice contract across four adapters; other
 
 ## Local typed error conformance
 
-Fixed metadata.error_type is available alongside numeric codes and local reasons on compatible paths. Known local causes map to documented vocabulary; dependency failures use server and collapsed provider failures remain unmapped. Precise upstream cause propagation, retry hints and streaming remain open. See [plan](plans/132-typed-client-errors.md) and [contract](../contracts/openrouter-error-schema.md).
+Fixed metadata.error_type is available alongside numeric codes and local reasons on compatible paths. Known local causes map to documented vocabulary; dependency failures use server and collapsed provider failures remain unmapped. Precise upstream cause propagation, retry hints and broader provider stream-error mappings remain open. See [plan](plans/132-typed-client-errors.md) and [contract](../contracts/openrouter-error-schema.md).
 
 ## Official request schema drift coverage
 
@@ -126,7 +134,7 @@ Both prefixes accept exact text arrays on all four supported roles using literal
 
 ## Non-streaming refusal/filter response subset
 
-OpenAI and delegated OpenRouter preserve optional string/null refusal and content_filter, including null content only when refusal/filter signals justify it. SDK and both-prefix coverage retains security/accounting controls and safe malformed-response failures. Valid refusals are successful deliveries; metadata audit does not record their text. Native Anthropic/Gemini blocked outcomes, tool/stream workflows and complete response-schema coverage remain open. See [plan](plans/146-refusal-outcomes.md) and [contract](../contracts/refusal-outcomes.md).
+OpenAI and delegated OpenRouter preserve optional string/null refusal and content_filter, including null content only when refusal/filter signals justify it. SDK and both-prefix coverage retains security/accounting controls and safe malformed-response failures. Valid refusals are successful deliveries; metadata audit does not record their text. Bounded native Anthropic refusal/Gemini SAFETY mappings, non-streaming function outcomes and delegated refusal streams are implemented separately. Rich native outcomes, direct/tool streams and complete response-schema coverage remain open. See [plan](plans/146-refusal-outcomes.md) and [contract](../contracts/refusal-outcomes.md).
 
 ## Direct Anthropic refusal subset
 
@@ -134,7 +142,7 @@ Explicit non-streaming Anthropic refusal with valid empty/text-only content maps
 
 ## Direct Gemini SAFETY subset
 
-Empty direct Gemini SAFETY prompt/candidate blocks map to null-content/content_filter with success-delivery accounting and no fallback. Both prefixes, actual SDK, usage/missing/invalid accounting, malformed-block and security gate cases are covered. Other native reasons, Anthropic refusals, populated block shapes and tool/stream workflows remain pending. See [plan](plans/150-gemini-safety.md) and [contract](../contracts/gemini-safety.md).
+Empty direct Gemini SAFETY prompt/candidate blocks map to null-content/content_filter with success-delivery accounting and no fallback. Both prefixes, actual SDK, usage/missing/invalid accounting, malformed-block and security gate cases are covered. Bounded Anthropic explicit refusals are implemented separately; other native reasons, populated block shapes and native tool/stream workflows remain open. See [plan](plans/150-gemini-safety.md) and [contract](../contracts/gemini-safety.md).
 
 ## Frequency and presence penalty subset
 
@@ -149,7 +157,7 @@ Nullable nonnegative safe-integer top_k preserves supplied values/defaults on bo
 
 ## Client seed subset
 
-Nullable safe-integer seed controls preserve omission defaults and values across both client bases and SDK requests. OpenAI/OpenRouter forward seed; Gemini generationConfig.seed is bounded by native signed int32, while Anthropic supplied seeds reject before credentials. Native capture, settings-only configuration and security/accounting paths are covered. Model-dependent support, deterministic output, provider fingerprint metadata and full client/tool/stream workflows remain open. Seed and top_k are now included in the reviewed source-drift allowlist; this does not guarantee runtime model support. See [plan](plans/160-client-seed.md) and [contract](../contracts/client-seed.md).
+Nullable safe-integer seed controls preserve omission defaults and values across both client bases and SDK requests. OpenAI/OpenRouter forward seed; Gemini generationConfig.seed is bounded by native signed int32, while Anthropic supplied seeds reject before credentials. Native capture, settings-only configuration and security/accounting paths are covered. Model-dependent support, deterministic output, native fingerprint synthesis and full client/tool/stream workflows remain open. Seed and top_k are now included in the reviewed source-drift allowlist; this does not guarantee runtime model support. See [plan](plans/160-client-seed.md) and [contract](../contracts/client-seed.md).
 
 ## Sampling-field source drift
 
@@ -211,17 +219,15 @@ Both bases and pinned SDK streamed chunks preserve opaque system_fingerprint str
 
 Development-only @openrouter/sdk 1.4.18 runs twelve actual socket tests across both bases, through the real HTTP/Node boundary and delegated invoker with fixed-host fake upstream transport. Stream text/complete or unknown usage, portable serialized controls, supplied nonstream fingerprints, authorization/limit status and failed accounting are covered. No live inference or production dependency is added.
 
-Compatible nonstream unknown fingerprints now deserialize as null. Actual SDK validation still rejects legacy omitted fingerprints, the current basic discovery catalog and legacy standalone midstream errors. Compatible /api/v1 midstream errors now deserialize as yielded error chunks with finishReason:error followed by EOF; callers must inspect their error fields. The official stream schema also rejects the gateway's local null fingerprint allowance. Tests recording gaps are an inventory and must evolve with implementing features, not certification of full compatibility. Named external-tool workflows, trusted model metadata, richer/direct/tool streams and complete conformance remain open. See [plan](plans/224-official-sdk.md) and [contract](../contracts/official-openrouter-sdk.md).
+Compatible nonstream unknown fingerprints now deserialize as null. Actual SDK validation still rejects legacy omitted fingerprints, basic unconfigured/legacy discovery catalogs and legacy standalone midstream errors. Compatible /api/v1 midstream errors now deserialize as yielded error chunks with finishReason:error followed by EOF; callers must inspect their error fields. The official stream schema also rejects the gateway's local null fingerprint allowance. Tests recording gaps are an inventory and must evolve with implementing features, not certification of full compatibility. Named external-tool workflows, metadata provisioning/refresh, richer/direct/tool streams and complete conformance remain open. See [plan](plans/224-official-sdk.md) and [contract](../contracts/official-openrouter-sdk.md).
 
 ## Compatible midstream error subset
 
 Started /api/v1 delegated failures now use delivered chunk identity and finish_reason:error alongside existing fixed numeric errors. Pre-frame JSON and legacy /v1 remain unchanged. EOF/no DONE, required accounting/audit and cancellation controls stay shared. Raw upstream error propagation, precise retry types and complete client conformance remain gaps. See [plan](plans/222-midstream-error-chunks.md) and [contract](../contracts/midstream-error-chunks.md).
 
-Actual SDK validation rejects omitted nonstream fingerprints, the current basic discovery catalog and standalone midstream error envelopes. The pending compatible error PR addresses the last gap; the official stream schema also rejects the gateway's local null fingerprint allowance. Tests recording gaps are an inventory and must evolve with implementing features, not certification of full compatibility. Named external-tool workflows, trusted model metadata, richer/direct/tool streams and complete conformance remain open. See [plan](plans/224-official-sdk.md) and [contract](../contracts/official-openrouter-sdk.md).
-
 ## Delegated streaming refusal subset
 
-Both chat bases support validated optional string/null refusal deltas and content_filter termination without fallback/replay. JSON framing preserves exact response text, with safe malformed-value failures and shared security/accounting controls. Usage-only events cannot discard substantive refusal text; missing usage remains unknown. Direct/tool/multimodal streams, structured reasoning and full external-client conformance remain open. See [plan](plans/218-stream-refusals.md) and [contract](../contracts/stream-refusals.md).
+Both chat bases support validated optional string/null refusal deltas and content_filter termination without fallback/replay. JSON framing preserves exact response text, with safe malformed-value failures and shared security/accounting controls. Usage-only events cannot discard substantive refusal text; missing usage remains unknown. Direct/tool/multimodal streams, structured request/history reasoning and full external-client conformance remain open; delegated scalar/detail reasoning response streams are implemented separately. See [plan](plans/218-stream-refusals.md) and [contract](../contracts/stream-refusals.md).
 
 ## Logit-bias source drift subset
 
@@ -245,7 +251,7 @@ Registered direct Anthropic nonstream chat maps optional low/medium/high/xhigh/m
 
 ## Delegated reasoning effort coverage
 
-Both chat bases accept optional nullable reasoning_effort with max/xhigh/high/medium/low/minimal/none for delegated nonstream and text streaming. Capture and forward exact supplied values without defaults; approved model/provider scope, IAM, limits, output controls and required accounting/audit stay unchanged. Invalid values reject before routing, while direct Anthropic and unsupported Gemini values reject before credentials; direct OpenAI and the bounded Gemini subset map native fields. Actual SDK mapping and public-boundary cases are covered by [contract](../contracts/client-reasoning-effort.md) and [plan](plans/274-reasoning-effort.md). Fresh official OpenAPI and pinned SDK include max, unlike the shorter parameter overview. Structured reasoning, other native mappings, richer request/history/response and structural drift selection remain explicit gaps; request forwarding alone does not certify full reasoning compatibility. The direct OpenAI extension depends on PR #275; release gate #116 remains open.
+Both chat bases accept optional nullable reasoning_effort with max/xhigh/high/medium/low/minimal/none for delegated nonstream and text streaming. Capture and forward exact supplied values without defaults; approved model/provider scope, IAM, limits, output controls and required accounting/audit stay unchanged. Invalid values reject before routing, while direct Anthropic and unsupported Gemini values reject before credentials; direct OpenAI and the bounded Gemini subset map native fields. Actual SDK mapping and public-boundary cases are covered by [contract](../contracts/client-reasoning-effort.md) and [plan](plans/274-reasoning-effort.md). Fresh official OpenAPI and pinned SDK include max, unlike the shorter parameter overview. The current schema pin tracks reasoning_effort. Structured reasoning, other native mappings and richer request/history/response remain explicit gaps; request forwarding alone does not certify full reasoning compatibility. The direct OpenAI extension depends on PR #275; release gate #116 remains open.
 
 ## Direct OpenAI reasoning effort
 
@@ -277,11 +283,11 @@ Version 8 selects the common ChatFinishReasonEnum definition referenced by non-s
 
 ## Delegated streaming reasoning text subset
 
-Both bases preserve optional string/null reasoning through bounded delegated streams and actual SDK 1.4.18 validation. Decoder/encoder checks, safe framing/failure, existing IAM/limits/usage/audit and cancellation controls remain shared; reasoning never enters operational metadata or completed summaries. Final usage cannot discard substantive reasoning or replay earlier text. reasoning_details/encrypted formats, request controls, non-streaming/native reasoning and full external-client conformance remain open. The existing ChatStreamDelta source pin already selects this field. See [plan](plans/238-stream-reasoning.md) and [contract](../contracts/stream-reasoning.md).
+Both bases preserve optional string/null reasoning through bounded delegated streams and actual SDK 1.4.18 validation. Decoder/encoder checks, safe framing/failure, existing IAM/limits/usage/audit and cancellation controls remain shared; reasoning never enters operational metadata or completed summaries. Final usage cannot discard substantive reasoning or replay earlier text. Non-streaming scalar/detail responses and delegated streamed details are implemented in their separate contracts below. Structured request/history reasoning, native Anthropic/Gemini thinking responses and full external-client conformance remain open. The existing ChatStreamDelta source pin already selects this field. See [plan](plans/238-stream-reasoning.md) and [contract](../contracts/stream-reasoning.md).
 
 ## Non-streaming reasoning text subset
 
-Already-valid direct OpenAI/delegated OpenRouter assistant responses preserve optional reasoning string/null through both bases and actual SDK 1.4.18 sockets. Current text/refusal/tool validation, IAM/limits, required accounting/audit and safe failed-attempt semantics stay shared; reasoning never enters operational metadata and missing usage stays unknown. Reasoning-only null/missing-content success, reasoning_details/encrypted blocks, request/history controls, native mappings and full external-client conformance remain open. See [plan](plans/240-nonstream-reasoning.md) and [contract](../contracts/nonstream-reasoning.md).
+Already-valid direct OpenAI/delegated OpenRouter assistant responses preserve optional reasoning string/null through both bases and actual SDK 1.4.18 sockets. Current text/refusal/tool validation, IAM/limits, required accounting/audit and safe failed-attempt semantics stay shared; reasoning never enters operational metadata and missing usage stays unknown. Reasoning-only null/missing-content success, structured request/history controls, native Anthropic/Gemini thinking mappings and full external-client conformance remain open. Summary/text/encrypted detail responses are implemented separately below. See [plan](plans/240-nonstream-reasoning.md) and [contract](../contracts/nonstream-reasoning.md).
 
 
 ## Nonstream response source drift
@@ -301,7 +307,7 @@ Normalized nonstream /api/v1 completions omit incomplete usage while keeping int
 
 ## Nonstream service tier metadata
 
-Optional nonstream service_tier string/null is preserved by direct OpenAI and delegated OpenRouter across both bases and pinned official OpenRouter/OpenAI SDKs. Malformed values fail safely; IAM/limits/accounting remain shared and operational metadata excludes tier values. This is response metadata only; native mappings, request controls, streamed tiers and complete conformance remain open. See [plan](plans/248-service-tier.md) and [contract](../contracts/service-tier-responses.md).
+Optional nonstream service_tier string/null is preserved by direct OpenAI and delegated OpenRouter across both bases and pinned official OpenRouter/OpenAI SDKs. Malformed values fail safely; IAM/limits/accounting remain shared and operational metadata excludes tier values. This is response metadata only; native tier mappings, request controls and complete conformance remain open; delegated streamed tier metadata is implemented separately below. See [plan](plans/248-service-tier.md) and [contract](../contracts/service-tier-responses.md).
 
 
 ## Delegated stream service tier metadata
@@ -311,7 +317,7 @@ Delegated text streams preserve optional service_tier string/null in chunks and 
 
 ## Delegated min-p sampling subset
 
-Nullable min_p finite 0..1 now passes both chat bases and pinned official SDKs to delegated OpenRouter nonstream/text-stream requests with exact values and approved provider scope. Direct OpenAI/Anthropic/Gemini supplied controls reject before credentials; null/omission preserves defaults. IAM/limits/audit/usage and safe failures remain shared. Individual model capability, native mappings, min_p structural source selection and complete compatibility remain open. See [plan](plans/252-min-p.md) and [contract](../contracts/client-min-p.md).
+Nullable min_p finite 0..1 now passes both chat bases and pinned official SDKs to delegated OpenRouter nonstream/text-stream requests with exact values and approved provider scope. Direct OpenAI/Anthropic/Gemini supplied controls reject before credentials; null/omission preserves defaults. IAM/limits/audit/usage and safe failures remain shared. The current schema pin tracks min_p. Individual model capability, native mappings and complete compatibility remain open. See [plan](plans/252-min-p.md) and [contract](../contracts/client-min-p.md).
 
 ## Min-p request source drift
 
@@ -319,7 +325,7 @@ Version 11 selects min_p as the nineteenth request field. This bounded source gu
 
 ## Delegated top-a sampling subset
 
-Nullable top_a finite 0..1 now passes both chat bases and pinned official SDKs to delegated OpenRouter nonstream/text-stream requests with exact values and approved provider scope. Direct OpenAI/Anthropic/Gemini supplied controls reject before credentials; null/omission preserves defaults. IAM/limits/audit/usage and safe failures remain shared. Individual model capability, native mappings, top_a structural source selection and complete compatibility remain open. See [plan](plans/256-top-a.md) and [contract](../contracts/client-top-a.md).
+Nullable top_a finite 0..1 now passes both chat bases and pinned official SDKs to delegated OpenRouter nonstream/text-stream requests with exact values and approved provider scope. Direct OpenAI/Anthropic/Gemini supplied controls reject before credentials; null/omission preserves defaults. IAM/limits/audit/usage and safe failures remain shared. The current schema pin tracks top_a. Individual model capability, native mappings and complete compatibility remain open. See [plan](plans/256-top-a.md) and [contract](../contracts/client-top-a.md).
 
 ## Top-a request source drift
 
@@ -327,7 +333,7 @@ Version 12 selects top_a as the twentieth request field. This bounded source gua
 
 ## Delegated repetition-penalty sampling subset
 
-Nullable repetition_penalty finite 0..2 now passes both chat bases and pinned official SDKs to delegated OpenRouter nonstream/text-stream requests with exact values and approved provider scope. Direct OpenAI/Anthropic/Gemini supplied controls reject before credentials; null/omission preserves defaults. IAM/limits/audit/usage and safe failures remain shared. Individual model capability, native mappings, repetition_penalty structural source selection and complete compatibility remain open. See [plan](plans/260-repetition-penalty.md) and [contract](../contracts/client-repetition-penalty.md).
+Nullable repetition_penalty finite 0..2 now passes both chat bases and pinned official SDKs to delegated OpenRouter nonstream/text-stream requests with exact values and approved provider scope. Direct OpenAI/Anthropic/Gemini supplied controls reject before credentials; null/omission preserves defaults. IAM/limits/audit/usage and safe failures remain shared. The current schema pin tracks repetition_penalty. Individual model capability, native mappings and complete compatibility remain open. See [plan](plans/260-repetition-penalty.md) and [contract](../contracts/client-repetition-penalty.md).
 
 ## Repetition penalty request source drift
 
@@ -335,7 +341,7 @@ Version 13 selects repetition_penalty as the twenty-first request field. This bo
 
 ## Nonstream native finish reasons
 
-Documented nonstream native_finish_reason now survives both HTTP bases and OpenAI SDK raw JSON. Current official ChatChoice and pinned OpenRouter chat SDK omit the field, and that SDK strips it; source/SDK coverage is not claimed. Native synthesis, streaming and full response/client conformance remain open. See [plan](plans/264-native-finish-reason.md) and [contract](../contracts/native-finish-reason.md).
+Documented nonstream native_finish_reason now survives both HTTP bases and OpenAI SDK raw JSON. Current official ChatChoice and pinned OpenRouter chat SDK omit the field, and that SDK strips it; source/SDK coverage is not claimed. Delegated streaming preserves this extension under its separate contract below. Native synthesis and full response/client conformance remain open. See [plan](plans/264-native-finish-reason.md) and [contract](../contracts/native-finish-reason.md).
 
 ## Reasoning-effort source drift subset
 
@@ -347,7 +353,7 @@ Version 15 adds exactly eight reasoningDefinitions for nonstream/stream arrays, 
 
 ## Nonstream reasoning-detail subset
 
-Direct OpenAI and delegated OpenRouter preserve optional reasoning_details arrays, including empty arrays, with validated summary/text/encrypted items. Preserve opaque payloads, optional nullable string metadata and safe integer indices without parsing/verifying them. Unknown fields, malformed data and unsupported server-tool-call items fail safely with possibly-billed failed accounting. Existing finish/content/refusal/function rules, IAM/Deny/limits, required audit/ledger and missing usage remain unchanged. Operational records/errors exclude details and credentials. This does not support details in history, streamed details, server tools or native thinking. See [plan](plans/284-nonstream-reasoning-details.md) and [contract](../contracts/nonstream-reasoning-details.md).
+Direct OpenAI and delegated OpenRouter preserve optional reasoning_details arrays, including empty arrays, with validated summary/text/encrypted items. Preserve opaque payloads, optional nullable string metadata and safe integer indices without parsing/verifying them. Unknown fields, malformed data and unsupported server-tool-call items fail safely with possibly-billed failed accounting. Existing finish/content/refusal/function rules, IAM/Deny/limits, required audit/ledger and missing usage remain unchanged. Operational records/errors exclude details and credentials. This non-streaming subset does not support details in history, server tools or native thinking. Delegated streamed details are implemented under their separate contract below. See [plan](plans/284-nonstream-reasoning-details.md) and [contract](../contracts/nonstream-reasoning-details.md).
 
 ## Delegated stream reasoning details
 

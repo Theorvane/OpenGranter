@@ -484,7 +484,7 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 
 ### Non-streaming system fingerprints
 
-- Preserve omitted/string/null fingerprints on both OpenAI/OpenRouter client prefixes, normal/refusal/filter responses and installed SDK bases.
+- Preserve supplied string/null fingerprints on both client prefixes and normal/refusal/filter responses. Unavailable fingerprints project to null on /api/v1 for official SDK validation; /v1 preserves omission under the [projection contract](../contracts/compatible-completion-fingerprints.md).
 - Reject malformed upstream types safely after the response with failed-attempt accounting and no fingerprint/content leakage.
 - Deny IAM, limit and audit failures before transport; do not synthesize native Anthropic/Gemini fingerprints.
 - Full response/stream conformance and deterministic behavior remain open. See [plan](plans/170-system-fingerprint.md).
@@ -515,7 +515,7 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Preserve omitted/null and exact finite map values, including empty/Unicode keys and empty maps, across both HTTP prefixes and installed SDK bases.
 - Reject malformed HTTP maps before routing and native malformed/unsupported maps before secrets; only direct OpenAI and delegated OpenRouter forward non-null maps.
 - Capture maps before credential awaits. IAM, limits, required audit, principal attribution and safe failed-attempt usage remain effective without key/value leakage.
-- Per-model native support, source-drift coverage for this field, tool/stream/client completeness remain open. See [plan](plans/178-client-logit-bias.md).
+- Version-7 selected structural source-drift coverage is implemented under the [drift contract](../contracts/openrouter-schema-drift.md). Per-model native support and tool/stream/client completeness remain open. See [plan](plans/178-client-logit-bias.md).
 
 ## Function-tool request and response subset
 
@@ -538,7 +538,7 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - The empty-choice usage variant may omit a repeated finish reason; when present it must match. Missing and invalid usage counters remain explicit.
 - Identity changes, out-of-order or duplicate terminal/usage/done events and incomplete EOF fail with one fixed safe error marked possibly billed. The first invalid event permanently invalidates the sequence.
 - First-event and midstream upstream error events produce a distinct safe possibly billed failure. Neither result contains upstream error details or response content.
-- This is an internal validator only. Client `stream:true` remains rejected pending transport, IAM/limits, usage/audit and provider/client stream integration. See [plan](plans/192-openrouter-stream-sequence.md) and [contract](../contracts/openrouter-stream-sequence.md).
+- This is an internal validator only. The [delegated HTTP composition](../contracts/delegated-http-stream.md) integrates transport, IAM/limits and usage/audit for public delegated text streams. See [plan](plans/192-openrouter-stream-sequence.md) and [contract](../contracts/openrouter-stream-sequence.md).
 
 ## Internal OpenRouter byte-stream consumption
 
@@ -552,20 +552,20 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - HTTP 200 with an SSE media type and body enters the bounded stream consumer; a complete terminal/usage/done sequence returns normalized usage and delivers only validated text deltas.
 - HTTP 429, 5xx and other statuses receive existing safe delegated failure categories without reading upstream bodies. Wrong/missing media type or body, upstream SSE error, invalid/truncated stream and callback failure remain possibly billed upstream failures.
 - Rejected unread response bodies are cancelled, and errors never include response content, callback causes or credentials. Non-streaming behavior remains unchanged.
-- Provider HTTP invocation, client SSE, usage/audit persistence and direct-provider streaming remain future work. See [plan](plans/198-openrouter-stream-response.md) and [contract](../contracts/openrouter-stream-response.md).
+- The delegated invoker and [HTTP composition](../contracts/delegated-http-stream.md) supply provider invocation, client SSE and usage/audit persistence; direct-provider streaming remains open. See [plan](plans/198-openrouter-stream-response.md) and [contract](../contracts/openrouter-stream-response.md).
 
 ## Delegated OpenRouter attempt scope snapshot
 
 - The delegated adapter copies and validates the selected upstream model and exact authorized provider slug set before credential resolution.
 - Mutating model or provider slugs, including array elements or replacement, during the credential await cannot change the outgoing HTTP scope or the accepted response model.
-- Invalid initial attempts stop before secret/network access; existing safe failure, IAM, limits, audit and usage behavior remains in force. The same scope boundary is available to the future streaming invoker. See [plan](plans/200-openrouter-attempt-snapshot.md) and [contract](../contracts/openrouter-attempt-snapshot.md).
+- Invalid initial attempts stop before secret/network access; existing safe failure, IAM, limits, audit and usage behavior remains in force. The delegated streaming invoker reuses the same scope boundary. See [plan](plans/200-openrouter-attempt-snapshot.md) and [contract](../contracts/openrouter-attempt-snapshot.md).
 
 ## Internal delegated OpenRouter text-stream invocation
 
 - A fixed-endpoint `stream:true` POST uses the captured authorized model/provider set, server-held key, redirect rejection, bounded timeout and shared text/sampling request snapshots. The response reaches the bounded SSE validator; validated deltas arrive in order and final usage is returned only after terminal/usage/`[DONE]`.
 - Invalid scope, tool controls, request shape, timeout and missing credential fail before HTTP. Mutating model/provider inputs during credential resolution does not change the outgoing scope.
 - HTTP errors, malformed/incomplete SSE, redirect/transport failures and pre-/post-header timeouts remain fixed safe possibly-billed failures. A partial response cannot be replayed.
-- The public chat handler still rejects client `stream:true`. Gateway IAM, limits, required audit, usage persistence, client SSE and direct-provider stream mappings remain integration gates. See [plan](plans/202-openrouter-stream-invoker.md) and [contract](../contracts/openrouter-stream-invoker.md).
+- The [delegated HTTP composition](../contracts/delegated-http-stream.md) supports client stream:true through gateway IAM, limits, required audit, usage persistence and bounded SSE delivery. Direct-provider/tool/rich stream mappings remain open. See [plan](plans/202-openrouter-stream-invoker.md) and [contract](../contracts/openrouter-stream-invoker.md).
 
 ## Internal OpenRouter client text SSE encoding
 
@@ -577,7 +577,7 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 
 - Model/final-provider IAM, verified provider mapping, limits and required selection audit run before any scoped upstream stream or client delta frame. Deltas use the authorized client model alias and awaited output callback.
 - A complete validated attempt records usage and a success audit before the composition returns final usage and `[DONE]` frames. Missing/invalid usage is retained in accounting without fabricated client counters.
-- Denial, upstream/output failure, invalid trusted outcome and required usage/audit failure return no terminal success frames. Possibly billed failures use the existing failed-attempt record and audit path. Public `stream:true`, HTTP delivery, interruption and direct-provider streams remain open. See [plan](plans/206-delegated-text-stream.md) and [contract](../contracts/delegated-text-stream.md).
+- Denial, upstream/output failure, invalid trusted outcome and required usage/audit failure return no terminal success frames. Possibly billed failures use the existing failed-attempt record and audit path. The [HTTP composition](../contracts/delegated-http-stream.md) implements public delegated text streams, bounded delivery and interruption audit; direct-provider streams remain open. See [plan](plans/206-delegated-text-stream.md) and [contract](../contracts/delegated-text-stream.md).
 
 ## HTTP client disconnection
 
@@ -657,7 +657,7 @@ Registered direct Anthropic nonstream chat maps optional low/medium/high/xhigh/m
 
 ## Delegated reasoning effort scenarios
 
-Both chat bases accept optional nullable reasoning_effort with max/xhigh/high/medium/low/minimal/none for delegated nonstream and text streaming. Capture and forward exact supplied values without defaults; approved model/provider scope, IAM, limits, output controls and required accounting/audit stay unchanged. Invalid values reject before routing, while direct Anthropic and unsupported Gemini values reject before credentials; direct OpenAI and the bounded Gemini subset map native fields. Actual SDK mapping and public-boundary cases are covered by [contract](../contracts/client-reasoning-effort.md) and [plan](plans/274-reasoning-effort.md). Fresh official OpenAPI and pinned SDK include max, unlike the shorter parameter overview. Structured reasoning, other native mappings, richer request/history/response and structural drift selection remain explicit gaps; request forwarding alone does not certify full reasoning compatibility. The direct OpenAI extension depends on PR #275; release gate #116 remains open.
+Both chat bases accept optional nullable reasoning_effort with max/xhigh/high/medium/low/minimal/none for delegated nonstream and text streaming. Capture and forward exact supplied values without defaults; approved model/provider scope, IAM, limits, output controls and required accounting/audit stay unchanged. Invalid values reject before routing, while direct Anthropic and unsupported Gemini values reject before credentials; direct OpenAI and the bounded Gemini subset map native fields. Actual SDK mapping and public-boundary cases are covered by [contract](../contracts/client-reasoning-effort.md) and [plan](plans/274-reasoning-effort.md). Fresh official OpenAPI and pinned SDK include max, unlike the shorter parameter overview. The current schema pin tracks reasoning_effort. Structured reasoning, other native mappings and richer request/history/response remain explicit gaps; request forwarding alone does not certify full reasoning compatibility. The direct OpenAI extension depends on PR #275; release gate #116 remains open.
 
 ## Direct OpenAI reasoning effort
 
@@ -770,7 +770,7 @@ Version 15 adds exactly eight reasoningDefinitions for nonstream/stream arrays, 
 
 ## Nonstream reasoning-detail subset
 
-Direct OpenAI and delegated OpenRouter preserve optional reasoning_details arrays, including empty arrays, with validated summary/text/encrypted items. Preserve opaque payloads, optional nullable string metadata and safe integer indices without parsing/verifying them. Unknown fields, malformed data and unsupported server-tool-call items fail safely with possibly-billed failed accounting. Existing finish/content/refusal/function rules, IAM/Deny/limits, required audit/ledger and missing usage remain unchanged. Operational records/errors exclude details and credentials. This does not support details in history, streamed details, server tools or native thinking. See [plan](plans/284-nonstream-reasoning-details.md) and [contract](../contracts/nonstream-reasoning-details.md).
+Direct OpenAI and delegated OpenRouter preserve optional reasoning_details arrays, including empty arrays, with validated summary/text/encrypted items. Preserve opaque payloads, optional nullable string metadata and safe integer indices without parsing/verifying them. Unknown fields, malformed data and unsupported server-tool-call items fail safely with possibly-billed failed accounting. Existing finish/content/refusal/function rules, IAM/Deny/limits, required audit/ledger and missing usage remain unchanged. Operational records/errors exclude details and credentials. This non-streaming subset does not support details in history, server tools or native thinking. Delegated streamed details are implemented under their separate contract below. See [plan](plans/284-nonstream-reasoning-details.md) and [contract](../contracts/nonstream-reasoning-details.md).
 
 ## Delegated stream reasoning details
 
