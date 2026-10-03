@@ -436,6 +436,8 @@ export function createDirectChatInvoker(
     const timeoutMs = configuredTimeout === undefined ? 30_000 : configuredTimeout;
     if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > 2_147_483_647)
       fail('other');
+    const minP = request.min_p ?? undefined;
+    if (minP !== undefined) fail('other');
     const topK = request.top_k ?? undefined;
     if (
       !validTopK(topK) ||

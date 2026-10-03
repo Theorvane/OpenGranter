@@ -6,6 +6,7 @@ import {
   snapshotResponseFormat,
   snapshotStopSequences,
   snapshotStreamOptions,
+  validMinP,
   validPenalty,
   validReasoningEffort,
   validSeed,
@@ -223,6 +224,8 @@ function prepareOpenRouterChatRequest(
   }
   const n = request.n;
   if (!validSingleChoice(n)) fail('configuration');
+  const minP = request.min_p ?? undefined;
+  if (!validMinP(minP)) fail('configuration');
   const topP = request.top_p ?? undefined;
   if (!validTopP(topP)) fail('configuration');
   const temperature = request.temperature ?? undefined;
@@ -278,6 +281,7 @@ function prepareOpenRouterChatRequest(
       ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
       ...(temperature === undefined ? {} : { temperature }),
       ...(topP === undefined ? {} : { top_p: topP }),
+      ...(minP === undefined ? {} : { min_p: minP }),
       ...(topK === undefined ? {} : { top_k: topK }),
       ...(stop === undefined ? {} : { stop }),
       provider: Object.freeze({ only: fixedAttempt.authorizedProviderSlugs }),

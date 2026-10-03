@@ -307,3 +307,8 @@ Optional nonstream service_tier string/null is preserved by direct OpenAI and de
 ## Delegated stream service tier metadata
 
 Delegated text streams preserve optional service_tier string/null in chunks and actual final usage metadata through both bases and pinned official SDK sockets. Values do not influence policy/limits/accounting and remain outside operational metadata/errors. Malformed values retain safe first/later failures; absent final usage/tier is never inferred from prior chunks. Direct/tool/native streams, tier request controls and full conformance remain open. See [plan](plans/250-stream-service-tier.md) and [contract](../contracts/stream-service-tiers.md).
+
+
+## Delegated min-p sampling subset
+
+Nullable min_p finite 0..1 now passes both chat bases and pinned official SDKs to delegated OpenRouter nonstream/text-stream requests with exact values and approved provider scope. Direct OpenAI/Anthropic/Gemini supplied controls reject before credentials; null/omission preserves defaults. IAM/limits/audit/usage and safe failures remain shared. Individual model capability, native mappings, min_p structural source selection and complete compatibility remain open. See [plan](plans/252-min-p.md) and [contract](../contracts/client-min-p.md).

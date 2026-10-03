@@ -568,3 +568,8 @@ Both OpenAI-shaped normalizers capture service_tier once, reject non-string/non-
 ## Delegated stream service tier metadata
 
 The decoder common metadata, independent encoder base, sequence outcome and delegated usage handoff carry optional serviceTier scalars. Final metadata comes only from the actual usage event, captured once at serialization; terminal identity remains id/created/model. Required ledger/audit precedes final frames. Existing source projection already selects ChatStreamChunk. See [contract](../contracts/stream-service-tiers.md).
+
+
+## Delegated min-p sampling subset
+
+HTTP parsing captures validated optional min_p, and shared delegated preparation repeats validation before asynchronous credentials and freezes the exact scalar in its body. Both delegated invocation modes reuse this boundary. Direct registered adapters reject non-null values before secrets. No routing/capability/default changes or source-pin refresh. See [contract](../contracts/client-min-p.md).

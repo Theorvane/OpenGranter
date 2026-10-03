@@ -44,6 +44,7 @@ import {
   snapshotStopSequences,
   snapshotStreamOptions,
   type Verbosity,
+  validMinP,
   validPenalty,
   validReasoningEffort,
   validSeed,
@@ -92,6 +93,7 @@ export interface ChatRequest {
   readonly presence_penalty?: number;
   readonly response_format?: ResponseFormat;
   readonly top_p?: number;
+  readonly min_p?: number;
   readonly top_k?: number;
   readonly logit_bias?: Readonly<Record<string, number>>;
   readonly tools?: readonly FunctionTool[];
@@ -388,6 +390,7 @@ function validateChat(value: unknown, streaming = false): ValidatedChatRequest |
           'stop',
           'temperature',
           'top_p',
+          'min_p',
           'top_k',
           'logit_bias',
           'tools',
@@ -443,6 +446,8 @@ function validateChat(value: unknown, streaming = false): ValidatedChatRequest |
   } catch {
     return undefined;
   }
+  const minP = value.min_p ?? undefined;
+  if (!validMinP(minP)) return undefined;
   const topP = value.top_p ?? undefined;
   if (!validTopP(topP)) return undefined;
   let maxTokens: number | undefined;
@@ -485,6 +490,7 @@ function validateChat(value: unknown, streaming = false): ValidatedChatRequest |
     ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
     ...(temperature === undefined ? {} : { temperature }),
     ...(topP === undefined ? {} : { top_p: topP }),
+    ...(minP === undefined ? {} : { min_p: minP }),
     ...(topK === undefined ? {} : { top_k: topK }),
     ...(logitBias === undefined ? {} : { logit_bias: logitBias }),
     ...(tools === undefined ? {} : { tools }),
