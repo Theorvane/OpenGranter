@@ -49,6 +49,8 @@ function base(event: Chunk, serviceTier: unknown): object {
 export function encodeOpenRouterTextSse(event: OpenRouterTextStreamPayload): string | undefined {
   if (event.kind === 'done') return 'data: [DONE]\n\n';
   if (event.kind === 'error') unsupported();
+  const content = 'content' in event ? event.content : undefined;
+  const refusal = 'refusal' in event ? event.refusal : undefined;
   const reasoning = 'reasoning' in event ? event.reasoning : undefined;
   const nativeFinishReason = event.nativeFinishReason;
   if (
@@ -66,12 +68,8 @@ export function encodeOpenRouterTextSse(event: OpenRouterTextStreamPayload): str
     if (
       (event.role !== undefined && event.role !== 'assistant') ||
       (reasoning !== undefined && reasoning !== null && typeof reasoning !== 'string') ||
-      (event.refusal !== undefined &&
-        event.refusal !== null &&
-        typeof event.refusal !== 'string') ||
-      (event.content !== undefined &&
-        event.content !== null &&
-        typeof event.content !== 'string') ||
+      (refusal !== undefined && refusal !== null && typeof refusal !== 'string') ||
+      (content !== undefined && content !== null && typeof content !== 'string') ||
       (event.finishReason !== null &&
         event.finishReason !== 'stop' &&
         event.finishReason !== 'length' &&
@@ -85,8 +83,8 @@ export function encodeOpenRouterTextSse(event: OpenRouterTextStreamPayload): str
           index: 0,
           delta: {
             ...(event.role === undefined ? {} : { role: event.role }),
-            ...(event.content === undefined ? {} : { content: event.content }),
-            ...(event.refusal === undefined ? {} : { refusal: event.refusal }),
+            ...(content === undefined ? {} : { content }),
+            ...(refusal === undefined ? {} : { refusal }),
             ...(reasoning === undefined ? {} : { reasoning }),
             ...(details === undefined ? {} : { reasoning_details: details }),
           },
@@ -100,6 +98,8 @@ export function encodeOpenRouterTextSse(event: OpenRouterTextStreamPayload): str
     if (Object.hasOwn(event, 'reasoningDetails')) unsupported();
     const serviceTier = event.serviceTier;
     if (!validTier(serviceTier)) unsupported();
+    if (content !== undefined && content !== null && content !== '') unsupported();
+    if (refusal !== undefined && refusal !== null && refusal !== '') unsupported();
     if (reasoning !== undefined && reasoning !== null && reasoning !== '') unsupported();
     const usage = event.usage;
     if (
