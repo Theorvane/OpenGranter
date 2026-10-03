@@ -15,7 +15,7 @@ const text = 'private reasoning 思考\n\ndata: forged';
 function fixture(
   kind: Kind,
   message: object,
-  finish: string = 'stop',
+  finish: string | null = 'stop',
   gate?: Gate,
   missingUsage = false,
 ) {
@@ -124,6 +124,30 @@ function safe(f: ReturnType<typeof fixture>) {
 }
 
 for (const kind of ['managed', 'delegated'] as const) {
+  test(`${kind}: scalar reasoning-only stop/length responses preserve content and accounting`, async () => {
+    for (const base of ['/v1', '/api/v1']) {
+      for (const finish of ['stop', 'length']) {
+        for (const message of [{ content: null, reasoning: text }, { reasoning: text }]) {
+          for (const missingUsage of [false, true]) {
+            const f = fixture(kind, message, finish, undefined, missingUsage);
+            const response = await createChatHandler(f.ports)(f.request(base));
+            assert.equal(response.status, 200);
+            const body = (await response.json()) as ChatCompletion;
+            assert.equal(body.choices[0].message.content, null);
+            assert.equal(body.choices[0].message.reasoning, text);
+            assert.equal(body.choices[0].finish_reason, finish);
+            assert.equal(body.model, 'chat');
+            assert.equal(f.usage.length, 1);
+            assert.equal(f.usage[0]?.outcome, 'succeeded');
+            assert.equal(f.usage[0]?.usage.totalTokens, missingUsage ? null : 3);
+            if (missingUsage) assert.equal(body.usage, undefined);
+            safe(f);
+          }
+        }
+      }
+    }
+  });
+
   test(`${kind}: nonstream reasoning preserves exact optional values on both prefixes`, async () => {
     for (const base of ['/v1', '/api/v1']) {
       for (const reasoning of [undefined, null, '', text]) {
@@ -196,15 +220,19 @@ for (const kind of ['managed', 'delegated'] as const) {
     }
   });
 
-  test(`${kind}: malformed reasoning fails safely after dispatch and reasoning alone grants no success`, async () => {
+  test(`${kind}: malformed or empty reasoning cannot grant reasoning-only success`, async () => {
     for (const base of ['/v1', '/api/v1']) {
       for (const message of [
         ...[true, 42, [], { secret: 'private reasoning' }].map((reasoning) => ({
           content: 'private answer',
           reasoning,
         })),
-        { content: null, reasoning: text },
-        { reasoning: text },
+        ...[undefined, null, ''].flatMap((reasoning) => [
+          { content: null, ...(reasoning === undefined ? {} : { reasoning }) },
+          { ...(reasoning === undefined ? {} : { reasoning }) },
+        ]),
+        { content: 42, reasoning: text },
+        { content: null, reasoning_details: [{ type: 'reasoning.summary', summary: text }] },
         {
           content: null,
           reasoning: true,
@@ -226,6 +254,21 @@ for (const kind of ['managed', 'delegated'] as const) {
     }
   });
 
+  test(`${kind}: reasoning-only output cannot bypass incompatible finish semantics`, async () => {
+    for (const base of ['/v1', '/api/v1']) {
+      for (const finish of [null, 'tool_calls', 'function_call', 'unknown']) {
+        const f = fixture(kind, { content: null, reasoning: text }, finish);
+        const response = await createChatHandler(f.ports)(f.request(base));
+        assert.equal(response.status, 502);
+        assert.equal((await response.text()).includes('private'), false);
+        assert.equal(f.usage.length, 1);
+        assert.equal(f.usage[0]?.outcome, 'failed');
+        assert.equal(f.usage[0]?.possiblyBilled, true);
+        safe(f);
+      }
+    }
+  });
+
   test(`${kind}: reasoning retains pre-dispatch gates and required post-response persistence`, async () => {
     for (const base of ['/v1', '/api/v1']) {
       for (const [gate, status, dispatched] of [
@@ -237,7 +280,7 @@ for (const kind of ['managed', 'delegated'] as const) {
         ['outcome', 503, true],
         ['usage', 503, true],
       ] as const) {
-        const f = fixture(kind, { content: 'private answer', reasoning: text }, 'stop', gate);
+        const f = fixture(kind, { content: null, reasoning: text }, 'stop', gate);
         const response = await createChatHandler(f.ports)(f.request(base));
         assert.equal(response.status, status);
         assert.equal((await response.text()).includes('private'), false);
@@ -254,7 +297,7 @@ for (const kind of ['managed', 'delegated'] as const) {
     for (const base of ['/v1', '/api/v1']) {
       for (const reasoning of [undefined, null, text]) {
         const f = fixture(kind, {
-          content: 'private answer',
+          content: reasoning === text ? null : 'private answer',
           ...(reasoning === undefined ? {} : { reasoning }),
         });
         const server = createNodeChatServer(f.ports);
@@ -298,4 +341,11 @@ test('assistant normalization rejects explicit undefined reasoning rather than r
     ),
     undefined,
   );
+});
+
+test('inherited reasoning cannot grant success without a projected own reasoning field', () => {
+  const value: Record<string, unknown> = Object.create({ reasoning: text });
+  value.role = 'assistant';
+  value.content = null;
+  assert.equal(normalizeAssistantResponse(value, 'stop'), undefined);
 });
