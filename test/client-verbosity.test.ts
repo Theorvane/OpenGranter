@@ -207,7 +207,11 @@ for (const kind of kinds)
     for (const path of ['/v1/chat/completions', '/api/v1/chat/completions'])
       for (const value of [undefined, null, 'low', 'medium', 'high', 'xhigh', 'max']) {
         const f = httpFixture(kind),
-          unsupported = kind !== 'openrouter' && value !== undefined && value !== null;
+          unsupported =
+            value !== undefined &&
+            value !== null &&
+            kind !== 'openrouter' &&
+            (kind !== 'openai' || value === 'xhigh' || value === 'max');
         const response = await f.handler(
           request(path, value === undefined ? {} : { verbosity: value }),
         );
@@ -237,7 +241,11 @@ test('malformed verbosity rejects before routing and native credential access', 
       NaN,
       Infinity,
       -Infinity,
-      ...(kind === 'openrouter' ? [] : ['low', 'medium', 'high', 'xhigh', 'max']),
+      ...(kind === 'openrouter'
+        ? []
+        : kind === 'openai'
+          ? ['xhigh', 'max']
+          : ['low', 'medium', 'high', 'xhigh', 'max']),
     ]) {
       const f = adapter(kind);
       await assert.rejects(

@@ -280,6 +280,7 @@ function prepare(
   topK: number | undefined,
 
   seed: number | undefined,
+  verbosity: ChatRequest['verbosity'],
 ): { url: string; headers: Record<string, string>; body: object } {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
   const outputLimit =
@@ -297,6 +298,7 @@ function prepare(
         stream: false,
         ...(n === undefined ? {} : { n }),
         ...(seed === undefined ? {} : { seed }),
+        ...(verbosity === undefined ? {} : { verbosity }),
         ...(frequencyPenalty === undefined ? {} : { frequency_penalty: frequencyPenalty }),
         ...(presencePenalty === undefined ? {} : { presence_penalty: presencePenalty }),
         ...(responseFormat === undefined ? {} : { response_format: responseFormat }),
@@ -420,7 +422,12 @@ export function createDirectChatInvoker(
     )
       fail('other');
     const verbosity = request.verbosity ?? undefined;
-    if (!validVerbosity(verbosity) || verbosity !== undefined) fail('other');
+    if (
+      !validVerbosity(verbosity) ||
+      (verbosity !== undefined &&
+        (registration.kind !== 'openai' || verbosity === 'xhigh' || verbosity === 'max'))
+    )
+      fail('other');
     const seed = request.seed ?? undefined;
     if (
       !validSeed(seed) ||
@@ -528,6 +535,7 @@ export function createDirectChatInvoker(
       topK,
 
       seed,
+      verbosity,
     );
     const timeout = AbortSignal.timeout(timeoutMs);
     let response: Response;
