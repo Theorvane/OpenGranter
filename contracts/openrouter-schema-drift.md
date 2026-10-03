@@ -1,6 +1,6 @@
 # Official schema drift contract
 
-The pin records source URL, retrieval date, canonical source SHA-256 and a canonical structural projection SHA-256. Source: [official OpenRouter OpenAPI](https://openrouter.ai/openapi.json), retrieved 2026-10-03 for version 13. The snapshot contains selected schema constraints, with examples/descriptions and other annotations removed.
+The pin records source URL, retrieval date, canonical source SHA-256 and a canonical structural projection SHA-256. Source: [official OpenRouter OpenAPI](https://openrouter.ai/openapi.json), retrieved 2026-10-03 for version 14. The snapshot contains selected schema constraints, with examples/descriptions and other annotations removed.
 
 The offline gate validates provenance shape and projection integrity. `npm run compatibility:drift` explicitly fetches only the official HTTPS URL, rejects redirects, bounds time/body size and compares selected chat request and response definitions. It neither changes the pin nor sends credentials or inference calls. Failures expose fixed messages, not downloaded content or transport errors.
 
@@ -45,3 +45,7 @@ Version 12 adds optional nullable top_a as the twentieth selected request field.
 ## Repetition penalty request source drift
 
 Version 13 adds optional nullable repetition_penalty as the twenty-first request field. Its reviewed official shape is number/null with double format and no encoded bounds/default. Future structural constraints and literal defaults cause drift, while annotations remain ignored. Missing/malformed sources, rehashed invalid exact field maps and versions 1..12 reject safely. All version-12 selections and the canonical official source digest are preserved. Runtime/provider/IAM/secret/usage/audit behavior is unchanged; full compatibility remains open. See [plan](../docs/plans/262-repetition-schema.md).
+
+## Reasoning-effort request field
+
+Version 14 adds optional nullable reasoning_effort with string/null type and enum max, xhigh, high, medium, low, minimal, none, null. Preserve x-speakeasy-unknown-values: allow and the absence of a default. Structural enum/type/nullability/default/required/extension changes cause drift. Missing/malformed sources, invalid exact field maps and versions 1..13 reject safely. All previous selections and source provenance remain unchanged. No runtime/provider/IAM/secret/usage/audit behavior changes. See [plan](../docs/plans/276-reasoning-effort-schema.md).
