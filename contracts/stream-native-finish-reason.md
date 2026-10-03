@@ -1,0 +1,7 @@
+# Streaming native finish reason metadata
+
+Delegated text streams on both chat bases preserve optional native_finish_reason string/null at choice scope. Absence stays absent; empty and Unicode strings are valid and safely JSON framed. Canonical finish_reason remains independently validated. Ordinary, refusal and terminal deltas and content-free repeated-finish usage chunks retain supplied metadata.
+
+Final usage metadata comes only from the actual usage event, never an earlier delta. Empty-choice usage supplies no native metadata. Missing, partial or invalid token counts remain distinct in accounting and produce no client usage frame. Malformed native metadata is rejected even when usage is incomplete. Before client output failures use safe JSON; after output they use the existing safe SSE error without DONE. Possibly-billed accounting, IAM, explicit Deny, limits, required ledger/audit gates and registered upstream restrictions remain unchanged.
+
+Opaque native reasons stay outside operational audit, usage records, errors and identity-only callbacks. No native adapter synthesis, managed streaming or new canonical reasons are added. The [official overview](https://openrouter.ai/docs/api_reference/overview) documents this extension, while current official ChatStreamChoice and the pinned OpenRouter SDK omit it. OpenAI SDK raw JSON retention is tested; full OpenRouter SDK retention and source-schema coverage remain gaps. No fabricated pin field or complete compatibility claim. See [plan](../docs/plans/266-stream-native-reason.md).
