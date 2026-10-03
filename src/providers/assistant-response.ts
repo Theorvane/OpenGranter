@@ -1,3 +1,5 @@
+import { type ReasoningDetail, snapshotReasoningDetails } from './reasoning-details.ts';
+
 export interface AssistantFunctionCall {
   readonly id: string;
   readonly type: 'function';
@@ -10,6 +12,7 @@ export interface AssistantResponse {
   readonly content: string | null;
   readonly refusal?: string | null;
   readonly reasoning?: string | null;
+  readonly reasoning_details?: readonly ReasoningDetail[];
   readonly tool_calls?: readonly AssistantFunctionCall[];
 }
 
@@ -56,6 +59,10 @@ export function normalizeAssistantResponse(
   if (hasReasoning && reasoning !== null && typeof reasoning !== 'string') return undefined;
   const reasoningContent =
     hasReasoning && (typeof reasoning === 'string' || reasoning === null) ? { reasoning } : {};
+  const hasDetails = Object.hasOwn(value, 'reasoning_details');
+  const details = hasDetails ? snapshotReasoningDetails(value.reasoning_details) : undefined;
+  if (hasDetails && details === undefined) return undefined;
+  const detailContent = details === undefined ? {} : { reasoning_details: details };
   const toolCalls = value.tool_calls;
   if (
     finish === 'function_call' ||
@@ -82,6 +89,7 @@ export function normalizeAssistantResponse(
       content: content === undefined ? null : content,
       ...(hasRefusal ? { refusal: refusal as null | string } : {}),
       ...reasoningContent,
+      ...detailContent,
       tool_calls: calls,
     };
   }
@@ -98,5 +106,6 @@ export function normalizeAssistantResponse(
     content,
     ...(hasRefusal && (typeof refusal === 'string' || refusal === null) ? { refusal } : {}),
     ...reasoningContent,
+    ...detailContent,
   };
 }
