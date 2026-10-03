@@ -332,3 +332,7 @@ Nullable repetition_penalty finite 0..2 now passes both chat bases and pinned of
 ## Repetition penalty request source drift
 
 Version 13 selects repetition_penalty as the twenty-first request field. This bounded source guard does not certify runtime instance validation, native model support or full compatibility. Release gate #116 remains partial. See [plan](plans/262-repetition-schema.md) and [contract](../contracts/openrouter-schema-drift.md).
+
+## Nonstream native finish reasons
+
+Documented nonstream native_finish_reason now survives both HTTP bases and OpenAI SDK raw JSON. Current official ChatChoice and pinned OpenRouter chat SDK omit the field, and that SDK strips it; source/SDK coverage is not claimed. Native synthesis, streaming and full response/client conformance remain open. See [plan](plans/264-native-finish-reason.md) and [contract](../contracts/native-finish-reason.md).

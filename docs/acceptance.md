@@ -755,3 +755,7 @@ Both prefixes and actual OpenRouter/OpenAI SDKs preserve repetition_penalty zero
 ## Repetition penalty request source drift
 
 Repetition penalty type/nullability/format, future constraints and literal defaults cause drift. Annotation-only changes are ignored. Missing/malformed sources, rehashed invalid exact fields and versions 1..12 reject; all prior selections remain unchanged. See [plan](plans/262-repetition-schema.md) and [contract](../contracts/openrouter-schema-drift.md).
+
+## Nonstream native finish reasons
+
+Both HTTP bases retain absent/null/empty/Unicode raw native reasons across text/refusal/filter/tool outcomes. Malformed values fail safely after dispatch with possibly-billed accounting. Security and required audit/ledger gates, single capture and canonical reason rejection remain covered; native mappings do not synthesize metadata. See [plan](plans/264-native-finish-reason.md) and [contract](../contracts/native-finish-reason.md).

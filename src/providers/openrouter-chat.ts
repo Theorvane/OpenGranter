@@ -132,6 +132,7 @@ function normalize(
   const serviceTier = value?.service_tier;
   const choices = Array.isArray(value?.choices) ? value.choices : undefined;
   const first = record(choices?.[0]);
+  const nativeReason = first?.native_finish_reason;
   const message = normalizeAssistantResponse(record(first?.message), first?.finish_reason);
   if (
     choices?.length !== 1 ||
@@ -142,7 +143,8 @@ function normalize(
     first?.index !== 0 ||
     !message ||
     (fingerprint !== undefined && fingerprint !== null && typeof fingerprint !== 'string') ||
-    (serviceTier !== undefined && serviceTier !== null && typeof serviceTier !== 'string')
+    (serviceTier !== undefined && serviceTier !== null && typeof serviceTier !== 'string') ||
+    (nativeReason !== undefined && nativeReason !== null && typeof nativeReason !== 'string')
   )
     fail('upstream', true, true);
 
@@ -163,7 +165,14 @@ function normalize(
     model: clientModelAlias,
     ...(fingerprint === undefined ? {} : { system_fingerprint: fingerprint }),
     ...(serviceTier === undefined ? {} : { service_tier: serviceTier }),
-    choices: [{ index: 0, message, finish_reason: finish }],
+    choices: [
+      {
+        index: 0,
+        message,
+        finish_reason: finish,
+        ...(nativeReason === undefined ? {} : { native_finish_reason: nativeReason }),
+      },
+    ],
     ...(stats ? { usage: stats } : {}),
   };
 }
