@@ -6,6 +6,7 @@ export function normalizeProviderUsage(
     'completion_tokens',
     'total_tokens',
   ],
+  deriveTotal = true,
 ): ReturnType<typeof normalizeProviderTokens> {
   if (value === undefined || value === null) return undefined;
   if (typeof value !== 'object' || Array.isArray(value)) return { total_tokens: null };
@@ -14,6 +15,7 @@ export function normalizeProviderUsage(
     container[fields[0]],
     container[fields[1]],
     fields[2] === undefined ? undefined : container[fields[2]],
+    deriveTotal,
   );
 }
 
@@ -22,6 +24,7 @@ export function normalizeProviderTokens(
   prompt: unknown,
   completion: unknown,
   total: unknown,
+  deriveTotal = true,
 ):
   | {
       readonly prompt_tokens?: number | null;
@@ -34,7 +37,7 @@ export function normalizeProviderTokens(
   const p = count(prompt);
   const c = count(completion);
   const t =
-    total === undefined && p !== undefined && c !== undefined
+    deriveTotal && total === undefined && p !== undefined && c !== undefined
       ? (count(p + c) ?? null)
       : total === undefined
         ? undefined

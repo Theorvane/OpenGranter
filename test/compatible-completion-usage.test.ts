@@ -4,8 +4,8 @@ import { OpenRouter } from '@openrouter/sdk';
 import OpenAI from 'openai';
 import { createChatHandler } from '../src/gateway/chat-handler.ts';
 import { createNodeRequestServer } from '../src/gateway/node-request-server.ts';
+import { normalizeChatUsage } from '../src/providers/chat-usage.ts';
 import { createDirectChatInvoker } from '../src/providers/direct-chat.ts';
-import { normalizeNonstreamChatUsage } from '../src/providers/nonstream-chat-usage.ts';
 import { createOpenRouterChatInvoker } from '../src/providers/openrouter-chat.ts';
 import type { UsageRecord } from '../src/usage/record-usage.ts';
 
@@ -516,7 +516,7 @@ test('nonstream category snapshots capture recognized getters once and ignore un
       },
     },
   );
-  const usage = normalizeNonstreamChatUsage({
+  const usage = normalizeChatUsage({
     ...aggregates,
     get prompt_tokens_details() {
       groupReads++;
@@ -539,12 +539,12 @@ test('nonstream category snapshots capture recognized getters once and ignore un
 
 test('nonstream category snapshots stay immutable and omit unsafe non-JSON numbers independently', () => {
   const details = { cached_tokens: 2 };
-  const result = normalizeNonstreamChatUsage({ ...aggregates, prompt_tokens_details: details });
+  const result = normalizeChatUsage({ ...aggregates, prompt_tokens_details: details });
   details.cached_tokens = 99;
   assert.equal(result?.prompt_tokens_details?.cached_tokens, 2);
   assert.equal(Reflect.set(result?.prompt_tokens_details ?? {}, 'cached_tokens', 7), false);
   for (const count of [NaN, Infinity, -Infinity, undefined]) {
-    const usage = normalizeNonstreamChatUsage({
+    const usage = normalizeChatUsage({
       ...aggregates,
       prompt_tokens_details: { cached_tokens: count },
       completion_tokens_details: { reasoning_tokens: null },

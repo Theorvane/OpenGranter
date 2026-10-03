@@ -1,4 +1,5 @@
 import type { ChatRequest } from '../gateway/chat-handler.ts';
+import { snapshotChatUsage } from '../providers/chat-usage.ts';
 import { type OpenRouterChatAttempt, OpenRouterChatFailure } from '../providers/openrouter-chat.ts';
 import {
   type DelegatedRouteInput,
@@ -78,14 +79,32 @@ export async function invokeDelegatedTextStream(
                 },
                 input.signal,
               );
+              const {
+                id,
+                model,
+                finishReason,
+                usage,
+                serviceTier,
+                systemFingerprint,
+                nativeFinishReason,
+              } = complete;
               if (
                 terminal === undefined ||
-                terminal.id !== complete.id ||
-                terminal.model !== complete.model ||
-                terminal.finishReason !== complete.finishReason
+                terminal.id !== id ||
+                terminal.model !== model ||
+                terminal.finishReason !== finishReason
               )
                 throw new OpenRouterChatFailure('upstream', true, true);
-              return complete;
+              return {
+                status: 'complete',
+                id,
+                model,
+                finishReason,
+                usage: snapshotChatUsage(usage),
+                ...(serviceTier === undefined ? {} : { serviceTier }),
+                ...(systemFingerprint === undefined ? {} : { systemFingerprint }),
+                ...(nativeFinishReason === undefined ? {} : { nativeFinishReason }),
+              };
             },
           }
         : {}),

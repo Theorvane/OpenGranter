@@ -7,3 +7,5 @@ An upstream error event, even as the first event, yields a distinct safe failed 
 This component does not control the upstream connection or client response, write audit/usage records, or authorize routes. The [delegated HTTP composition](delegated-http-stream.md) integrates those gates for the supported public text-stream subset; direct/tool/rich streaming remains separate release work.
 
 Delegated text streaming preserves bounded optional system_fingerprint metadata per the [stream fingerprint contract](stream-fingerprints.md). The final usage fingerprint comes from its own upstream event, with no carry-forward or authority semantics. Null is a local OpenAI compatibility allowance; the official streamed schema selects string only. Malformed values fail safely and fingerprints stay outside audit/ledger metadata.
+
+Final token categories follow the [stream detail contract](stream-token-details.md). The independent usage boundary captures allowlisted counters/groups once into immutable snapshots without deriving missing totals. Only actual final-event categories are projected, with no additional ledger accounting or operational content retention.

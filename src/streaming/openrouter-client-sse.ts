@@ -1,3 +1,4 @@
+import { snapshotChatUsage } from '../providers/chat-usage.ts';
 import { snapshotReasoningDetails } from '../providers/reasoning-details.ts';
 import type { OpenRouterTextStreamPayload } from './openrouter-stream-chunks.ts';
 
@@ -101,7 +102,7 @@ export function encodeOpenRouterTextSse(event: OpenRouterTextStreamPayload): str
     if (content !== undefined && content !== null && content !== '') unsupported();
     if (refusal !== undefined && refusal !== null && refusal !== '') unsupported();
     if (reasoning !== undefined && reasoning !== null && reasoning !== '') unsupported();
-    const usage = event.usage;
+    const usage = snapshotChatUsage(event.usage);
     if (
       !validCount(usage?.prompt_tokens) ||
       !validCount(usage.completion_tokens) ||
@@ -132,6 +133,12 @@ export function encodeOpenRouterTextSse(event: OpenRouterTextStreamPayload): str
         prompt_tokens: usage.prompt_tokens,
         completion_tokens: usage.completion_tokens,
         total_tokens: usage.total_tokens,
+        ...(usage.prompt_tokens_details === undefined
+          ? {}
+          : { prompt_tokens_details: usage.prompt_tokens_details }),
+        ...(usage.completion_tokens_details === undefined
+          ? {}
+          : { completion_tokens_details: usage.completion_tokens_details }),
       },
     });
   }

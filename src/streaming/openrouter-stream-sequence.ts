@@ -1,3 +1,4 @@
+import { snapshotChatUsage } from '../providers/chat-usage.ts';
 import type { OpenRouterTextStreamPayload } from './openrouter-stream-chunks.ts';
 
 type Delta = Extract<OpenRouterTextStreamPayload, { kind: 'delta' }>;
@@ -78,7 +79,7 @@ export class OpenRouterTextStreamSequence {
       (event.finishReason !== null && event.finishReason !== this.finishReason)
     )
       this.fail();
-    this.usage = event.usage === undefined ? undefined : Object.freeze({ ...event.usage });
+    this.usage = snapshotChatUsage(event.usage);
     this.systemFingerprint = event.systemFingerprint;
     this.serviceTier = event.serviceTier;
     this.nativeFinishReason = event.nativeFinishReason;
