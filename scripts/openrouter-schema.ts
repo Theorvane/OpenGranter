@@ -4,6 +4,16 @@ export const OFFICIAL_SCHEMA_URL = 'https://openrouter.ai/openapi.json';
 const REQUEST_REF = '#/components/schemas/ChatRequest';
 const RESPONSE_REF = '#/components/schemas/ChatResult';
 const RESPONSE_DEFINITION_NAMES = ['ChatResult', 'ChatChoice', 'ChatAssistantMessage'] as const;
+const REASONING_DEFINITION_NAMES = [
+  'ChatReasoningDetails',
+  'ChatStreamReasoningDetails',
+  'ReasoningDetailUnion',
+  'ReasoningDetailSummary',
+  'ReasoningDetailEncrypted',
+  'ReasoningDetailText',
+  'ReasoningDetailServerToolCall',
+  'ReasoningFormat',
+] as const;
 const USAGE_DEFINITION_NAMES = ['ChatUsage', 'CostDetails', 'ServerToolUseDetails'] as const;
 const FIELD_NAMES = [
   'model',
@@ -66,6 +76,7 @@ export interface SchemaProjection {
   responseRef: string;
   responseDefinitions: Record<string, unknown>;
   usageDefinitions: Record<string, unknown>;
+  reasoningDefinitions: Record<string, unknown>;
   required: readonly string[];
   fields: Record<string, unknown>;
   definitions: Record<string, unknown>;
@@ -120,6 +131,7 @@ function projection(value: unknown): SchemaProjection {
   const definitions = record(data?.definitions);
   const responseDefinitions = record(data?.responseDefinitions);
   const usageDefinitions = record(data?.usageDefinitions);
+  const reasoningDefinitions = record(data?.reasoningDefinitions);
   const streamDefinitions = record(data?.streamDefinitions);
   const messageNames = record(data?.messageNames);
   const toolMessages = record(data?.toolMessages);
@@ -133,6 +145,9 @@ function projection(value: unknown): SchemaProjection {
     !responseDefinitions ||
     Object.keys(responseDefinitions).length !== RESPONSE_DEFINITION_NAMES.length ||
     RESPONSE_DEFINITION_NAMES.some((name) => !record(responseDefinitions[name])) ||
+    !reasoningDefinitions ||
+    Object.keys(reasoningDefinitions).length !== REASONING_DEFINITION_NAMES.length ||
+    REASONING_DEFINITION_NAMES.some((name) => !record(reasoningDefinitions[name])) ||
     !usageDefinitions ||
     Object.keys(usageDefinitions).length !== USAGE_DEFINITION_NAMES.length ||
     USAGE_DEFINITION_NAMES.some((name) => !record(usageDefinitions[name])) ||
@@ -177,6 +192,9 @@ function projection(value: unknown): SchemaProjection {
     usageDefinitions: Object.fromEntries(
       USAGE_DEFINITION_NAMES.map((name) => [name, ordered(usageDefinitions[name], true)]),
     ),
+    reasoningDefinitions: Object.fromEntries(
+      REASONING_DEFINITION_NAMES.map((name) => [name, ordered(reasoningDefinitions[name], true)]),
+    ),
     required: [...required],
     fields: Object.fromEntries(FIELD_NAMES.map((name) => [name, ordered(fields[name], true)])),
     definitions: Object.fromEntries(
@@ -219,6 +237,9 @@ export function projectOfficialSchema(value: unknown): SchemaProjection {
     ),
     usageDefinitions: Object.fromEntries(
       USAGE_DEFINITION_NAMES.map((name) => [name, schemas?.[name]]),
+    ),
+    reasoningDefinitions: Object.fromEntries(
+      REASONING_DEFINITION_NAMES.map((name) => [name, schemas?.[name]]),
     ),
     required: request?.required,
     fields: Object.fromEntries(FIELD_NAMES.map((name) => [name, properties[name]])),
@@ -272,7 +293,7 @@ export function validateSchemaPin(value: unknown): { projection: SchemaProjectio
   try {
     const data = record(value);
     if (
-      data?.version !== 14 ||
+      data?.version !== 15 ||
       data.source !== OFFICIAL_SCHEMA_URL ||
       typeof data.retrievedAt !== 'string' ||
       !/^\d{4}-\d{2}-\d{2}$/.test(data.retrievedAt) ||

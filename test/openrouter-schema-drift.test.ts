@@ -11,6 +11,162 @@ import {
   validateSchemaPin,
 } from '../scripts/openrouter-schema.ts';
 
+const reasoningShapes = {
+  ChatReasoningDetails: {
+    items: {
+      $ref: '#/components/schemas/ReasoningDetailUnion',
+    },
+    type: 'array',
+  },
+  ChatStreamReasoningDetails: {
+    items: {
+      $ref: '#/components/schemas/ReasoningDetailUnion',
+    },
+    type: 'array',
+  },
+  ReasoningDetailUnion: {
+    discriminator: {
+      mapping: {
+        'reasoning.encrypted': '#/components/schemas/ReasoningDetailEncrypted',
+        'reasoning.server_tool_call': '#/components/schemas/ReasoningDetailServerToolCall',
+        'reasoning.summary': '#/components/schemas/ReasoningDetailSummary',
+        'reasoning.text': '#/components/schemas/ReasoningDetailText',
+      },
+      propertyName: 'type',
+    },
+    oneOf: [
+      {
+        $ref: '#/components/schemas/ReasoningDetailSummary',
+      },
+      {
+        $ref: '#/components/schemas/ReasoningDetailEncrypted',
+      },
+      {
+        $ref: '#/components/schemas/ReasoningDetailText',
+      },
+      {
+        $ref: '#/components/schemas/ReasoningDetailServerToolCall',
+      },
+    ],
+  },
+  ReasoningDetailSummary: {
+    properties: {
+      format: {
+        $ref: '#/components/schemas/ReasoningFormat',
+      },
+      id: {
+        type: ['string', 'null'],
+      },
+      index: {
+        type: 'integer',
+      },
+      summary: {
+        type: 'string',
+      },
+      type: {
+        enum: ['reasoning.summary'],
+        type: 'string',
+      },
+    },
+    required: ['type', 'summary'],
+    type: 'object',
+  },
+  ReasoningDetailEncrypted: {
+    properties: {
+      data: {
+        type: 'string',
+      },
+      format: {
+        $ref: '#/components/schemas/ReasoningFormat',
+      },
+      id: {
+        type: ['string', 'null'],
+      },
+      index: {
+        type: 'integer',
+      },
+      type: {
+        enum: ['reasoning.encrypted'],
+        type: 'string',
+      },
+    },
+    required: ['type', 'data'],
+    type: 'object',
+  },
+  ReasoningDetailText: {
+    properties: {
+      format: {
+        $ref: '#/components/schemas/ReasoningFormat',
+      },
+      id: {
+        type: ['string', 'null'],
+      },
+      index: {
+        type: 'integer',
+      },
+      signature: {
+        type: ['string', 'null'],
+      },
+      text: {
+        type: ['string', 'null'],
+      },
+      type: {
+        enum: ['reasoning.text'],
+        type: 'string',
+      },
+    },
+    required: ['type'],
+    type: 'object',
+  },
+  ReasoningDetailServerToolCall: {
+    properties: {
+      arguments: {
+        type: 'string',
+      },
+      format: {
+        $ref: '#/components/schemas/ReasoningFormat',
+      },
+      id: {
+        type: ['string', 'null'],
+      },
+      index: {
+        type: 'integer',
+      },
+      result: {
+        type: 'string',
+      },
+      tool_call_id: {
+        type: ['string', 'null'],
+      },
+      tool_name: {
+        type: 'string',
+      },
+      type: {
+        enum: ['reasoning.server_tool_call'],
+        type: 'string',
+      },
+    },
+    required: ['type', 'tool_name', 'arguments', 'result'],
+    type: 'object',
+  },
+  ReasoningFormat: {
+    enum: [
+      'unknown',
+      'openai-responses-v1',
+      'azure-openai-responses-v1',
+      'bedrock-openai-responses-v1',
+      'bedrock-xai-responses-v1',
+      'xai-responses-v1',
+      'meta-responses-v1',
+      'anthropic-claude-v1',
+      'google-gemini-v1',
+      null,
+    ],
+    type: ['string', 'null'],
+    'x-speakeasy-unknown-values': 'allow',
+  },
+};
+
 function source(): Record<string, unknown> {
   const data = {
     openapi: '3.1.0',
@@ -169,6 +325,7 @@ function source(): Record<string, unknown> {
   });
   Object.assign(data.components.schemas, structuredClone(pinned.projection.responseDefinitions));
   Object.assign(data.components.schemas, structuredClone(pinned.projection.usageDefinitions));
+  Object.assign(data.components.schemas, structuredClone(reasoningShapes));
   return data;
 }
 const pinned = JSON.parse(
@@ -490,8 +647,8 @@ for (const name of ['ChatFormatTextConfig', 'ChatFormatJsonObjectConfig']) {
     }
   });
 }
-test('version-14 pin retains exact selected definitions', () => {
-  assert.equal(pinned.version, 14);
+test('version-15 pin retains exact selected definitions', () => {
+  assert.equal(pinned.version, 15);
   const definitions = (
     projectOfficialSchema(source()) as unknown as { definitions: Record<string, unknown> }
   ).definitions;
@@ -660,8 +817,8 @@ test('message name selection ignores editorial and unrelated message changes', (
   for (const value of Object.values(projected.messageNames))
     assert.deepEqual(value, { schema: { type: 'string' }, required: false });
 });
-test('version-14 message maps reject stale and rehashed malformed pins', () => {
-  for (const version of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
+test('version-15 message maps reject stale and rehashed malformed pins', () => {
+  for (const version of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14])
     assert.throws(() => validateSchemaPin({ ...pinned, version }), /Invalid schema pin/);
   for (const messageNames of [
     undefined,
@@ -1411,5 +1568,135 @@ test('reasoning_effort exact field map rejects rehashed invalid selections', () 
       () => validateSchemaPin({ ...pinned, projection, projectionSha256 }),
       /Invalid schema pin/,
     );
+  }
+});
+
+function reasoningProjection(data: unknown) {
+  return (
+    projectOfficialSchema(data) as unknown as { reasoningDefinitions: Record<string, unknown> }
+  ).reasoningDefinitions;
+}
+function schemasOf(data: Record<string, unknown>) {
+  return (data.components as { schemas: Record<string, unknown> }).schemas;
+}
+test('referenced reasoning details select every transitive definition', () => {
+  assert.deepEqual(reasoningProjection(source()), reasoningShapes);
+});
+test('reasoning wrappers union variants and format changes cause drift with fixed parent references', () => {
+  for (const [name, replacement] of [
+    ['ChatReasoningDetails', { ...reasoningShapes.ChatReasoningDetails, minItems: 1 }],
+    [
+      'ChatStreamReasoningDetails',
+      { ...reasoningShapes.ChatStreamReasoningDetails, type: ['array', 'null'] },
+    ],
+    [
+      'ReasoningDetailUnion',
+      { ...reasoningShapes.ReasoningDetailUnion, oneOf: [{ type: 'string' }] },
+    ],
+    [
+      'ReasoningDetailUnion',
+      { ...reasoningShapes.ReasoningDetailUnion, discriminator: { propertyName: 'other' } },
+    ],
+    ['ReasoningDetailSummary', { ...reasoningShapes.ReasoningDetailSummary, required: ['type'] }],
+    [
+      'ReasoningDetailText',
+      {
+        ...reasoningShapes.ReasoningDetailText,
+        properties: {
+          ...reasoningShapes.ReasoningDetailText.properties,
+          signature: { type: 'string' },
+          text: { type: 'integer' },
+        },
+      },
+    ],
+    [
+      'ReasoningDetailEncrypted',
+      {
+        ...reasoningShapes.ReasoningDetailEncrypted,
+        properties: {
+          ...reasoningShapes.ReasoningDetailEncrypted.properties,
+          data: { type: 'string', maxLength: 8 },
+        },
+      },
+    ],
+    [
+      'ReasoningDetailServerToolCall',
+      { ...reasoningShapes.ReasoningDetailServerToolCall, required: ['type'] },
+    ],
+    ['ReasoningFormat', { ...reasoningShapes.ReasoningFormat, enum: ['unknown'] }],
+    [
+      'ReasoningFormat',
+      { ...reasoningShapes.ReasoningFormat, 'x-speakeasy-unknown-values': 'reject' },
+    ],
+  ] as const) {
+    const data = source();
+    schemasOf(data)[name] = replacement;
+    assert.equal(compareOfficialSchema(data, pinned), false, name);
+  }
+});
+test('reasoning annotations remain ignored while literal defaults remain structural data', () => {
+  const data = source();
+  for (const [name, shape] of Object.entries(reasoningShapes))
+    schemasOf(data)[name] = {
+      ...shape,
+      description: 'editorial',
+      example: 'editorial',
+      title: 'editorial',
+    };
+  assert.equal(compareOfficialSchema(data, pinned), true);
+  const literal = { description: 'literal data', example: 'literal example' };
+  schemasOf(data).ReasoningDetailText = {
+    ...reasoningShapes.ReasoningDetailText,
+    default: literal,
+  };
+  assert.deepEqual(reasoningProjection(data).ReasoningDetailText, {
+    ...reasoningShapes.ReasoningDetailText,
+    default: literal,
+  });
+  assert.equal(compareOfficialSchema(data, pinned), false);
+});
+test('missing and malformed reasoning definition sources fail safely', () => {
+  for (const name of Object.keys(reasoningShapes)) {
+    for (const value of [undefined, null, [], 'private malformed']) {
+      const data = source();
+      schemasOf(data)[name] = value;
+      assert.throws(() => projectOfficialSchema(data), /Invalid official schema/);
+    }
+  }
+});
+test('reasoning parent references and required status remain tracked in both response modes', () => {
+  for (const name of ['ChatAssistantMessage', 'ChatStreamDelta']) {
+    for (const operation of ['reference', 'required', 'missing']) {
+      const data = source();
+      const schema = schemasOf(data)[name] as {
+        properties: Record<string, unknown>;
+        required?: string[];
+      };
+      if (operation === 'reference') schema.properties.reasoning_details = { type: 'array' };
+      if (operation === 'required')
+        schema.required = [...(schema.required ?? []), 'reasoning_details'];
+      if (operation === 'missing') delete schema.properties.reasoning_details;
+      assert.equal(compareOfficialSchema(data, pinned), false);
+    }
+  }
+});
+test('reasoning exact map rejects rehashed missing extra and malformed entries', () => {
+  const definitions = (pinned.projection as { reasoningDefinitions: Record<string, unknown> })
+    .reasoningDefinitions;
+  for (const name of Object.keys(reasoningShapes)) {
+    for (const operation of ['missing', 'extra', 'malformed']) {
+      const reasoningDefinitions = { ...definitions };
+      if (operation === 'missing') delete reasoningDefinitions[name];
+      if (operation === 'extra') reasoningDefinitions.unselected = { type: 'string' };
+      if (operation === 'malformed') reasoningDefinitions[name] = [];
+      const projection = { ...pinned.projection, reasoningDefinitions };
+      const projectionSha256 = createHash('sha256')
+        .update(canonicalSchema(projection))
+        .digest('hex');
+      assert.throws(
+        () => validateSchemaPin({ ...pinned, projection, projectionSha256 }),
+        /Invalid schema pin/,
+      );
+    }
   }
 });

@@ -601,3 +601,7 @@ Two compatible normalizers capture native_finish_reason once, validate string/nu
 ## Reasoning-effort request schema
 
 Version 14 adds reasoning_effort to the exact twenty-two-field request map. All version-13 selections and the official source digest remain unchanged. The inline string/null enum includes seven string levels and null, with no default; its unknown-value extension remains structural data. See [plan](plans/276-reasoning-effort-schema.md) and [contract](../contracts/openrouter-schema-drift.md).
+
+## Referenced reasoning-detail source drift
+
+Version 15 adds exactly eight reasoningDefinitions for nonstream/stream arrays, their shared union, summary/encrypted/text/server-tool-call variants and ReasoningFormat. Track structure, references, discriminator mappings, required lists, types/nullability, constraints, extensions and literal defaults while ignoring annotations. Missing/malformed source definitions and rehashed invalid exact maps fail safely; versions 1..14 reject. All version-14 selections and source provenance remain unchanged. Existing whole assistant/stream delta selections retain parent field/reference/required tracking. This does not enable runtime reasoning details, server tools, signatures/history, or complete reasoning/client compatibility. IAM, credentials, usage and audit behavior are unchanged. See [plan](plans/282-reasoning-details-schema.md).
