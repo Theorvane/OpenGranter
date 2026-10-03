@@ -6,18 +6,20 @@ export interface ChatFunctionCall {
 
 export type ChatMessage =
   | {
-      readonly role: 'system' | 'developer' | 'user' | 'assistant';
+      readonly role: 'system' | 'developer' | 'user';
       readonly content: string;
       readonly name?: string;
       readonly tool_calls?: never;
       readonly tool_call_id?: never;
+      readonly reasoning?: never;
     }
   | {
       readonly role: 'assistant';
       readonly content: string | null;
       readonly name?: string;
-      readonly tool_calls: readonly ChatFunctionCall[];
+      readonly tool_calls?: readonly ChatFunctionCall[];
       readonly tool_call_id?: never;
+      readonly reasoning?: string | null;
     }
   | {
       readonly role: 'tool';
@@ -25,6 +27,7 @@ export type ChatMessage =
       readonly tool_call_id: string;
       readonly name?: never;
       readonly tool_calls?: never;
+      readonly reasoning?: never;
     };
 
 function record(value: unknown): Record<string, unknown> | undefined {
@@ -99,12 +102,20 @@ export function snapshotChatMessages(value: unknown): readonly ChatMessage[] {
     if (!instruction) conversationSeen = true;
     if (name !== undefined && typeof name !== 'string')
       throw new TypeError('Invalid chat messages');
+    const hasReasoning = Object.hasOwn(item, 'reasoning');
+    const reasoning = hasReasoning ? item.reasoning : undefined;
+    if (
+      hasReasoning &&
+      (role !== 'assistant' || (reasoning !== null && typeof reasoning !== 'string'))
+    )
+      throw new TypeError('Invalid chat messages');
+    const reasoningContent = hasReasoning ? { reasoning: reasoning as string | null } : {};
     if (
       role === 'assistant' &&
       Object.hasOwn(item, 'tool_calls') &&
       item.tool_calls !== undefined
     ) {
-      if (!exact(item, ['role', 'content', 'name', 'tool_calls']))
+      if (!exact(item, ['role', 'content', 'name', 'tool_calls', 'reasoning']))
         throw new TypeError('Invalid chat messages');
       const calls = snapshotCalls(item.tool_calls);
       if (
@@ -119,13 +130,39 @@ export function snapshotChatMessages(value: unknown): readonly ChatMessage[] {
           content: content === undefined ? null : content,
           ...(name === undefined ? {} : { name }),
           tool_calls: calls,
+          ...reasoningContent,
         }),
       );
       continue;
     }
-    if (!exact(item, ['role', 'content', 'name']) || typeof content !== 'string')
+    const reasoningOnly =
+      role === 'assistant' &&
+      (content === null || content === undefined) &&
+      typeof reasoning === 'string' &&
+      reasoning.length > 0;
+    if (
+      !exact(item, ['role', 'content', 'name', ...(role === 'assistant' ? ['reasoning'] : [])]) ||
+      (typeof content !== 'string' && !reasoningOnly)
+    )
       throw new TypeError('Invalid chat messages');
-    messages.push(Object.freeze({ role, content, ...(name === undefined ? {} : { name }) }));
+    if (role === 'assistant') {
+      messages.push(
+        Object.freeze({
+          role,
+          content: content === undefined ? null : (content as string | null),
+          ...(name === undefined ? {} : { name }),
+          ...reasoningContent,
+        }),
+      );
+    } else {
+      messages.push(
+        Object.freeze({
+          role,
+          content: content as string,
+          ...(name === undefined ? {} : { name }),
+        }),
+      );
+    }
   }
   if (pending.size > 0) throw new TypeError('Invalid chat messages');
   return Object.freeze(messages);

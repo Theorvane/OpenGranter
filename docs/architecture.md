@@ -633,3 +633,7 @@ The shared response-format snapshot captures an immutable, bounded JSON tree bef
 ## Detail-only assistant completion normalization
 
 The shared nonstream assistant normalizer checks its already-validated immutable detail snapshot for a nonempty summary/text/encrypted payload when stop/length has missing/null content. It projects that same snapshot and normalizes missing content to null, without interpreting signatures or encrypted data. Empty/metadata-only details cannot bypass content/tool/finish validation. Provider invocation, IAM, audit and accounting ordering are unchanged. See [contract](../contracts/nonstream-reasoning-details.md) and [plan](plans/302-detail-only-reasoning.md).
+
+## Scalar reasoning history boundary
+
+HTTP text normalization retains assistant reasoning markers for the strict message snapshot, which captures each scalar once into immutable ordinary/function histories before routing. Delegated transport forwards that snapshot. Direct adapters reject supplied reasoning before credentials until native mappings are defined; the OpenAI SDK has no equivalent request field. Pending tool-result validation and invocation/persistence ordering remain unchanged. Client-supplied reasoning grants no routing/execution or authenticated authority. See [contract](../contracts/client-reasoning-history.md) and [plan](plans/304-assistant-reasoning-history.md).

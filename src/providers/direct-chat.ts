@@ -547,6 +547,7 @@ export function createDirectChatInvoker(
         )
       )
         fail('other');
+      if (messages.some((message) => Object.hasOwn(message, 'reasoning'))) fail('other');
     } catch {
       fail('other');
     }
