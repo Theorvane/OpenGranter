@@ -93,8 +93,15 @@ export function normalizeAssistantResponse(
       tool_calls: calls,
     };
   }
+  const reasoningOnly =
+    (content === null || content === undefined) &&
+    hasReasoning &&
+    typeof reasoning === 'string' &&
+    reasoning.length > 0 &&
+    (finish === 'stop' || finish === 'length');
   if (
     typeof content !== 'string' &&
+    !reasoningOnly &&
     !(
       content === null &&
       (finish === 'content_filter' || (typeof refusal === 'string' && refusal.length > 0))
@@ -103,7 +110,7 @@ export function normalizeAssistantResponse(
     return undefined;
   return {
     role: 'assistant',
-    content,
+    content: content === undefined ? null : content,
     ...(hasRefusal && (typeof refusal === 'string' || refusal === null) ? { refusal } : {}),
     ...reasoningContent,
     ...detailContent,

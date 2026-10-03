@@ -702,7 +702,7 @@ The independent SSE encoder rejects substantive or malformed reasoning on inject
 
 ## Non-streaming assistant reasoning content
 
-- Both supported route kinds/prefixes preserve omitted/null/empty/Unicode reasoning on already-valid text/refusal/filter/tool responses. Empty length-terminated text remains valid; reasoning-only null/missing-content output remains rejected.
+- Both supported route kinds/prefixes preserve omitted/null/empty/Unicode reasoning on already-valid text/refusal/filter/tool responses. Empty length-terminated text remains valid; nonempty scalar reasoning with stop/length permits null/missing content, normalized to null. Empty/null reasoning, malformed content and detail-only metadata do not grant success.
 - Malformed values fail safely after dispatch with failed possible-billing accounting and no content in errors/metadata. Fresh authentication, explicit model/provider Deny, limits and required selection/outcome audit/usage failures retain delivery gates. Missing usage stays unknown.
 - Actual official SDK sockets receive omitted/null/string reasoning on both bases and supported route kinds. No native/request/structured reasoning support is claimed. See [contract](../contracts/nonstream-reasoning.md).
 
