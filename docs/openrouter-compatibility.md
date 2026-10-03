@@ -32,7 +32,7 @@ Tools with a hardcoded openrouter.ai host need a configurable endpoint or an int
 | Client routing controls | Rejected today | Client preferences narrow approved model/provider scope; no arbitrary destinations or authority widening |
 | Errors | /api/v1 numeric status codes, fixed messages, safe local reason/typed metadata, request ID and compatible midstream error chunks; legacy /v1 symbolic codes | Precise upstream error_type propagation, retry hints and full provider streaming errors |
 | Other model-use endpoints | Not implemented | Inventory completions, responses, embeddings and generation lookup against external-tool requirements and authorization |
-| Usage reporting | Aggregate counters with missing/partial/invalid classifications; bounded nonstream token categories on direct OpenAI/delegated OpenRouter | Stream/native categories, category ledger reporting, provider-billed cost/BYOK/server-tool projection and complete usage certification |
+| Usage reporting | Aggregate counters with missing/partial/invalid classifications; bounded nonstream categories on direct OpenAI/delegated OpenRouter and final delegated stream categories | Native categories, category ledger reporting, provider-billed cost/BYOK/server-tool projection and complete usage certification |
 | Operational OpenGranter APIs | Usage/audit extensions on /v1 | Keep their authorization and contracts explicit during compatibility expansion |
 
 ## Current conformance checkpoint (2026-10-03)
@@ -366,4 +366,8 @@ The client encoder captures delta content/refusal once and rejects injected subs
 
 ## Nonstream token usage details
 
-Direct OpenAI and delegated OpenRouter preserve recognized prompt/completion detail categories with exact omission/null/empty/zero semantics on both chat bases. Immutable allowlisted projection omits malformed groups independently and preserves aggregate accounting; details never fabricate totals or add ledger charges. Compatible incomplete usage remains omitted. Authentication/IAM/Deny/limits and required audit/usage gates stay unchanged. Native/stream category mappings, detailed ledger/cost projection and complete certification remain open. See [plan](plans/290-nonstream-token-details.md) and [contract](../contracts/nonstream-token-details.md).
+Direct OpenAI and delegated OpenRouter preserve recognized prompt/completion detail categories with exact omission/null/empty/zero semantics on both chat bases. Immutable allowlisted projection omits malformed groups independently and preserves aggregate accounting; details never fabricate totals or add ledger charges. Compatible incomplete usage remains omitted. Authentication/IAM/Deny/limits and required audit/usage gates stay unchanged. Native category mappings, detailed ledger/cost projection and complete certification remain open; delegated final stream categories follow their separate contract below. See [plan](plans/290-nonstream-token-details.md) and [contract](../contracts/nonstream-token-details.md).
+
+## Final stream token usage details
+
+Delegated streaming preserves the bounded prompt/completion categories from actual final usage events on both bases, with immutable allowlisted snapshots and independent malformed-group omission. Snapshots never derive missing totals or replay earlier content/metadata; categories do not change aggregate accounting. Complete usage and DONE remain gated by required persistence. IAM/Deny, limits, cancellation/backpressure and interruption audit remain unchanged. Native/direct/tool streams, category ledger/cost reporting and complete certification remain open. See [plan](plans/292-stream-token-details.md) and [contract](../contracts/stream-token-details.md).

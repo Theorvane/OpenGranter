@@ -13,3 +13,5 @@ The delta projection additionally preserves optional refusal and reasoning strin
 Summary/text/encrypted reasoning details use the [detail contract](stream-reasoning-details.md). Optional tier and native-finish metadata use the [tier](stream-service-tiers.md) and [native-finish](stream-native-finish-reason.md) contracts; final metadata comes from the actual usage event.
 
 The independent encoder captures delta content/refusal once before validation and serialization. It rejects injected substantive or malformed content/refusal on usage-only events even with incomplete/invalid counters; absent/null/empty fields remain permitted without replay. This reinforces the existing content-free usage contract and does not certify all unknown fields. See [plan](../docs/plans/288-sse-content-validation.md).
+
+Final token categories follow the [stream detail contract](stream-token-details.md). The independent usage boundary captures allowlisted counters/groups once into immutable snapshots without deriving missing totals. Only actual final-event categories are projected, with no additional ledger accounting or operational content retention.

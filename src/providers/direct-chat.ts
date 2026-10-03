@@ -24,7 +24,7 @@ import type { RouteCandidate } from '../routing/authorize-candidates.ts';
 import { DirectProviderFailure } from '../routing/invoke-jev-managed-route.ts';
 import { normalizeProviderUsage } from '../usage/normalize-provider-tokens.ts';
 import { type AssistantResponse, normalizeAssistantResponse } from './assistant-response.ts';
-import { type NonstreamChatUsage, normalizeNonstreamChatUsage } from './nonstream-chat-usage.ts';
+import { type ChatUsage, normalizeChatUsage } from './chat-usage.ts';
 
 export interface DirectProviderRegistration {
   readonly providerId: string;
@@ -101,7 +101,7 @@ export interface ChatCompletion {
       readonly native_finish_reason?: string | null;
     },
   ];
-  readonly usage?: NonstreamChatUsage;
+  readonly usage?: ChatUsage;
 }
 
 function record(value: unknown): Record<string, unknown> | undefined {
@@ -188,7 +188,7 @@ function normalize(
         model,
         message.content,
         finish,
-        normalizeNonstreamChatUsage(value.usage),
+        normalizeChatUsage(value.usage),
         message,
         nativeReason,
       ),

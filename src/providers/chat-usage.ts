@@ -13,7 +13,7 @@ const completionFields = [
   'rejected_prediction_tokens',
 ] as const;
 
-export type NonstreamChatUsage = NonNullable<ReturnType<typeof normalizeProviderUsage>> & {
+export type ChatUsage = NonNullable<ReturnType<typeof normalizeProviderUsage>> & {
   readonly prompt_tokens_details?: Readonly<
     Partial<Record<(typeof promptFields)[number], number>>
   > | null;
@@ -58,10 +58,11 @@ function snapshotDetails(
 }
 
 /** Preserve bounded informational categories without changing aggregate accounting. */
-export function normalizeNonstreamChatUsage(value: unknown): NonstreamChatUsage | undefined {
-  const aggregates = normalizeProviderUsage(value);
+function captureChatUsage(value: unknown, deriveTotal: boolean): ChatUsage | undefined {
+  const aggregates = normalizeProviderUsage(value, undefined, deriveTotal);
   if (!aggregates) return undefined;
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) return aggregates;
+  if (typeof value !== 'object' || value === null || Array.isArray(value))
+    return Object.freeze(aggregates);
   const source = value as Record<string, unknown>;
   const prompt = snapshotDetails(source.prompt_tokens_details, promptFields, false);
   const completion = snapshotDetails(source.completion_tokens_details, completionFields, true);
@@ -70,4 +71,14 @@ export function normalizeNonstreamChatUsage(value: unknown): NonstreamChatUsage 
     ...(prompt === undefined ? {} : { prompt_tokens_details: prompt }),
     ...(completion === undefined ? {} : { completion_tokens_details: completion }),
   });
+}
+
+/** Normalize upstream counters with existing total derivation and bounded categories. */
+export function normalizeChatUsage(value: unknown): ChatUsage | undefined {
+  return captureChatUsage(value, true);
+}
+
+/** Snapshot an independent usage boundary without inventing omitted aggregate totals. */
+export function snapshotChatUsage(value: unknown): ChatUsage | undefined {
+  return captureChatUsage(value, false);
 }

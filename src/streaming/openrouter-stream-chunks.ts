@@ -1,8 +1,8 @@
+import { normalizeChatUsage } from '../providers/chat-usage.ts';
 import { type ReasoningDetail, snapshotReasoningDetails } from '../providers/reasoning-details.ts';
-import { normalizeProviderUsage } from '../usage/normalize-provider-tokens.ts';
 
 type FinishReason = 'stop' | 'length' | 'content_filter';
-type NormalizedUsage = ReturnType<typeof normalizeProviderUsage>;
+type NormalizedUsage = ReturnType<typeof normalizeChatUsage>;
 
 export interface StreamModelScope {
   readonly upstreamModelId: string;
@@ -108,7 +108,7 @@ export function decodeOpenRouterStreamPayload(
   };
   if (choices.length === 0) {
     if (!hasOwn(value, 'usage')) throw invalidChunk();
-    const usage = normalizeProviderUsage(value.usage);
+    const usage = normalizeChatUsage(value.usage);
     return Object.freeze({
       kind: 'usage',
       ...common,
@@ -158,7 +158,7 @@ export function decodeOpenRouterStreamPayload(
       (delta.reasoning !== undefined && delta.reasoning !== null && delta.reasoning !== '')
     )
       throw invalidChunk();
-    const usage = normalizeProviderUsage(value.usage);
+    const usage = normalizeChatUsage(value.usage);
     return Object.freeze({
       kind: 'usage',
       ...common,
