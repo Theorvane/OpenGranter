@@ -167,6 +167,27 @@ const reasoningShapes = {
   },
 };
 
+const jsonSchemaShapes = {
+  ChatFormatJsonSchemaConfig: {
+    type: 'object',
+    required: ['type', 'json_schema'],
+    properties: {
+      type: { enum: ['json_schema'], type: 'string' },
+      json_schema: { $ref: '#/components/schemas/ChatJsonSchemaConfig' },
+    },
+  },
+  ChatJsonSchemaConfig: {
+    type: 'object',
+    required: ['name'],
+    properties: {
+      name: { type: 'string', maxLength: 64 },
+      description: { type: 'string' },
+      schema: { type: 'object', additionalProperties: {} },
+      strict: { type: ['boolean', 'null'] },
+    },
+  },
+};
+
 function source(): Record<string, unknown> {
   const data = {
     openapi: '3.1.0',
@@ -247,6 +268,7 @@ function source(): Record<string, unknown> {
             parallel_tool_calls: { type: 'boolean', default: true },
           },
         },
+        ...structuredClone(jsonSchemaShapes),
         ChatFormatTextConfig: {
           type: 'object',
           required: ['type'],
@@ -647,16 +669,18 @@ for (const name of ['ChatFormatTextConfig', 'ChatFormatJsonObjectConfig']) {
     }
   });
 }
-test('version-15 pin retains exact selected definitions', () => {
-  assert.equal(pinned.version, 15);
+test('version-16 pin retains exact selected definitions', () => {
+  assert.equal(pinned.version, 16);
   const definitions = (
     projectOfficialSchema(source()) as unknown as { definitions: Record<string, unknown> }
   ).definitions;
   assert.deepEqual(Object.keys(definitions).sort(), [
     'ChatFinishReasonEnum',
     'ChatFormatJsonObjectConfig',
+    'ChatFormatJsonSchemaConfig',
     'ChatFormatTextConfig',
     'ChatFunctionTool',
+    'ChatJsonSchemaConfig',
     'ChatNamedToolChoice',
     'ChatToolCall',
     'ChatToolChoice',
@@ -817,8 +841,8 @@ test('message name selection ignores editorial and unrelated message changes', (
   for (const value of Object.values(projected.messageNames))
     assert.deepEqual(value, { schema: { type: 'string' }, required: false });
 });
-test('version-15 message maps reject stale and rehashed malformed pins', () => {
-  for (const version of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14])
+test('version-16 message maps reject stale and rehashed malformed pins', () => {
+  for (const version of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])
     assert.throws(() => validateSchemaPin({ ...pinned, version }), /Invalid schema pin/);
   for (const messageNames of [
     undefined,
@@ -1699,4 +1723,89 @@ test('reasoning exact map rejects rehashed missing extra and malformed entries',
       );
     }
   }
+});
+
+test('JSON-schema wrapper and config are selected exactly', () => {
+  const definitions = projectOfficialSchema(source()).definitions;
+  for (const [name, shape] of Object.entries(jsonSchemaShapes))
+    assert.deepEqual(definitions[name], shape);
+});
+test('JSON-schema structure drift is detected with unchanged parent references', () => {
+  const wrapper = jsonSchemaShapes.ChatFormatJsonSchemaConfig;
+  const config = jsonSchemaShapes.ChatJsonSchemaConfig;
+  for (const [name, shape] of [
+    ['ChatFormatJsonSchemaConfig', { ...wrapper, required: ['type'] }],
+    [
+      'ChatFormatJsonSchemaConfig',
+      {
+        ...wrapper,
+        properties: { ...wrapper.properties, type: { enum: ['other'], type: 'string' } },
+      },
+    ],
+    [
+      'ChatFormatJsonSchemaConfig',
+      {
+        ...wrapper,
+        properties: { ...wrapper.properties, json_schema: { $ref: '#/components/schemas/Other' } },
+      },
+    ],
+    ['ChatJsonSchemaConfig', { ...config, required: ['name', 'schema'] }],
+    ...[
+      ['name', { type: 'string', maxLength: 32 }],
+      ['name', { type: 'string', pattern: '^[a-z]+$' }],
+      ['description', { type: ['string', 'null'] }],
+      ['schema', { type: 'object', additionalProperties: false }],
+      ['schema', { type: 'boolean' }],
+      ['strict', { type: 'boolean' }],
+      ['strict', { type: ['boolean', 'null'], default: true }],
+    ].map(([key, value]) => [
+      'ChatJsonSchemaConfig',
+      { ...config, properties: { ...config.properties, [String(key)]: value } },
+    ]),
+  ]) {
+    const data = source();
+    schemasOf(data)[String(name)] = shape;
+    assert.equal(compareOfficialSchema(data, pinned), false, String(name));
+  }
+});
+test('JSON-schema annotations are ignored while description properties and literal annotation keys stay structural', () => {
+  const data = source();
+  for (const [name, shape] of Object.entries(jsonSchemaShapes))
+    schemasOf(data)[name] = {
+      ...shape,
+      description: 'editorial',
+      example: { private: 'editorial' },
+      title: 'editorial',
+    };
+  assert.equal(compareOfficialSchema(data, pinned), true);
+  const literal = { description: 'literal data', example: 'literal example' };
+  const config = { ...jsonSchemaShapes.ChatJsonSchemaConfig, default: literal };
+  schemasOf(data).ChatJsonSchemaConfig = config;
+  assert.deepEqual(projectOfficialSchema(data).definitions.ChatJsonSchemaConfig, config);
+  assert.equal(compareOfficialSchema(data, pinned), false);
+});
+test('missing or malformed JSON-schema source definitions fail safely', () => {
+  for (const name of Object.keys(jsonSchemaShapes))
+    for (const value of [undefined, null, [], 'private malformed']) {
+      const data = source();
+      schemasOf(data)[name] = value;
+      assert.throws(() => projectOfficialSchema(data), /Invalid official schema/);
+    }
+});
+test('JSON-schema exact definition map rejects rehashed missing extra and malformed pins', () => {
+  for (const name of Object.keys(jsonSchemaShapes))
+    for (const operation of ['missing', 'extra', 'malformed']) {
+      const definitions = { ...pinned.projection.definitions };
+      if (operation === 'missing') delete definitions[name];
+      if (operation === 'extra') definitions.unselected = { type: 'object' };
+      if (operation === 'malformed') definitions[name] = [];
+      const projection = { ...pinned.projection, definitions };
+      const projectionSha256 = createHash('sha256')
+        .update(canonicalSchema(projection))
+        .digest('hex');
+      assert.throws(
+        () => validateSchemaPin({ ...pinned, projection, projectionSha256 }),
+        /Invalid schema pin/,
+      );
+    }
 });

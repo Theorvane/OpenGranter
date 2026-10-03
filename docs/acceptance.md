@@ -793,4 +793,10 @@ Delegated streaming preserves the bounded prompt/completion categories from actu
 - Both compatible bases and actual OpenAI/OpenRouter SDK sockets forward required name/schema, optional description and omitted/null/boolean strict exactly on direct OpenAI/delegated OpenRouter. Existing delegated streaming retains schema payload and one final usage event; managed streaming remains unsupported.
 - Nested schemas are frozen before asynchronous credentials; cycles, accessors, sparse arrays, unsupported objects, malformed envelopes, invalid names and depth/node budget violations reject before dispatch. Extra controls reject before routing. No schema reference URL is fetched.
 - Unsupported direct Anthropic/Gemini reject before secrets without provider usage. Authentication, explicit Deny, limits and required audit/ledger failures retain safe delivery gates; upstream failures retain per-attempt accounting without schema text/key exposure.
-- No local output conformance, repair, capability-aware routing or broader JSON-schema source drift is claimed. See [contract](../contracts/client-response-formats.md).
+- No local output conformance, repair, capability-aware routing or complete schema traversal is claimed. See [contract](../contracts/client-response-formats.md).
+
+## Referenced JSON-schema format drift
+
+- With unchanged response_format parent references, changes inside ChatFormatJsonSchemaConfig or ChatJsonSchemaConfig cause drift, including wrapper enum/reference, name bounds, required lists, description type, schema object/additionalProperties and strict nullability/default.
+- Annotation-only/unrelated format changes remain ignored. Annotation-like properties and literal default data remain structural. Missing/malformed source definitions and rehashed invalid exact maps reject safely; versions 1..15 reject.
+- Version 16 preserves every prior selected structure and source digest. Offline checks never fetch/rewrite the pin; explicit live checks retain fixed-host credential-free bounds. This is structural coverage, with runtime schema omission, prose-only name restrictions and full instance/output conformance remaining distinct gaps. See [contract](../contracts/openrouter-schema-drift.md).

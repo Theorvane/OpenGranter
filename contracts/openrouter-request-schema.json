@@ -1,9 +1,9 @@
 {
-  "version": 15,
+  "version": 16,
   "source": "https://openrouter.ai/openapi.json",
   "retrievedAt": "2026-10-03",
   "sourceSha256": "f6041af462fa5dfea4b1ea246bcb02a208a57af2784fb7110a212e637d0e913e",
-  "projectionSha256": "961b3903e2df5e92d7fe61bb576452705954581e38b338761d887adea7375cac",
+  "projectionSha256": "48937004d7e679a75bf61a6775716898b1a5b93d0875b041f8cf23f970a3e2f0",
   "projection": {
     "openapi": "3.1.0",
     "documentVersion": "1.0.0",
@@ -721,6 +721,49 @@
         },
         "required": [
           "type"
+        ],
+        "type": "object"
+      },
+      "ChatFormatJsonSchemaConfig": {
+        "properties": {
+          "json_schema": {
+            "$ref": "#/components/schemas/ChatJsonSchemaConfig"
+          },
+          "type": {
+            "enum": [
+              "json_schema"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "json_schema"
+        ],
+        "type": "object"
+      },
+      "ChatJsonSchemaConfig": {
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "schema": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "strict": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "name"
         ],
         "type": "object"
       },

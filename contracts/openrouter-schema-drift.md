@@ -1,6 +1,6 @@
 # Official schema drift contract
 
-The pin records source URL, retrieval date, canonical source SHA-256 and a canonical structural projection SHA-256. Source: [official OpenRouter OpenAPI](https://openrouter.ai/openapi.json), retrieved 2026-10-03 for version 15. The snapshot contains selected schema constraints, with examples/descriptions and other annotations removed.
+The pin records source URL, retrieval date, canonical source SHA-256 and a canonical structural projection SHA-256. Source: [official OpenRouter OpenAPI](https://openrouter.ai/openapi.json), retrieved 2026-10-03 for version 16. The snapshot contains selected schema constraints, with examples/descriptions and other annotations removed.
 
 The offline gate validates provenance shape and projection integrity. `npm run compatibility:drift` explicitly fetches only the official HTTPS URL, rejects redirects, bounds time/body size and compares selected chat request and response definitions. It neither changes the pin nor sends credentials or inference calls. Failures expose fixed messages, not downloaded content or transport errors.
 
@@ -53,3 +53,11 @@ Version 14 adds optional nullable reasoning_effort with string/null type and enu
 ## Referenced reasoning-detail source drift
 
 Version 15 adds exactly eight reasoningDefinitions for nonstream/stream arrays, their shared union, summary/encrypted/text/server-tool-call variants and ReasoningFormat. Track structure, references, discriminator mappings, required lists, types/nullability, constraints, extensions and literal defaults while ignoring annotations. Missing/malformed source definitions and rehashed invalid exact maps fail safely; versions 1..14 reject. All version-14 selections and source provenance remain unchanged. Existing whole assistant/stream delta selections retain parent field/reference/required tracking. This does not enable runtime reasoning details, server tools, signatures/history, or complete reasoning/client compatibility. IAM, credentials, usage and audit behavior are unchanged. See [plan](../docs/plans/282-reasoning-details-schema.md).
+
+## Referenced JSON-schema format source drift
+
+Version 16 adds exactly ChatFormatJsonSchemaConfig and ChatJsonSchemaConfig to the selected definitions map (nine definitions total). The request response_format union already tracks parent references/discriminator mappings. Wrapper type enum, inner reference, required lists, name maxLength, description type, schema object/additionalProperties and strict boolean/null shape now cause drift even with unchanged parents. New structural constraints and literal defaults also cause drift; editorial annotations remain ignored, while annotation-like property names and literal data remain preserved.
+
+Missing/malformed source definitions and rehashed missing/extra/malformed exact maps reject safely; versions 1..15 reject. Explicit fixed-host retrieval preserves every version-15 selection and the canonical source digest f6041af462fa5dfea4b1ea246bcb02a208a57af2784fb7110a212e637d0e913e. The reviewed projection digest is 48937004d7e679a75bf61a6775716898b1a5b93d0875b041f8cf23f970a3e2f0. Offline validation does not fetch or rewrite the pin; explicit live comparison remains credential-free and bounded.
+
+The official config requires only name and permits omitted schema; runtime #297 deliberately requires a schema object. Official name character guidance is prose stripped as an annotation, with no encoded pattern/minLength. This gate tracks structural constraints, not changes in that prose guidance, and does not enable additional runtime fields or promise local JSON-instance/output validation. Other referenced formats, native mappings and full external-client certification remain open. See [plan](../docs/plans/298-json-schema-drift.md).
