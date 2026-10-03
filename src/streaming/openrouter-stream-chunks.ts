@@ -17,6 +17,7 @@ export type OpenRouterTextStreamPayload =
       readonly created: number;
       readonly model: string;
       readonly systemFingerprint?: string | null;
+      readonly serviceTier?: string | null;
       readonly role?: 'assistant';
       readonly content?: string | null;
       readonly refusal?: string | null;
@@ -30,6 +31,7 @@ export type OpenRouterTextStreamPayload =
       readonly created: number;
       readonly model: string;
       readonly systemFingerprint?: string | null;
+      readonly serviceTier?: string | null;
       readonly finishReason: FinishReason | null;
       readonly nativeFinishReason?: string | null;
       readonly usage: NormalizedUsage;
@@ -77,10 +79,12 @@ export function decodeOpenRouterStreamPayload(
 
   const choices = value.choices;
   const systemFingerprint = value.system_fingerprint;
+  const serviceTier = value.service_tier;
   if (
     (systemFingerprint !== undefined &&
       systemFingerprint !== null &&
       typeof systemFingerprint !== 'string') ||
+    (serviceTier !== undefined && serviceTier !== null && typeof serviceTier !== 'string') ||
     typeof value.id !== 'string' ||
     !value.id ||
     value.id.length > 256 ||
@@ -98,6 +102,7 @@ export function decodeOpenRouterStreamPayload(
     created: value.created,
     model: scope.clientModelAlias,
     ...(systemFingerprint === undefined ? {} : { systemFingerprint }),
+    ...(serviceTier === undefined ? {} : { serviceTier }),
   };
   if (choices.length === 0) {
     if (!hasOwn(value, 'usage')) throw invalidChunk();

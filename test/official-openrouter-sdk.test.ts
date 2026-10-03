@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import type { AddressInfo } from 'node:net';
 import test from 'node:test';
 import { OpenRouter } from '@openrouter/sdk';
-import type { ChatHandlerPorts } from '../src/gateway/chat-handler.ts';
+import { type ChatHandlerPorts, createChatHandler } from '../src/gateway/chat-handler.ts';
 import { createNodeChatServer } from '../src/gateway/node-chat-server.ts';
 import { createOpenRouterChatInvoker } from '../src/providers/openrouter-chat.ts';
 import { createOpenRouterTextStreamInvoker } from '../src/providers/openrouter-stream.ts';
@@ -15,6 +15,7 @@ function fixture(
     missingUsage?: boolean;
     failure?: 'first' | 'later';
     fingerprint?: boolean;
+    tiers?: { text?: unknown; final?: unknown };
   } = {},
 ) {
   const audit: unknown[] = [];
@@ -44,7 +45,7 @@ function fixture(
           ...(options.fingerprint ? { system_fingerprint: 'fp_fixture' } : {}),
         });
       const chunk = (delta: object, finish_reason: string | null, extra: object = {}) =>
-        `data: ${JSON.stringify({ id: 'gen-1', created: 42, model: 'openai/example', object: 'chat.completion.chunk', choices: [{ index: 0, delta, finish_reason }], ...extra })}\n\n`;
+        `data: ${JSON.stringify({ id: 'gen-1', created: 42, model: 'openai/example', object: 'chat.completion.chunk', choices: [{ index: 0, delta, finish_reason }], ...(('usage' in extra ? options.tiers?.final : options.tiers?.text) === undefined ? {} : { service_tier: 'usage' in extra ? options.tiers?.final : options.tiers?.text }), ...extra })}\n\n`;
       const failure = `data: ${JSON.stringify({ error: { code: 502, message: 'private provider error' } })}\n\n`;
       const text =
         options.failure === 'first'
@@ -345,3 +346,114 @@ for (const base of ['/v1', '/api/v1']) {
     assert.ok(f.audit.some((event) => (event as { kind: string }).kind === 'models-listed'));
   });
 }
+
+for (const base of ['/v1', '/api/v1'])
+  test(`official SDK ${base} preserves streamed tiers and independent final usage metadata`, async () => {
+    for (const tier of [undefined, null, '', 'private-tier\n\ndata: forged 한글'])
+      for (const missingUsage of [false, true]) {
+        const f = fixture({ tiers: { text: 'private-text-tier', final: tier }, missingUsage });
+        await socket(f, base, async (client) => {
+          const result = await client.chat.send({
+            chatRequest: {
+              model: 'chat',
+              messages: [{ role: 'user', content: 'text' }],
+              stream: true,
+            },
+          });
+          assert.ok(Symbol.asyncIterator in result);
+          const chunks = [];
+          for await (const item of result) chunks.push(item);
+          assert.equal(chunks[0]?.serviceTier, 'private-text-tier');
+          assert.equal(chunks[1]?.serviceTier, 'private-text-tier');
+          assert.equal(chunks.length, missingUsage ? 2 : 3);
+          if (!missingUsage) assert.equal(chunks[2]?.serviceTier, tier);
+        });
+        assert.equal(f.usage[0]?.usage.status, missingUsage ? 'missing' : 'reported');
+        assert.equal(f.usage[0]?.outcome, 'succeeded');
+        assert.doesNotMatch(JSON.stringify([f.audit, f.usage]), /tier|forged|한글/u);
+      }
+  });
+
+test('stream service tiers preserve public first/later failures and denial/accounting gates', async () => {
+  for (const base of ['/v1', '/api/v1']) {
+    for (const phase of ['first', 'later'] as const) {
+      const f = fixture({
+        tiers:
+          phase === 'first'
+            ? { text: { private: 'tier' } }
+            : { text: 'private-tier', final: { private: 'tier' } },
+      });
+      const response = await createChatHandler(f.ports)(
+        new Request(`http://localhost${base}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            authorization: 'Bearer fixture-proxy-key',
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'chat',
+            messages: [{ role: 'user', content: 'text' }],
+            stream: true,
+          }),
+        }),
+      );
+      assert.equal(response.status, phase === 'first' ? 502 : 200);
+      const text = await response.text();
+      assert.equal(text.includes('[DONE]'), false);
+      const failure =
+        phase === 'first'
+          ? JSON.parse(text)
+          : JSON.parse(text.trim().split('\n\n').at(-1)?.slice(6) ?? '{}');
+      assert.equal(Object.hasOwn(failure, 'service_tier'), false);
+      assert.doesNotMatch(JSON.stringify(failure), /private/u);
+      assert.equal(f.usage[0]?.outcome, 'failed');
+      assert.equal(f.usage[0]?.possiblyBilled, true);
+      assert.doesNotMatch(JSON.stringify([f.audit, f.usage]), /private-tier/u);
+    }
+    for (const gate of ['deny', 'limit', 'ledger', 'audit'] as const) {
+      const f = fixture({
+        tiers: { text: 'private-tier', final: 'private-final-tier' },
+        ...(gate === 'deny' ? { deny: true } : {}),
+        ...(gate === 'limit' ? { limit: true } : {}),
+      });
+      if (gate === 'ledger')
+        f.ports = {
+          ...f.ports,
+          writeUsage: async () => {
+            throw Error('private ledger');
+          },
+        };
+      if (gate === 'audit')
+        f.ports = {
+          ...f.ports,
+          writeAudit: async (event) => {
+            if (event.kind === 'delegated-attempt') throw Error('private audit');
+            f.audit.push(event);
+          },
+        };
+      const response = await createChatHandler(f.ports)(
+        new Request(`http://localhost${base}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            authorization: 'Bearer fixture-proxy-key',
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'chat',
+            messages: [{ role: 'user', content: 'text' }],
+            stream: true,
+          }),
+        }),
+      );
+      assert.equal(response.status, gate === 'deny' ? 403 : gate === 'limit' ? 429 : 200);
+      const text = await response.text();
+      assert.equal(text.includes('[DONE]'), false);
+      assert.equal(text.includes('private-final-tier'), false);
+      if (gate === 'deny' || gate === 'limit') {
+        assert.equal(f.sent.length, 0);
+        assert.equal(f.usage.length, 0);
+      }
+      assert.doesNotMatch(JSON.stringify([f.audit, f.usage]), /tier/u);
+    }
+  }
+});

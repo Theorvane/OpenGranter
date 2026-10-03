@@ -432,3 +432,53 @@ test('actual socket OpenAI SDK retains native reasons while pinned OpenRouter SD
     }
   }
 });
+
+test('integrated streaming reasoning tier fingerprint and native choice metadata coexist on both bases', async () => {
+  for (const base of ['/v1', '/api/v1']) {
+    const f = fixture();
+    const invoker = createOpenRouterTextStreamInvoker({
+      credentialRef: 'secret/openrouter',
+      resolveSecret: async () => 'fixture-key',
+      fetcher: async () =>
+        new Response(
+          [
+            payload([choice(marker, null, { content: 'text', reasoning: 'private-reasoning' })], {
+              service_tier: 'private-tier',
+              system_fingerprint: 'fp_private',
+            }),
+            payload([choice('private-native-terminal', 'stop')], { service_tier: 'terminal-tier' }),
+            payload([choice(null, 'stop')], {
+              service_tier: null,
+              system_fingerprint: '',
+              usage: { prompt_tokens: 1, completion_tokens: 2 },
+            }),
+            '[DONE]',
+          ]
+            .map((value) => `data: ${value}\n\n`)
+            .join(''),
+          { headers: { 'content-type': 'text/event-stream' } },
+        ),
+    });
+    f.ports = { ...f.ports, invokeOpenRouterTextStream: (_ref, ...args) => invoker(...args) };
+    const response = await createChatHandler(f.ports)(f.request(base));
+    assert.equal(response.status, 200);
+    const body = await response.text();
+    const frames = body
+      .trim()
+      .split('\n\n')
+      .slice(0, -1)
+      .map((frame) => JSON.parse(frame.slice(6)));
+    assert.equal(frames[0].choices[0].delta.reasoning, 'private-reasoning');
+    assert.equal(frames[0].choices[0].native_finish_reason, marker);
+    assert.equal(frames[0].service_tier, 'private-tier');
+    assert.equal(frames[0].system_fingerprint, 'fp_private');
+    assert.equal(frames[1].choices[0].native_finish_reason, 'private-native-terminal');
+    assert.equal(frames[2].choices[0].native_finish_reason, null);
+    assert.equal(frames[2].service_tier, null);
+    assert.equal(frames[2].system_fingerprint, '');
+    assert.equal(frames[2].usage.total_tokens, 3);
+    assert.equal(f.records[0]?.outcome, 'succeeded');
+    assert.equal(JSON.stringify({ audit: f.audit, usage: f.records }).includes('private'), false);
+    assert.ok(body.endsWith('data: [DONE]\n\n'));
+  }
+});

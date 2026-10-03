@@ -14,12 +14,17 @@ function frame(value: object): string {
   return `data: ${JSON.stringify(value)}\n\n`;
 }
 
-function base(event: Chunk): object {
+function validTier(value: unknown): value is string | null | undefined {
+  return value === undefined || value === null || typeof value === 'string';
+}
+
+function base(event: Chunk, serviceTier: unknown): object {
   const systemFingerprint = event.systemFingerprint;
   if (
     (systemFingerprint !== undefined &&
       systemFingerprint !== null &&
       typeof systemFingerprint !== 'string') ||
+    !validTier(serviceTier) ||
     typeof event.id !== 'string' ||
     !event.id ||
     event.id.length > 256 ||
@@ -35,6 +40,7 @@ function base(event: Chunk): object {
     created: event.created,
     model: event.model,
     ...(systemFingerprint === undefined ? {} : { system_fingerprint: systemFingerprint }),
+    ...(serviceTier === undefined ? {} : { service_tier: serviceTier }),
   };
 }
 
@@ -69,7 +75,7 @@ export function encodeOpenRouterTextSse(event: OpenRouterTextStreamPayload): str
     )
       unsupported();
     return frame({
-      ...base(event),
+      ...base(event, event.serviceTier),
       choices: [
         {
           index: 0,
@@ -86,6 +92,8 @@ export function encodeOpenRouterTextSse(event: OpenRouterTextStreamPayload): str
     });
   }
   if (event.kind === 'usage') {
+    const serviceTier = event.serviceTier;
+    if (!validTier(serviceTier)) unsupported();
     if (reasoning !== undefined && reasoning !== null && reasoning !== '') unsupported();
     const usage = event.usage;
     if (
@@ -102,7 +110,7 @@ export function encodeOpenRouterTextSse(event: OpenRouterTextStreamPayload): str
     )
       unsupported();
     return frame({
-      ...base(event),
+      ...base(event, serviceTier),
       choices:
         event.finishReason === null
           ? []
