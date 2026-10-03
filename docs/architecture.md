@@ -543,3 +543,8 @@ The bounded decoder captures optional reasoning string/null alongside role/conte
 ## Non-streaming reasoning capture
 
 The shared assistant normalizer captures optional reasoning once, validates string/null and projects it through both ordinary/refusal and function-call branches. Existing invokers already carry the normalized message through required accounting/audit and alias projection. Content/finish validation and native Anthropic/Gemini handling remain unchanged; no reasoning enters operational metadata or accounting schema. See [plan](plans/240-nonstream-reasoning.md) and [contract](../contracts/nonstream-reasoning.md).
+
+
+## Nonstream response source drift
+
+Version 9 projects the fixed successful JSON response reference and exactly ChatResult, ChatChoice and ChatAssistantMessage in responseDefinitions. Existing bounded annotation-aware canonicalization and integrity gates remain; prior projections and source digest are unchanged. Referenced usage, rich content and multimodal/reasoning-detail definitions are not traversed. Runtime validation and security/accounting controls remain unchanged. See [contract](../contracts/openrouter-schema-drift.md).

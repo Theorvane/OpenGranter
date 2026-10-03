@@ -18,6 +18,13 @@ function source(): Record<string, unknown> {
     paths: {
       '/chat/completions': {
         post: {
+          responses: {
+            '200': {
+              content: {
+                'application/json': { schema: { $ref: '#/components/schemas/ChatResult' } },
+              },
+            },
+          },
           requestBody: {
             content: {
               'application/json': {
@@ -152,6 +159,7 @@ function source(): Record<string, unknown> {
   Object.assign(data.components.schemas.ChatAssistantMessage.properties, {
     tool_calls: structuredClone(pinned.projection.toolMessages.ChatAssistantMessage.schema),
   });
+  Object.assign(data.components.schemas, structuredClone(pinned.projection.responseDefinitions));
   return data;
 }
 const pinned = JSON.parse(
@@ -469,8 +477,8 @@ for (const name of ['ChatFormatTextConfig', 'ChatFormatJsonObjectConfig']) {
     }
   });
 }
-test('version-8 pin retains exact selected definitions', () => {
-  assert.equal(pinned.version, 8);
+test('version-9 pin retains exact selected definitions', () => {
+  assert.equal(pinned.version, 9);
   const definitions = (
     projectOfficialSchema(source()) as unknown as { definitions: Record<string, unknown> }
   ).definitions;
@@ -626,8 +634,10 @@ test('message name selection ignores editorial and unrelated message changes', (
       description: 'private annotation',
       example: 'example',
     };
-    schema.properties.content = { type: 'number' };
-    delete schema.required;
+    if (name !== 'ChatAssistantMessage') {
+      schema.properties.content = { type: 'number' };
+      delete schema.required;
+    }
   }
   assert.equal(compareOfficialSchema(data, pinned), true);
   const projected = projectOfficialSchema(data) as unknown as {
@@ -637,8 +647,8 @@ test('message name selection ignores editorial and unrelated message changes', (
   for (const value of Object.values(projected.messageNames))
     assert.deepEqual(value, { schema: { type: 'string' }, required: false });
 });
-test('version-8 message maps reject stale and rehashed malformed pins', () => {
-  for (const version of [1, 2, 3, 4, 5, 6, 7])
+test('version-9 message maps reject stale and rehashed malformed pins', () => {
+  for (const version of [1, 2, 3, 4, 5, 6, 7, 8])
     assert.throws(() => validateSchemaPin({ ...pinned, version }), /Invalid schema pin/);
   for (const messageNames of [
     undefined,
@@ -870,4 +880,121 @@ test('finish-reason rehashed missing, extra and malformed definition maps fail i
       message: 'Invalid schema pin',
     });
   }
+});
+
+function responseSource() {
+  return source();
+}
+test('nonstream response projection selects the fixed success reference and exact definitions', () => {
+  const value = projectOfficialSchema(responseSource()) as unknown as {
+    responseRef: unknown;
+    responseDefinitions: Record<string, unknown>;
+  };
+  assert.equal(value.responseRef, '#/components/schemas/ChatResult');
+  assert.deepEqual(Object.keys(value.responseDefinitions).sort(), [
+    'ChatAssistantMessage',
+    'ChatChoice',
+    'ChatResult',
+  ]);
+});
+
+test('nonstream response required, fingerprint, choice and assistant structures cause drift', () => {
+  for (const [name, field, shape] of [
+    ['ChatResult', 'system_fingerprint', { type: 'string' }],
+    [
+      'ChatResult',
+      'choices',
+      { type: 'array', maxItems: 1, items: { $ref: '#/components/schemas/ChatChoice' } },
+    ],
+    ['ChatResult', 'usage', { $ref: '#/components/schemas/OtherUsage' }],
+    ['ChatChoice', 'finish_reason', { type: ['string', 'null'] }],
+    ['ChatChoice', 'message', { $ref: '#/components/schemas/OtherMessage' }],
+    ['ChatAssistantMessage', 'reasoning', { type: 'string', maxLength: 64 }],
+    ['ChatAssistantMessage', 'refusal', { type: ['string', 'null'], default: null }],
+    ['ChatAssistantMessage', 'tool_calls', { type: 'array', maxItems: 8 }],
+  ] as const) {
+    const data = responseSource();
+    const schema = (
+      data.components as { schemas: Record<string, { properties: Record<string, unknown> }> }
+    ).schemas[name];
+    assert.ok(schema);
+    schema.properties[field] = shape;
+    assert.equal(compareOfficialSchema(data, pinned), false);
+  }
+  for (const name of ['ChatResult', 'ChatChoice', 'ChatAssistantMessage']) {
+    const data = responseSource();
+    const schema = (data.components as { schemas: Record<string, { required: string[] }> }).schemas[
+      name
+    ];
+    assert.ok(schema);
+    schema.required = [...schema.required, 'new_required'];
+    assert.equal(compareOfficialSchema(data, pinned), false);
+  }
+});
+
+test('nonstream response path and missing/malformed definitions fail safely', () => {
+  for (const schema of [
+    undefined,
+    null,
+    [],
+    { $ref: '#/components/schemas/OtherResult' },
+    { type: 'object' },
+  ]) {
+    const data = responseSource();
+    const post = (data.paths as { '/chat/completions': { post: Record<string, unknown> } })[
+      '/chat/completions'
+    ].post;
+    post.responses = { '200': { content: { 'application/json': { schema } } } };
+    assert.throws(() => projectOfficialSchema(data), { message: 'Invalid official schema' });
+  }
+  for (const name of ['ChatResult', 'ChatChoice', 'ChatAssistantMessage']) {
+    for (const malformed of [undefined, null, [], 'private invalid']) {
+      const data = responseSource();
+      (data.components as { schemas: Record<string, unknown> }).schemas[name] = malformed;
+      assert.throws(() => projectOfficialSchema(data), { message: 'Invalid official schema' });
+    }
+  }
+});
+
+test('nonstream response annotations stay ignored while literal default keys remain data', () => {
+  const data = responseSource();
+  const schemas = (data.components as { schemas: Record<string, Record<string, unknown>> }).schemas;
+  for (const name of ['ChatResult', 'ChatChoice', 'ChatAssistantMessage']) {
+    assert.ok(schemas[name]);
+    Object.assign(schemas[name], { description: 'editorial', example: { private: 'example' } });
+  }
+  schemas.UnselectedResponse = { type: 'string' };
+  assert.equal(compareOfficialSchema(data, pinned), true);
+  const assistant = schemas.ChatAssistantMessage;
+  assert.ok(assistant);
+  assistant.default = { description: 'literal', example: null };
+  const value = projectOfficialSchema(data) as unknown as {
+    responseDefinitions: Record<string, { default?: unknown }>;
+  };
+  assert.deepEqual(value.responseDefinitions.ChatAssistantMessage?.default, {
+    description: 'literal',
+    example: null,
+  });
+  assert.equal(compareOfficialSchema(data, pinned), false);
+});
+
+test('nonstream response rehashed incomplete/extra/malformed maps and references reject', () => {
+  for (const map of [
+    undefined,
+    {},
+    { ...pinned.projection.responseDefinitions, Extra: {} },
+    { ...pinned.projection.responseDefinitions, ChatResult: null },
+  ]) {
+    const projection = { ...pinned.projection, responseDefinitions: map };
+    if (map === undefined) delete projection.responseDefinitions;
+    const hash = createHash('sha256').update(canonicalSchema(projection)).digest('hex');
+    assert.throws(() => validateSchemaPin({ ...pinned, projection, projectionSha256: hash }), {
+      message: 'Invalid schema pin',
+    });
+  }
+  const projection = { ...pinned.projection, responseRef: '#/components/schemas/OtherResult' };
+  const hash = createHash('sha256').update(canonicalSchema(projection)).digest('hex');
+  assert.throws(() => validateSchemaPin({ ...pinned, projection, projectionSha256: hash }), {
+    message: 'Invalid schema pin',
+  });
 });
