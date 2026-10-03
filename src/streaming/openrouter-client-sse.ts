@@ -42,6 +42,15 @@ function base(event: Chunk): object {
 export function encodeOpenRouterTextSse(event: OpenRouterTextStreamPayload): string | undefined {
   if (event.kind === 'done') return 'data: [DONE]\n\n';
   if (event.kind === 'error') unsupported();
+  const nativeFinishReason = event.nativeFinishReason;
+  if (
+    nativeFinishReason !== undefined &&
+    nativeFinishReason !== null &&
+    typeof nativeFinishReason !== 'string'
+  )
+    unsupported();
+  const nativeChoice =
+    nativeFinishReason === undefined ? {} : { native_finish_reason: nativeFinishReason };
   if (event.kind === 'delta') {
     if (
       (event.role !== undefined && event.role !== 'assistant') ||
@@ -68,6 +77,7 @@ export function encodeOpenRouterTextSse(event: OpenRouterTextStreamPayload): str
             ...(event.refusal === undefined ? {} : { refusal: event.refusal }),
           },
           finish_reason: event.finishReason,
+          ...nativeChoice,
         },
       ],
     });
@@ -97,6 +107,7 @@ export function encodeOpenRouterTextSse(event: OpenRouterTextStreamPayload): str
                 index: 0,
                 delta: { role: 'assistant', content: '' },
                 finish_reason: event.finishReason,
+                ...nativeChoice,
               },
             ],
       usage: {

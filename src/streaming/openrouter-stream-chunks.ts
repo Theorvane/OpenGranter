@@ -21,6 +21,7 @@ export type OpenRouterTextStreamPayload =
       readonly content?: string | null;
       readonly refusal?: string | null;
       readonly finishReason: FinishReason | null;
+      readonly nativeFinishReason?: string | null;
     }
   | {
       readonly kind: 'usage';
@@ -29,6 +30,7 @@ export type OpenRouterTextStreamPayload =
       readonly model: string;
       readonly systemFingerprint?: string | null;
       readonly finishReason: FinishReason | null;
+      readonly nativeFinishReason?: string | null;
       readonly usage: NormalizedUsage;
     };
 
@@ -110,7 +112,11 @@ export function decodeOpenRouterStreamPayload(
   const choice = choices.length === 1 ? record(choices[0]) : undefined;
   const delta = record(choice?.delta);
   const finish = choice?.finish_reason;
+  const nativeFinishReason = choice?.native_finish_reason;
   if (
+    (nativeFinishReason !== undefined &&
+      nativeFinishReason !== null &&
+      typeof nativeFinishReason !== 'string') ||
     !choice ||
     choice.index !== 0 ||
     !delta ||
@@ -134,6 +140,7 @@ export function decodeOpenRouterStreamPayload(
       kind: 'usage',
       ...common,
       finishReason: finish,
+      ...(nativeFinishReason === undefined ? {} : { nativeFinishReason }),
       usage: usage && Object.freeze(usage),
     });
   }
@@ -144,5 +151,6 @@ export function decodeOpenRouterStreamPayload(
     ...(delta.content === undefined ? {} : { content: delta.content }),
     ...(delta.refusal === undefined ? {} : { refusal: delta.refusal }),
     finishReason: finish,
+    ...(nativeFinishReason === undefined ? {} : { nativeFinishReason }),
   });
 }

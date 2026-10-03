@@ -491,3 +491,7 @@ The bounded decoder captures refusal string/null alongside optional role/content
 ## Logit-bias structural selection
 
 Version 7 adds logit_bias to the exact source field map while preserving the existing definitions and streaming/message selections. Canonical provenance/projection digests require an explicit review; source comparison never updates the pin automatically. Runtime validation and security/accounting paths are unchanged. See [plan](plans/220-logit-bias-schema.md).
+
+## Streaming native finish reason projection
+
+Delegated text streaming preserves exact optional native_finish_reason string/null on choices through both HTTP bases, including the actual repeated-finish usage event. Final metadata never falls back to earlier deltas, and empty-choice usage supplies none. Incomplete usage remains unknown to clients; malformed metadata fails safely even with incomplete usage. Canonical reasons, IAM, limits, required usage/audit gates and operational secrecy remain unchanged. Ordinary and terminal chunks, safe first/later failures, denial paths and actual OpenAI SDK retention are covered by [contract](../contracts/stream-native-finish-reason.md) and [plan](plans/266-stream-native-reason.md). Current official ChatStreamChoice and the pinned OpenRouter SDK omit this extension; SDK stripping and source coverage remain explicit gaps. Managed/tool streaming, full instance conformance and release gate #116 remain open.
