@@ -34,7 +34,13 @@ function body(kind: Kind) {
     usage: { prompt_tokens: 2, completion_tokens: 1 },
   };
 }
-function adapter(kind: Kind, cap?: number, mutate?: () => void, transportFails = false) {
+function adapter(
+  kind: Kind,
+  cap?: number,
+  mutate?: () => void,
+  transportFails = false,
+  thinking = false,
+) {
   const sent: Record<string, unknown>[] = [];
   let secrets = 0;
   const resolveSecret = async () => {
@@ -44,6 +50,10 @@ function adapter(kind: Kind, cap?: number, mutate?: () => void, transportFails =
   };
   const fetcher: typeof fetch = async (_, init) => {
     sent.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+    if (kind === 'anthropic') {
+      assert.equal(new Headers(init?.headers).get('anthropic-version'), '2023-06-01');
+      assert.equal(new Headers(init?.headers).has('anthropic-beta'), false);
+    }
     const requestBody = sent.at(-1);
     if (!transportFails && requestBody?.stream) {
       const chunk = (delta: object, finish_reason: string | null, extra: object = {}) =>
@@ -67,7 +77,17 @@ function adapter(kind: Kind, cap?: number, mutate?: () => void, transportFails =
     }
     return transportFails
       ? new Response('private fixture unsupported top_p error', { status: 400 })
-      : Response.json(body(kind));
+      : Response.json(
+          thinking
+            ? {
+                ...body(kind),
+                content: [
+                  { type: 'thinking', thinking: 'private thought', signature: 'private signature' },
+                  { type: 'text', text: 'reply' },
+                ],
+              }
+            : body(kind),
+        );
   };
   const candidate = {
     id: 'candidate',
@@ -119,10 +139,11 @@ function httpFixture(
     ledger?: boolean;
     outcomeAudit?: boolean;
     fail?: boolean;
+    thinking?: boolean;
     mutate?: () => void;
   } = {},
 ) {
-  const f = adapter(kind, undefined, options.mutate, options.fail);
+  const f = adapter(kind, undefined, options.mutate, options.fail, options.thinking);
   const audits: unknown[] = [];
   const usage: unknown[] = [];
   let routes = 0;
@@ -195,105 +216,80 @@ function request(path: string, fields: Record<string, unknown> = {}) {
   });
 }
 
-test('direct OpenAI preserves exact optional verbosity and existing controls on both HTTP bases', async () => {
+function effort(sent: Record<string, unknown> | undefined) {
+  return (sent?.output_config as { effort?: unknown } | undefined)?.effort;
+}
+test('direct Anthropic maps exact verbosity to effort on both HTTP bases without injecting defaults', async () => {
   for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
-    for (const verbosity of [undefined, null, 'low', 'medium', 'high']) {
-      const f = httpFixture('openai');
+    for (const verbosity of [undefined, null, 'low', 'medium', 'high', 'xhigh', 'max']) {
+      const f = httpFixture('anthropic');
       const response = await f.handler(request(path, { verbosity }));
       assert.equal(response.status, 200);
-      assert.equal(f.sent[0]?.verbosity, verbosity ?? undefined);
+      assert.equal(effort(f.sent[0]), verbosity ?? undefined);
       assert.equal(
-        Object.hasOwn(f.sent[0] ?? {}, 'verbosity'),
+        Object.hasOwn(f.sent[0] ?? {}, 'output_config'),
         verbosity !== undefined && verbosity !== null,
       );
+      assert.equal(Object.hasOwn(f.sent[0] ?? {}, 'verbosity'), false);
+      assert.equal(Object.hasOwn(f.sent[0] ?? {}, 'thinking'), false);
       assert.equal(f.sent[0]?.max_tokens, 17);
       assert.equal(f.sent[0]?.temperature, 0.4);
       assert.equal(f.sent[0]?.top_p, 0.7);
-      assert.deepEqual(f.sent[0]?.stop, ['marker']);
+      assert.deepEqual(f.sent[0]?.stop_sequences, ['marker']);
       assert.equal(f.usage.length, 1);
-      assert.doesNotMatch(JSON.stringify([f.audits, f.usage]), /verbosity|private|fixture-key/u);
-    }
-  }
-});
-
-test('unsupported verbosity values fail before direct credentials and preserve other native defaults', async () => {
-  for (const kind of ['openai', 'google'] as const) {
-    for (const verbosity of kind === 'openai'
-      ? ['xhigh', 'max']
-      : ['low', 'medium', 'high', 'xhigh', 'max']) {
-      const f = httpFixture(kind);
-      assert.equal(
-        (await f.handler(request('/api/v1/chat/completions', { verbosity }))).status,
-        502,
+      assert.doesNotMatch(
+        JSON.stringify([f.audits, f.usage]),
+        /verbosity|output_config|private|fixture-key/u,
       );
-      assert.equal(f.secrets(), 0);
-      assert.equal(f.sent.length, 0);
-      assert.equal(f.usage.length, 0);
     }
   }
 });
-
-test('direct OpenAI verbosity captures once before asynchronous credential resolution', async () => {
-  const mutable = input({ verbosity: 'high' });
-  const f = adapter('openai', undefined, () => Object.assign(mutable, { verbosity: 'low' }));
+test('Anthropic effort captures once before credentials and preserves maximum level', async () => {
+  const mutable = input({ verbosity: 'max' });
+  const f = adapter('anthropic', undefined, () => Object.assign(mutable, { verbosity: 'low' }));
   await f.call(mutable as unknown as ChatRequest);
-  assert.equal(f.sent[0]?.verbosity, 'high');
+  assert.deepEqual(f.sent[0]?.output_config, { effort: 'max' });
   let reads = 0;
   const getter = Object.defineProperty(input(), 'verbosity', {
-    get: () => (++reads === 1 ? 'medium' : 'private invalid'),
+    get: () => (++reads === 1 ? 'xhigh' : 'private invalid'),
   });
-  const observed = adapter('openai');
+  const observed = adapter('anthropic');
   await observed.call(getter as unknown as ChatRequest);
-  assert.equal(observed.sent[0]?.verbosity, 'medium');
+  assert.equal(effort(observed.sent[0]), 'xhigh');
   assert.equal(reads, 1);
 });
-
-test('direct OpenAI verbosity-only request injects no other generation defaults', async () => {
-  const f = adapter('openai');
-  await f.call({ model: 'chat', messages: [{ role: 'user', content: 'text' }], verbosity: 'low' });
+test('Anthropic verbosity-only request preserves registration output cap and instruction translation', async () => {
+  const f = adapter('anthropic', 128);
+  await f.call({
+    model: 'chat',
+    messages: [
+      { role: 'system', content: 'first' },
+      { role: 'developer', content: 'second' },
+      { role: 'user', content: 'text' },
+    ],
+    verbosity: 'medium',
+  });
   assert.deepEqual(f.sent[0], {
     model: 'model',
+    max_tokens: 128,
+    system: 'first\nsecond',
     messages: [{ role: 'user', content: 'text' }],
-    stream: false,
-    verbosity: 'low',
+    output_config: { effort: 'medium' },
   });
 });
-
-test('direct verbosity keeps tool history and function request controls intact', async () => {
-  const f = httpFixture('openai');
-  const messages = [
-    { role: 'user', content: 'private prompt' },
-    {
-      role: 'assistant',
-      content: null,
-      tool_calls: [
-        { id: 'call-1', type: 'function', function: { name: 'lookup', arguments: '{}' } },
-      ],
-    },
-    { role: 'tool', tool_call_id: 'call-1', content: 'private result' },
-  ];
-  const tools = [
-    { type: 'function', function: { name: 'lookup', parameters: { type: 'object' } } },
-  ];
-  const response = await f.handler(
-    request('/api/v1/chat/completions', {
-      verbosity: 'high',
-      messages,
-      tools,
-      tool_choice: 'auto',
-      parallel_tool_calls: false,
-    }),
-  );
-  assert.equal(response.status, 200);
-  assert.deepEqual(f.sent[0]?.messages, messages);
-  assert.deepEqual(f.sent[0]?.tools, tools);
-  assert.equal(f.sent[0]?.tool_choice, 'auto');
-  assert.equal(f.sent[0]?.parallel_tool_calls, false);
-  assert.equal(f.sent[0]?.verbosity, 'high');
-  assert.doesNotMatch(JSON.stringify([f.audits, f.usage]), /verbosity|private/u);
+test('invalid Anthropic verbosity and unsupported Google controls reject before credentials', async () => {
+  for (const kind of ['anthropic', 'google'] as const) {
+    for (const verbosity of kind === 'anthropic'
+      ? ['', 'HIGH', 'private invalid', true, 1, [], {}]
+      : ['low', 'medium', 'high', 'xhigh', 'max']) {
+      const f = adapter(kind);
+      await assert.rejects(() => f.call(input({ verbosity }) as unknown as ChatRequest));
+      assert.equal(f.secrets(), 0);
+      assert.equal(f.sent.length, 0);
+    }
+  }
 });
-
-test('direct verbosity retains denial limits required accounting and safe upstream failures', async () => {
+test('Anthropic effort preserves denial limits required ledger/audit and safe provider failures', async () => {
   for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
     for (const options of [
       { deny: true },
@@ -304,8 +300,8 @@ test('direct verbosity retains denial limits required accounting and safe upstre
       { outcomeAudit: true },
       { fail: true },
     ]) {
-      const f = httpFixture('openai', options);
-      const response = await f.handler(request(path, { verbosity: 'medium' }));
+      const f = httpFixture('anthropic', options);
+      const response = await f.handler(request(path, { verbosity: 'high' }));
       const dispatched = 'ledger' in options || 'outcomeAudit' in options || 'fail' in options;
       assert.equal(
         response.status,
@@ -319,13 +315,28 @@ test('direct verbosity retains denial limits required accounting and safe upstre
       );
       assert.equal(f.sent.length, dispatched ? 1 : 0);
       assert.doesNotMatch(await response.text(), /verbosity|private|fixture-key/u);
-      assert.doesNotMatch(JSON.stringify([f.audits, f.usage]), /verbosity|private|fixture-key/u);
+      assert.doesNotMatch(
+        JSON.stringify([f.audits, f.usage]),
+        /verbosity|output_config|private|fixture-key/u,
+      );
     }
   }
 });
-
-test('actual OpenAI SDK socket preserves direct verbosity through both bases', async () => {
-  const f = httpFixture('openai');
+test('thinking response blocks remain safe possibly-billed failures instead of silently discarded output', async () => {
+  for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
+    const f = httpFixture('anthropic', { thinking: true });
+    const response = await f.handler(request(path, { verbosity: 'max' }));
+    assert.equal(response.status, 502);
+    assert.equal(f.sent.length, 1);
+    const record = f.usage[0] as { outcome: string; possiblyBilled: boolean };
+    assert.equal(record.outcome, 'failed');
+    assert.equal(record.possiblyBilled, true);
+    assert.doesNotMatch(await response.text(), /private|thought|signature/u);
+    assert.doesNotMatch(JSON.stringify([f.audits, f.usage]), /private|thought|signature/u);
+  }
+});
+test('actual OpenAI SDK sockets map all Anthropic effort levels on both client bases', async () => {
+  const f = httpFixture('anthropic');
   const server = createNodeRequestServer(f.handler);
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   try {
@@ -337,12 +348,12 @@ test('actual OpenAI SDK socket preserves direct verbosity through both bases', a
         baseURL: `http://127.0.0.1:${address.port}${base}`,
         maxRetries: 0,
       });
-      for (const verbosity of [null, 'low', 'medium', 'high'] as const) {
+      for (const verbosity of [null, 'low', 'medium', 'high', 'xhigh', 'max'] as const) {
         const result = await sdk.chat.completions.create(
           input({ verbosity }) as OpenAI.ChatCompletionCreateParamsNonStreaming,
         );
         assert.equal(result.choices[0]?.message.content, 'reply');
-        assert.equal(f.sent.at(-1)?.verbosity, verbosity ?? undefined);
+        assert.equal(effort(f.sent.at(-1)), verbosity ?? undefined);
       }
     }
   } finally {
