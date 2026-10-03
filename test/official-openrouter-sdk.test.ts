@@ -505,3 +505,27 @@ for (const base of ['/v1', '/api/v1'])
     assert.equal(f.usage[0]?.outcome, 'succeeded');
     assert.doesNotMatch(JSON.stringify([f.audit, f.usage]), /private/u);
   });
+
+for (const base of ['/v1', '/api/v1'])
+  test(`official SDK ${base} streams delegated repetition_penalty under the same approved destination scope`, async () => {
+    const f = fixture();
+    await socket(f, base, async (client) => {
+      const result = await client.chat.send({
+        chatRequest: {
+          model: 'chat',
+          messages: [{ role: 'user', content: 'text' }],
+          stream: true,
+          repetitionPenalty: 1.25,
+        },
+      });
+      assert.ok(Symbol.asyncIterator in result);
+      const chunks = [];
+      for await (const item of result) chunks.push(item);
+      assert.equal(chunks[0]?.choices[0]?.delta.content, 'private answer');
+      assert.equal(chunks.at(-1)?.usage?.totalTokens, 3);
+    });
+    assert.equal(f.sent[0]?.repetition_penalty, 1.25);
+    assert.deepEqual(f.sent[0]?.provider, { only: ['OpenAI'] });
+    assert.equal(f.usage[0]?.outcome, 'succeeded');
+    assert.doesNotMatch(JSON.stringify([f.audit, f.usage]), /private/u);
+  });

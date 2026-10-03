@@ -388,3 +388,7 @@ Optional nullable finite top_a in 0..1 is accepted on both chat bases and forwar
 ## Top-a request source drift
 
 The version-12 source guard tracks optional nullable top_a request structure without changing runtime sampling controls or provider capabilities. Existing security and accounting contracts remain unchanged. See [plan](plans/258-top-a-schema.md) and [contract](../contracts/openrouter-schema-drift.md).
+
+## Delegated repetition-penalty sampling subset
+
+Optional nullable finite repetition_penalty in 0..2 is accepted on both chat bases and forwarded exactly for delegated OpenRouter nonstream/text streams. Registered direct adapters reject supplied non-null controls before credentials rather than silently discard them. Defaults and security/accounting remain shared; model support and structural drift selection remain open. See [contract](../contracts/client-repetition-penalty.md).

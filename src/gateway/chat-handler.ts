@@ -47,6 +47,7 @@ import {
   validMinP,
   validPenalty,
   validReasoningEffort,
+  validRepetitionPenalty,
   validSeed,
   validSingleChoice,
   validTemperature,
@@ -94,6 +95,7 @@ export interface ChatRequest {
   readonly presence_penalty?: number;
   readonly response_format?: ResponseFormat;
   readonly top_p?: number;
+  readonly repetition_penalty?: number;
   readonly top_a?: number;
   readonly min_p?: number;
   readonly top_k?: number;
@@ -392,6 +394,7 @@ function validateChat(value: unknown, streaming = false): ValidatedChatRequest |
           'stop',
           'temperature',
           'top_p',
+          'repetition_penalty',
           'top_a',
           'min_p',
           'top_k',
@@ -453,6 +456,8 @@ function validateChat(value: unknown, streaming = false): ValidatedChatRequest |
   if (!validMinP(minP)) return undefined;
   const topA = value.top_a ?? undefined;
   if (!validTopA(topA)) return undefined;
+  const repetitionPenalty = value.repetition_penalty ?? undefined;
+  if (!validRepetitionPenalty(repetitionPenalty)) return undefined;
   const topP = value.top_p ?? undefined;
   if (!validTopP(topP)) return undefined;
   let maxTokens: number | undefined;
@@ -495,6 +500,7 @@ function validateChat(value: unknown, streaming = false): ValidatedChatRequest |
     ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
     ...(temperature === undefined ? {} : { temperature }),
     ...(topP === undefined ? {} : { top_p: topP }),
+    ...(repetitionPenalty === undefined ? {} : { repetition_penalty: repetitionPenalty }),
     ...(topA === undefined ? {} : { top_a: topA }),
     ...(minP === undefined ? {} : { min_p: minP }),
     ...(topK === undefined ? {} : { top_k: topK }),
