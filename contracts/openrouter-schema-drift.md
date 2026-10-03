@@ -1,6 +1,6 @@
 # Official schema drift contract
 
-The pin records source URL, retrieval date, canonical source SHA-256 and a canonical structural projection SHA-256. Source: [official OpenRouter OpenAPI](https://openrouter.ai/openapi.json), retrieved 2026-10-02 for version 9. The snapshot contains selected schema constraints, with examples/descriptions and other annotations removed.
+The pin records source URL, retrieval date, canonical source SHA-256 and a canonical structural projection SHA-256. Source: [official OpenRouter OpenAPI](https://openrouter.ai/openapi.json), retrieved 2026-10-02 for version 10. The snapshot contains selected schema constraints, with examples/descriptions and other annotations removed.
 
 The offline gate validates provenance shape and projection integrity. `npm run compatibility:drift` explicitly fetches only the official HTTPS URL, rejects redirects, bounds time/body size and compares selected chat request and response definitions. It neither changes the pin nor sends credentials or inference calls. Failures expose fixed messages, not downloaded content or transport errors.
 
@@ -28,3 +28,8 @@ Missing/malformed source definitions and rehashed missing/extra/malformed select
 ## Nonstream response source drift
 
 Version 9 adds the fixed /chat/completions HTTP 200 application/json responseRef, #/components/schemas/ChatResult, and an exact responseDefinitions map containing ChatResult, ChatChoice and ChatAssistantMessage. Whole selected structural shapes track required fields, types/nullability, references, constraints, extensions and literal defaults; editorial annotations remain ignored. Assistant content and other formerly unselected assistant properties now cause drift, while unrelated instruction-message properties remain unselected. Missing/malformed paths or definitions and rehashed missing/extra/malformed maps fail safely; versions 1..8 reject. The explicit refresh preserves every version-8 projection and its canonical official source digest. References to ChatUsage, rich content, audio/images and reasoning-detail definitions are not recursively traversed. Selection does not assert runtime support for all selected fields or JSON-instance validation. See [plan](../docs/plans/242-response-schema.md).
+
+
+## Chat usage source drift
+
+Version 10 adds exactly ChatUsage, CostDetails and ServerToolUseDetails in usageDefinitions. Both selected nonstream and stream response structures reference ChatUsage, whose prompt/completion token details are inline and whose two referenced detail definitions are included explicitly. Required counters, type/nullability, bounds, cost formats, references and literal defaults cause drift without reference changes; editorial annotations and unrelated/native usage definitions remain ignored. Missing/malformed source definitions and rehashed absent/incomplete/extra/malformed maps fail safely; versions 1..9 reject. All version-9 projections and the canonical official source digest are unchanged. This does not project new runtime usage fields, enable server tools, change estimation or billing, or validate response instances. See [plan](../docs/plans/244-usage-schema.md).

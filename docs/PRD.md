@@ -351,3 +351,8 @@ Already-valid direct OpenAI/delegated OpenRouter assistant outcomes preserve opt
 ## Nonstream response source drift
 
 The version-9 source guard tracks successful nonstream response, choice and assistant-message structures, including required fields and nullable fingerprints/reasoning. This improves drift detection without expanding runtime capabilities or resolving remaining compatibility requirements. See [plan](plans/242-response-schema.md).
+
+
+## Chat usage source drift
+
+The version-10 structural source guard tracks chat token and cost usage definitions shared by nonstream and stream responses. Existing unknown usage, estimated versus provider-billed cost and supported field projection remain unchanged; full usage/client conformance remains open. See [plan](plans/244-usage-schema.md).

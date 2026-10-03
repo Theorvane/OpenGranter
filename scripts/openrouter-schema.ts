@@ -4,6 +4,7 @@ export const OFFICIAL_SCHEMA_URL = 'https://openrouter.ai/openapi.json';
 const REQUEST_REF = '#/components/schemas/ChatRequest';
 const RESPONSE_REF = '#/components/schemas/ChatResult';
 const RESPONSE_DEFINITION_NAMES = ['ChatResult', 'ChatChoice', 'ChatAssistantMessage'] as const;
+const USAGE_DEFINITION_NAMES = ['ChatUsage', 'CostDetails', 'ServerToolUseDetails'] as const;
 const FIELD_NAMES = [
   'model',
   'messages',
@@ -60,6 +61,7 @@ export interface SchemaProjection {
   requestRef: string;
   responseRef: string;
   responseDefinitions: Record<string, unknown>;
+  usageDefinitions: Record<string, unknown>;
   required: readonly string[];
   fields: Record<string, unknown>;
   definitions: Record<string, unknown>;
@@ -113,6 +115,7 @@ function projection(value: unknown): SchemaProjection {
   const fields = record(data?.fields);
   const definitions = record(data?.definitions);
   const responseDefinitions = record(data?.responseDefinitions);
+  const usageDefinitions = record(data?.usageDefinitions);
   const streamDefinitions = record(data?.streamDefinitions);
   const messageNames = record(data?.messageNames);
   const toolMessages = record(data?.toolMessages);
@@ -126,6 +129,9 @@ function projection(value: unknown): SchemaProjection {
     !responseDefinitions ||
     Object.keys(responseDefinitions).length !== RESPONSE_DEFINITION_NAMES.length ||
     RESPONSE_DEFINITION_NAMES.some((name) => !record(responseDefinitions[name])) ||
+    !usageDefinitions ||
+    Object.keys(usageDefinitions).length !== USAGE_DEFINITION_NAMES.length ||
+    USAGE_DEFINITION_NAMES.some((name) => !record(usageDefinitions[name])) ||
     !Array.isArray(required) ||
     required.some((item) => typeof item !== 'string' || !item) ||
     new Set(required).size !== required.length ||
@@ -163,6 +169,9 @@ function projection(value: unknown): SchemaProjection {
     responseRef: data.responseRef,
     responseDefinitions: Object.fromEntries(
       RESPONSE_DEFINITION_NAMES.map((name) => [name, ordered(responseDefinitions[name], true)]),
+    ),
+    usageDefinitions: Object.fromEntries(
+      USAGE_DEFINITION_NAMES.map((name) => [name, ordered(usageDefinitions[name], true)]),
     ),
     required: [...required],
     fields: Object.fromEntries(FIELD_NAMES.map((name) => [name, ordered(fields[name], true)])),
@@ -203,6 +212,9 @@ export function projectOfficialSchema(value: unknown): SchemaProjection {
     responseRef: record(responseMedia?.schema)?.$ref,
     responseDefinitions: Object.fromEntries(
       RESPONSE_DEFINITION_NAMES.map((name) => [name, schemas?.[name]]),
+    ),
+    usageDefinitions: Object.fromEntries(
+      USAGE_DEFINITION_NAMES.map((name) => [name, schemas?.[name]]),
     ),
     required: request?.required,
     fields: Object.fromEntries(FIELD_NAMES.map((name) => [name, properties[name]])),
@@ -256,7 +268,7 @@ export function validateSchemaPin(value: unknown): { projection: SchemaProjectio
   try {
     const data = record(value);
     if (
-      data?.version !== 9 ||
+      data?.version !== 10 ||
       data.source !== OFFICIAL_SCHEMA_URL ||
       typeof data.retrievedAt !== 'string' ||
       !/^\d{4}-\d{2}-\d{2}$/.test(data.retrievedAt) ||

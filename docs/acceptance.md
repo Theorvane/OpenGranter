@@ -710,3 +710,8 @@ The independent SSE encoder rejects substantive or malformed reasoning on inject
 ## Nonstream response source drift
 
 Required-field, fingerprint nullability, choice references and assistant content/reasoning/refusal/tool-call structure changes cause drift even when references remain unchanged. Editorial annotations remain ignored and literal defaults remain data. Missing/malformed paths or selected definitions, rehashed incomplete/extra/malformed maps and stale versions 1..8 reject safely. Version 9 preserves prior projections and source provenance. See [plan](plans/242-response-schema.md).
+
+
+## Chat usage source drift
+
+Token counter type/required/bounds, inline cached/reasoning details, nullable cost/format, cost/server-tool references and counters cause drift. Annotation-only and unrelated native usage changes remain ignored; literal default keys remain data. Missing/malformed source definitions and rehashed absent/incomplete/extra/malformed maps fail safely. Version 10 rejects versions 1..9 and preserves every prior projection. See [plan](plans/244-usage-schema.md).
