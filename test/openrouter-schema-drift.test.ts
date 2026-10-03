@@ -61,6 +61,7 @@ function source(): Record<string, unknown> {
             top_p: { type: ['number', 'null'], format: 'double' },
             min_p: { type: ['number', 'null'], format: 'double' },
             top_a: { type: ['number', 'null'], format: 'double' },
+            repetition_penalty: { type: ['number', 'null'], format: 'double' },
             frequency_penalty: { type: ['number', 'null'], format: 'double' },
             presence_penalty: { type: ['number', 'null'], format: 'double' },
             seed: { type: ['integer', 'null'] },
@@ -182,6 +183,7 @@ test('official projection and reviewed pin agree; key order is immaterial', () =
     'model',
     'parallel_tool_calls',
     'presence_penalty',
+    'repetition_penalty',
     'response_format',
     'seed',
     'stop',
@@ -482,8 +484,8 @@ for (const name of ['ChatFormatTextConfig', 'ChatFormatJsonObjectConfig']) {
     }
   });
 }
-test('version-12 pin retains exact selected definitions', () => {
-  assert.equal(pinned.version, 12);
+test('version-13 pin retains exact selected definitions', () => {
+  assert.equal(pinned.version, 13);
   const definitions = (
     projectOfficialSchema(source()) as unknown as { definitions: Record<string, unknown> }
   ).definitions;
@@ -652,8 +654,8 @@ test('message name selection ignores editorial and unrelated message changes', (
   for (const value of Object.values(projected.messageNames))
     assert.deepEqual(value, { schema: { type: 'string' }, required: false });
 });
-test('version-12 message maps reject stale and rehashed malformed pins', () => {
-  for (const version of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
+test('version-13 message maps reject stale and rehashed malformed pins', () => {
+  for (const version of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
     assert.throws(() => validateSchemaPin({ ...pinned, version }), /Invalid schema pin/);
   for (const messageNames of [
     undefined,
@@ -1253,6 +1255,77 @@ test('top_a exact field map rejects rehashed missing, extra and malformed select
     if (operation === 'missing') delete fields.top_a;
     if (operation === 'extra') fields.unselected = { type: 'number' };
     if (operation === 'malformed') fields.top_a = [];
+    const projection = { ...pinned.projection, fields };
+    const projectionSha256 = createHash('sha256').update(canonicalSchema(projection)).digest('hex');
+    assert.throws(
+      () => validateSchemaPin({ ...pinned, projection, projectionSha256 }),
+      /Invalid schema pin/,
+    );
+  }
+});
+
+test('repetition_penalty selection preserves the official nullable number structure', () => {
+  const data = source();
+  const properties = chatRequestProperties(data);
+  properties.repetition_penalty = { type: ['number', 'null'], format: 'double' };
+  assert.deepEqual(projectOfficialSchema(data).fields.repetition_penalty, {
+    type: ['number', 'null'],
+    format: 'double',
+  });
+});
+test('repetition_penalty type, nullability, format, bounds and default changes cause drift', () => {
+  for (const replacement of [
+    { type: 'number', format: 'double' },
+    { type: ['integer', 'null'], format: 'double' },
+    { type: ['number', 'null'], format: 'float' },
+    ...['minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf', 'default'].map(
+      (key) => ({ type: ['number', 'null'], format: 'double', [key]: 0.5 }),
+    ),
+  ]) {
+    const data = source();
+    chatRequestProperties(data).repetition_penalty = replacement;
+    assert.equal(compareOfficialSchema(data, pinned), false);
+  }
+});
+
+test('repetition_penalty annotations are ignored but literal default keys remain data', () => {
+  const data = source();
+  chatRequestProperties(data).repetition_penalty = {
+    type: ['number', 'null'],
+    format: 'double',
+    description: 'editorial',
+    example: 0.2,
+    title: 'editorial',
+  };
+  assert.equal(compareOfficialSchema(data, pinned), true);
+  const literal = { description: 'literal value', example: 0.3 };
+  chatRequestProperties(data).repetition_penalty = {
+    type: ['number', 'null'],
+    format: 'double',
+    default: literal,
+  };
+  assert.deepEqual(projectOfficialSchema(data).fields.repetition_penalty, {
+    type: ['number', 'null'],
+    format: 'double',
+    default: literal,
+  });
+  assert.equal(compareOfficialSchema(data, pinned), false);
+});
+
+test('missing and malformed repetition_penalty source shapes fail safely', () => {
+  for (const value of [undefined, null, [], 'private source value']) {
+    const data = source();
+    chatRequestProperties(data).repetition_penalty = value;
+    assert.throws(() => projectOfficialSchema(data), /Invalid official schema/);
+  }
+});
+
+test('repetition_penalty exact field map rejects rehashed missing, extra and malformed selections', () => {
+  for (const operation of ['missing', 'extra', 'malformed']) {
+    const fields = { ...pinned.projection.fields };
+    if (operation === 'missing') delete fields.repetition_penalty;
+    if (operation === 'extra') fields.unselected = { type: 'number' };
+    if (operation === 'malformed') fields.repetition_penalty = [];
     const projection = { ...pinned.projection, fields };
     const projectionSha256 = createHash('sha256').update(canonicalSchema(projection)).digest('hex');
     assert.throws(

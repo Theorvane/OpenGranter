@@ -1,6 +1,6 @@
 # Official schema drift contract
 
-The pin records source URL, retrieval date, canonical source SHA-256 and a canonical structural projection SHA-256. Source: [official OpenRouter OpenAPI](https://openrouter.ai/openapi.json), retrieved 2026-10-03 for version 12. The snapshot contains selected schema constraints, with examples/descriptions and other annotations removed.
+The pin records source URL, retrieval date, canonical source SHA-256 and a canonical structural projection SHA-256. Source: [official OpenRouter OpenAPI](https://openrouter.ai/openapi.json), retrieved 2026-10-03 for version 13. The snapshot contains selected schema constraints, with examples/descriptions and other annotations removed.
 
 The offline gate validates provenance shape and projection integrity. `npm run compatibility:drift` explicitly fetches only the official HTTPS URL, rejects redirects, bounds time/body size and compares selected chat request and response definitions. It neither changes the pin nor sends credentials or inference calls. Failures expose fixed messages, not downloaded content or transport errors.
 
@@ -41,3 +41,7 @@ Version 11 adds optional nullable min_p as the nineteenth selected request field
 ## Top-a request source drift
 
 Version 12 adds optional nullable top_a as the twentieth selected request field. Its reviewed official shape is number/null with double format and no encoded bounds/default. Structural constraints and literal defaults cause drift; editorial annotations remain ignored. Missing/malformed sources, rehashed invalid field maps and versions 1..11 reject. All version-11 selections remain unchanged. The official source digest is explicitly refreshed to f6041af462fa5dfea4b1ea246bcb02a208a57af2784fb7110a212e637d0e913e after comparing changes outside the selected projection. This guard changes no runtime/provider/security/accounting behavior or complete compatibility claim. See [plan](../docs/plans/258-top-a-schema.md).
+
+## Repetition penalty request source drift
+
+Version 13 adds optional nullable repetition_penalty as the twenty-first request field. Its reviewed official shape is number/null with double format and no encoded bounds/default. Future structural constraints and literal defaults cause drift, while annotations remain ignored. Missing/malformed sources, rehashed invalid exact field maps and versions 1..12 reject safely. All version-12 selections and the canonical official source digest are preserved. Runtime/provider/IAM/secret/usage/audit behavior is unchanged; full compatibility remains open. See [plan](../docs/plans/262-repetition-schema.md).

@@ -589,3 +589,7 @@ Version 12 adds top_a to the exact twenty-field request map using the existing s
 ## Delegated repetition-penalty sampling subset
 
 HTTP parsing captures validated optional repetition_penalty, and shared delegated preparation repeats validation before asynchronous credentials and freezes the exact scalar in its body. Both delegated invocation modes reuse this boundary. Direct registered adapters reject non-null values before secrets. No routing/capability/default changes or source-pin refresh. See [contract](../contracts/client-repetition-penalty.md).
+
+## Repetition penalty request source drift
+
+Version 13 adds repetition_penalty to the exact twenty-one-field request map. Every version-12 selection and official source digest are preserved. The current number/null and double shape encodes no bounds or default. See [plan](plans/262-repetition-schema.md) and [contract](../contracts/openrouter-schema-drift.md).

@@ -751,3 +751,7 @@ Changes to top_a type/nullability/format, future bounds and literal defaults cau
 ## Delegated repetition-penalty sampling subset
 
 Both prefixes and actual OpenRouter/OpenAI SDKs preserve repetition_penalty zero/fractions/one/two on delegated nonstream and text-stream requests; null/omission retains defaults. Malformed HTTP/native/nonfinite values reject before routes/secrets, unsupported direct mappings fail before transport, and single-read/credential-await capture remains immutable. Denial/limits/required ledger/audit and safe transport accounting remain shared. Source pin does not yet select repetition_penalty. See [plan](plans/260-repetition-penalty.md).
+
+## Repetition penalty request source drift
+
+Repetition penalty type/nullability/format, future constraints and literal defaults cause drift. Annotation-only changes are ignored. Missing/malformed sources, rehashed invalid exact fields and versions 1..12 reject; all prior selections remain unchanged. See [plan](plans/262-repetition-schema.md) and [contract](../contracts/openrouter-schema-drift.md).
