@@ -7,6 +7,7 @@ import {
   snapshotStopSequences,
   snapshotStreamOptions,
   validPenalty,
+  validReasoningEffort,
   validSeed,
   validSingleChoice,
   validTemperature,
@@ -182,6 +183,8 @@ function prepareOpenRouterChatRequest(
 
   const verbosity = request.verbosity ?? undefined;
   if (!validVerbosity(verbosity)) fail('configuration');
+  const reasoningEffort = request.reasoning_effort ?? undefined;
+  if (!validReasoningEffort(reasoningEffort)) fail('configuration');
   const seed = request.seed ?? undefined;
   if (!validSeed(seed)) fail('configuration');
   const frequencyPenalty = request.frequency_penalty ?? undefined;
@@ -261,6 +264,7 @@ function prepareOpenRouterChatRequest(
       ...(n === undefined ? {} : { n }),
       ...(seed === undefined ? {} : { seed }),
       ...(verbosity === undefined ? {} : { verbosity }),
+      ...(reasoningEffort === undefined ? {} : { reasoning_effort: reasoningEffort }),
       ...(frequencyPenalty === undefined ? {} : { frequency_penalty: frequencyPenalty }),
       ...(presencePenalty === undefined ? {} : { presence_penalty: presencePenalty }),
       ...(responseFormat === undefined ? {} : { response_format: responseFormat }),
