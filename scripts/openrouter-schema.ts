@@ -17,6 +17,7 @@ const FIELD_NAMES = [
   'top_p',
   'min_p',
   'top_a',
+  'repetition_penalty',
   'response_format',
   'frequency_penalty',
   'presence_penalty',
@@ -270,7 +271,7 @@ export function validateSchemaPin(value: unknown): { projection: SchemaProjectio
   try {
     const data = record(value);
     if (
-      data?.version !== 12 ||
+      data?.version !== 13 ||
       data.source !== OFFICIAL_SCHEMA_URL ||
       typeof data.retrievedAt !== 'string' ||
       !/^\d{4}-\d{2}-\d{2}$/.test(data.retrievedAt) ||

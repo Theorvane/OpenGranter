@@ -392,3 +392,7 @@ The version-12 source guard tracks optional nullable top_a request structure wit
 ## Delegated repetition-penalty sampling subset
 
 Optional nullable finite repetition_penalty in 0..2 is accepted on both chat bases and forwarded exactly for delegated OpenRouter nonstream/text streams. Registered direct adapters reject supplied non-null controls before credentials rather than silently discard them. Defaults and security/accounting remain shared; model support and structural drift selection remain open. See [contract](../contracts/client-repetition-penalty.md).
+
+## Repetition penalty request source drift
+
+The version-13 source guard tracks optional nullable repetition_penalty request structure without changing runtime controls, provider capabilities, security or accounting contracts. See [plan](plans/262-repetition-schema.md) and [contract](../contracts/openrouter-schema-drift.md).

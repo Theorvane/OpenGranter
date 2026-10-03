@@ -328,3 +328,7 @@ Version 12 selects top_a as the twentieth request field. This bounded source gua
 ## Delegated repetition-penalty sampling subset
 
 Nullable repetition_penalty finite 0..2 now passes both chat bases and pinned official SDKs to delegated OpenRouter nonstream/text-stream requests with exact values and approved provider scope. Direct OpenAI/Anthropic/Gemini supplied controls reject before credentials; null/omission preserves defaults. IAM/limits/audit/usage and safe failures remain shared. Individual model capability, native mappings, repetition_penalty structural source selection and complete compatibility remain open. See [plan](plans/260-repetition-penalty.md) and [contract](../contracts/client-repetition-penalty.md).
+
+## Repetition penalty request source drift
+
+Version 13 selects repetition_penalty as the twenty-first request field. This bounded source guard does not certify runtime instance validation, native model support or full compatibility. Release gate #116 remains partial. See [plan](plans/262-repetition-schema.md) and [contract](../contracts/openrouter-schema-drift.md).
