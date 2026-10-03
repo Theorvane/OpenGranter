@@ -320,3 +320,7 @@ Version 11 selects min_p as the nineteenth request field. This bounded source gu
 ## Delegated top-a sampling subset
 
 Nullable top_a finite 0..1 now passes both chat bases and pinned official SDKs to delegated OpenRouter nonstream/text-stream requests with exact values and approved provider scope. Direct OpenAI/Anthropic/Gemini supplied controls reject before credentials; null/omission preserves defaults. IAM/limits/audit/usage and safe failures remain shared. Individual model capability, native mappings, top_a structural source selection and complete compatibility remain open. See [plan](plans/256-top-a.md) and [contract](../contracts/client-top-a.md).
+
+## Top-a request source drift
+
+Version 12 selects top_a as the twentieth request field. This bounded source guard does not certify native-provider support, runtime instance validation or full compatibility. Release gate #116 remains partial. See [plan](plans/258-top-a-schema.md) and [contract](../contracts/openrouter-schema-drift.md).
