@@ -128,10 +128,7 @@ export function snapshotChatMessages(value: unknown): readonly ChatMessage[] {
       if (!exact(item, ['role', 'content', 'name', 'tool_calls', 'reasoning', 'reasoning_details']))
         throw new TypeError('Invalid chat messages');
       const calls = snapshotCalls(item.tool_calls);
-      if (
-        (calls.length === 0 && typeof content !== 'string') ||
-        (content !== null && content !== undefined && typeof content !== 'string')
-      )
+      if (content !== null && content !== undefined && typeof content !== 'string')
         throw new TypeError('Invalid chat messages');
       for (const call of calls) pending.add(call.id);
       messages.push(
@@ -146,19 +143,7 @@ export function snapshotChatMessages(value: unknown): readonly ChatMessage[] {
       );
       continue;
     }
-    const reasoningOnly =
-      role === 'assistant' &&
-      (content === null || content === undefined) &&
-      ((typeof reasoning === 'string' && reasoning.length > 0) ||
-        details?.some((detail) => {
-          const payload =
-            detail.type === 'reasoning.summary'
-              ? detail.summary
-              : detail.type === 'reasoning.encrypted'
-                ? detail.data
-                : detail.text;
-          return typeof payload === 'string' && payload.length > 0;
-        }) === true);
+    const noTextAssistant = role === 'assistant' && (content === null || content === undefined);
     if (
       !exact(item, [
         'role',
@@ -166,7 +151,7 @@ export function snapshotChatMessages(value: unknown): readonly ChatMessage[] {
         'name',
         ...(role === 'assistant' ? ['reasoning', 'reasoning_details'] : []),
       ]) ||
-      (typeof content !== 'string' && !reasoningOnly)
+      (typeof content !== 'string' && !noTextAssistant)
     )
       throw new TypeError('Invalid chat messages');
     if (role === 'assistant') {

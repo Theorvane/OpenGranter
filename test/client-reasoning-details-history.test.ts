@@ -306,7 +306,7 @@ test('complete function history preserves original detail blocks and requires ma
   );
   assert.equal(stream.secrets(), 0);
 });
-test('malformed non-assistant and content-free metadata histories reject before routing and secrets', async () => {
+test('malformed histories reject while valid content-free metadata retains exact projection', async () => {
   const invalid = [
     null,
     {},
@@ -348,9 +348,14 @@ test('malformed non-assistant and content-free metadata histories reject before 
           }),
         )
       ).status,
-      400,
+      200,
     );
-    assert.equal(f.routes(), 0);
+    assert.deepEqual((f.sent[0]?.messages as unknown[] | undefined)?.[1], {
+      role: 'assistant',
+      content: null,
+      reasoning_details: value,
+    });
+    safe(f);
   }
   for (const role of ['system', 'developer', 'user', 'tool']) {
     const f = httpFixture('openrouter');
@@ -377,10 +382,11 @@ test('malformed non-assistant and content-free metadata histories reject before 
     );
     assert.equal(f.secrets(), 0);
   }
-  assert.throws(() =>
+  assert.deepEqual(
     snapshotChatMessages([
       { role: 'assistant', content: null, ...Object.create({ reasoning_details: details }) },
     ]),
+    [{ role: 'assistant', content: null }],
   );
 });
 test('direct OpenAI Anthropic Gemini reject every detail marker before credentials', async () => {

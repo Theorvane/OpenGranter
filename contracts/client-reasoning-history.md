@@ -3,15 +3,13 @@
 Both chat bases accept optional assistant reasoning string/null for delegated
 OpenRouter requests, including ordinary delegated text streams. Preserve omission,
 null, empty and Unicode/newline strings exactly when assistant content is string
-or normalized text parts. Ordinary null/missing content requires nonempty scalar
-reasoning or a validated nonempty detailed payload (see the detail history contract),
-and normalizes missing content to null. That guard is a bounded gateway
-subset, not an official prohibition on empty content-free SDK message shapes.
+or normalized text parts. Ordinary null/missing assistant content normalizes to null independently of
+substantive reasoning under the [no-text history contract](no-text-history.md).
 
 Existing assistant function-call history preserves reasoning without changing
 call IDs, arguments or pending result requirements. Complete tool groups remain
 nonstream only; tool streams/server tools and execution are not enabled. Empty
-tool-call lists still require string content. Reasoning on non-assistant roles,
+tool-call lists also accept null/missing content on delegated nonstream paths. Reasoning on non-assistant roles,
 non-string/non-null or explicit own undefined values, extra fields, malformed
 content and incomplete tool results reject before routing/credentials.
 
