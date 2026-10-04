@@ -43,6 +43,8 @@ Actual OpenRouter 1.4.18 and OpenAI 7.23.0 SDK socket tests cover the supported 
 
 Installed OpenCode 1.18.5 separately passes ten isolated local-gateway probes: explicit custom-provider/model registration, text streaming, an actual read-function/result continuation, model/provider Deny and process-termination cancellation on both bases. The transport is mocked at the fixed approved host. This does not certify automatic gateway model discovery, interactive cancellation/retry variants, direct streaming, other client versions or complete external-tool compatibility. See [reproduction guide](opencode-conformance.md).
 
+Direct OpenAI now has internal captured request transport, native text/refusal response consumption and a composed streaming invoker with exact configured upstream IDs and native final usage. These modules do not activate public managed streams or integrate their streaming usage/audit coordinator. Public policy/limits/persistence/HTTP composition, model snapshot equivalence, native tools and Anthropic/Gemini streaming remain open.
+
 All supported paths keep authentication, complete destination IAM with explicit Deny precedence, limits, required audit and usage persistence. Sensitive reasoning/opaque details, prompts, responses and credentials stay out of operational records/errors. Complete final usage and DONE require successful persistence; final tier/fingerprint/native metadata comes only from the actual usage event, and scalar/detail reasoning is never replayed there. Physical socket acknowledgment, durable failed-audit recovery, direct/rich streaming and other tool variants, transitive fragment-schema drift, metadata refresh, structured reasoning request controls, native history mappings and named external-client workflows remain release gates under #116.
 
 ## Implementation sequence
@@ -601,4 +603,11 @@ Public managed streaming and full #116 remain open; pin v19 is unchanged.
 Consume an already-opened direct OpenAI SSE response with native text/refusal guards, usage:null ordinary chunks and exactly one empty-choice final usage event before DONE. Reuse bounded framing and validated sequence primitives while rejecting delegated reasoning/native-finish extensions and tools. Capture exact approved model scope; require stable response identity and preserve unknown final usage. Await delivery, interrupt on cancellation and classify HTTP/stream failures as response-started and possibly billed without reading failure bodies. Unsuffixed-to-snapshot identity mapping, other native modalities/providers and public managed streaming remain open.
 
 See [plan](plans/371-direct-openai-stream-response.md) and [contract](../contracts/direct-openai-stream-response.md).
+Public managed streaming and full #116 remain open; pin v19 is unchanged.
+
+## Internal direct OpenAI text-stream invoker
+
+Compose the captured direct OpenAI transport and native SSE response boundary into an internal text/refusal invoker. Preserve fixed registered host, exact approved upstream identity and immutable client alias, existing controls/caps, forced native final usage, awaited callback delivery and deadline/cancellation. Return a content-free native completion only after terminal/usage/DONE; failures retain sanitized categories and response-started/possibly-billed semantics with no inference replay. Unsupported providers/tools reject before secrets. The caller must already authorize the managed candidate; public managed IAM/limits/usage/audit streaming composition, identity alias equivalence and other native providers remain subsequent work.
+
+See [plan](plans/373-direct-openai-stream-invoker.md) and [contract](../contracts/direct-openai-stream-invoker.md).
 Public managed streaming and full #116 remain open; pin v19 is unchanged.
