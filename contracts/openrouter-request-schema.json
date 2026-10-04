@@ -1,9 +1,9 @@
 {
-  "version": 16,
+  "version": 17,
   "source": "https://openrouter.ai/openapi.json",
-  "retrievedAt": "2026-10-03",
-  "sourceSha256": "f6041af462fa5dfea4b1ea246bcb02a208a57af2784fb7110a212e637d0e913e",
-  "projectionSha256": "48937004d7e679a75bf61a6775716898b1a5b93d0875b041f8cf23f970a3e2f0",
+  "retrievedAt": "2026-10-04",
+  "sourceSha256": "b818343bf2417ad8abdef9ceeea45140db6e06670d7fa54356591cd3304dd3f5",
+  "projectionSha256": "4f1702e90cb64cabcd243990240bde731276eed2e9f725a3d8e30eb4e364955d",
   "projection": {
     "openapi": "3.1.0",
     "documentVersion": "1.0.0",
@@ -681,6 +681,158 @@
       }
     },
     "definitions": {
+      "ChatMessages": {
+        "discriminator": {
+          "mapping": {
+            "assistant": "#/components/schemas/ChatAssistantMessage",
+            "developer": "#/components/schemas/ChatDeveloperMessage",
+            "system": "#/components/schemas/ChatSystemMessage",
+            "tool": "#/components/schemas/ChatToolMessage",
+            "user": "#/components/schemas/ChatUserMessage"
+          },
+          "propertyName": "role"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ChatSystemMessage"
+          },
+          {
+            "$ref": "#/components/schemas/ChatUserMessage"
+          },
+          {
+            "$ref": "#/components/schemas/ChatDeveloperMessage"
+          },
+          {
+            "$ref": "#/components/schemas/ChatAssistantMessage"
+          },
+          {
+            "$ref": "#/components/schemas/ChatToolMessage"
+          }
+        ]
+      },
+      "ChatSystemMessage": {
+        "properties": {
+          "configuration_update": {
+            "additionalProperties": false,
+            "properties": {
+              "reasoning": {
+                "$ref": "#/components/schemas/ConfigurationUpdateReasoning"
+              }
+            },
+            "required": [
+              "reasoning"
+            ],
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "content": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ChatContentText"
+                },
+                "type": "array"
+              }
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "system"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "content"
+        ],
+        "type": "object"
+      },
+      "ChatDeveloperMessage": {
+        "properties": {
+          "configuration_update": {
+            "additionalProperties": false,
+            "properties": {
+              "reasoning": {
+                "$ref": "#/components/schemas/ConfigurationUpdateReasoning"
+              }
+            },
+            "required": [
+              "reasoning"
+            ],
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "content": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ChatContentText"
+                },
+                "type": "array"
+              }
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "developer"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "content"
+        ],
+        "type": "object"
+      },
+      "ChatUserMessage": {
+        "properties": {
+          "content": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ChatContentItems"
+                },
+                "type": "array"
+              }
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "user"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "content"
+        ],
+        "type": "object"
+      },
       "ChatFinishReasonEnum": {
         "enum": [
           "tool_calls",
