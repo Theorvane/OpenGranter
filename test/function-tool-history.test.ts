@@ -430,3 +430,82 @@ test('tool history preserves shared IAM gates and safe failed-attempt accounting
     );
   }
 });
+test('direct and delegated invokers forward matched single-captured function history before credential mutation', async () => {
+  for (const kind of ['openai', 'openrouter'] as const) {
+    let argumentsReads = 0;
+    let resultReads = 0;
+    const operation = Object.defineProperty({ name: 'lookup' }, 'arguments', {
+      enumerable: true,
+      get: () => {
+        argumentsReads++;
+        return argumentsReads === 1 ? 'private original' : 42;
+      },
+    });
+    const result = Object.defineProperty(
+      { role: 'tool', content: 'private result' },
+      'tool_call_id',
+      {
+        enumerable: true,
+        get: () => {
+          resultReads++;
+          return resultReads <= 2 ? 'call' : 'different';
+        },
+      },
+    );
+    const messages = [
+      { role: 'assistant', tool_calls: [{ id: 'call', type: 'function', function: operation }] },
+      result,
+    ];
+    const f = adapter(kind, undefined, () => {
+      operation.name = 'changed';
+    });
+    await f.call(input({ messages }) as unknown as ChatRequest);
+    assert.equal(argumentsReads, 1);
+    assert.equal(resultReads, 1);
+    assert.deepEqual(f.sent[0]?.messages, [
+      {
+        role: 'assistant',
+        content: null,
+        tool_calls: [
+          {
+            id: 'call',
+            type: 'function',
+            function: { name: 'lookup', arguments: 'private original' },
+          },
+        ],
+      },
+      { role: 'tool', content: 'private result', tool_call_id: 'call' },
+    ]);
+    assert.equal(f.secrets(), 1);
+  }
+});
+test('malformed first function captures and throwing accessors fail safely before native credentials', async () => {
+  for (const kind of kinds)
+    for (const throwing of [false, true]) {
+      let reads = 0;
+      const operation = Object.defineProperty({ name: 'lookup' }, 'arguments', {
+        enumerable: true,
+        get: () => {
+          reads++;
+          if (throwing) throw new Error('private accessor fixture-key');
+          return reads === 1 ? 42 : '{}';
+        },
+      });
+      const messages = [
+        { role: 'assistant', tool_calls: [{ id: 'call', type: 'function', function: operation }] },
+        { role: 'tool', content: 'private result', tool_call_id: 'call' },
+      ];
+      const f = adapter(kind);
+      await assert.rejects(
+        () => f.call(input({ messages }) as unknown as ChatRequest),
+        (error: unknown) => {
+          assert.doesNotMatch(JSON.stringify(error), /private|fixture-key/u);
+          assert.doesNotMatch(error instanceof Error ? error.message : '', /private|fixture-key/u);
+          return true;
+        },
+      );
+      assert.equal(reads, 1);
+      assert.equal(f.secrets(), 0);
+      assert.equal(f.sent.length, 0);
+    }
+});
