@@ -364,7 +364,7 @@ for (const kind of ['openai', 'anthropic'] as const)
     await assert.rejects(invoke(candidate, input({ messages: signedHistory }) as ChatRequest));
     assert.equal(keys, 0);
   });
-for (const mode of ['google-text', 'google-function'] as const)
+for (const mode of ['google-text', 'function'] as const)
   test(`${mode} rejects signed history before native credentials`, async () => {
     const f = fixture();
     await assert.rejects(

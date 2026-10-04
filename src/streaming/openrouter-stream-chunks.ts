@@ -1,4 +1,8 @@
 import { normalizeChatUsage } from '../providers/chat-usage.ts';
+import {
+  type GoogleThoughtSignatureContent,
+  snapshotGoogleThoughtSignature,
+} from '../providers/google-thought-signature.ts';
 import { type ReasoningDetail, snapshotReasoningDetails } from '../providers/reasoning-details.ts';
 
 type FinishReason = 'stop' | 'length' | 'content_filter';
@@ -44,6 +48,7 @@ export interface FunctionCallFragment {
   readonly id?: string;
   readonly type?: 'function';
   readonly function?: { readonly name?: string; readonly arguments?: string };
+  readonly extra_content?: GoogleThoughtSignatureContent;
 }
 
 type TextDelta = Extract<OpenRouterTextStreamPayload, { kind: 'delta' }>;
@@ -81,7 +86,10 @@ function hasOwn(value: Record<string, unknown>, key: string): boolean {
 }
 
 /** Capture bounded function fragments for decoder and client projection. */
-export function snapshotFunctionCallFragments(value: unknown): readonly FunctionCallFragment[] {
+export function snapshotFunctionCallFragments(
+  value: unknown,
+  allowGoogleSignatures = false,
+): readonly FunctionCallFragment[] {
   if (!Array.isArray(value)) throw invalidChunk();
   const length = value.length;
   if (!Number.isSafeInteger(length) || length < 0 || length > 128) throw invalidChunk();
@@ -92,7 +100,16 @@ export function snapshotFunctionCallFragments(value: unknown): readonly Function
     const call = record(item);
     if (
       !call ||
-      Object.keys(call).some((key) => !['index', 'id', 'type', 'function'].includes(key))
+      Object.keys(call).some(
+        (key) =>
+          ![
+            'index',
+            'id',
+            'type',
+            'function',
+            ...(allowGoogleSignatures ? ['extra_content'] : []),
+          ].includes(key),
+      )
     )
       throw invalidChunk();
     const index = call.index;
@@ -127,12 +144,21 @@ export function snapshotFunctionCallFragments(value: unknown): readonly Function
       });
     }
     indices.add(index);
+    let extra: GoogleThoughtSignatureContent | undefined;
+    if (hasOwn(call, 'extra_content')) {
+      try {
+        extra = snapshotGoogleThoughtSignature(call.extra_content);
+      } catch {
+        throw invalidChunk();
+      }
+    }
     result.push(
       Object.freeze({
         index,
         ...(hasId ? { id: id as string } : {}),
         ...(hasType ? { type: 'function' as const } : {}),
         ...(operation === undefined ? {} : { function: operation }),
+        ...(extra === undefined ? {} : { extra_content: extra }),
       }),
     );
   }

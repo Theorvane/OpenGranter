@@ -362,7 +362,7 @@ for (const parts of [
   [{ functionCall: { name: 'bad.name', args: {} } }],
   [{ functionCall: { name: 'lookup', args: {}, partialArgs: [] } }],
   [{ functionCall: { name: 'lookup', args: {}, willContinue: true } }],
-  [{ ...functionPart(), thoughtSignature: 'private signature' }],
+  [{ ...functionPart(), thoughtSignature: 42 }],
   [{ ...functionPart(), thought: true }],
   [{ ...functionPart(), text: 'private text' }],
   [functionPart('one', { q: Array.from({ length: 20001 }, () => null) })],

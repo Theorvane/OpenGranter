@@ -68,7 +68,7 @@ function encodeSse(event: OpenRouterFunctionStreamPayload, functions: boolean): 
   let calls: ReturnType<typeof snapshotFunctionCallFragments> | undefined;
   if (hasCalls && event.kind === 'delta') {
     try {
-      calls = snapshotFunctionCallFragments(event.toolCalls);
+      calls = snapshotFunctionCallFragments(event.toolCalls, true);
     } catch {
       unsupported();
     }

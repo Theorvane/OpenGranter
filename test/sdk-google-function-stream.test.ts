@@ -69,7 +69,7 @@ type Failure =
   | 'missing'
   | 'idless'
   | 'cancel';
-function fixture() {
+function fixture(signed = false) {
   let failure: Failure | undefined,
     auth = 0,
     secrets = 0,
@@ -128,6 +128,19 @@ function fixture() {
         message.parts.some((part) => 'functionResponse' in part),
       );
       const events = native(answered, model, failure === 'missing');
+      if (signed && answered) {
+        const contents = body.contents as {
+          parts: { functionCall?: unknown; thoughtSignature?: string }[];
+        }[];
+        const replay = contents.flatMap((c) => c.parts).find((p) => p.functionCall !== undefined);
+        if (replay?.thoughtSignature !== 'private-signature+/==')
+          return new Response('private missing signature', { status: 400 });
+      }
+      if (signed && !answered) {
+        const part = events[0]?.candidates[0]?.content.parts[0];
+        assert.ok(part);
+        Object.assign(part, { thoughtSignature: 'private-signature+/==' });
+      }
       if (failure === 'idless')
         for (const event of events)
           for (const part of event.candidates[0]?.content.parts ?? [])
@@ -230,6 +243,7 @@ function fixture() {
   };
 }
 type SdkFragment = {
+  extra_content?: { google: { thought_signature: string } };
   index: number;
   id?: string | undefined;
   type?: string | undefined;
@@ -240,6 +254,7 @@ function projectCalls(calls: readonly SdkFragment[]): readonly FunctionCallFragm
     assert.ok(call.type === undefined || call.type === 'function');
     return {
       index: call.index,
+      ...(call.extra_content === undefined ? {} : { extra_content: call.extra_content }),
       ...(call.id === undefined ? {} : { id: call.id }),
       ...(call.type === undefined ? {} : { type: 'function' as const }),
       ...(call.function === undefined
@@ -380,7 +395,12 @@ async function collect(stream: AsyncIterable<Chunk>) {
 function assemble(chunks: readonly Chunk[]) {
   const calls = new Map<
     number,
-    { id: string; type: 'function'; function: { name: string; arguments: string } }
+    {
+      id: string;
+      type: 'function';
+      function: { name: string; arguments: string };
+      extra_content?: { google: { thought_signature: string } };
+    }
   >();
   for (const chunk of chunks) {
     assert.equal(chunk.model, 'chat');
@@ -391,6 +411,7 @@ function assemble(chunks: readonly Chunk[]) {
         function: { name: '', arguments: '' },
       };
       if (part.id !== undefined) call.id = part.id;
+      if (part.extra_content !== undefined) call.extra_content = part.extra_content;
       if (part.function?.name !== undefined) call.function.name = part.function.name;
       call.function.arguments += part.function?.arguments ?? '';
       calls.set(part.index, call);
@@ -658,3 +679,109 @@ test('native function capability cannot activate an unwired delegated function r
   assert.equal(upstream, 0);
   assert.equal(f.counts().secrets, 0);
 });
+
+for (const base of ['/v1', '/api/v1'])
+  for (const kind of ['openai', 'openrouter'] as const)
+    test(`signed Gemini stream ${kind} ${base} preserves extension or measures SDK stripping`, async () => {
+      const f = fixture(true);
+      await socket(kind, base, f, async (send) => {
+        const chunks = await collect(send(first));
+        const calls = assemble(chunks);
+        assert.equal(calls.length, 2);
+        assert.equal(chunks.at(-1)?.tokens, 7);
+        if (kind === 'openai') {
+          assert.deepEqual(calls[0]?.extra_content, {
+            google: { thought_signature: 'private-signature+/==' },
+          });
+          assert.equal(calls[1]?.extra_content, undefined);
+          const next = await collect(send(continuation(calls)));
+          assert.equal(next.at(-1)?.tokens, 7);
+          assert.ok(next.some((c) => c.content === 'private final answer'));
+          f.fail('provider');
+          await rejected(() => collect(send(continuation(calls))), 403);
+          assert.equal(f.counts().secrets, 2);
+        } else {
+          assert.equal(calls[0]?.extra_content, undefined);
+          await rejected(() => collect(send(continuation(calls))));
+          assert.equal(f.usage[1]?.outcome, 'failed');
+          assert.equal(f.usage[1]?.possiblyBilled, true);
+        }
+        privacy(f);
+      });
+    });
+
+for (const base of ['/v1', '/api/v1']) {
+  for (const variant of [
+    undefined,
+    'auth',
+    'model',
+    'provider',
+    'limit',
+    'selection',
+    'usage',
+    'audit',
+    'pre',
+    'mid',
+    'invalid',
+    'missing',
+  ] as const)
+    test(`raw signed Gemini stream ${base} retains ${variant ?? 'success'} gate and privacy`, async () => {
+      const f = fixture(true);
+      if (variant !== undefined) f.fail(variant);
+      const server = createNodeChatServer(f.ports);
+      await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+      try {
+        const response = await fetch(
+          `http://127.0.0.1:${(server.address() as AddressInfo).port}${base}/chat/completions`,
+          {
+            method: 'POST',
+            headers: {
+              authorization: 'Bearer fixture-proxy-key',
+              'content-type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'chat',
+              messages: first.messages,
+              tools,
+              stream: true,
+              stream_options: { include_usage: true },
+              max_tokens: 200,
+            }),
+          },
+        );
+        const status =
+          variant === 'auth'
+            ? 401
+            : variant === 'model' || variant === 'provider'
+              ? 403
+              : variant === 'limit'
+                ? 429
+                : variant === 'selection'
+                  ? 503
+                  : variant === 'pre' || variant === 'invalid'
+                    ? 502
+                    : 200;
+        assert.equal(response.status, status);
+        const wire = await response.text();
+        assert.doesNotMatch(
+          wire,
+          /private ledger|private audit|private upstream error|fixture-upstream-key/u,
+        );
+        if (status === 200) {
+          assert.ok(wire.includes('private-signature+/=='));
+          const failed = variant === 'mid' || variant === 'usage' || variant === 'audit';
+          assert.equal(wire.includes('[DONE]'), !failed);
+          assert.equal(wire.includes('"total_tokens":7'), !failed && variant !== 'missing');
+        }
+        if (['auth', 'model', 'provider', 'limit', 'selection'].includes(variant ?? ''))
+          assert.equal(f.counts().secrets, 0);
+        else assert.equal(f.counts().secrets, 1);
+        privacy(f);
+      } finally {
+        server.closeAllConnections();
+        await new Promise<void>((resolve, reject) =>
+          server.close((e) => (e ? reject(e) : resolve())),
+        );
+      }
+    });
+}

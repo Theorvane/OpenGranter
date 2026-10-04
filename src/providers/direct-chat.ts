@@ -618,7 +618,8 @@ export function createDirectChatTransport(
     try {
       messages = snapshotChatMessages(request.messages);
       if (
-        (registration.kind !== 'google' || streaming !== false) &&
+        (registration.kind !== 'google' ||
+          (streaming !== false && streaming !== 'google-function')) &&
         messages.some((message) =>
           message.tool_calls?.some((call) => call.extra_content !== undefined),
         )
