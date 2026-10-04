@@ -3,7 +3,13 @@ import { createHash } from 'node:crypto';
 export const OFFICIAL_SCHEMA_URL = 'https://openrouter.ai/openapi.json';
 const REQUEST_REF = '#/components/schemas/ChatRequest';
 const RESPONSE_REF = '#/components/schemas/ChatResult';
-const RESPONSE_DEFINITION_NAMES = ['ChatResult', 'ChatChoice', 'ChatAssistantMessage'] as const;
+const RESPONSE_DEFINITION_NAMES = [
+  'ChatResult',
+  'ChatChoice',
+  'ChatAssistantMessage',
+  'ChatTokenLogprobs',
+  'ChatTokenLogprob',
+] as const;
 const REASONING_DEFINITION_NAMES = [
   'ChatReasoningDetails',
   'ChatStreamReasoningDetails',
@@ -36,6 +42,8 @@ const FIELD_NAMES = [
   'seed',
   'top_k',
   'logit_bias',
+  'logprobs',
+  'top_logprobs',
   'tools',
   'tool_choice',
   'parallel_tool_calls',
@@ -302,7 +310,7 @@ export function validateSchemaPin(value: unknown): { projection: SchemaProjectio
   try {
     const data = record(value);
     if (
-      data?.version !== 19 ||
+      data?.version !== 20 ||
       data.source !== OFFICIAL_SCHEMA_URL ||
       typeof data.retrievedAt !== 'string' ||
       !/^\d{4}-\d{2}-\d{2}$/.test(data.retrievedAt) ||

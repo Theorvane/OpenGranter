@@ -1,9 +1,9 @@
 {
-  "version": 19,
+  "version": 20,
   "source": "https://openrouter.ai/openapi.json",
-  "retrievedAt": "2026-10-04",
+  "retrievedAt": "2026-10-05",
   "sourceSha256": "b818343bf2417ad8abdef9ceeea45140db6e06670d7fa54356591cd3304dd3f5",
-  "projectionSha256": "5a755dd0e25db8752dfd48b8a74ab98344e8498f9c0d925ccbb3effed689a55c",
+  "projectionSha256": "08b4cca26b19bb4aadde75cc0e1f5ef53707fb08c5c0ba17890a10e48c8a92ea",
   "projection": {
     "openapi": "3.1.0",
     "documentVersion": "1.0.0",
@@ -144,6 +144,91 @@
         },
         "required": [
           "role"
+        ],
+        "type": "object"
+      },
+      "ChatTokenLogprobs": {
+        "properties": {
+          "content": {
+            "items": {
+              "$ref": "#/components/schemas/ChatTokenLogprob"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "refusal": {
+            "items": {
+              "$ref": "#/components/schemas/ChatTokenLogprob"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "content"
+        ],
+        "type": [
+          "object",
+          "null"
+        ]
+      },
+      "ChatTokenLogprob": {
+        "properties": {
+          "bytes": {
+            "items": {
+              "type": "integer"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "logprob": {
+            "format": "double",
+            "type": "number"
+          },
+          "token": {
+            "type": "string"
+          },
+          "top_logprobs": {
+            "items": {
+              "properties": {
+                "bytes": {
+                  "items": {
+                    "type": "integer"
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                },
+                "logprob": {
+                  "format": "double",
+                  "type": "number"
+                },
+                "token": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "token",
+                "logprob",
+                "bytes"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "token",
+          "logprob",
+          "bytes",
+          "top_logprobs"
         ],
         "type": "object"
       }
@@ -686,6 +771,18 @@
         },
         "type": [
           "object",
+          "null"
+        ]
+      },
+      "logprobs": {
+        "type": [
+          "boolean",
+          "null"
+        ]
+      },
+      "top_logprobs": {
+        "type": [
+          "integer",
           "null"
         ]
       },

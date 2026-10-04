@@ -496,6 +496,10 @@ function source(): Record<string, unknown> {
     tool_calls: structuredClone(pinned.projection.toolMessages.ChatAssistantMessage.schema),
   });
   Object.assign(data.components.schemas, structuredClone(pinned.projection.responseDefinitions));
+  Object.assign(data.components.schemas.ChatRequest.properties, {
+    logprobs: { type: ['boolean', 'null'] },
+    top_logprobs: { type: ['integer', 'null'] },
+  });
   Object.assign(data.components.schemas, structuredClone(pinned.projection.usageDefinitions));
   Object.assign(data.components.schemas, structuredClone(reasoningShapes));
   return data;
@@ -510,6 +514,7 @@ test('official projection and reviewed pin agree; key order is immaterial', () =
   assert.deepEqual(Object.keys(projectOfficialSchema(source()).fields).sort(), [
     'frequency_penalty',
     'logit_bias',
+    'logprobs',
     'max_completion_tokens',
     'max_tokens',
     'messages',
@@ -530,6 +535,7 @@ test('official projection and reviewed pin agree; key order is immaterial', () =
     'tools',
     'top_a',
     'top_k',
+    'top_logprobs',
     'top_p',
   ]);
 });
@@ -821,8 +827,8 @@ for (const name of ['ChatFormatTextConfig', 'ChatFormatJsonObjectConfig']) {
     }
   });
 }
-test('version-19 pin retains exact selected definitions', () => {
-  assert.equal(pinned.version, 19);
+test('version-20 pin retains exact selected definitions', () => {
+  assert.equal(pinned.version, 20);
   const definitions = (
     projectOfficialSchema(source()) as unknown as { definitions: Record<string, unknown> }
   ).definitions;
@@ -994,8 +1000,8 @@ test('message selections ignore editorial annotations but detect content and req
   for (const value of Object.values(projected.messageNames))
     assert.deepEqual(value, { schema: { type: 'string' }, required: false });
 });
-test('version-19 message maps reject stale and rehashed malformed pins', () => {
-  for (const version of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18])
+test('version-20 message maps reject stale and rehashed malformed pins', () => {
+  for (const version of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19])
     assert.throws(() => validateSchemaPin({ ...pinned, version }), /Invalid schema pin/);
   for (const messageNames of [
     undefined,
@@ -1242,6 +1248,8 @@ test('nonstream response projection selects the fixed success reference and exac
     'ChatAssistantMessage',
     'ChatChoice',
     'ChatResult',
+    'ChatTokenLogprob',
+    'ChatTokenLogprobs',
   ]);
 });
 
