@@ -13,30 +13,21 @@ const chat = {
   messages: [{ role: 'user', content: 'private prompt' }],
   stream: true,
 };
-function nativeSse(usage: unknown = { input_tokens: 2, output_tokens: 1 }) {
+function nativeSse(
+  usage: unknown = { promptTokenCount: 2, candidatesTokenCount: 1, totalTokenCount: 3 },
+) {
   return [
     {
-      type: 'message_start',
-      message: {
-        id: 's',
-        type: 'message',
-        role: 'assistant',
-        model: 'native',
-        content: [],
-        stop_reason: null,
-        stop_sequence: null,
-        usage: usage === null ? null : { input_tokens: 2, output_tokens: 0 },
-      },
+      responseId: 's',
+      modelVersion: 'native',
+      candidates: [{ index: 0, content: { role: 'model', parts: [{ text: 'private answer' }] } }],
     },
-    { type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } },
     {
-      type: 'content_block_delta',
-      index: 0,
-      delta: { type: 'text_delta', text: 'private answer' },
+      responseId: 's',
+      modelVersion: 'native',
+      candidates: [{ index: 0, finishReason: 'STOP' }],
+      usageMetadata: usage,
     },
-    { type: 'content_block_stop', index: 0 },
-    { type: 'message_delta', delta: { stop_reason: 'end_turn', stop_sequence: null }, usage },
-    { type: 'message_stop' },
   ]
     .map((e) => 'data: ' + JSON.stringify(e) + '\n\n')
     .join('');
@@ -49,23 +40,26 @@ function fixture() {
   const adapter = createRegisteredDirectTextStreamInvoker({
     registrations: [
       {
-        providerId: 'anthropic',
-        kind: 'anthropic',
-        credentialRef: 'secret/anthropic',
+        providerId: 'google',
+        kind: 'google',
+        credentialRef: 'secret/google',
         maxOutputTokens: 100,
       },
     ],
     resolveSecret: async (ref) => {
       secrets++;
-      assert.equal(ref, 'secret/anthropic');
+      assert.equal(ref, 'secret/google');
       return 'fixture-native-key';
     },
     fetcher: async (url, init) => {
       calls++;
-      assert.equal(String(url), 'https://api.anthropic.com/v1/messages');
+      assert.equal(
+        String(url),
+        'https://generativelanguage.googleapis.com/v1beta/models/native:streamGenerateContent?alt=sse',
+      );
       const body = JSON.parse(String(init?.body));
-      assert.equal(body.model, 'native');
-      assert.equal(body.stream, true);
+      assert.equal(body.model, undefined);
+      assert.equal(body.stream, undefined);
       assert.equal(body.stream_options, undefined);
       return new Response(nativeSse(), { headers: { 'content-type': 'text/event-stream' } });
     },
@@ -82,9 +76,7 @@ function fixture() {
     resolveRoute: async () => ({
       kind: 'managed',
       version: 'v',
-      candidates: [
-        { id: 'one', kind: 'managed', providerId: 'anthropic', upstreamModelId: 'native' },
-      ],
+      candidates: [{ id: 'one', kind: 'managed', providerId: 'google', upstreamModelId: 'native' }],
     }),
     checkLimit: async () => true,
     resolveSecret: async () => {
@@ -119,7 +111,7 @@ for (const base of ['/v1', '/api/v1'])
     assert.ok(body.includes('"model":"alias"'));
     assert.ok(body.endsWith('data: [DONE]\n\n'));
     assert.equal(f.calls(), 1);
-    assert.equal(f.records[0]?.actualInferenceProviderId, 'anthropic');
+    assert.equal(f.records[0]?.actualInferenceProviderId, 'google');
     assert.equal(f.records[0]?.outcome, 'succeeded');
     assert.ok(!JSON.stringify([...f.records, ...f.audits]).includes('private'));
   });
@@ -139,7 +131,7 @@ for (const reason of ['auth', 'model', 'provider', 'limit', 'missing-port'] as c
           {
             effect: 'Deny',
             actions: ['llm:*'],
-            resources: [reason === 'model' ? 'model:alias' : 'provider:anthropic'],
+            resources: [reason === 'model' ? 'model:alias' : 'provider:google'],
           },
         ],
       });
@@ -182,28 +174,6 @@ for (const extra of [
     assert.equal(f.secrets(), 0);
     assert.equal(f.calls(), 0);
   });
-for (const kind of ['google'] as const)
-  test(`managed stream rejects absent candidate registration before native keys`, async () => {
-    const f = fixture();
-    let secrets = 0;
-    const response = await createChatHandler({
-      ...f.ports,
-      invokeDirectTextStream: createRegisteredDirectTextStreamInvoker({
-        registrations: [
-          { providerId: 'unregistered', kind, maxOutputTokens: 100, credentialRef: 'secret/other' },
-        ],
-        fetcher: async () => {
-          assert.fail('unexpected native fetch');
-        },
-        resolveSecret: async () => {
-          secrets++;
-          return 'fixture-key';
-        },
-      }),
-    })(f.request());
-    assert.equal(response.status, 502);
-    assert.equal(secrets, 0);
-  });
 for (const failure of ['usage', 'audit'] as const)
   test(`managed public stream fails closed at required ${failure}`, async () => {
     const f = fixture();
@@ -233,7 +203,11 @@ for (const clientKind of ['openai-v1', 'openai-api', 'openrouter-v1', 'openroute
       const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}${clientKind.endsWith('-v1') ? '/v1' : '/api/v1'}`;
       const chunks: unknown[] = [];
       if (clientKind.startsWith('openrouter')) {
-        const stream = await new OpenRouter({ apiKey: 'proxy', serverURL: base }).chat.send({
+        const stream = await new OpenRouter({
+          apiKey: 'proxy',
+          serverURL: base,
+          retryConfig: { strategy: 'none' },
+        }).chat.send({
           chatRequest: {
             model: 'alias',
             messages: [{ role: 'user', content: 'private prompt' }],
@@ -243,9 +217,15 @@ for (const clientKind of ['openai-v1', 'openai-api', 'openrouter-v1', 'openroute
         assert.ok(Symbol.asyncIterator in stream);
         for await (const chunk of stream) chunks.push(chunk);
       } else {
-        const stream = await new OpenAI({ apiKey: 'proxy', baseURL: base }).chat.completions.create(
-          { ...chat, stream: true, messages: [{ role: 'user', content: 'private prompt' }] },
-        );
+        const stream = await new OpenAI({
+          apiKey: 'proxy',
+          baseURL: base,
+          maxRetries: 0,
+        }).chat.completions.create({
+          ...chat,
+          stream: true,
+          messages: [{ role: 'user', content: 'private prompt' }],
+        });
         for await (const chunk of stream) chunks.push(chunk);
       }
       assert.ok(JSON.stringify(chunks).includes('private answer'));
@@ -266,9 +246,9 @@ test('managed native missing usage stays unavailable without fabricated client c
     invokeDirectTextStream: createRegisteredDirectTextStreamInvoker({
       registrations: [
         {
-          providerId: 'anthropic',
-          kind: 'anthropic',
-          credentialRef: 'secret/anthropic',
+          providerId: 'google',
+          kind: 'google',
+          credentialRef: 'secret/google',
           maxOutputTokens: 100,
         },
       ],
@@ -295,9 +275,9 @@ test('actual SDK abort cancels native body and records a failed billed managed a
   const adapter = createRegisteredDirectTextStreamInvoker({
     registrations: [
       {
-        providerId: 'anthropic',
-        kind: 'anthropic',
-        credentialRef: 'secret/anthropic',
+        providerId: 'google',
+        kind: 'google',
+        credentialRef: 'secret/google',
         maxOutputTokens: 100,
       },
     ],
@@ -350,4 +330,27 @@ test('actual SDK abort cancels native body and records a failed billed managed a
       server.close((error) => (error ? reject(error) : resolve())),
     );
   }
+});
+
+test('Google partial usage remains partial in the ledger and never invents a client total', async () => {
+  const f = fixture();
+  const result = await createChatHandler({
+    ...f.ports,
+    invokeDirectTextStream: createRegisteredDirectTextStreamInvoker({
+      registrations: [{ providerId: 'google', kind: 'google', credentialRef: 'secret/google' }],
+      resolveSecret: async () => 'fixture-key',
+      fetcher: async () =>
+        new Response(nativeSse({ promptTokenCount: 2, candidatesTokenCount: 3 }), {
+          headers: { 'content-type': 'text/event-stream' },
+        }),
+    }),
+  })(f.request());
+  assert.equal(result.status, 200);
+  const body = await result.text();
+  assert.ok(body.endsWith('data: [DONE]\n\n'));
+  assert.ok(!body.includes('total_tokens'));
+  assert.equal(f.records[0]?.usage.status, 'partial');
+  assert.equal(f.records[0]?.usage.totalTokens, null);
+  assert.equal(f.records[0]?.usage.promptTokens, 2);
+  assert.equal(f.records[0]?.usage.completionTokens, 3);
 });
