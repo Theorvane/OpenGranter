@@ -1,9 +1,9 @@
 {
-  "version": 18,
+  "version": 19,
   "source": "https://openrouter.ai/openapi.json",
   "retrievedAt": "2026-10-04",
   "sourceSha256": "b818343bf2417ad8abdef9ceeea45140db6e06670d7fa54356591cd3304dd3f5",
-  "projectionSha256": "70f384c2ab341bdca6a0ae570938540c714d9e89fec499e7e748bfba33f096a3",
+  "projectionSha256": "5a755dd0e25db8752dfd48b8a74ab98344e8498f9c0d925ccbb3effed689a55c",
   "projection": {
     "openapi": "3.1.0",
     "documentVersion": "1.0.0",
@@ -1288,6 +1288,37 @@
           "object",
           "null"
         ]
+      },
+      "ChatStreamToolCall": {
+        "properties": {
+          "function": {
+            "properties": {
+              "arguments": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "id": {
+            "type": "string"
+          },
+          "index": {
+            "type": "integer"
+          },
+          "type": {
+            "enum": [
+              "function"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "index"
+        ],
+        "type": "object"
       }
     },
     "messageNames": {

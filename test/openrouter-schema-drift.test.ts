@@ -585,6 +585,7 @@ const streamDefinitions = [
   'ChatStreamChoice',
   'ChatStreamDelta',
   'ChatStreamOptions',
+  'ChatStreamToolCall',
 ];
 test('official projection selects streaming response definitions', () => {
   const projected = projectOfficialSchema(source()) as unknown as {
@@ -820,8 +821,8 @@ for (const name of ['ChatFormatTextConfig', 'ChatFormatJsonObjectConfig']) {
     }
   });
 }
-test('version-18 pin retains exact selected definitions', () => {
-  assert.equal(pinned.version, 18);
+test('version-19 pin retains exact selected definitions', () => {
+  assert.equal(pinned.version, 19);
   const definitions = (
     projectOfficialSchema(source()) as unknown as { definitions: Record<string, unknown> }
   ).definitions;
@@ -993,8 +994,8 @@ test('message selections ignore editorial annotations but detect content and req
   for (const value of Object.values(projected.messageNames))
     assert.deepEqual(value, { schema: { type: 'string' }, required: false });
 });
-test('version-18 message maps reject stale and rehashed malformed pins', () => {
-  for (const version of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17])
+test('version-19 message maps reject stale and rehashed malformed pins', () => {
+  for (const version of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18])
     assert.throws(() => validateSchemaPin({ ...pinned, version }), /Invalid schema pin/);
   for (const messageNames of [
     undefined,
@@ -2192,4 +2193,80 @@ test('rehashed reasoning field and summary definition maps and old pins reject s
         /Invalid schema pin/,
       );
     }
+});
+
+const fragmentShape = {
+  type: 'object',
+  required: ['index'],
+  properties: {
+    index: { type: 'integer' },
+    id: { type: 'string' },
+    type: { type: 'string', enum: ['function'] },
+    function: {
+      type: 'object',
+      properties: { name: { type: 'string' }, arguments: { type: 'string' } },
+    },
+  },
+};
+function fragmentSource() {
+  const data = source();
+  const schemas = (data.components as { schemas: Record<string, unknown> }).schemas;
+  schemas.ChatStreamToolCall = structuredClone(fragmentShape);
+  return data;
+}
+test('selects the transitive function fragment target rather than only its parent reference', () => {
+  const projected = projectOfficialSchema(fragmentSource());
+  assert.deepEqual(projected.streamDefinitions.ChatStreamToolCall, fragmentShape);
+  assert.deepEqual(
+    Object.keys(projected.streamDefinitions).sort(),
+    [
+      'ChatStreamChunk',
+      'ChatStreamChoice',
+      'ChatStreamDelta',
+      'ChatStreamOptions',
+      'ChatStreamToolCall',
+    ].sort(),
+  );
+});
+test('unchanged parent references cannot hide nested function fragment drift', () => {
+  for (const alter of [
+    (shape: typeof fragmentShape) => {
+      shape.required.push('id');
+    },
+    (shape: typeof fragmentShape) => {
+      shape.properties.index.type = 'number';
+    },
+    (shape: typeof fragmentShape) => {
+      shape.properties.id.type = 'integer';
+    },
+    (shape: typeof fragmentShape) => {
+      shape.properties.type.enum.push('custom');
+    },
+    (shape: typeof fragmentShape) => {
+      shape.properties.function.properties.name.type = 'integer';
+    },
+    (shape: typeof fragmentShape) => {
+      shape.properties.function.properties.arguments.type = 'object';
+    },
+  ]) {
+    const data = fragmentSource(),
+      schemas = (data.components as { schemas: Record<string, unknown> }).schemas;
+    alter(schemas.ChatStreamToolCall as typeof fragmentShape);
+    assert.equal(compareOfficialSchema(data, pinned), false);
+  }
+});
+test('function fragment annotations are ignored but malformed missing targets reject', () => {
+  const data = fragmentSource(),
+    schemas = (data.components as { schemas: Record<string, unknown> }).schemas;
+  schemas.ChatStreamToolCall = {
+    ...fragmentShape,
+    description: 'editorial',
+    example: { private: 'ignored' },
+  };
+  assert.equal(compareOfficialSchema(data, pinned), true);
+  for (const value of [undefined, null, [], 42, 'private']) {
+    const data = fragmentSource();
+    (data.components as { schemas: Record<string, unknown> }).schemas.ChatStreamToolCall = value;
+    assert.throws(() => projectOfficialSchema(data), /Invalid official schema/);
+  }
 });

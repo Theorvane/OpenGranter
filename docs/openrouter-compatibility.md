@@ -37,7 +37,7 @@ Tools with a hardcoded openrouter.ai host need a configurable endpoint or an int
 
 ## Current conformance checkpoint (2026-10-05)
 
-The version-18 pin tracks twenty-three selected request fields, fourteen selected request/history definitions, four stream definitions, three successful-response definitions, three usage/billing definitions and eight reasoning definitions, plus the selected message-name and tool-history maps. The message-role union and complete system/developer/user definitions are now selected; whole assistant/tool schemas remain tracked through their existing maps. Structural drift coverage does not validate every runtime instance or certify every referenced capability. In particular, server-tool schema coverage does not enable server tools, and the documented verbosity/native-finish extensions remain outside the published chat schema or pinned OpenRouter SDK surface.
+The version-19 pin tracks twenty-three selected request fields, fourteen selected request/history definitions, five stream definitions, three successful-response definitions, three usage/billing definitions and eight reasoning definitions, plus the selected message-name and tool-history maps. The message-role union and complete system/developer/user definitions are now selected; whole assistant/tool schemas remain tracked through their existing maps. Structural drift coverage does not validate every runtime instance or certify every referenced capability. In particular, server-tool schema coverage does not enable server tools, and the documented verbosity/native-finish extensions remain outside the published chat schema or pinned OpenRouter SDK surface.
 
 Actual OpenRouter 1.4.18 and OpenAI 7.23.0 SDK socket tests cover the supported subsets with controlled upstream fixtures. They do not certify named external applications or live model capability. Compatible /api/v1 completions project unavailable fingerprints to null and omit incomplete usage, while the ledger preserves known counters and missing/partial/invalid status. Legacy omissions/sparse usage and null stream fingerprints retain their measured SDK gaps. The pinned OpenRouter chat SDK strips native_finish_reason; raw HTTP and the OpenAI SDK preserve that extension.
 
@@ -559,3 +559,14 @@ envelope. A yielded error must be treated as failure by consumers; the gateway
 withholds final usage and DONE after required persistence or upstream failure.
 Conformance verifies error signaling and server accounting, not identical SDK
 exception behavior. No production or SDK version changes are made here.
+
+## Streamed function fragment schema drift selection
+
+- Extend selected streaming definitions from four to five by pinning the entire ChatStreamToolCall definition, including its inline function name and arguments. Keep 23 request fields and all other selected maps unchanged.
+- Preserve verified canonical source provenance from the cached 2026-10-04 official document; version 19 records the expanded projection, not a fresh full-source comparison.
+- Detect unchanged-parent nested structural drift and malformed or rehashed stale/extra/missing maps; editorial annotations remain ignored. Runtime bounds and exact-key rules remain local restrictions without invented source limits.
+- No service, IAM, audit, usage or request behavior changes. Named external-tool and broader structural coverage remain open under #116.
+
+See [plan](plans/364-stream-fragment-drift.md) and [contract](../contracts/stream-fragment-drift.md).
+Further client conformance, transitive schema drift and full #116 remain open;
+pin v18 is unchanged.
