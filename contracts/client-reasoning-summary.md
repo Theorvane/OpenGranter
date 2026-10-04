@@ -12,7 +12,7 @@ Capture the request field and nested summary once before async routing/credentia
 caller mutation cannot change the selected upstream body. Top-level reasoning_effort
 is independent: summary-only objects have no duplicated nested effort field.
 Nested effort is now supported under [its bounded alias contract](nested-reasoning-effort.md).
-Budgets and legacy include_reasoning stay rejected. Boolean exclusion follows
+Legacy include_reasoning stays rejected; budget follows its bounded contract below. Boolean exclusion follows
 [its documented subset](client-reasoning-exclusion.md).
 All direct OpenAI/Anthropic/Gemini providers reject supplied configurations, including
 {}, before credentials until explicit native mappings are defined.
@@ -52,3 +52,7 @@ existing effort alias and summary semantics remain unchanged.
 Optional boolean activation is covered by [its separate contract](client-reasoning-activation.md).
 Supplied enabled plus any nested effort or forwarded named shorthand remains
 outside that local subset pending raw-chat interaction clarification.
+
+Optional positive-safe-integer budget is covered by [its separate contract](client-reasoning-budget.md).
+Budget with any nested effort, forwarded named shorthand or supplied enabled stays
+outside that local subset pending source clarification; outer output caps stay unchanged.
