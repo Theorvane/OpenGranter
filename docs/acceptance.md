@@ -944,3 +944,13 @@ pin v18 is unchanged.
 See [plan](plans/356-delegated-function-stream.md) and [contract](../contracts/delegated-function-stream.md).
 Public HTTP function streams, transitive schema drift and full #116 remain open;
 pin v18 is unchanged.
+
+## Controlled function HTTP stream responses
+
+- A separate function HTTP response entry point uses the existing awaited bounded body handoff, cancellation and safe JSON or SSE error envelopes.
+- Function fragments are delivered as response content with identity-only error metadata; failure after delivery records a content-free stream interruption without replay.
+- Required usage/audit persistence precedes final usage and DONE. IAM/limit denial emits safe JSON before frames. Public request activation remains subsequent work.
+
+See [plan](plans/358-function-http-stream.md) and [contract](../contracts/function-http-stream.md).
+Public HTTP function streams, transitive schema drift and full #116 remain open;
+pin v18 is unchanged.
