@@ -1,4 +1,5 @@
 import { createOpenRouterChatInvoker } from '../providers/openrouter-chat.ts';
+import { createOpenRouterFunctionStreamInvoker } from '../providers/openrouter-function-stream.ts';
 import { createOpenRouterTextStreamInvoker } from '../providers/openrouter-stream.ts';
 import { createPostgresOpenRouterProviderMappingResolver } from '../providers/postgres-openrouter-mappings.ts';
 import {
@@ -9,7 +10,10 @@ import {
 export interface PostgresDualRouteChatHandlerPorts
   extends Omit<
     PostgresDirectChatHandlerPorts,
-    'invokeOpenRouter' | 'invokeOpenRouterTextStream' | 'resolveVerifiedProviderSlug'
+    | 'invokeOpenRouter'
+    | 'invokeOpenRouterTextStream'
+    | 'invokeOpenRouterFunctionStream'
+    | 'resolveVerifiedProviderSlug'
   > {}
 
 /** Compose both stored route kinds; caller owns migrations, secrets, limits, and resources. */
@@ -27,6 +31,13 @@ export async function createPostgresDualRouteChatHandler(
     resolveVerifiedProviderSlug: createPostgresOpenRouterProviderMappingResolver(ports.client),
     invokeOpenRouter: (credentialRef, attempt, request) =>
       createOpenRouterChatInvoker({ ...upstreamPorts, credentialRef })(attempt, request),
+    invokeOpenRouterFunctionStream: (credentialRef, attempt, request, onDelta, signal) =>
+      createOpenRouterFunctionStreamInvoker({ ...upstreamPorts, credentialRef })(
+        attempt,
+        request,
+        onDelta,
+        signal,
+      ),
     invokeOpenRouterTextStream: (credentialRef, attempt, request, onDelta, signal) =>
       createOpenRouterTextStreamInvoker({ ...upstreamPorts, credentialRef })(
         attempt,
