@@ -458,7 +458,7 @@ export function createDirectChatTransport(
 ): (
   candidate: RouteCandidate,
   request: ChatRequest,
-  streaming?: boolean | 'function' | 'anthropic-text' | 'google-text',
+  streaming?: boolean | 'function' | 'anthropic-function' | 'anthropic-text' | 'google-text',
   cancellation?: AbortSignal,
 ) => Promise<DirectChatTransportResult> {
   const registrations = snapshotDirectProviderRegistrations(ports.registrations);
@@ -615,12 +615,13 @@ export function createDirectChatTransport(
         snapshotStreamOptions(request.stream_options);
         if (
           registration.kind !==
-            (streaming === 'anthropic-text'
+            (streaming === 'anthropic-text' || streaming === 'anthropic-function'
               ? 'anthropic'
               : streaming === 'google-text'
                 ? 'google'
                 : 'openai') ||
           (streaming !== 'function' &&
+            streaming !== 'anthropic-function' &&
             (tools !== undefined ||
               toolChoice !== undefined ||
               parallelToolCalls !== undefined ||
