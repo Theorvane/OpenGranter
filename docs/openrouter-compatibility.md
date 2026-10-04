@@ -15,7 +15,7 @@ For tools supporting a configurable OpenRouter/OpenAI-compatible endpoint:
 - Base URL: `https://<gateway-host>/api/v1` (existing `/v1` also remains available).
 - API key: the user's OpenGranter proxy token; provider keys stay server held.
 - Model: an administrator-published alias visible to that token. An OpenRouter-style alias such as `openai/example-model` must be explicitly published; arbitrary model IDs do not become eligible.
-- Current text-chat request: model plus string-content messages (exact text-part arrays on supported roles also normalize to strings), optional stream false (or true for the delegated text-stream subset), optional n=1 and positive-integer max_tokens or max_completion_tokens and optional stop (string or up to four strings), optional top_p (finite number in 0..1), and optional temperature (finite number in 0..2; direct Anthropic 0..1). Discovery uses GET models; chat uses POST chat/completions relative to the base.
+- Current text-chat request: model plus string-content messages (exact text-part arrays on supported roles also normalize to strings), optional stream false (or true for the delegated text/function-stream subset when its trusted invoker is installed), optional n=1 and positive-integer max_tokens or max_completion_tokens and optional stop (string or up to four strings), optional top_p (finite number in 0..1), and optional temperature (finite number in 0..2; direct Anthropic 0..1). Discovery uses GET models; chat uses POST chat/completions relative to the base.
 
 Tools with a hardcoded openrouter.ai host need a configurable endpoint or an integration change. Path aliases alone do not make tools needing streaming, function calls or advanced parameters work.
 
@@ -23,11 +23,11 @@ Tools with a hardcoded openrouter.ai host need a configurable endpoint or an int
 
 | Area | Current state | Remaining acceptance gate |
 | --- | --- | --- |
-| Base paths and Bearer token | /api/v1 chat/models aliases; shared proxy authorization; pinned OpenAI SDK smoke tests | Direct/tool streaming SDK workflows and named external-tool registration tests |
+| Base paths and Bearer token | /api/v1 chat/models aliases; shared proxy authorization; pinned OpenAI SDK smoke tests | Direct streaming SDK workflows and named external-tool registration tests |
 | Model discovery | IAM-filtered aliases; optional administrator-published SDK-required discovery metadata and bounded offset/limit paging on /api/v1 | Metadata provisioning/refresh, broader filter queries, broader optional fields and complete discovery workflows |
 | Non-streaming text chat | One normalized choice with portable output/sampling controls, provider-bounded verbosity/effort, and delegated min_p/top_a/repetition_penalty | Remaining request/response schema, sampling and capability metadata |
-| Streaming | Delegated HTTP text/refusal/scalar/detail reasoning streams with bounded validation, awaited delivery, cancellation, final usage metadata and interruption audit | Direct-provider/tool/multimodal mappings, additional stream option fields, incomplete usage and full external-client conformance |
-| Tool calling | Validated function-tool requests, non-streaming assistant calls and text-only tool-result history for delegated OpenRouter/direct OpenAI | Server tools, rich content, native mappings and streaming |
+| Streaming | Delegated HTTP text/refusal/scalar/detail reasoning and indexed function streams with bounded validation, awaited delivery, cancellation, final usage metadata and interruption audit; both installed SDKs exercise function workflows on both bases | Direct-provider/multimodal and other tool variants, transitive fragment-schema drift, additional stream option fields and full named external-client conformance |
+| Tool calling | Validated function-tool requests and complete text-only result histories; delegated OpenRouter nonstream/stream assistant calls and direct OpenAI nonstream calls; SDK socket tests cover two-function streamed continuations and fresh IAM | Server tools, rich content, native mappings, direct streaming and complete named external-tool workflows |
 | Rich inputs and outputs | Text-only parts normalize to strings; validated refusal, scalar reasoning (including bounded reasoning-only stop/length) and summary/text/encrypted detail responses; service tier/fingerprint/native finish metadata on supported routes | Multimodal/cached content, native thinking/block semantics, broader structured reasoning request controls and native detail history, local JSON-schema output enforcement and server-tool details |
 | Client routing controls | Rejected today | Client preferences narrow approved model/provider scope; no arbitrary destinations or authority widening |
 | Errors | /api/v1 numeric status codes, fixed messages, safe local reason/typed metadata, request ID and compatible midstream error chunks; legacy /v1 symbolic codes | Precise upstream error_type propagation, retry hints and full provider streaming errors |
@@ -35,13 +35,13 @@ Tools with a hardcoded openrouter.ai host need a configurable endpoint or an int
 | Usage reporting | Aggregate counters with missing/partial/invalid classifications; bounded nonstream categories on direct OpenAI/delegated OpenRouter and final delegated stream categories | Native categories, category ledger reporting, provider-billed cost/BYOK/server-tool projection and complete usage certification |
 | Operational OpenGranter APIs | Usage/audit extensions on /v1 | Keep their authorization and contracts explicit during compatibility expansion |
 
-## Current conformance checkpoint (2026-10-04)
+## Current conformance checkpoint (2026-10-05)
 
 The version-18 pin tracks twenty-three selected request fields, fourteen selected request/history definitions, four stream definitions, three successful-response definitions, three usage/billing definitions and eight reasoning definitions, plus the selected message-name and tool-history maps. The message-role union and complete system/developer/user definitions are now selected; whole assistant/tool schemas remain tracked through their existing maps. Structural drift coverage does not validate every runtime instance or certify every referenced capability. In particular, server-tool schema coverage does not enable server tools, and the documented verbosity/native-finish extensions remain outside the published chat schema or pinned OpenRouter SDK surface.
 
 Actual OpenRouter 1.4.18 and OpenAI 7.23.0 SDK socket tests cover the supported subsets with controlled upstream fixtures. They do not certify named external applications or live model capability. Compatible /api/v1 completions project unavailable fingerprints to null and omit incomplete usage, while the ledger preserves known counters and missing/partial/invalid status. Legacy omissions/sparse usage and null stream fingerprints retain their measured SDK gaps. The pinned OpenRouter chat SDK strips native_finish_reason; raw HTTP and the OpenAI SDK preserve that extension.
 
-All supported paths keep authentication, complete destination IAM with explicit Deny precedence, limits, required audit and usage persistence. Sensitive reasoning/opaque details, prompts, responses and credentials stay out of operational records/errors. Complete final usage and DONE require successful persistence; final tier/fingerprint/native metadata comes only from the actual usage event, and scalar/detail reasoning is never replayed there. Physical socket acknowledgment, durable failed-audit recovery, direct/tool/rich streaming, metadata refresh, structured reasoning request controls, native history mappings and named external-client workflows remain release gates under #116.
+All supported paths keep authentication, complete destination IAM with explicit Deny precedence, limits, required audit and usage persistence. Sensitive reasoning/opaque details, prompts, responses and credentials stay out of operational records/errors. Complete final usage and DONE require successful persistence; final tier/fingerprint/native metadata comes only from the actual usage event, and scalar/detail reasoning is never replayed there. Physical socket acknowledgment, durable failed-audit recovery, direct/rich streaming and other tool variants, transitive fragment-schema drift, metadata refresh, structured reasoning request controls, native history mappings and named external-client workflows remain release gates under #116.
 
 ## Implementation sequence
 
@@ -538,3 +538,24 @@ pin v18 is unchanged.
 See [plan](plans/360-public-function-stream.md) and [contract](../contracts/public-function-stream.md).
 Further client conformance, transitive schema drift and full #116 remain open;
 pin v18 is unchanged.
+
+## Official SDK streamed function workflow conformance
+
+- Installed OpenAI 7.23.0 and OpenRouter 1.4.18 clients are verified on real local sockets over both chat bases with interleaved indexed function fragments and a subsequent complete tool-result request.
+- Re-evaluate authentication, model/provider IAM and limits on each request; verify Deny prevents the second call and secrets. Usage/audit persistence gates final success, missing usage stays unknown, safe failures do not replay, and SDK cancellation reaches the upstream read.
+- Response arguments stay out of operational records. This test-only stage changes no production behavior, SDK versions or pin; broader external-tool certification, direct streaming and transitive schema drift remain open.
+
+See [plan](plans/362-sdk-function-stream.md) and [contract](../contracts/sdk-function-stream.md).
+Further client conformance, transitive schema drift and full #116 remain open;
+pin v18 is unchanged.
+
+## Installed client error and cancellation behavior
+
+OpenAI 7.23.0 may end iteration normally after explicit client abort; the gateway
+still cancels the upstream read and records failed possibly-billed usage and an
+interruption. OpenRouter 1.4.18 can yield a structured error chunk on /api/v1
+after partial output, while its legacy /v1 parser rejects the legacy error
+envelope. A yielded error must be treated as failure by consumers; the gateway
+withholds final usage and DONE after required persistence or upstream failure.
+Conformance verifies error signaling and server accounting, not identical SDK
+exception behavior. No production or SDK version changes are made here.
