@@ -39,6 +39,33 @@ export type OpenRouterTextStreamPayload =
       readonly usage: NormalizedUsage;
     };
 
+export interface FunctionCallFragment {
+  readonly index: number;
+  readonly id?: string;
+  readonly type?: 'function';
+  readonly function?: { readonly name?: string; readonly arguments?: string };
+}
+
+type TextDelta = Extract<OpenRouterTextStreamPayload, { kind: 'delta' }>;
+type TextUsage = Extract<OpenRouterTextStreamPayload, { kind: 'usage' }>;
+export type OpenRouterFunctionStreamPayload =
+  | Extract<OpenRouterTextStreamPayload, { kind: 'done' | 'error' }>
+  | (Omit<TextDelta, 'finishReason'> & {
+      readonly finishReason: FinishReason | 'tool_calls' | null;
+      readonly toolCalls?: readonly FunctionCallFragment[];
+    })
+  | (Omit<TextUsage, 'finishReason'> & {
+      readonly finishReason: FinishReason | 'tool_calls' | null;
+    });
+
+/** Internal preparation only; HTTP tool streaming remains disabled. */
+export function decodeOpenRouterFunctionStreamPayload(
+  payload: string,
+  scope: StreamModelScope,
+): OpenRouterFunctionStreamPayload {
+  return decodePayload(payload, scope, true);
+}
+
 function invalidChunk(): Error {
   return new Error('Invalid OpenRouter stream chunk');
 }
@@ -53,11 +80,82 @@ function hasOwn(value: Record<string, unknown>, key: string): boolean {
   return Object.hasOwn(value, key);
 }
 
+function snapshotFunctionCallFragments(value: unknown): readonly FunctionCallFragment[] {
+  if (!Array.isArray(value) || value.length > 128) throw invalidChunk();
+  const indices = new Set<number>();
+  const result: FunctionCallFragment[] = [];
+  for (const item of value) {
+    const call = record(item);
+    if (
+      !call ||
+      Object.keys(call).some((key) => !['index', 'id', 'type', 'function'].includes(key))
+    )
+      throw invalidChunk();
+    const index = call.index;
+    if (
+      typeof index !== 'number' ||
+      !Number.isSafeInteger(index) ||
+      index < 0 ||
+      index > 127 ||
+      indices.has(index)
+    )
+      throw invalidChunk();
+    if (
+      (hasOwn(call, 'id') && typeof call.id !== 'string') ||
+      (hasOwn(call, 'type') && call.type !== 'function')
+    )
+      throw invalidChunk();
+    let operation: FunctionCallFragment['function'];
+    if (hasOwn(call, 'function')) {
+      const config = record(call.function);
+      if (
+        !config ||
+        Object.keys(config).some((key) => key !== 'name' && key !== 'arguments') ||
+        (hasOwn(config, 'name') && typeof config.name !== 'string') ||
+        (hasOwn(config, 'arguments') && typeof config.arguments !== 'string')
+      )
+        throw invalidChunk();
+      operation = Object.freeze({
+        ...(hasOwn(config, 'name') ? { name: config.name as string } : {}),
+        ...(hasOwn(config, 'arguments') ? { arguments: config.arguments as string } : {}),
+      });
+    }
+    indices.add(index);
+    result.push(
+      Object.freeze({
+        index,
+        ...(hasOwn(call, 'id') ? { id: call.id as string } : {}),
+        ...(hasOwn(call, 'type') ? { type: 'function' as const } : {}),
+        ...(operation === undefined ? {} : { function: operation }),
+      }),
+    );
+  }
+  return Object.freeze(result);
+}
+
 /** Validate one framed OpenRouter chat payload inside the authorized model scope. */
 export function decodeOpenRouterStreamPayload(
   payload: string,
   scope: StreamModelScope,
 ): OpenRouterTextStreamPayload {
+  return decodePayload(payload, scope, false);
+}
+
+function decodePayload(
+  payload: string,
+  scope: StreamModelScope,
+  tools: false,
+): OpenRouterTextStreamPayload;
+function decodePayload(
+  payload: string,
+  scope: StreamModelScope,
+  tools: true,
+): OpenRouterFunctionStreamPayload;
+function decodePayload(
+  payload: string,
+  scope: StreamModelScope,
+  tools: boolean,
+): OpenRouterFunctionStreamPayload {
   if (
     typeof payload !== 'string' ||
     typeof scope.upstreamModelId !== 'string' ||
@@ -134,7 +232,8 @@ export function decodeOpenRouterStreamPayload(
         key !== 'content' &&
         key !== 'refusal' &&
         key !== 'reasoning' &&
-        key !== 'reasoning_details',
+        key !== 'reasoning_details' &&
+        !(tools && key === 'tool_calls'),
     ) ||
     (delta.role !== undefined && delta.role !== 'assistant') ||
     (delta.content !== undefined && delta.content !== null && typeof delta.content !== 'string') ||
@@ -142,16 +241,23 @@ export function decodeOpenRouterStreamPayload(
     (delta.reasoning !== undefined &&
       delta.reasoning !== null &&
       typeof delta.reasoning !== 'string') ||
-    (finish !== null && finish !== 'stop' && finish !== 'length' && finish !== 'content_filter')
+    (finish !== null &&
+      finish !== 'stop' &&
+      finish !== 'length' &&
+      finish !== 'content_filter' &&
+      !(tools && finish === 'tool_calls'))
   )
     throw invalidChunk();
 
+  const hasCalls = hasOwn(delta, 'tool_calls');
+  const calls = hasCalls ? snapshotFunctionCallFragments(delta.tool_calls) : undefined;
   const hasDetails = hasOwn(delta, 'reasoning_details');
   const details = hasDetails ? snapshotReasoningDetails(delta.reasoning_details) : undefined;
   if (hasDetails && details === undefined) throw invalidChunk();
   if (hasOwn(value, 'usage')) {
     if (
       hasDetails ||
+      hasCalls ||
       finish === null ||
       (delta.content !== undefined && delta.content !== null && delta.content !== '') ||
       (delta.refusal !== undefined && delta.refusal !== null && delta.refusal !== '') ||
@@ -175,6 +281,7 @@ export function decodeOpenRouterStreamPayload(
     ...(delta.refusal === undefined ? {} : { refusal: delta.refusal }),
     ...(delta.reasoning === undefined ? {} : { reasoning: delta.reasoning }),
     ...(details === undefined ? {} : { reasoningDetails: details }),
+    ...(calls === undefined ? {} : { toolCalls: calls }),
     finishReason: finish,
     ...(nativeFinishReason === undefined ? {} : { nativeFinishReason }),
   });
