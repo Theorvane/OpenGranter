@@ -275,7 +275,7 @@ test('no-text history preserves non-assistant field and tool-result integrity re
   for (const messages of [
     ...['user', 'system', 'developer', 'tool'].map((role) => [{ role, content: null }]),
     history({ content: 42 }),
-    history({ refusal: 'private' }),
+    history({ refusal: 42 }),
     history({ reasoning: 42 }),
     [{ role: 'assistant', tool_calls: [call] }],
     [

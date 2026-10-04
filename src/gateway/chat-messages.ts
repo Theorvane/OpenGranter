@@ -14,6 +14,7 @@ export type ChatMessage =
       readonly tool_calls?: never;
       readonly tool_call_id?: never;
       readonly reasoning?: never;
+      readonly refusal?: never;
       readonly reasoning_details?: never;
     }
   | {
@@ -23,6 +24,7 @@ export type ChatMessage =
       readonly tool_calls?: readonly ChatFunctionCall[];
       readonly tool_call_id?: never;
       readonly reasoning?: string | null;
+      readonly refusal?: string | null;
       readonly reasoning_details?: readonly ReasoningDetail[];
     }
   | {
@@ -32,6 +34,7 @@ export type ChatMessage =
       readonly name?: never;
       readonly tool_calls?: never;
       readonly reasoning?: never;
+      readonly refusal?: never;
       readonly reasoning_details?: never;
     };
 
@@ -107,6 +110,11 @@ export function snapshotChatMessages(value: unknown): readonly ChatMessage[] {
     if (!instruction) conversationSeen = true;
     if (name !== undefined && typeof name !== 'string')
       throw new TypeError('Invalid chat messages');
+    const hasRefusal = Object.hasOwn(item, 'refusal');
+    const refusal = hasRefusal ? item.refusal : undefined;
+    if (hasRefusal && (role !== 'assistant' || (refusal !== null && typeof refusal !== 'string')))
+      throw new TypeError('Invalid chat messages');
+    const refusalContent = hasRefusal ? { refusal: refusal as string | null } : {};
     const hasReasoning = Object.hasOwn(item, 'reasoning');
     const reasoning = hasReasoning ? item.reasoning : undefined;
     if (
@@ -125,7 +133,17 @@ export function snapshotChatMessages(value: unknown): readonly ChatMessage[] {
       Object.hasOwn(item, 'tool_calls') &&
       item.tool_calls !== undefined
     ) {
-      if (!exact(item, ['role', 'content', 'name', 'tool_calls', 'reasoning', 'reasoning_details']))
+      if (
+        !exact(item, [
+          'role',
+          'content',
+          'name',
+          'tool_calls',
+          'reasoning',
+          'reasoning_details',
+          'refusal',
+        ])
+      )
         throw new TypeError('Invalid chat messages');
       const calls = snapshotCalls(item.tool_calls);
       if (content !== null && content !== undefined && typeof content !== 'string')
@@ -137,6 +155,7 @@ export function snapshotChatMessages(value: unknown): readonly ChatMessage[] {
           content: content === undefined ? null : content,
           ...(name === undefined ? {} : { name }),
           tool_calls: calls,
+          ...refusalContent,
           ...reasoningContent,
           ...detailContent,
         }),
@@ -149,7 +168,7 @@ export function snapshotChatMessages(value: unknown): readonly ChatMessage[] {
         'role',
         'content',
         'name',
-        ...(role === 'assistant' ? ['reasoning', 'reasoning_details'] : []),
+        ...(role === 'assistant' ? ['reasoning', 'reasoning_details', 'refusal'] : []),
       ]) ||
       (typeof content !== 'string' && !noTextAssistant)
     )
@@ -160,6 +179,7 @@ export function snapshotChatMessages(value: unknown): readonly ChatMessage[] {
           role,
           content: content === undefined ? null : (content as string | null),
           ...(name === undefined ? {} : { name }),
+          ...refusalContent,
           ...reasoningContent,
           ...detailContent,
         }),

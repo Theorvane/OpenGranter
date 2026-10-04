@@ -13,8 +13,9 @@ orphan/duplicate/incomplete tool results and interrupted pending groups reject
 before routing or secrets. Null history grants no authentication, policy, routing
 or tool execution authority; no fabricated assistant text is supplied.
 
-Direct OpenAI/Anthropic/Gemini reject null ordinary/empty-call assistant histories
-before credential lookup. Existing direct OpenAI nonempty complete function groups
+Direct OpenAI/Anthropic/Gemini reject bare-null ordinary/empty-call assistant histories
+before credential lookup. Direct OpenAI supplied refusal follows the
+[refusal history contract](client-refusal-history.md). Existing direct OpenAI nonempty complete function groups
 remain supported. Native optional-content mapping remains unresolved; this local
 subset restriction is not a claim that every provider prohibits null history.
 
