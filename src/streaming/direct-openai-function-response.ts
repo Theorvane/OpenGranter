@@ -4,40 +4,43 @@ import {
 } from '../routing/invoke-jev-managed-route.ts';
 import { normalizeDirectOpenAIStreamEnvelope } from './direct-openai-stream-envelope.ts';
 import {
-  decodeOpenRouterStreamPayload,
-  type OpenRouterTextStreamPayload,
+  type OpenRouterFunctionStreamOutcome,
+  OpenRouterFunctionStreamSequence,
+} from './openrouter-function-stream-sequence.ts';
+import {
+  decodeOpenRouterFunctionStreamPayload,
+  type OpenRouterFunctionStreamPayload,
   type StreamModelScope,
 } from './openrouter-stream-chunks.ts';
-import {
-  type OpenRouterTextStreamOutcome,
-  OpenRouterTextStreamSequence,
-} from './openrouter-stream-sequence.ts';
 import { parseSseDataEvents } from './parse-sse-data-events.ts';
 import { waitForStreamOperation } from './wait-for-stream-operation.ts';
 
 type NativeDelta = Omit<
-  Extract<OpenRouterTextStreamPayload, { kind: 'delta' }>,
+  Extract<OpenRouterFunctionStreamPayload, { kind: 'delta' }>,
   'reasoning' | 'reasoningDetails' | 'nativeFinishReason'
 >;
 type NativeUsage = Omit<
-  Extract<OpenRouterTextStreamPayload, { kind: 'usage' }>,
+  Extract<OpenRouterFunctionStreamPayload, { kind: 'usage' }>,
   'nativeFinishReason'
 >;
-export type DirectOpenAITextStreamPayload =
+export type DirectOpenAIFunctionStreamPayload =
   | NativeDelta
   | NativeUsage
-  | Extract<OpenRouterTextStreamPayload, { kind: 'done' | 'error' }>;
-export type DirectOpenAITextStreamCompletion = Omit<
-  Extract<OpenRouterTextStreamOutcome, { status: 'complete' }>,
+  | Extract<OpenRouterFunctionStreamPayload, { kind: 'done' | 'error' }>;
+export type DirectOpenAIFunctionStreamCompletion = Omit<
+  Extract<OpenRouterFunctionStreamOutcome, { status: 'complete' }>,
   'nativeFinishReason'
 >;
-/** Native text subset: ordinary null usage is not a final usage event. */
-export function decodeDirectOpenAITextPayload(
+/** Native function subset: ordinary null usage is not a final usage event. */
+export function decodeDirectOpenAIFunctionPayload(
   payload: string,
   scope: StreamModelScope,
-): DirectOpenAITextStreamPayload {
+): DirectOpenAIFunctionStreamPayload {
   try {
-    return decodeOpenRouterStreamPayload(normalizeDirectOpenAIStreamEnvelope(payload), scope);
+    return decodeOpenRouterFunctionStreamPayload(
+      normalizeDirectOpenAIStreamEnvelope(payload, true),
+      scope,
+    );
   } catch {
     throw new Error('Invalid direct OpenAI stream chunk');
   }
@@ -51,13 +54,13 @@ function fail(response: Response, category: DirectProviderFailureCategory): neve
   throw new DirectProviderFailure(category, true, true);
 }
 
-/** Consume one already-authorized native response; never retain response content. */
-export async function consumeDirectOpenAITextResponse(
+/** Consume one already-authorized native response; completed calls are bounded response content, never metadata. */
+export async function consumeDirectOpenAIFunctionResponse(
   response: Response,
   scope: StreamModelScope,
   onDelta: (delta: NativeDelta) => void | Promise<void>,
   signal?: AbortSignal,
-): Promise<DirectOpenAITextStreamCompletion> {
+): Promise<DirectOpenAIFunctionStreamCompletion> {
   if (response.status !== 200)
     return fail(
       response,
@@ -69,15 +72,15 @@ export async function consumeDirectOpenAITextResponse(
     !response.body
   )
     return fail(response, 'other');
+  const sequence = new OpenRouterFunctionStreamSequence();
   try {
     const fixedScope = Object.freeze({
       upstreamModelId: scope.upstreamModelId,
       clientModelAlias: scope.clientModelAlias,
     });
-    const sequence = new OpenRouterTextStreamSequence();
     let created: number | undefined;
     for await (const data of parseSseDataEvents(response.body, undefined, signal)) {
-      const event = decodeDirectOpenAITextPayload(data, fixedScope);
+      const event = decodeDirectOpenAIFunctionPayload(data, fixedScope);
       if ('created' in event) {
         if (created !== undefined && event.created !== created) throw Error();
         created = event.created;
@@ -91,6 +94,7 @@ export async function consumeDirectOpenAITextResponse(
     if (result.status !== 'complete') return fail(response, 'other');
     return result;
   } catch {
+    sequence.discard();
     return fail(response, 'other');
   }
 }

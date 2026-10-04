@@ -1044,3 +1044,10 @@ Activate managed OpenAI text/refusal streaming through an optional trusted gatew
 
 See [plan](plans/380-managed-gateway-stream.md) and [contract](../contracts/managed-gateway-stream.md).
 Managed OpenAI text streaming is activated; broader native streaming and full #116 remain open. Pin v19 is unchanged.
+
+## Native OpenAI function stream response validation
+
+Consume native OpenAI indexed function deltas through bounded framing and the existing function sequence. Preserve exact model scope and stable response identity/timestamp. Ordinary usage:null is a delta extension, final empty-choice usage is required before DONE. Completed calls remain response content; rich/custom/deprecated fields fail safely. Classify opened-stream failures as possibly billed and cancel body on delivery failure or abort.
+
+See [plan](plans/382-native-function-response.md) and [contract](../contracts/native-function-response.md).
+Managed OpenAI text streams remain supported. Public managed function streaming and full #116 remain open; pin v19 is unchanged.
