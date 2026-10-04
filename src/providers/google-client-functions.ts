@@ -5,7 +5,15 @@ import {
   type ToolChoice,
 } from '../gateway/chat-tools.ts';
 import { DirectProviderFailure } from '../routing/invoke-jev-managed-route.ts';
-import { type AssistantResponse, normalizeAssistantResponse } from './assistant-response.ts';
+import {
+  type AssistantFunctionCall,
+  type AssistantResponse,
+  normalizeAssistantResponse,
+} from './assistant-response.ts';
+import {
+  MAX_GOOGLE_SIGNATURE_UNITS,
+  snapshotGoogleThoughtSignature,
+} from './google-thought-signature.ts';
 
 const LOCAL_PREFIX = 'og_google_missing_id_';
 const LOCAL_ID =
@@ -116,6 +124,9 @@ export function prepareGoogleMessages(messages: readonly ChatMessage[]): readonl
           ...message.tool_calls.map((call) => {
             if (!name(call.function.name)) invalid();
             return {
+              ...(call.extra_content === undefined
+                ? {}
+                : { thoughtSignature: call.extra_content.google.thought_signature }),
               functionCall: {
                 ...nativeId(call.id),
                 name: call.function.name,
@@ -135,12 +146,14 @@ export function prepareGoogleMessages(messages: readonly ChatMessage[]): readonl
   return native;
 }
 
-/** Only signature-free, complete custom function objects can produce usable portable calls. */
+/** Complete custom function objects; signed nonstream mapping requires an explicit opt-in. */
 export function normalizeGoogleFunctionResponse(
   parts: readonly unknown[],
+  allowSignatures = false,
 ): AssistantResponse | undefined {
   if (parts.length > 128) return undefined;
-  const calls: object[] = [],
+  let signatureUnits = 0;
+  const calls: AssistantFunctionCall[] = [],
     text: string[] = [],
     ids = new Set<string>();
   for (const value of parts) {
@@ -148,10 +161,19 @@ export function normalizeGoogleFunctionResponse(
     if (
       !part ||
       (part.thought !== undefined && part.thought !== false) ||
-      Object.keys(part).some((key) => !['text', 'functionCall', 'thought'].includes(key))
+      Object.keys(part).some(
+        (key) =>
+          ![
+            'text',
+            'functionCall',
+            'thought',
+            ...(allowSignatures ? ['thoughtSignature'] : []),
+          ].includes(key),
+      )
     )
       return undefined;
     if (typeof part.text === 'string' && !Object.hasOwn(part, 'functionCall')) {
+      if (Object.hasOwn(part, 'thoughtSignature')) return undefined;
       text.push(part.text);
       continue;
     }
@@ -168,17 +190,39 @@ export function normalizeGoogleFunctionResponse(
     const id = call.id === undefined ? LOCAL_PREFIX + crypto.randomUUID() : (call.id as string);
     if (ids.has(id)) return undefined;
     ids.add(id);
+    const extra = Object.hasOwn(part, 'thoughtSignature')
+      ? snapshotGoogleThoughtSignature({ google: { thought_signature: part.thoughtSignature } })
+      : undefined;
+    signatureUnits += extra?.google.thought_signature.length ?? 0;
+    if (signatureUnits > MAX_GOOGLE_SIGNATURE_UNITS) return undefined;
     calls.push({
       id,
       type: 'function',
+      ...(extra === undefined ? {} : { extra_content: extra }),
       function: {
         name: call.name,
         arguments: JSON.stringify(input(call.args === undefined ? {} : call.args)),
       },
     });
   }
-  return normalizeAssistantResponse(
-    { role: 'assistant', content: text.length ? text.join('') : null, tool_calls: calls },
+  const normalized = normalizeAssistantResponse(
+    {
+      role: 'assistant',
+      content: text.length ? text.join('') : null,
+      tool_calls: calls.map(({ id, type, function: operation }) => ({
+        id,
+        type,
+        function: operation,
+      })),
+    },
     'tool_calls',
   );
+  return normalized
+    ? {
+        ...normalized,
+        tool_calls: Object.freeze(
+          calls.map((call) => Object.freeze({ ...call, function: Object.freeze(call.function) })),
+        ),
+      }
+    : undefined;
 }

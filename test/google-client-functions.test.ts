@@ -332,7 +332,7 @@ for (const nativeBody of [
   body([
     {
       functionCall: { id: 'call', name: 'lookup', args: {} },
-      thoughtSignature: 'private signature',
+      thoughtSignature: 42,
     },
   ]),
   body([{ text: 'private answer', thoughtSignature: 'private signature' }]),

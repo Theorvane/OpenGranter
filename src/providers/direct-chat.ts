@@ -293,7 +293,7 @@ function normalize(
       Object.keys(content).some((key) => key !== 'role' && key !== 'parts')
     )
       fail('other');
-    const assistant = normalizeGoogleFunctionResponse(parts);
+    const assistant = normalizeGoogleFunctionResponse(parts, true);
     if (!assistant) fail('other');
     return completion(
       value.responseId,
@@ -617,6 +617,13 @@ export function createDirectChatTransport(
     let messages: readonly ChatMessage[];
     try {
       messages = snapshotChatMessages(request.messages);
+      if (
+        (registration.kind !== 'google' || streaming !== false) &&
+        messages.some((message) =>
+          message.tool_calls?.some((call) => call.extra_content !== undefined),
+        )
+      )
+        fail('other');
       if (registration.kind !== 'openai' && messages.some((message) => message.name !== undefined))
         fail('other');
       if (

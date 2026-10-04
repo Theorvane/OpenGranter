@@ -278,6 +278,12 @@ function prepareOpenRouterChatRequest(
   let messages: readonly ChatMessage[];
   try {
     messages = snapshotChatMessages(request.messages);
+    if (
+      messages.some((message) =>
+        message.tool_calls?.some((call) => call.extra_content !== undefined),
+      )
+    )
+      fail('configuration');
   } catch {
     fail('configuration');
   }

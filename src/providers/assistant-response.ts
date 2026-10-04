@@ -1,6 +1,8 @@
+import type { GoogleThoughtSignatureContent } from './google-thought-signature.ts';
 import { type ReasoningDetail, snapshotReasoningDetails } from './reasoning-details.ts';
 
 export interface AssistantFunctionCall {
+  readonly extra_content?: GoogleThoughtSignatureContent;
   readonly id: string;
   readonly type: 'function';
   readonly function: { readonly name: string; readonly arguments: string };
@@ -41,6 +43,7 @@ function functionCalls(
       !id ||
       ids.has(id) ||
       type !== 'function' ||
+      (call !== undefined && Object.hasOwn(call, 'extra_content')) ||
       typeof name !== 'string' ||
       !name ||
       typeof args !== 'string'
