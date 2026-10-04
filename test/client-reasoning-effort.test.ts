@@ -474,10 +474,9 @@ test('reasoning_effort text streams retain denial and required usage/audit termi
   }
 });
 
-test('structured reasoning and include_reasoning remain rejected without inferring shorthand precedence', async () => {
+test('conflicting effort aliases and unsupported null or legacy controls reject before routing', async () => {
   for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
     for (const extra of [
-      { reasoning: { effort: 'high' } },
       { reasoning: { effort: 'low' } },
       { reasoning: null },
       { include_reasoning: true },

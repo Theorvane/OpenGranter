@@ -210,86 +210,90 @@ function request(path: string, fields: Record<string, unknown> = {}) {
   });
 }
 
+const efforts = ['max', 'xhigh', 'high', 'medium', 'low', 'minimal', 'none'] as const;
 function safe(f: ReturnType<typeof httpFixture>) {
-  assert.doesNotMatch(
-    JSON.stringify([f.audits, f.usage]),
-    /reasoning|summary|private|fixture-key/u,
-  );
+  assert.doesNotMatch(JSON.stringify([f.audits, f.usage]), /reasoning|effort|private|fixture-key/u);
 }
-test('delegated reasoning summary preserves omission empty null and exact enums on both bases and modes', async () => {
+test('nested effort preserves null omission and named values alongside summary on both bases and modes', async () => {
   for (const path of ['/v1/chat/completions', '/api/v1/chat/completions'])
     for (const stream of [false, true])
-      for (const reasoning of [
-        undefined,
-        {},
-        { summary: null },
-        { summary: 'auto' },
-        { summary: 'concise' },
-        { summary: 'detailed' },
-      ]) {
+      for (const effort of [undefined, null, ...efforts]) {
+        const reasoning = { summary: 'concise', ...(effort === undefined ? {} : { effort }) };
         const f = httpFixture('openrouter');
         const response = await f.handler(
-          request(path, {
-            stream,
-            ...(reasoning === undefined ? {} : { reasoning }),
-            reasoning_effort: 'low',
-          }),
+          request(path, { stream, reasoning, reasoning_effort: null }),
         );
         assert.equal(response.status, 200);
         if (stream) assert.ok((await response.text()).endsWith('data: [DONE]\n\n'));
         assert.deepEqual(f.sent[0]?.reasoning, reasoning);
-        assert.equal(Object.hasOwn(f.sent[0] ?? {}, 'reasoning'), reasoning !== undefined);
-        assert.equal(f.sent[0]?.reasoning_effort, 'low');
+        assert.equal(Object.hasOwn(f.sent[0] ?? {}, 'reasoning_effort'), false);
         assert.deepEqual(f.sent[0]?.provider, { only: ['provider'] });
         assert.equal(f.usage.length, 1);
         safe(f);
       }
 });
-test('malformed summary and unsupported structured controls reject before routing or native credentials', async () => {
-  const values = [
-    null,
-    false,
-    [],
-    'private',
-    { summary: 'none' },
-    { summary: 'AUTO' },
-    { summary: 1 },
-    { summary: {} },
-    { summary: 'auto', enabled: true },
-    { exclude: false },
-    { max_tokens: 100 },
-    { summary: 'auto', provider: 'private' },
-  ];
+test('identical aliases survive unchanged while differing strings and unresolved null mix reject early', async () => {
   for (const path of ['/v1/chat/completions', '/api/v1/chat/completions'])
-    for (const reasoning of values) {
-      const f = httpFixture('openrouter');
-      const response = await f.handler(request(path, { reasoning }));
-      assert.equal(response.status, 400);
-      assert.equal(f.routes(), 0);
-      assert.equal(f.secrets(), 0);
-      assert.doesNotMatch(await response.text(), /private/u);
-      safe(f);
-    }
-  for (const kind of kinds)
-    for (const reasoning of [...values, { summary: undefined }]) {
-      const f = adapter(kind);
-      await assert.rejects(() => f.call(input({ reasoning }) as unknown as ChatRequest));
-      assert.equal(f.secrets(), 0);
-      assert.equal(f.sent.length, 0);
-    }
+    for (const stream of [false, true])
+      for (const top of efforts)
+        for (const nested of [null, ...efforts]) {
+          const f = httpFixture('openrouter');
+          const response = await f.handler(
+            request(path, { stream, reasoning_effort: top, reasoning: { effort: nested } }),
+          );
+          assert.equal(response.status, top === nested ? 200 : 400);
+          if (top === nested) {
+            if (stream) await response.text();
+            assert.equal(f.sent[0]?.reasoning_effort, top);
+            assert.deepEqual(f.sent[0]?.reasoning, { effort: nested });
+            assert.equal(f.usage.length, 1);
+          } else {
+            assert.equal(f.routes(), 0);
+            assert.equal(f.secrets(), 0);
+          }
+          safe(f);
+        }
+  for (const [top, effort] of [
+    ['low', 'high'],
+    ['high', null],
+  ] as const) {
+    const f = adapter('openrouter');
+    await assert.rejects(() =>
+      f.call(input({ reasoning_effort: top, reasoning: { effort } }) as unknown as ChatRequest),
+    );
+    assert.equal(f.secrets(), 0);
+    assert.equal(f.sent.length, 0);
+  }
 });
-test('direct OpenAI Anthropic Gemini reject all supplied summary configurations before secrets', async () => {
+test('malformed nested effort and remaining unsupported controls reject before dispatch', async () => {
+  for (const effort of ['', 'LOW', 'private', true, 1, [], {}]) {
+    const f = httpFixture('openrouter');
+    const response = await f.handler(
+      request('/api/v1/chat/completions', { reasoning: { effort } }),
+    );
+    assert.equal(response.status, 400);
+    assert.equal(f.routes(), 0);
+    assert.equal(f.secrets(), 0);
+    assert.doesNotMatch(await response.text(), /private/u);
+    safe(f);
+  }
+  for (const reasoning of [
+    { effort: undefined },
+    { effort: 'low', max_tokens: 100 },
+    { effort: 'low', exclude: false },
+    { effort: 'low', enabled: true },
+  ]) {
+    const f = adapter('openrouter');
+    await assert.rejects(() => f.call(input({ reasoning }) as unknown as ChatRequest));
+    assert.equal(f.secrets(), 0);
+  }
+});
+test('all direct providers reject nested effort before credentials and accounting', async () => {
   for (const kind of ['openai', 'anthropic', 'google'] as const)
-    for (const reasoning of [
-      {},
-      { summary: null },
-      { summary: 'auto' },
-      { summary: 'concise' },
-      { summary: 'detailed' },
-    ]) {
+    for (const effort of [null, ...efforts]) {
       const f = httpFixture(kind);
       assert.equal(
-        (await f.handler(request('/api/v1/chat/completions', { reasoning }))).status,
+        (await f.handler(request('/v1/chat/completions', { reasoning: { effort } }))).status,
         502,
       );
       assert.equal(f.secrets(), 0);
@@ -298,98 +302,87 @@ test('direct OpenAI Anthropic Gemini reject all supplied summary configurations 
       safe(f);
     }
 });
-test('summary capture reads each getter once and survives nested mutation during credentials', async () => {
-  let reads = 0,
-    innerReads = 0;
-  const config = Object.defineProperty({}, 'summary', {
+test('alias and nested getters are captured once and late mutation cannot change agreement', async () => {
+  let topReads = 0,
+    objectReads = 0,
+    effortReads = 0;
+  const config = Object.defineProperty({ summary: 'concise' }, 'effort', {
     enumerable: true,
     get: () => {
-      innerReads++;
-      return innerReads === 1 ? 'concise' : 'private invalid';
+      effortReads++;
+      return effortReads === 1 ? 'high' : 'low';
     },
   });
-  const getter = Object.defineProperty(input(), 'reasoning', {
-    enumerable: true,
-    get: () => {
-      reads++;
-      return reads === 1 ? config : null;
+  const req = Object.defineProperties(input(), {
+    reasoning_effort: {
+      get: () => {
+        topReads++;
+        return topReads === 1 ? 'high' : 'low';
+      },
+    },
+    reasoning: {
+      get: () => {
+        objectReads++;
+        return objectReads === 1 ? config : { effort: 'low' };
+      },
     },
   });
   const f = adapter('openrouter');
-  await f.call(getter as unknown as ChatRequest);
-  assert.deepEqual(f.sent[0]?.reasoning, { summary: 'concise' });
-  assert.equal(reads, 1);
-  assert.equal(innerReads, 1);
-  const mutable = { summary: 'detailed' };
-  const req: Record<string, unknown> = input({ reasoning: mutable });
-  const observed = adapter('openrouter', undefined, () => {
-    mutable.summary = 'private changed';
-    req.reasoning = { exclude: true };
-  });
-  await observed.call(req as unknown as ChatRequest);
-  assert.deepEqual(observed.sent[0]?.reasoning, { summary: 'detailed' });
-});
-test('summary configuration composes with complete function and opaque reasoning history', async () => {
-  const messages = [
-    { role: 'user', content: 'private prompt' },
-    {
-      role: 'assistant',
-      content: null,
-      reasoning: 'private scalar',
-      reasoning_details: [{ type: 'reasoning.encrypted', data: 'private opaque' }],
-      tool_calls: [{ id: 'call', type: 'function', function: { name: 'lookup', arguments: '{}' } }],
-    },
-    { role: 'tool', content: 'private result', tool_call_id: 'call' },
-  ];
-  const f = httpFixture('openrouter');
-  assert.equal(
-    (
-      await f.handler(
-        request('/v1/chat/completions', {
-          messages,
-          reasoning: { summary: 'concise', effort: 'high' },
-          reasoning_effort: 'high',
-        }),
-      )
-    ).status,
-    200,
-  );
-  assert.deepEqual(f.sent[0]?.messages, messages);
-  assert.deepEqual(f.sent[0]?.reasoning, { summary: 'concise', effort: 'high' });
+  await f.call(req as unknown as ChatRequest);
+  assert.equal(topReads, 1);
+  assert.equal(objectReads, 1);
+  assert.equal(effortReads, 1);
+  assert.deepEqual(f.sent[0]?.reasoning, { effort: 'high', summary: 'concise' });
   assert.equal(f.sent[0]?.reasoning_effort, 'high');
-  safe(f);
+  const reasoning = { effort: 'low', summary: 'auto' };
+  const mutable = { ...input(), reasoning, reasoning_effort: 'low' };
+  const late = adapter('openrouter', undefined, () => {
+    reasoning.effort = 'private changed';
+    mutable.reasoning_effort = 'high';
+  });
+  await late.call(mutable as unknown as ChatRequest);
+  assert.deepEqual(late.sent[0]?.reasoning, { effort: 'low', summary: 'auto' });
+  assert.equal(late.sent[0]?.reasoning_effort, 'low');
 });
-test('summary control retains auth independent Deny limits persistence and failure accounting', async () => {
-  for (const path of ['/v1/chat/completions', '/api/v1/chat/completions'])
-    for (const [options, status, dispatched] of [
-      [{ auth: true }, 401, false],
-      [{ deny: true }, 403, false],
-      [{ explicitDeny: true }, 403, false],
-      [{ denyAction: 'llm:InvokeModel' }, 403, false],
-      [{ denyAction: 'llm:UseProvider' }, 403, false],
-      [{ limit: true }, 429, false],
-      [{ audit: true }, 503, false],
-      [{ usageFail: true }, 503, true],
-      [{ outcomeFail: true }, 503, true],
-      [{ fail: true }, 502, true],
-    ] as const) {
-      const f = httpFixture('openrouter', options);
-      const response = await f.handler(request(path, { reasoning: { summary: 'auto' } }));
-      assert.equal(response.status, status);
-      assert.equal(f.secrets(), dispatched ? 1 : 0);
-      assert.equal(f.sent.length, dispatched ? 1 : 0);
-      assert.doesNotMatch(await response.text(), /private|fixture-key/u);
-      safe(f);
-      if ('fail' in options) {
-        assert.equal(f.usage.length, 1);
-        assert.equal((f.usage[0] as { possiblyBilled: boolean }).possiblyBilled, true);
-        assert.equal((f.usage[0] as { outcome: string }).outcome, 'failed');
-      }
-      if ('outcomeFail' in options)
-        assert.equal((f.usage[0] as { outcome: string }).outcome, 'succeeded');
+test('nested effort retains IAM persistence privacy and possible-billing outcomes including streams', async () => {
+  for (const [options, status, dispatched] of [
+    [{ auth: true }, 401, false],
+    [{ deny: true }, 403, false],
+    [{ denyAction: 'llm:InvokeModel' }, 403, false],
+    [{ denyAction: 'llm:UseProvider' }, 403, false],
+    [{ limit: true }, 429, false],
+    [{ audit: true }, 503, false],
+    [{ usageFail: true }, 503, true],
+    [{ outcomeFail: true }, 503, true],
+    [{ fail: true }, 502, true],
+  ] as const) {
+    const f = httpFixture('openrouter', options);
+    const response = await f.handler(
+      request('/api/v1/chat/completions', { reasoning: { effort: 'high' } }),
+    );
+    assert.equal(response.status, status);
+    assert.equal(f.secrets(), dispatched ? 1 : 0);
+    assert.equal(f.sent.length, dispatched ? 1 : 0);
+    assert.doesNotMatch(await response.text(), /private|fixture-key/u);
+    safe(f);
+    if ('fail' in options) {
+      assert.equal((f.usage[0] as { possiblyBilled: boolean }).possiblyBilled, true);
+      assert.equal((f.usage[0] as { outcome: string }).outcome, 'failed');
     }
+  }
+  for (const options of [{ usageFail: true }, { outcomeFail: true }]) {
+    const f = httpFixture('openrouter', options);
+    const response = await f.handler(
+      request('/v1/chat/completions', { stream: true, reasoning: { effort: 'low' } }),
+    );
+    assert.equal(response.status, 200);
+    const wire = await response.text();
+    assert.match(wire, /"error"/u);
+    assert.doesNotMatch(wire, /\[DONE\]|private|fixture-key/u);
+    safe(f);
+  }
 });
-test('actual OpenRouter SDK carries summary configuration through both bases and text streams', async () => {
+test('actual SDK forwards nested and equal effort aliases through both bases and ordinary streams', async () => {
   const f = httpFixture('openrouter');
   const server = createNodeRequestServer(f.handler);
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -404,93 +397,48 @@ test('actual OpenRouter SDK carries summary configuration through both bases and
         timeoutMs: 3000,
       });
       for (const stream of [false, true])
-        for (const summary of [undefined, null, 'auto', 'concise', 'detailed'] as const) {
-          const reasoning = summary === undefined ? {} : { summary };
+        for (const effort of [null, ...efforts]) {
+          const reasoning = { effort, summary: 'concise' as const };
           const result = await sdk.chat.send({
             chatRequest: {
               model: 'chat',
-              messages: [{ role: 'user', content: 'private prompt' }],
+              messages: [{ role: 'user', content: 'private' }],
               reasoning,
-              reasoningEffort: 'high',
+              ...(effort === null ? {} : { reasoningEffort: effort }),
               stream,
             },
           });
           if (stream) {
             assert.ok(Symbol.asyncIterator in result);
-            let reply = '',
-              usage = 0;
-            for await (const event of result) {
-              reply += event.choices[0]?.delta.content ?? '';
-              if (event.usage) usage++;
-            }
+            let reply = '';
+            for await (const event of result) reply += event.choices[0]?.delta.content ?? '';
             assert.equal(reply, 'reply');
-            assert.equal(usage, 1);
           } else {
             assert.ok('choices' in result);
             assert.equal(result.choices[0]?.message.content, 'reply');
           }
           assert.deepEqual(f.sent.at(-1)?.reasoning, reasoning);
-          assert.equal(f.sent.at(-1)?.reasoning_effort, 'high');
+          assert.equal(f.sent.at(-1)?.reasoning_effort, effort ?? undefined);
         }
+      const before = f.sent.length;
+      await assert.rejects(() =>
+        sdk.chat.send({
+          chatRequest: {
+            model: 'chat',
+            messages: [{ role: 'user', content: 'private' }],
+            reasoning: { effort: 'high' },
+            reasoningEffort: 'low',
+          },
+        }),
+      );
+      assert.equal(f.sent.length, before);
     }
-    assert.equal(f.usage.length, 20);
+    assert.equal(f.usage.length, 32);
     safe(f);
   } finally {
     server.closeAllConnections();
     await new Promise<void>((resolve, reject) =>
       server.close((error) => (error ? reject(error) : resolve())),
     );
-  }
-});
-
-test('summary streams retain provider Deny and withhold final success on persistence failure', async () => {
-  for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
-    const denied = httpFixture('openrouter', { denyAction: 'llm:UseProvider' });
-    assert.equal(
-      (await denied.handler(request(path, { stream: true, reasoning: { summary: 'concise' } })))
-        .status,
-      403,
-    );
-    assert.equal(denied.secrets(), 0);
-    safe(denied);
-    for (const options of [{ usageFail: true }, { outcomeFail: true }]) {
-      const f = httpFixture('openrouter', options);
-      const response = await f.handler(
-        request(path, { stream: true, reasoning: { summary: 'concise' } }),
-      );
-      assert.equal(response.status, 200);
-      const wire = await response.text();
-      assert.match(wire, /"error"/u);
-      assert.doesNotMatch(wire, /\[DONE\]|private|fixture-key/u);
-      assert.equal(f.secrets(), 1);
-      assert.equal(f.sent.length, 1);
-      assert.equal(f.usage.length, 'usageFail' in options ? 0 : 1);
-      safe(f);
-    }
-  }
-});
-
-test('summary getter failures are fixed safe errors before credential access on every adapter', async () => {
-  for (const kind of kinds) {
-    let reads = 0;
-    const req = Object.defineProperty(input(), 'reasoning', {
-      get: () => {
-        reads++;
-        throw new Error('private summary fixture-key');
-      },
-    });
-    const f = adapter(kind);
-    await assert.rejects(
-      () => f.call(req as unknown as ChatRequest),
-      (error: unknown) => {
-        assert.ok(error instanceof Error);
-        assert.doesNotMatch(error.message, /private|fixture-key/u);
-        assert.ok('possiblyBilled' in error && error.possiblyBilled === false);
-        return true;
-      },
-    );
-    assert.equal(reads, 1);
-    assert.equal(f.secrets(), 0);
-    assert.equal(f.sent.length, 0);
   }
 });

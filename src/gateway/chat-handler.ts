@@ -76,9 +76,9 @@ import {
 } from './model-discovery-metadata.ts';
 import { parseModelListQuery } from './model-list-query.ts';
 import {
-  type ReasoningSummaryConfiguration,
-  snapshotReasoningSummary,
-} from './reasoning-summary.ts';
+  type ReasoningConfiguration,
+  snapshotReasoningConfiguration,
+} from './reasoning-configuration.ts';
 
 const MAX_BODY_BYTES = 1024 * 1024;
 
@@ -95,7 +95,7 @@ export interface ChatRequest {
   readonly seed?: number;
   readonly verbosity?: Verbosity;
   readonly reasoning_effort?: ReasoningEffort;
-  readonly reasoning?: ReasoningSummaryConfiguration;
+  readonly reasoning?: ReasoningConfiguration;
   readonly frequency_penalty?: number;
   readonly presence_penalty?: number;
   readonly response_format?: ResponseFormat;
@@ -443,14 +443,14 @@ function validateChat(value: unknown, streaming = false): ValidatedChatRequest |
   if (!validPenalty(frequencyPenalty) || !validPenalty(presencePenalty)) return undefined;
   const topK = value.top_k ?? undefined;
   if (!validTopK(topK)) return undefined;
-  let reasoning: ReasoningSummaryConfiguration | undefined;
+  let reasoning: ReasoningConfiguration | undefined;
   let logitBias: ReturnType<typeof snapshotLogitBias>;
   let streamOptions: ReturnType<typeof snapshotStreamOptions>;
   let tools: ReturnType<typeof snapshotFunctionTools>;
   let toolChoice: ReturnType<typeof snapshotToolChoice>;
   let parallelToolCalls: ReturnType<typeof snapshotParallelToolCalls>;
   try {
-    reasoning = snapshotReasoningSummary(value.reasoning);
+    reasoning = snapshotReasoningConfiguration(value.reasoning, reasoningEffort);
     streamOptions = snapshotStreamOptions(value.stream_options);
     if (streamOptions !== undefined && value.stream !== true) return undefined;
     logitBias = snapshotLogitBias(value.logit_bias);
