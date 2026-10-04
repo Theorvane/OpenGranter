@@ -41,7 +41,7 @@ Pin v18 already selects whole inline effort/summary structure and remains unchan
 The differing-value rule is prose stripped as an annotation; structural drift alone
 does not detect prose-only alias changes. Actual SDK sockets cover supported nested
 states/equal aliases and reject different aliases on both bases/modes. Model support
-and defaults vary. Null interactions, budgets/enabled/legacy controls,
+and defaults vary. Null interactions, budgets/legacy controls,
 native mappings and complete instance/external-client certification stay open #116.
 
 See [plan](../docs/plans/314-nested-reasoning-effort.md),
@@ -49,3 +49,7 @@ See [plan](../docs/plans/314-nested-reasoning-effort.md),
 
 Optional boolean exclusion is covered by [its separate contract](client-reasoning-exclusion.md);
 existing effort alias and summary semantics remain unchanged.
+
+Optional boolean activation is covered by [its separate contract](client-reasoning-activation.md).
+Supplied enabled plus any nested effort or forwarded named shorthand remains
+outside that local subset pending raw-chat interaction clarification.

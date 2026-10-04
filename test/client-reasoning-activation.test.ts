@@ -214,74 +214,81 @@ function request(path: string, fields: Record<string, unknown> = {}) {
 function safe(f: ReturnType<typeof httpFixture>) {
   assert.doesNotMatch(
     JSON.stringify([f.audits, f.usage]),
-    /exclude|reasoning|private|fixture-key/u,
+    /enabled|reasoning|private|fixture-key/u,
   );
 }
-test('delegated exclusion preserves exact booleans and omission alongside supported controls on both bases and modes', async () => {
+test('delegated activation preserves exact booleans and omission on both bases and modes without default effort', async () => {
   for (const path of ['/v1/chat/completions', '/api/v1/chat/completions'])
     for (const stream of [false, true])
-      for (const exclude of [undefined, false, true]) {
+      for (const enabled of [undefined, false, true]) {
         const f = httpFixture('openrouter');
         const reasoning = {
-          effort: 'high',
           summary: 'concise',
-          ...(exclude === undefined ? {} : { exclude }),
+          exclude: true,
+          ...(enabled === undefined ? {} : { enabled }),
         };
         const response = await f.handler(
-          request(path, { stream, reasoning, reasoning_effort: 'high' }),
+          request(path, { stream, reasoning, reasoning_effort: null }),
         );
         assert.equal(response.status, 200);
         if (stream) assert.ok((await response.text()).endsWith('data: [DONE]\n\n'));
         assert.deepEqual(f.sent[0]?.reasoning, reasoning);
-        assert.equal(f.sent[0]?.reasoning_effort, 'high');
+        assert.equal(Object.hasOwn(f.sent[0] ?? {}, 'reasoning_effort'), false);
         assert.deepEqual(f.sent[0]?.provider, { only: ['provider'] });
         assert.equal(f.usage.length, 1);
         safe(f);
       }
-  for (const exclude of [false, true]) {
+  for (const enabled of [false, true]) {
     const f = httpFixture('openrouter');
     assert.equal(
-      (await f.handler(request('/v1/chat/completions', { reasoning: { exclude } }))).status,
+      (await f.handler(request('/v1/chat/completions', { reasoning: { enabled } }))).status,
       200,
     );
-    assert.deepEqual(f.sent[0]?.reasoning, { exclude });
+    assert.deepEqual(f.sent[0]?.reasoning, { enabled });
   }
 });
-test('invalid exclusion and effort conflicts reject before routing and credentials', async () => {
+test('invalid activation and locally unsupported effort combinations reject before routing or secrets', async () => {
   for (const reasoning of [
-    { exclude: null },
-    { exclude: 'true' },
-    { exclude: 0 },
-    { exclude: [] },
-    { exclude: {} },
-    { exclude: true, enabled: 'private' },
-    { exclude: false, max_tokens: 100 },
-    { exclude: true, effort: 'low' },
-    { exclude: true, effort: null },
+    { enabled: null },
+    { enabled: 'true' },
+    { enabled: 0 },
+    { enabled: [] },
+    { enabled: {} },
+    { enabled: true, max_tokens: 100 },
   ]) {
     const f = httpFixture('openrouter');
-    assert.equal(
-      (
-        await f.handler(
-          request('/api/v1/chat/completions', { reasoning, reasoning_effort: 'high' }),
-        )
-      ).status,
-      400,
-    );
+    assert.equal((await f.handler(request('/api/v1/chat/completions', { reasoning }))).status, 400);
     assert.equal(f.routes(), 0);
     assert.equal(f.secrets(), 0);
     safe(f);
   }
-  for (const reasoning of [{ exclude: undefined }, { exclude: null }, { exclude: 'private' }]) {
+  for (const enabled of [false, true])
+    for (const effort of [null, 'max', 'xhigh', 'high', 'medium', 'low', 'minimal', 'none']) {
+      for (const fields of [
+        { reasoning: { enabled, effort } },
+        ...(effort === null ? [] : [{ reasoning: { enabled }, reasoning_effort: effort }]),
+      ]) {
+        const f = httpFixture('openrouter');
+        assert.equal((await f.handler(request('/v1/chat/completions', fields))).status, 400);
+        assert.equal(f.routes(), 0);
+        assert.equal(f.secrets(), 0);
+        safe(f);
+      }
+    }
+  for (const fields of [
+    { reasoning: { enabled: undefined } },
+    { reasoning: { enabled: true, effort: null } },
+    { reasoning: { enabled: false }, reasoning_effort: 'none' },
+  ]) {
     const f = adapter('openrouter');
-    await assert.rejects(() => f.call(input({ reasoning }) as unknown as ChatRequest));
+    await assert.rejects(() => f.call(input(fields) as unknown as ChatRequest));
     assert.equal(f.secrets(), 0);
     assert.equal(f.sent.length, 0);
   }
 });
-test('exclusion getters are captured once and frozen before async mutation with safe accessor failures', async () => {
+test('activation is captured once before async mutation and accessor failures remain sanitized', async () => {
   let reads = 0;
-  const config = Object.defineProperty({ summary: 'auto' }, 'exclude', {
+  const config = Object.defineProperty({ exclude: false }, 'enabled', {
     enumerable: true,
     get: () => {
       reads++;
@@ -291,16 +298,16 @@ test('exclusion getters are captured once and frozen before async mutation with 
   const f = adapter('openrouter');
   await f.call(input({ reasoning: config }) as unknown as ChatRequest);
   assert.equal(reads, 1);
-  assert.deepEqual(f.sent[0]?.reasoning, { exclude: true, summary: 'auto' });
-  const reasoning = { exclude: false, effort: 'low' };
+  assert.deepEqual(f.sent[0]?.reasoning, { enabled: true, exclude: false });
+  const reasoning = { enabled: false, summary: 'auto' };
   const late = adapter('openrouter', undefined, () => {
-    reasoning.exclude = true;
-    reasoning.effort = 'private';
+    reasoning.enabled = true;
+    reasoning.summary = 'private';
   });
   await late.call(input({ reasoning }) as unknown as ChatRequest);
-  assert.deepEqual(late.sent[0]?.reasoning, { exclude: false, effort: 'low' });
+  assert.deepEqual(late.sent[0]?.reasoning, { enabled: false, summary: 'auto' });
   for (const kind of kinds) {
-    const malformed = Object.defineProperty({}, 'exclude', {
+    const malformed = Object.defineProperty({}, 'enabled', {
       enumerable: true,
       get: () => {
         throw new Error('private accessor');
@@ -318,12 +325,12 @@ test('exclusion getters are captured once and frozen before async mutation with 
     assert.equal(denied.secrets(), 0);
   }
 });
-test('native providers reject exclusion before secrets and usage', async () => {
+test('native providers reject supplied activation before credentials and accounting', async () => {
   for (const kind of ['openai', 'anthropic', 'google'] as const)
-    for (const exclude of [false, true]) {
+    for (const enabled of [false, true]) {
       const f = httpFixture(kind);
       assert.equal(
-        (await f.handler(request('/v1/chat/completions', { reasoning: { exclude } }))).status,
+        (await f.handler(request('/v1/chat/completions', { reasoning: { enabled } }))).status,
         502,
       );
       assert.equal(f.secrets(), 0);
@@ -332,7 +339,7 @@ test('native providers reject exclusion before secrets and usage', async () => {
       safe(f);
     }
 });
-test('exclusion retains authentication IAM limits persistence privacy and billing including streams', async () => {
+test('activation retains IAM limits required persistence privacy and possible-billing failures', async () => {
   for (const [options, status, dispatched] of [
     [{ auth: true }, 401, false],
     [{ deny: true }, 403, false],
@@ -347,7 +354,7 @@ test('exclusion retains authentication IAM limits persistence privacy and billin
   ] as const) {
     const f = httpFixture('openrouter', options);
     const response = await f.handler(
-      request('/api/v1/chat/completions', { reasoning: { exclude: true } }),
+      request('/api/v1/chat/completions', { reasoning: { enabled: false } }),
     );
     assert.equal(response.status, status);
     assert.equal(f.secrets(), dispatched ? 1 : 0);
@@ -362,7 +369,7 @@ test('exclusion retains authentication IAM limits persistence privacy and billin
   for (const options of [{ usageFail: true }, { outcomeFail: true }]) {
     const f = httpFixture('openrouter', options);
     const response = await f.handler(
-      request('/v1/chat/completions', { stream: true, reasoning: { exclude: false } }),
+      request('/v1/chat/completions', { stream: true, reasoning: { enabled: true } }),
     );
     assert.equal(response.status, 200);
     const wire = await response.text();
@@ -371,25 +378,20 @@ test('exclusion retains authentication IAM limits persistence privacy and billin
     safe(f);
   }
 });
-test('exclusion forwarding does not locally strip returned reasoning or fabricate reduced accounting', async () => {
+test('activation forwarding does not suppress returned reasoning or infer reduced usage', async () => {
   const upstream = {
     ...body('openrouter'),
     choices: [
       {
         index: 0,
-        message: {
-          role: 'assistant',
-          content: 'reply',
-          reasoning: 'private reasoning',
-          reasoning_details: [{ type: 'reasoning.summary', summary: 'private summary' }],
-        },
+        message: { role: 'assistant', content: 'reply', reasoning: 'private reasoning' },
         finish_reason: 'stop',
       },
     ],
   };
   const f = httpFixture('openrouter', { responses: [upstream] });
   const response = await f.handler(
-    request('/v1/chat/completions', { reasoning: { exclude: true, summary: 'concise' } }),
+    request('/v1/chat/completions', { reasoning: { enabled: false } }),
   );
   assert.equal(response.status, 200);
   const result = (await response.json()) as {
@@ -397,31 +399,10 @@ test('exclusion forwarding does not locally strip returned reasoning or fabricat
     usage: object;
   };
   assert.equal(result.choices[0]?.message.reasoning, 'private reasoning');
-  assert.deepEqual(result.choices[0]?.message.reasoning_details, [
-    { type: 'reasoning.summary', summary: 'private summary' },
-  ]);
   assert.deepEqual(result.usage, { prompt_tokens: 2, completion_tokens: 1, total_tokens: 3 });
   safe(f);
-  for (const content of ['', null]) {
-    const empty = {
-      ...body('openrouter'),
-      choices: [{ index: 0, message: { role: 'assistant', content }, finish_reason: 'length' }],
-    };
-    const failed = httpFixture('openrouter', { responses: [empty] });
-    const result = await failed.handler(
-      request('/v1/chat/completions', { reasoning: { exclude: true } }),
-    );
-    assert.equal(result.status, content === '' ? 200 : 502);
-    assert.equal(
-      (failed.usage[0] as { outcome: string }).outcome,
-      content === '' ? 'succeeded' : 'failed',
-    );
-    if (content === null)
-      assert.equal((failed.usage[0] as { possiblyBilled: boolean }).possiblyBilled, true);
-    safe(failed);
-  }
 });
-test('actual OpenAI-compatible SDK preserves raw exclusion through both chat bases and stream modes', async () => {
+test('actual compatible SDK forwards activation on both bases and modes while pinned OpenRouter SDK strips it', async () => {
   const f = httpFixture('openrouter');
   const server = createNodeRequestServer(f.handler);
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -434,11 +415,16 @@ test('actual OpenAI-compatible SDK preserves raw exclusion through both chat bas
         baseURL: `http://127.0.0.1:${address.port}${base}`,
         maxRetries: 0,
       });
-      for (const exclude of [false, true]) {
+      const router = new OpenRouter({
+        apiKey: 'fixture',
+        serverURL: `http://127.0.0.1:${address.port}${base}`,
+        retryConfig: { strategy: 'none' },
+      });
+      for (const enabled of [false, true]) {
         const fields = {
           model: 'chat',
           messages: [{ role: 'user' as const, content: 'private' }],
-          reasoning: { exclude, effort: 'low', summary: 'concise' },
+          reasoning: { enabled, exclude: false, summary: 'concise' },
         };
         const response = await sdk.chat.completions.create({ ...fields, stream: false });
         assert.equal(response.choices[0]?.message.content, 'reply');
@@ -448,44 +434,15 @@ test('actual OpenAI-compatible SDK preserves raw exclusion through both chat bas
         for await (const event of stream) reply += event.choices[0]?.delta.content ?? '';
         assert.equal(reply, 'reply');
         assert.deepEqual(f.sent.at(-1)?.reasoning, fields.reasoning);
-      }
-    }
-    assert.equal(f.usage.length, 8);
-    safe(f);
-  } finally {
-    server.closeAllConnections();
-    await new Promise<void>((resolve, reject) =>
-      server.close((error) => (error ? reject(error) : resolve())),
-    );
-  }
-});
-test('pinned OpenRouter SDK stripping exclusion remains an explicit compatibility gap', async () => {
-  const f = httpFixture('openrouter');
-  const server = createNodeRequestServer(f.handler);
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
-  try {
-    const address = server.address();
-    assert.ok(address && typeof address === 'object');
-    for (const base of ['/v1', '/api/v1']) {
-      const sdk = new OpenRouter({
-        apiKey: 'fixture',
-        serverURL: `http://127.0.0.1:${address.port}${base}`,
-        retryConfig: { strategy: 'none' },
-      });
-      for (const exclude of [false, true]) {
-        const reasoning = { exclude, effort: 'high' as const, summary: 'concise' as const };
-        const result = await sdk.chat.send({
-          chatRequest: {
-            model: 'chat',
-            messages: [{ role: 'user', content: 'private' }],
-            reasoning,
-          },
+        const reasoning = { enabled, summary: 'concise' as const };
+        const result = await router.chat.send({
+          chatRequest: { model: 'chat', messages: fields.messages, reasoning },
         });
         assert.ok('choices' in result);
-        assert.deepEqual(f.sent.at(-1)?.reasoning, { effort: 'high', summary: 'concise' });
+        assert.deepEqual(f.sent.at(-1)?.reasoning, { summary: 'concise' });
       }
     }
-    assert.equal(f.usage.length, 4);
+    assert.equal(f.usage.length, 12);
     safe(f);
   } finally {
     server.closeAllConnections();

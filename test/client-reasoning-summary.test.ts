@@ -255,7 +255,7 @@ test('malformed summary and unsupported structured controls reject before routin
     { summary: 'AUTO' },
     { summary: 1 },
     { summary: {} },
-    { summary: 'auto', enabled: true },
+    { summary: 'auto', enabled: 'private' },
     { max_tokens: 100 },
     { summary: 'auto', provider: 'private' },
   ];
