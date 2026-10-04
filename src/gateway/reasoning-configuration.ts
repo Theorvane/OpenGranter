@@ -12,7 +12,13 @@ export interface ReasoningConfiguration {
 export function snapshotReasoningConfiguration(
   value: unknown,
   shorthand?: ReasoningEffort,
+  includeReasoning?: unknown,
 ): ReasoningConfiguration | undefined {
+  if (includeReasoning !== undefined) {
+    if (typeof includeReasoning !== 'boolean' || value !== undefined)
+      throw new TypeError('Invalid reasoning configuration');
+    return Object.freeze(includeReasoning ? {} : { exclude: true });
+  }
   if (value === undefined) return undefined;
   if (value === null || typeof value !== 'object' || Array.isArray(value))
     throw new TypeError('Invalid reasoning configuration');

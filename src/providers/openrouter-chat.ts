@@ -209,7 +209,11 @@ function prepareOpenRouterChatRequest(
   let reasoning: ReturnType<typeof snapshotReasoningConfiguration>;
   let responseFormat: ReturnType<typeof snapshotResponseFormat>;
   try {
-    reasoning = snapshotReasoningConfiguration(request.reasoning, reasoningEffort);
+    reasoning = snapshotReasoningConfiguration(
+      request.reasoning,
+      reasoningEffort,
+      request.include_reasoning,
+    );
     responseFormat = snapshotResponseFormat(request.response_format);
   } catch {
     fail('configuration');

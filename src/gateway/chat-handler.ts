@@ -96,6 +96,7 @@ export interface ChatRequest {
   readonly verbosity?: Verbosity;
   readonly reasoning_effort?: ReasoningEffort;
   readonly reasoning?: ReasoningConfiguration;
+  readonly include_reasoning?: boolean;
   readonly frequency_penalty?: number;
   readonly presence_penalty?: number;
   readonly response_format?: ResponseFormat;
@@ -412,6 +413,7 @@ function validateChat(value: unknown, streaming = false): ValidatedChatRequest |
           'verbosity',
           'reasoning_effort',
           'reasoning',
+          'include_reasoning',
           'frequency_penalty',
           'presence_penalty',
           'response_format',
@@ -450,7 +452,11 @@ function validateChat(value: unknown, streaming = false): ValidatedChatRequest |
   let toolChoice: ReturnType<typeof snapshotToolChoice>;
   let parallelToolCalls: ReturnType<typeof snapshotParallelToolCalls>;
   try {
-    reasoning = snapshotReasoningConfiguration(value.reasoning, reasoningEffort);
+    reasoning = snapshotReasoningConfiguration(
+      value.reasoning,
+      reasoningEffort,
+      value.include_reasoning,
+    );
     streamOptions = snapshotStreamOptions(value.stream_options);
     if (streamOptions !== undefined && value.stream !== true) return undefined;
     logitBias = snapshotLogitBias(value.logit_bias);

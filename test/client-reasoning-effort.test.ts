@@ -474,12 +474,12 @@ test('reasoning_effort text streams retain denial and required usage/audit termi
   }
 });
 
-test('conflicting effort aliases and unsupported null or legacy controls reject before routing', async () => {
+test('conflicting effort aliases and unsupported null controls reject before routing', async () => {
   for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
     for (const extra of [
       { reasoning: { effort: 'low' } },
       { reasoning: null },
-      { include_reasoning: true },
+      { include_reasoning: null },
     ]) {
       const f = httpFixture('openrouter');
       assert.equal(

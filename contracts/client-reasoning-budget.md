@@ -43,3 +43,7 @@ certification remain open under #116.
 See [plan](../docs/plans/320-reasoning-budget.md),
 [activation](client-reasoning-activation.md), [exclusion](client-reasoning-exclusion.md)
 and [effort](nested-reasoning-effort.md).
+
+Legacy inclusion aliases are supported by [their separate contract](client-legacy-reasoning.md).
+A supplied raw configuration together with the flag remains outside that local subset;
+canonical configuration behavior is unchanged.
