@@ -37,8 +37,12 @@ explains that reasoning is still billed. Current
 exclude is stripped, while the OpenAI-compatible SDK forwards the raw extension
 through both bases and modes. This is a documented HTTP extension with explicit
 source/SDK gaps, not complete SDK compatibility. Pin v18 is unchanged and cannot
-certify an absent field. Null, summary interactions, enabled/budgets/legacy controls,
+certify an absent field. Null, summary interactions, budgets/legacy controls,
 native mappings, tool streams and full external-client certification remain open.
 
 See [plan](../docs/plans/316-reasoning-exclusion.md),
 [effort](nested-reasoning-effort.md) and [summary](client-reasoning-summary.md).
+
+Optional boolean activation is covered by [its separate contract](client-reasoning-activation.md).
+Supplied enabled plus any nested effort or forwarded named shorthand remains
+outside that local subset pending raw-chat interaction clarification.

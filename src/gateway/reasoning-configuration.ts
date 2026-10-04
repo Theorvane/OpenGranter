@@ -4,6 +4,7 @@ export interface ReasoningConfiguration {
   readonly effort?: ReasoningEffort | null;
   readonly summary?: 'auto' | 'concise' | 'detailed' | null;
   readonly exclude?: boolean;
+  readonly enabled?: boolean;
 }
 
 /** Capture supported preferences and compare only already-captured effort aliases. */
@@ -17,7 +18,11 @@ export function snapshotReasoningConfiguration(
   const prototype = Object.getPrototypeOf(value);
   if (prototype !== Object.prototype && prototype !== null)
     throw new TypeError('Invalid reasoning configuration');
-  if (Object.keys(value).some((key) => key !== 'summary' && key !== 'effort' && key !== 'exclude'))
+  if (
+    Object.keys(value).some(
+      (key) => key !== 'summary' && key !== 'effort' && key !== 'exclude' && key !== 'enabled',
+    )
+  )
     throw new TypeError('Invalid reasoning configuration');
   const source = value as Record<string, unknown>;
   let effort: ReasoningEffort | null | undefined;
@@ -47,9 +52,17 @@ export function snapshotReasoningConfiguration(
     if (typeof captured !== 'boolean') throw new TypeError('Invalid reasoning configuration');
     exclude = captured;
   }
+  let enabled: boolean | undefined;
+  if (Object.hasOwn(source, 'enabled')) {
+    const captured = source.enabled;
+    if (typeof captured !== 'boolean' || effort !== undefined || shorthand !== undefined)
+      throw new TypeError('Invalid reasoning configuration');
+    enabled = captured;
+  }
   return Object.freeze({
     ...(effort === undefined ? {} : { effort }),
     ...(summary === undefined ? {} : { summary }),
     ...(exclude === undefined ? {} : { exclude }),
+    ...(enabled === undefined ? {} : { enabled }),
   });
 }

@@ -85,3 +85,5 @@ Whole inline effort selection does not enable nested effort, infer alias precede
 Runtime #314 now supports the bounded delegated nested effort subset; structural pin v18 is unchanged. Alias differing-value guidance is prose stripped as an annotation and is not covered by structural drift alone. See [runtime contract](nested-reasoning-effort.md).
 
 Documented boolean exclusion is implemented by [its separate HTTP contract](client-reasoning-exclusion.md). Current official reasoning structure and SDK omit exclude; unchanged v18 selects the official object but cannot certify the absent extension. No invented source field or fresh full-source comparison is asserted by this runtime change.
+
+Documented boolean activation follows [its separate HTTP contract](client-reasoning-activation.md). Current official reasoning shape and SDK omit enabled; unchanged v18 cannot certify this absent extension and no source shape is invented.
