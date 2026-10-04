@@ -10,3 +10,7 @@ Managed text/functions are already activated. This named-client subset does not 
 OpenCode 1.18.5 passes all 20 modes: delegated/managed × /v1 or /api/v1 × text/tools/model-deny/provider-deny/cancel. Real process events confirm rendered text, fixture read execution and correlated results, 403/exit-1 Deny and process-termination cancellation with failed billed/missing usage. The default suite verifies 16 socket fixture cases across both route kinds; the installed binary is an explicit opt-in gate.
 
 Preserve exact fixture-only file access, disabled plugins/external config, whitelist environment, fresh temporary Git project and existing process deadline/output limits. No live provider or real key is involved. Broader interactive retries, discovery, rich tools, other applications/versions/native providers and full #116 remain open.
+
+## Native provider follow-up
+
+Issue #414 extends the pinned runner with managed Anthropic/Gemini, follow-up provider Deny and distinct default/configured signed-Google probes. See [native provider contract](opencode-native-providers.md). The earlier twenty-probe OpenAI/delegated checkpoint is historical evidence, not the current runner inventory.
