@@ -312,3 +312,25 @@ test('out-of-model or spoofed lookahead rows reject the entire SQL page', async 
     });
   }
 });
+
+test('audit history orders multi-digit event IDs numerically across keyset pages', async () => {
+  const { db, writer, reader } = await fixture();
+  try {
+    for (let index = 1; index <= 12; index++)
+      await writer.append(event('service-1', `request-${index}`, index));
+    const first = await reader({ principalId: 'service-1', limit: 3 });
+    assert.deepEqual(
+      first.events.map((row) => row.eventId),
+      ['12', '11', '10'],
+    );
+    assert.equal(first.nextCursor, '10');
+    const second = await reader({ principalId: 'service-1', limit: 3, cursor: first.nextCursor });
+    assert.deepEqual(
+      second.events.map((row) => row.eventId),
+      ['9', '8', '7'],
+    );
+    assert.equal(second.nextCursor, '7');
+  } finally {
+    await db.close();
+  }
+});

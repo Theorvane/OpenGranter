@@ -70,6 +70,39 @@ test('persisted direct server authenticates, invokes its stored registration, an
       upstreamCalls++;
       assert.equal(String(url), 'https://api.openai.com/v1/chat/completions');
       assert.equal(JSON.parse(String(init?.body)).model, 'gpt');
+      if (JSON.parse(String(init?.body)).stream === true) {
+        const identity = {
+          id: 'stream',
+          created: 1000,
+          model: 'gpt',
+          object: 'chat.completion.chunk',
+        };
+        const frames = [
+          {
+            ...identity,
+            choices: [
+              {
+                index: 0,
+                delta: { role: 'assistant', content: 'private response' },
+                finish_reason: null,
+              },
+            ],
+            usage: null,
+          },
+          { ...identity, choices: [{ index: 0, delta: {}, finish_reason: 'stop' }], usage: null },
+          {
+            ...identity,
+            choices: [],
+            usage: { prompt_tokens: 2, completion_tokens: 3, total_tokens: 5 },
+          },
+        ];
+        assert.deepEqual(JSON.parse(String(init?.body)).stream_options, { include_usage: true });
+        return new Response(
+          frames.map((chunk) => 'data: ' + JSON.stringify(chunk) + '\n\n').join('') +
+            'data: [DONE]\n\n',
+          { headers: { 'content-type': 'text/event-stream' } },
+        );
+      }
       return Response.json({
         id: 'completion',
         created: 1000,
@@ -118,9 +151,27 @@ test('persisted direct server authenticates, invokes its stored registration, an
       assert.equal(chat.status, 200);
       assert.equal(chat.headers.get('x-request-id'), 'socket-2');
       await chat.json();
+      const streamOptions = {
+        ...chatOptions,
+        body: JSON.stringify({
+          model: 'chat',
+          messages: [{ role: 'user', content: 'private prompt' }],
+          stream: true,
+        }),
+      };
+      for (const prefix of ['/v1', '/api/v1']) {
+        const stream = await fetch(base + prefix + '/chat/completions', streamOptions);
+        assert.equal(stream.status, 200);
+        const content = await stream.text();
+        assert.ok(content.includes('private response'));
+        assert.ok(content.includes('"model":"chat"'));
+        assert.ok(content.endsWith('data: [DONE]\n\n'));
+      }
+      const persistedUsage = await db.query('SELECT record FROM usage_records ORDER BY attempt_id');
+      assert.equal(persistedUsage.rows.length, 3);
       for (const path of ['/v1/usage', '/v1/audit']) {
         const history = await fetch(`${base}${path}`, { headers });
-        assert.equal(history.status, 200);
+        assert.equal(history.status, 200, path);
         const body = await history.text();
         assert.equal(JSON.parse(body).data.length > 0, true);
         for (const secret of [
@@ -137,10 +188,15 @@ test('persisted direct server authenticates, invokes its stored registration, an
           '[{"effect":"Deny","actions":["llm:InvokeModel"],"resources":["model:chat"]}]');
         INSERT INTO iam_principal_policies VALUES ('service-1', 'deny');
       `);
+      for (const prefix of ['/v1', '/api/v1']) {
+        const forbiddenStream = await fetch(base + prefix + '/chat/completions', streamOptions);
+        assert.equal(forbiddenStream.status, 403);
+        await forbiddenStream.text();
+      }
       const forbidden = await fetch(`${base}/v1/chat/completions`, chatOptions);
       assert.equal(forbidden.status, 403);
       await forbidden.text();
-      assert.equal(secretCalls, 1);
+      assert.equal(secretCalls, 3);
       await tokens.revoke({
         credentialId: issued.credentialId,
         actorId: 'admin-1',
@@ -149,8 +205,8 @@ test('persisted direct server authenticates, invokes its stored registration, an
       const denied = await fetch(`${base}/v1/chat/completions`, chatOptions);
       assert.equal(denied.status, 401);
       await denied.text();
-      assert.equal(upstreamCalls, 1);
-      assert.equal(secretCalls, 1);
+      assert.equal(upstreamCalls, 3);
+      assert.equal(secretCalls, 3);
     } finally {
       await new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),

@@ -65,6 +65,9 @@ async function fixture(direct = true) {
     },
     timeoutMs: 1000,
     ...{
+      invokeDirectTextStream: async () => {
+        throw new Error('unexpected direct stream override');
+      },
       invokeOpenRouter: async () => {
         throw new Error('unexpected runtime override');
       },
@@ -90,6 +93,33 @@ async function fixture(direct = true) {
       }
       if (state.upstreamStatus !== 200)
         return new Response('private-upstream-failure', { status: state.upstreamStatus });
+      if (body.stream === true && !String(url).includes('openrouter.ai')) {
+        assert.deepEqual(body.stream_options, { include_usage: true });
+        const identity = {
+          id: 'native-stream',
+          created: 1000,
+          model: body.model,
+          object: 'chat.completion.chunk',
+        };
+        const frames = [
+          {
+            ...identity,
+            choices: [{ index: 0, delta: { content: 'private-response' }, finish_reason: null }],
+            usage: null,
+          },
+          { ...identity, choices: [{ index: 0, delta: {}, finish_reason: 'stop' }], usage: null },
+          {
+            ...identity,
+            choices: [],
+            usage: { prompt_tokens: 2, completion_tokens: 3, total_tokens: 5 },
+          },
+        ];
+        return new Response(
+          frames.map((chunk) => 'data: ' + JSON.stringify(chunk) + '\n\n').join('') +
+            'data: [DONE]\n\n',
+          { headers: { 'content-type': 'text/event-stream' } },
+        );
+      }
       if (body.stream === true) {
         const frame = (delta: object, finish: string | null, usage?: object) =>
           `data: ${JSON.stringify({
@@ -472,5 +502,42 @@ test('persisted function streams deny before secrets and sanitize partial failur
     assert.equal(JSON.stringify([usage.rows, audit.rows]).includes('private'), false);
   } finally {
     await f.close();
+  }
+});
+
+test('persisted dual composition generates controlled native stream port and ignores runtime overrides', async () => {
+  const { db, base, headers, close, secrets, hosts } = await fixture();
+  try {
+    for (const prefix of ['/v1', '/api/v1']) {
+      const response = await fetch(base + prefix + '/chat/completions', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          model: 'direct-chat',
+          messages: [{ role: 'user', content: 'private-prompt' }],
+          stream: true,
+        }),
+      });
+      assert.equal(response.status, 200);
+      const body = await response.text();
+      assert.ok(body.includes('"model":"direct-chat"'));
+      assert.ok(body.endsWith('data: [DONE]\n\n'));
+    }
+    assert.deepEqual(secrets, ['secret/openai', 'secret/openai']);
+    assert.ok(hosts.every((host) => host === 'https://api.openai.com/v1/chat/completions'));
+    const records = await db.query<{ record: { outcome: string; routeKind: string } }>(
+      'SELECT record FROM usage_records',
+    );
+    assert.equal(records.rows.length, 2);
+    assert.ok(
+      records.rows.every(
+        (row) => row.record.outcome === 'succeeded' && row.record.routeKind === 'managed',
+      ),
+    );
+    const history = await fetch(base + '/v1/audit', { headers });
+    assert.equal(history.status, 200);
+    assert.ok(!(await history.text()).includes('private-response'));
+  } finally {
+    await close();
   }
 });

@@ -651,3 +651,10 @@ Reuse the existing single-pending-frame HTTP controller for managed text streams
 
 See [plan](plans/378-managed-http-stream.md) and [contract](../contracts/managed-http-stream.md).
 Public managed streaming and full #116 remain open; pin v19 is unchanged.
+
+## Public managed OpenAI text streaming
+
+Activate managed OpenAI text/refusal streaming through an optional trusted gateway port on both /v1 and /api/v1 and generate that port from stored native registrations in persisted direct/dual servers. Retain complete model/final-provider IAM, limits, Jev/order selection, required usage/audit and bounded cancellation. Reject managed tools/tool histories before inference; unsupported native registrations fail before provider-key lookup without silently changing candidate selection. Exact upstream model IDs remain required. Native tools, Anthropic/Gemini streaming and full #116 remain open.
+
+See [plan](plans/380-managed-gateway-stream.md) and [contract](../contracts/managed-gateway-stream.md).
+Managed OpenAI text streaming is activated; broader native streaming and full #116 remain open. Pin v19 is unchanged.
