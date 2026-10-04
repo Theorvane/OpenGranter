@@ -3,14 +3,18 @@ import type { ChatHandlerPorts } from '../src/gateway/chat-handler.ts';
 import { createOpenRouterFunctionStreamInvoker } from '../src/providers/openrouter-function-stream.ts';
 import type { UsageRecord } from '../src/usage/record-usage.ts';
 
-export function openCodeGatewayFixture() {
+export type OpenCodeFixtureMode = 'text' | 'tools' | 'model-deny' | 'provider-deny' | 'cancel';
+export function openCodeGatewayFixture(mode: OpenCodeFixtureMode = 'text') {
   let authenticated = 0,
-    secrets = 0;
+    secrets = 0,
+    limits = 0,
+    aborted = false;
   const sent: Record<string, unknown>[] = [],
     audit: unknown[] = [],
     usage: UsageRecord[] = [];
   const invoker = createOpenRouterFunctionStreamInvoker({
     credentialRef: 'secret/openrouter',
+    timeoutMs: 15000,
     resolveSecret: async () => {
       secrets++;
       return 'fixture-upstream-key';
@@ -32,10 +36,61 @@ export function openCodeGatewayFixture() {
           choices: [{ index: 0, delta, finish_reason: finish }],
           ...extra,
         })}\n\n`;
+      if (mode === 'cancel') {
+        return new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              controller.enqueue(
+                new TextEncoder().encode(
+                  frame({ role: 'assistant', content: 'fixture-partial' }, null),
+                ),
+              );
+              init?.signal?.addEventListener(
+                'abort',
+                () => {
+                  aborted = true;
+                  controller.error(new Error('fixture transport interrupted'));
+                },
+                { once: true },
+              );
+            },
+            cancel() {
+              aborted = true;
+            },
+          }),
+          { headers: { 'content-type': 'text/event-stream' } },
+        );
+      }
+      const history = body.messages as { role: string; tool_call_id?: string; content?: string }[];
+      const answered = history.some((message) => message.role === 'tool');
+      const toolTurn =
+        mode === 'tools' && Array.isArray(body.tools) && body.tools.length > 0 && !answered;
+      if (answered) {
+        const result = history.find((message) => message.role === 'tool');
+        assert.equal(result?.tool_call_id, 'call_read');
+        assert.ok(result.content?.includes('fixture-tool-result'));
+      }
+      const finish = toolTurn ? 'tool_calls' : 'stop';
+      const delta = toolTurn
+        ? frame(
+            {
+              role: 'assistant',
+              tool_calls: [
+                {
+                  index: 0,
+                  id: 'call_read',
+                  type: 'function',
+                  function: { name: 'read', arguments: '{"filePath":' },
+                },
+              ],
+            },
+            null,
+          ) + frame({ tool_calls: [{ index: 0, function: { arguments: '"fixture.txt"}' } }] }, null)
+        : frame({ role: 'assistant', content: 'fixture-final-answer' }, null);
       return new Response(
-        frame({ role: 'assistant', content: 'fixture-final-answer' }, null) +
-          frame({}, 'stop') +
-          frame({}, 'stop', {
+        delta +
+          frame({}, finish) +
+          frame({}, finish, {
             usage: { prompt_tokens: 2, completion_tokens: 3, total_tokens: 5 },
           }) +
           'data: [DONE]\n\n',
@@ -55,6 +110,15 @@ export function openCodeGatewayFixture() {
         policyVersions: [],
         statements: [
           { effect: 'Allow', actions: ['llm:InvokeModel', 'llm:UseProvider'], resources: ['*'] },
+          ...(mode === 'model-deny' || mode === 'provider-deny'
+            ? [
+                {
+                  effect: 'Deny' as const,
+                  actions: [mode === 'model-deny' ? 'llm:InvokeModel' : 'llm:UseProvider'],
+                  resources: ['*'],
+                },
+              ]
+            : []),
         ],
       };
     },
@@ -72,7 +136,10 @@ export function openCodeGatewayFixture() {
       ],
     }),
     resolveVerifiedProviderSlug: async () => 'OpenAI',
-    checkLimit: async () => true,
+    checkLimit: async () => {
+      limits++;
+      return true;
+    },
     resolveSecret: async () => assert.fail('Unexpected direct credentials'),
     invokeDirect: async () => assert.fail('Unexpected direct invocation'),
     invokeOpenRouterFunctionStream: async (_ref, attempt, chat, onDelta, signal) =>
@@ -84,5 +151,5 @@ export function openCodeGatewayFixture() {
       audit.push(event);
     },
   };
-  return { ports, sent, audit, usage, counts: () => ({ authenticated, secrets }) };
+  return { ports, sent, audit, usage, counts: () => ({ authenticated, secrets, limits, aborted }) };
 }

@@ -86,3 +86,23 @@ test('process preserves Unicode split across child output chunks', () =>
       'fixture 終😀',
     );
   }));
+test('observed process retains explicit nonzero exit and events for conformance assertions', () =>
+  temporary(async (root) => {
+    const { runBoundedProcessResult } = await import('../scripts/opencode-process.ts');
+    assert.deepEqual(
+      await runBoundedProcessResult(
+        process.execPath,
+        ['-e', 'process.stdout.write("fixture-error-event"); process.exit(1)'],
+        root,
+        {},
+        1000,
+      ),
+      { code: 1, output: 'fixture-error-event' },
+    );
+  }));
+test('read fixture configuration allows one project-relative file and denies every other tool/path', () => {
+  assert.deepEqual(openCodeConfig('http://127.0.0.1:1234/v1', true).permission, {
+    '*': 'deny',
+    read: { '*': 'deny', 'fixture.txt': 'allow' },
+  });
+});
