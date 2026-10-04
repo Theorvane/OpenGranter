@@ -192,6 +192,7 @@ function prepareOpenRouterChatRequest(
   attempt: OpenRouterChatAttempt,
   request: ChatRequest,
   stream: boolean,
+  functionStream = false,
 ): PreparedOpenRouterChatRequest {
   const fixedAttempt = snapshotOpenRouterChatAttempt(attempt);
   const topK = request.top_k ?? undefined;
@@ -229,6 +230,7 @@ function prepareOpenRouterChatRequest(
     logitBias = snapshotLogitBias(request.logit_bias);
     if (
       stream &&
+      !functionStream &&
       (request.tools !== undefined ||
         request.tool_choice !== undefined ||
         request.parallel_tool_calls !== undefined)
@@ -379,6 +381,27 @@ export async function invokeOpenRouterChatTransport(
   readonly signal: AbortSignal;
 }> {
   const prepared = prepareOpenRouterChatRequest(ports, attempt, request, stream);
+  const { response, timeout, signal } = await fetchOpenRouterChatResponse(
+    ports,
+    prepared,
+    cancellation,
+  );
+  return { prepared, response, timeout, signal };
+}
+
+/** Explicit internal function-stream capability; text guards remain separate. */
+export async function invokeOpenRouterFunctionStreamTransport(
+  ports: OpenRouterChatPorts,
+  attempt: OpenRouterChatAttempt,
+  request: ChatRequest,
+  cancellation?: AbortSignal,
+): Promise<{
+  readonly prepared: PreparedOpenRouterChatRequest;
+  readonly response: Response;
+  readonly timeout: AbortSignal;
+  readonly signal: AbortSignal;
+}> {
+  const prepared = prepareOpenRouterChatRequest(ports, attempt, request, true, true);
   const { response, timeout, signal } = await fetchOpenRouterChatResponse(
     ports,
     prepared,
