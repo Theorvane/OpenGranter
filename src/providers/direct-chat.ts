@@ -365,6 +365,7 @@ function prepare(
       body: {
         model: candidate.upstreamModelId,
         max_tokens: outputLimit ?? registration.maxOutputTokens,
+        ...(streaming ? { stream: true } : {}),
         ...(verbosity === undefined ? {} : { output_config: { effort: verbosity } }),
         ...(temperature === undefined ? {} : { temperature }),
         ...(topP === undefined ? {} : { top_p: topP }),
@@ -438,7 +439,7 @@ export function createDirectChatTransport(
 ): (
   candidate: RouteCandidate,
   request: ChatRequest,
-  streaming?: boolean | 'function',
+  streaming?: boolean | 'function' | 'anthropic-text',
   cancellation?: AbortSignal,
 ) => Promise<DirectChatTransportResult> {
   const registrations = snapshotDirectProviderRegistrations(ports.registrations);
@@ -594,7 +595,7 @@ export function createDirectChatTransport(
       try {
         snapshotStreamOptions(request.stream_options);
         if (
-          registration.kind !== 'openai' ||
+          registration.kind !== (streaming === 'anthropic-text' ? 'anthropic' : 'openai') ||
           (streaming !== 'function' &&
             (tools !== undefined ||
               toolChoice !== undefined ||

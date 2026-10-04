@@ -1,0 +1,5 @@
+# Registered Anthropic text stream invocation
+
+Internal native Anthropic text invocation uses an explicit transport mode, captured administrator registration and Messages request, fixed host and headers, capped output, timeout and caller cancellation. Existing OpenAI-only stream modes remain restricted. This stage does not yet wire persisted public Anthropic streams or tools.
+
+Native Anthropic Messages streaming uses exact approved model IDs and one gateway-created timestamp. Sequential text-only blocks are bounded by the shared 1 MiB SSE framing limit and a 128-block limit. Nontext blocks, routing/model changes, out-of-order events, unknown events, provider errors and incomplete EOF fail safely. Ping is ignored. Aggregate final usage follows existing Anthropic normalization and is cumulative; missing final output is not replaced with the initial output estimate. Completion metadata contains no response content. Cancellation and callback failures are opened, possibly-billed failures. No public activation or tools are introduced by the response-only stage.
