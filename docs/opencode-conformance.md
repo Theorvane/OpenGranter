@@ -62,23 +62,36 @@ loopback server are removed on success or failure. Child failure messages omit
 stderr, paths and request content.
 
 The real gateway authenticates a fixture proxy token, evaluates the approved
-model/provider route and limits, invokes a fixed-host mocked delegated transport,
+model/provider route and limits, invokes a fixed-host mocked delegated OpenRouter or registered direct OpenAI transport,
 and records usage/audit before successful completion. No real provider, real
 secret or external model is involved. The command verifies registered model
 selection, rendered text, actual streamed read-function assembly and execution,
 correlated tool-result continuation, fresh IAM/limit checks and completed usage on
-both bases. It also verifies explicit model/provider Deny and upstream cancellation
+both bases and both route kinds (20 probes: two kinds × two bases × five modes). It also verifies explicit model/provider Deny and upstream cancellation
 with failed possibly-billed/missing-usage accounting after child termination.
 OpenCode emits an APIError event with status 403 and exit code 1 on these Deny
 responses; the probe checks both rather than inferring success from iterator/exit
 completion. Diagnostic events remain local in-memory conformance data, never
 operational gateway metadata. Default CI tests the
-process/config helper without requiring a globally installed client; this explicit
+process/config helper and both route-kind socket fixtures without requiring a globally installed client; this explicit
 client command is a separate recorded conformance gate.
 
-Interactive cancellation actions, retry/error variants, richer tools, direct streaming,
+Interactive cancellation actions, retry/error variants, richer/custom tools, other direct providers,
 other application versions/configurations and complete #116 certification remain open.
 
 The runner also requires Git and initializes an empty temporary project for exact
 project-relative read matching. The read permission map denies every path except
 the literal fixture.txt. The temporary project is removed with the other fixtures.
+
+## Managed native scope
+
+OpenCode 1.18.5 now passes the same five modes through managed OpenAI routes on
+both bases: rendered text, actual read-function/result continuation, model Deny,
+provider Deny and process-termination cancellation with billed/missing accounting.
+Native response fixtures use ordinary usage:null and final empty-choice usage;
+requests use captured registered models and forced include_usage. The native
+model fixture ID is exact; this does not establish automatic model snapshot
+equivalence, live provider conformance or other named-client versions.
+
+See [plan](plans/390-opencode-managed-streams.md) and
+[contract](../contracts/opencode-managed-streams.md).
