@@ -9,7 +9,8 @@ null/empty, while bare-null ordinary/empty-call histories remain unsupported.
 This is structural forwarding, without guarantees of semantic model acceptance.
 
 Existing delegated ordinary text streams also preserve refusal history. Tool
-fields/direct streams and refusal content-part arrays remain unsupported. Preserve
+fields/direct streams remain unsupported. Single assistant refusal content parts
+follow the HTTP [translation contract](client-refusal-parts.md). Preserve
 call IDs/arguments and complete pending results; refusal never resolves a pending
 call or grants authentication, routing, policy or tool execution authority.
 

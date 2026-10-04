@@ -6,6 +6,10 @@ Any unsupported/mixed image/audio/file/tool part, unknown part key, malformed/em
 
 String inputs retain prior behavior. All four providers receive the same normalized text through their established mapping. Authentication, model/final-provider IAM, limits, required audit and usage remain shared. Failures/events do not expose contents or keys, and this change does not enable content auditing.
 
-Concatenation does not preserve native text-block or cache boundaries. Multimodal/refusal parts, cache_control/name fields, tools, streaming and complete external-client conformance remain open under #116. Source checked 2026-09-29: [OpenRouter API overview](https://openrouter.ai/docs/api_reference/overview) and [official schema](https://openrouter.ai/openapi.json).
+Concatenation does not preserve native text-block or cache boundaries. Multimodal parts and cache boundaries remain open under #116. Single assistant refusal parts follow the [translation contract](client-refusal-parts.md); function groups and ordinary delegated streams follow their own bounded contracts without complete external-client certification. Source checked 2026-09-29: [OpenRouter API overview](https://openrouter.ai/docs/api_reference/overview) and [official schema](https://openrouter.ai/openapi.json).
 
 Instruction arrays still belong only to the leading system/developer prefix. Assistant-history arrays use the existing assistant mapping. Shared message validation rejects unknown message keys and roles after normalization. See [extension plan](../docs/plans/148-message-text-parts.md).
+
+Single assistant refusal parts normalize to canonical nullable content/scalar
+refusal under the [translation contract](client-refusal-parts.md). Mixed text/refusal
+parts remain rejected. Text concatenation and role/order checks stay unchanged.
