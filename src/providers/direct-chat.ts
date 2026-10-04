@@ -6,6 +6,7 @@ import {
   snapshotLogitBias,
   snapshotResponseFormat,
   snapshotStopSequences,
+  snapshotStreamOptions,
   validPenalty,
   validReasoningEffort,
   validSeed,
@@ -22,6 +23,7 @@ import {
 } from '../gateway/chat-tools.ts';
 import type { RouteCandidate } from '../routing/authorize-candidates.ts';
 import { DirectProviderFailure } from '../routing/invoke-jev-managed-route.ts';
+import { waitForStreamOperation } from '../streaming/wait-for-stream-operation.ts';
 import { normalizeProviderUsage } from '../usage/normalize-provider-tokens.ts';
 import { type AssistantResponse, normalizeAssistantResponse } from './assistant-response.ts';
 import { type ChatUsage, normalizeChatUsage } from './chat-usage.ts';
@@ -301,6 +303,7 @@ function prepare(
   seed: number | undefined,
   verbosity: ChatRequest['verbosity'],
   reasoningEffort: ReasoningEffort | undefined,
+  streaming = false,
 ): { url: string; headers: Record<string, string>; body: object } {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
   const outputLimit =
@@ -315,7 +318,8 @@ function prepare(
       body: {
         model: candidate.upstreamModelId,
         messages: inputMessages,
-        stream: false,
+        stream: streaming,
+        ...(streaming ? { stream_options: { include_usage: true } } : {}),
         ...(n === undefined ? {} : { n }),
         ...(seed === undefined ? {} : { seed }),
         ...(verbosity === undefined ? {} : { verbosity }),
@@ -429,11 +433,29 @@ function prepare(
 }
 
 /** Invoke only an administrator-registered direct provider through its fixed official host. */
-export function createDirectChatInvoker(
+export function createDirectChatTransport(
   ports: DirectChatPorts,
-): (candidate: RouteCandidate, request: ChatRequest) => Promise<ChatCompletion> {
+): (
+  candidate: RouteCandidate,
+  request: ChatRequest,
+  streaming?: boolean,
+  cancellation?: AbortSignal,
+) => Promise<DirectChatTransportResult> {
   const registrations = snapshotDirectProviderRegistrations(ports.registrations);
-  return async (candidate, request) => {
+  return async (inputCandidate, request, streaming = false, cancellation) => {
+    let candidate: RouteCandidate;
+    let clientModelAlias: string;
+    try {
+      candidate = Object.freeze({
+        id: inputCandidate.id,
+        kind: inputCandidate.kind,
+        providerId: inputCandidate.providerId,
+        upstreamModelId: inputCandidate.upstreamModelId,
+      });
+      clientModelAlias = request.model;
+    } catch {
+      fail('other');
+    }
     const registration = registrations.find((item) => item.providerId === candidate.providerId);
     if (!registration || candidate.kind !== 'managed') fail('other');
     const configuredTimeout = ports.timeoutMs;
@@ -568,18 +590,26 @@ export function createDirectChatInvoker(
     } catch {
       fail('other');
     }
-    let key: string | undefined;
-    try {
-      key = await ports.resolveSecret(registration.credentialRef);
-    } catch {
-      fail('other');
+    if (streaming) {
+      try {
+        snapshotStreamOptions(request.stream_options);
+        if (
+          registration.kind !== 'openai' ||
+          tools !== undefined ||
+          toolChoice !== undefined ||
+          parallelToolCalls !== undefined ||
+          messages.some((message) => message.role === 'tool' || message.tool_calls !== undefined)
+        )
+          fail('other');
+      } catch {
+        fail('other');
+      }
     }
-    if (!key) fail('other');
     const prepared = prepare(
       registration,
       candidate,
       messages,
-      key,
+      '',
       maxTokens,
       stop,
       temperature,
@@ -593,21 +623,48 @@ export function createDirectChatInvoker(
       toolChoice,
       parallelToolCalls,
       topK,
-
       seed,
       verbosity,
       reasoningEffort,
+      streaming,
     );
+    const body = JSON.stringify(prepared.body);
     const timeout = AbortSignal.timeout(timeoutMs);
+    const signal = cancellation ? AbortSignal.any([timeout, cancellation]) : timeout;
+    if (signal.aborted) fail(timeout.aborted ? 'timeout' : 'other');
+    let key: string | undefined;
+    try {
+      key = await waitForStreamOperation(
+        Promise.resolve().then(() => ports.resolveSecret(registration.credentialRef)),
+        signal,
+      );
+    } catch {
+      fail(timeout.aborted ? 'timeout' : 'other');
+    }
+    if (!key) fail('other');
+    if (signal.aborted) fail(timeout.aborted ? 'timeout' : 'other');
+    const keyHeader =
+      registration.kind === 'openai'
+        ? 'authorization'
+        : registration.kind === 'anthropic'
+          ? 'x-api-key'
+          : 'x-goog-api-key';
+    prepared.headers[keyHeader] = registration.kind === 'openai' ? `Bearer ${key}` : key;
     let response: Response;
     try {
-      response = await (ports.fetcher ?? fetch)(prepared.url, {
-        method: 'POST',
-        headers: prepared.headers,
-        body: JSON.stringify(prepared.body),
-        redirect: 'error',
-        signal: timeout,
-      });
+      response = await waitForStreamOperation(
+        (ports.fetcher ?? fetch)(prepared.url, {
+          method: 'POST',
+          headers: prepared.headers,
+          body,
+          redirect: 'error',
+          signal,
+        }),
+        signal,
+        (lateResponse) => {
+          void lateResponse.body?.cancel().catch(() => {});
+        },
+      );
     } catch (error) {
       if (
         timeout.aborted ||
@@ -616,17 +673,44 @@ export function createDirectChatInvoker(
         fail('timeout', true);
       fail('other', true);
     }
+    return {
+      response,
+      timeout,
+      signal,
+      candidate,
+      clientModelAlias,
+      providerKind: registration.kind,
+    };
+  };
+}
+
+export interface DirectChatTransportResult {
+  readonly response: Response;
+  readonly providerKind: DirectProviderRegistration['kind'];
+  readonly timeout: AbortSignal;
+  readonly signal: AbortSignal;
+  readonly candidate: RouteCandidate;
+  readonly clientModelAlias: string;
+}
+
+/** Invoke only a registered direct provider using the captured request scope. */
+export function createDirectChatInvoker(
+  ports: DirectChatPorts,
+): (candidate: RouteCandidate, request: ChatRequest) => Promise<ChatCompletion> {
+  const invoke = createDirectChatTransport(ports);
+  return async (candidate, request) => {
+    const { response, providerKind, clientModelAlias } = await invoke(candidate, request);
     if (response.status === 429) fail('rate-limit', true, true);
     if (response.status >= 500) fail('server-error', true, true);
     if (!response.ok) fail('other', true, true);
     let body: unknown;
     try {
-      body = (await response.json()) as unknown;
+      body = await response.json();
     } catch {
       fail('other', true, true);
     }
     try {
-      return normalize(registration.kind, body, request.model);
+      return normalize(providerKind, body, clientModelAlias);
     } catch {
       fail('other', true, true);
     }
