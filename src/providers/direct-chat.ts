@@ -4,6 +4,7 @@ import {
   type ReasoningEffort,
   resolveOutputTokenLimit,
   snapshotLogitBias,
+  snapshotNonstreamLogprobControls,
   snapshotResponseFormat,
   snapshotStopSequences,
   snapshotStreamOptions,
@@ -31,6 +32,7 @@ import {
   prepareAnthropicMessages,
 } from './anthropic-client-functions.ts';
 import { type AssistantResponse, normalizeAssistantResponse } from './assistant-response.ts';
+import { type ChatLogprobs, snapshotChatLogprobs } from './chat-logprobs.ts';
 import { type ChatUsage, normalizeChatUsage } from './chat-usage.ts';
 import { normalizeGoogleChatUsage } from './google-chat-usage.ts';
 import {
@@ -112,6 +114,7 @@ export interface ChatCompletion {
       readonly message: AssistantResponse;
       readonly finish_reason: 'stop' | 'length' | 'content_filter' | 'tool_calls' | null;
       readonly native_finish_reason?: string | null;
+      readonly logprobs?: ChatLogprobs | null;
     },
   ];
   readonly usage?: ChatUsage;
@@ -185,6 +188,7 @@ function normalize(
       fail('other');
     const message = normalizeAssistantResponse(record(first.message), first.finish_reason);
     if (!message) fail('other');
+    const logprobs = snapshotChatLogprobs(first.logprobs);
     const finish = first.finish_reason;
     if (
       finish !== 'stop' &&
@@ -194,17 +198,19 @@ function normalize(
       finish !== null
     )
       fail('other');
+    const result = completion(
+      value.id,
+      value.created,
+      model,
+      message.content,
+      finish,
+      normalizeChatUsage(value.usage),
+      message,
+      nativeReason,
+    );
     return {
-      ...completion(
-        value.id,
-        value.created,
-        model,
-        message.content,
-        finish,
-        normalizeChatUsage(value.usage),
-        message,
-        nativeReason,
-      ),
+      ...result,
+      choices: [{ ...result.choices[0], ...(logprobs === undefined ? {} : { logprobs }) }],
       ...(fingerprint === undefined ? {} : { system_fingerprint: fingerprint }),
       ...(serviceTier === undefined ? {} : { service_tier: serviceTier }),
     };
@@ -345,6 +351,7 @@ function prepare(
   seed: number | undefined,
   verbosity: ChatRequest['verbosity'],
   reasoningEffort: ReasoningEffort | undefined,
+  logprobControls: ReturnType<typeof snapshotNonstreamLogprobControls>,
   streaming = false,
 ): { url: string; headers: Record<string, string>; body: object } {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
@@ -370,6 +377,7 @@ function prepare(
         ...(presencePenalty === undefined ? {} : { presence_penalty: presencePenalty }),
         ...(responseFormat === undefined ? {} : { response_format: responseFormat }),
         ...(logitBias === undefined ? {} : { logit_bias: logitBias }),
+        ...logprobControls,
         ...(tools === undefined ? {} : { tools }),
         ...(toolChoice === undefined ? {} : { tool_choice: toolChoice }),
         ...(parallelToolCalls === undefined ? {} : { parallel_tool_calls: parallelToolCalls }),
@@ -513,6 +521,17 @@ export function createDirectChatTransport(
     }
     const registration = registrations.find((item) => item.providerId === candidate.providerId);
     if (!registration || candidate.kind !== 'managed') fail('other');
+    let logprobControls: ReturnType<typeof snapshotNonstreamLogprobControls>;
+    try {
+      logprobControls = snapshotNonstreamLogprobControls(
+        request.logprobs,
+        request.top_logprobs,
+        streaming !== false,
+      );
+      if (registration.kind !== 'openai' && Object.keys(logprobControls).length > 0) fail('other');
+    } catch {
+      fail('other');
+    }
     const configuredTimeout = ports.timeoutMs;
     const timeoutMs = configuredTimeout === undefined ? 30_000 : configuredTimeout;
     if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > 2_147_483_647)
@@ -686,6 +705,7 @@ export function createDirectChatTransport(
       seed,
       verbosity,
       reasoningEffort,
+      logprobControls,
       streaming !== false,
     );
     const body = JSON.stringify(prepared.body);

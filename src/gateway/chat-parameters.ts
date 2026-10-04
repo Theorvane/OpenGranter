@@ -208,3 +208,28 @@ export function validTopA(value: unknown): value is number | undefined {
 export function validRepetitionPenalty(value: unknown): value is number | undefined {
   return validTemperature(value);
 }
+
+/** Capture the bounded nonstream subset; null follows the omission convention. */
+export function snapshotNonstreamLogprobControls(
+  logprobs: unknown,
+  topLogprobs: unknown,
+  streaming = false,
+): Readonly<{ logprobs?: boolean; top_logprobs?: number }> {
+  const enabled = logprobs ?? undefined;
+  const alternatives = topLogprobs ?? undefined;
+  if (
+    (enabled !== undefined && typeof enabled !== 'boolean') ||
+    (alternatives !== undefined &&
+      (typeof alternatives !== 'number' ||
+        !Number.isSafeInteger(alternatives) ||
+        alternatives < 0 ||
+        alternatives > 20 ||
+        enabled !== true)) ||
+    (streaming && (enabled !== undefined || alternatives !== undefined))
+  )
+    throw new Error('Unsupported log probability controls');
+  return Object.freeze({
+    ...(enabled === undefined ? {} : { logprobs: enabled }),
+    ...(alternatives === undefined ? {} : { top_logprobs: alternatives }),
+  });
+}
