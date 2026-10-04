@@ -557,8 +557,10 @@ export function createDirectChatInvoker(
           (message) =>
             Object.hasOwn(message, 'reasoning') ||
             Object.hasOwn(message, 'reasoning_details') ||
+            (registration.kind !== 'openai' && Object.hasOwn(message, 'refusal')) ||
             (message.role === 'assistant' &&
               message.content === null &&
+              !Object.hasOwn(message, 'refusal') &&
               !message.tool_calls?.length),
         )
       )

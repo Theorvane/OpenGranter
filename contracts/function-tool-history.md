@@ -7,3 +7,7 @@ A `tool` message requires a nonempty `tool_call_id` matching a pending call in t
 IAM, model and final-provider authorization, limits, audit and usage run for each model request, including continuation. Tool IDs, names, arguments and results never enter metadata audit, operational logs or errors. A completed model attempt records usage; a failed upstream attempt retains possible-billing accounting. The gateway never executes the function itself. Streaming, server tools, multimodal tool content, native Anthropic/Gemini translation, provider-specific extensions and full external-client conformance remain open under #116.
 
 Sources: https://openrouter.ai/openapi.json and the installed OpenAI SDK request types, reviewed 2026-09-30.
+
+Optional assistant refusal is preserved on direct OpenAI/delegated OpenRouter
+complete groups under the [refusal history contract](client-refusal-history.md);
+it cannot resolve pending results or authorize tool execution.
