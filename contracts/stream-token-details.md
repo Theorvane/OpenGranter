@@ -9,3 +9,5 @@ Only complete valid aggregate usage produces a final usage frame. Partial/invali
 Actual pinned OpenRouter/OpenAI SDK socket cases verify the supported subset. Native/direct/tool streaming, category ledger reporting, cost/BYOK/server-tool projection and complete external-client certification remain open. The version-15 shared ChatUsage pin already tracks the inline category structure; no source refresh is required. Source: [official schema](https://openrouter.ai/openapi.json). See [plan](../docs/plans/292-stream-token-details.md).
 
 The [Gemini category extension](gemini-token-details.md) implements only the bounded native cached/reasoning counter subset on nonstream and text/function streams. Other native categories and detailed ledger/billing remain open.
+
+The [Anthropic cache usage fix](anthropic-cache-usage.md) extends these historical rules for reported disjoint native cache counters: include them once in native prompt aggregates, retain cumulative input/cache values across omitted/null stream updates, and expose bounded client-only read/write details. It does not add projected details again, rewrite historical records, or establish billed cost.

@@ -11,3 +11,5 @@ All absent counters omit the usage object. The existing usage ledger labels comp
 This change applies to recognized counter fields in the existing provider usage mappings. The [container contract](provider-usage-containers.md) defines malformed-container handling. Provider billing, quotas, and OpenRouter reconciliation remain separate concerns.
 
 The compatible /api/v1 nonstream boundary omits incomplete usage as a whole under [its existing contract](compatible-completion-usage.md); /v1 keeps sparse known counters. Both paths retain known counters and unknown total in protected partial ledger history. The SDK discovery/invocation regression now verifies that the unchanged Google fixture without total does not fabricate one.
+
+The [Anthropic cache usage fix](anthropic-cache-usage.md) extends these historical rules for reported disjoint native cache counters: include them once in native prompt aggregates, retain cumulative input/cache values across omitted/null stream updates, and expose bounded client-only read/write details. It does not add projected details again, rewrite historical records, or establish billed cost.

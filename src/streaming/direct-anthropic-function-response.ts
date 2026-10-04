@@ -1,9 +1,9 @@
 import { snapshotBoundedJsonObject } from '../gateway/chat-tools.ts';
+import { AnthropicStreamUsage } from '../providers/anthropic-chat-usage.ts';
 import {
   DirectProviderFailure,
   type DirectProviderFailureCategory,
 } from '../routing/invoke-jev-managed-route.ts';
-import { normalizeProviderUsage } from '../usage/normalize-provider-tokens.ts';
 import type {
   DirectOpenAIFunctionStreamCompletion,
   DirectOpenAIFunctionStreamPayload,
@@ -67,8 +67,8 @@ export async function consumeDirectAnthropicFunctionResponse(
     let activeType: 'text' | 'tool_use' | undefined,
       argumentsText = '',
       hasArgumentDelta = false;
-    let input: unknown,
-      output: unknown,
+    let capturedUsage = new AnthropicStreamUsage(undefined);
+    let output: unknown,
       previousOutput: number | undefined,
       finish: Delta['finishReason'] = null;
     const emit = async (fields: Pick<Delta, 'content' | 'role' | 'finishReason' | 'toolCalls'>) => {
@@ -109,8 +109,9 @@ export async function consumeDirectAnthropicFunctionResponse(
         )
           throw Error();
         id = message.id;
-        if (message.usage !== undefined && message.usage !== null)
-          input = record(message.usage).input_tokens;
+        capturedUsage = new AnthropicStreamUsage(
+          message.usage == null ? undefined : record(message.usage),
+        );
         phase = 'blocks';
         await emit({ role: 'assistant', finishReason: null });
         continue;
@@ -218,8 +219,7 @@ export async function consumeDirectAnthropicFunctionResponse(
         )
           throw Error();
         const usage = event.usage == null ? undefined : record(event.usage);
-        if (usage && Object.hasOwn(usage, 'input_tokens')) input = usage.input_tokens;
-        output = usage?.output_tokens;
+        output = capturedUsage.update(usage);
         if (typeof output === 'number' && Number.isSafeInteger(output) && output >= 0) {
           if (previousOutput !== undefined && output < previousOutput) throw Error();
           previousOutput = output;
@@ -249,10 +249,7 @@ export async function consumeDirectAnthropicFunctionResponse(
           created,
           model: fixed.clientModelAlias,
           finishReason: null,
-          usage: normalizeProviderUsage({ input_tokens: input, output_tokens: output }, [
-            'input_tokens',
-            'output_tokens',
-          ]),
+          usage: capturedUsage.finish(),
         });
         sequence.accept({ kind: 'done' });
         const result = sequence.finish();
