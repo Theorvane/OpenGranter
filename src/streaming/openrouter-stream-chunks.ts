@@ -80,11 +80,15 @@ function hasOwn(value: Record<string, unknown>, key: string): boolean {
   return Object.hasOwn(value, key);
 }
 
-function snapshotFunctionCallFragments(value: unknown): readonly FunctionCallFragment[] {
-  if (!Array.isArray(value) || value.length > 128) throw invalidChunk();
+/** Capture bounded function fragments for decoder and client projection. */
+export function snapshotFunctionCallFragments(value: unknown): readonly FunctionCallFragment[] {
+  if (!Array.isArray(value)) throw invalidChunk();
+  const length = value.length;
+  if (!Number.isSafeInteger(length) || length < 0 || length > 128) throw invalidChunk();
+  const entries = Array.from({ length }, (_, index) => value[index]);
   const indices = new Set<number>();
   const result: FunctionCallFragment[] = [];
-  for (const item of value) {
+  for (const item of entries) {
     const call = record(item);
     if (
       !call ||
@@ -100,32 +104,34 @@ function snapshotFunctionCallFragments(value: unknown): readonly FunctionCallFra
       indices.has(index)
     )
       throw invalidChunk();
-    if (
-      (hasOwn(call, 'id') && typeof call.id !== 'string') ||
-      (hasOwn(call, 'type') && call.type !== 'function')
-    )
-      throw invalidChunk();
+    const hasId = hasOwn(call, 'id'),
+      hasType = hasOwn(call, 'type'),
+      hasFunction = hasOwn(call, 'function');
+    const id = hasId ? call.id : undefined,
+      type = hasType ? call.type : undefined;
+    if ((hasId && typeof id !== 'string') || (hasType && type !== 'function')) throw invalidChunk();
     let operation: FunctionCallFragment['function'];
-    if (hasOwn(call, 'function')) {
+    if (hasFunction) {
       const config = record(call.function);
-      if (
-        !config ||
-        Object.keys(config).some((key) => key !== 'name' && key !== 'arguments') ||
-        (hasOwn(config, 'name') && typeof config.name !== 'string') ||
-        (hasOwn(config, 'arguments') && typeof config.arguments !== 'string')
-      )
+      if (!config || Object.keys(config).some((key) => key !== 'name' && key !== 'arguments'))
+        throw invalidChunk();
+      const hasName = hasOwn(config, 'name'),
+        hasArguments = hasOwn(config, 'arguments');
+      const name = hasName ? config.name : undefined,
+        args = hasArguments ? config.arguments : undefined;
+      if ((hasName && typeof name !== 'string') || (hasArguments && typeof args !== 'string'))
         throw invalidChunk();
       operation = Object.freeze({
-        ...(hasOwn(config, 'name') ? { name: config.name as string } : {}),
-        ...(hasOwn(config, 'arguments') ? { arguments: config.arguments as string } : {}),
+        ...(hasName ? { name: name as string } : {}),
+        ...(hasArguments ? { arguments: args as string } : {}),
       });
     }
     indices.add(index);
     result.push(
       Object.freeze({
         index,
-        ...(hasOwn(call, 'id') ? { id: call.id as string } : {}),
-        ...(hasOwn(call, 'type') ? { type: 'function' as const } : {}),
+        ...(hasId ? { id: id as string } : {}),
+        ...(hasType ? { type: 'function' as const } : {}),
         ...(operation === undefined ? {} : { function: operation }),
       }),
     );
