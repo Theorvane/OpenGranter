@@ -3,7 +3,7 @@ import {
   createDirectChatInvoker,
   type DirectChatPorts,
 } from '../providers/direct-chat.ts';
-import { createDirectOpenAIFunctionStreamInvoker } from '../providers/direct-openai-function-stream.ts';
+import { createRegisteredDirectFunctionStreamInvoker } from '../providers/direct-function-stream.ts';
 import { createRegisteredDirectTextStreamInvoker } from '../providers/direct-text-stream.ts';
 import { createPostgresDirectProviderRegistrationReader } from '../providers/postgres-direct-providers.ts';
 import {
@@ -34,6 +34,6 @@ export async function createPostgresDirectChatHandler(
     ...gateway,
     invokeDirect: createDirectChatInvoker(upstreamPorts),
     invokeDirectTextStream: createRegisteredDirectTextStreamInvoker(upstreamPorts),
-    invokeDirectFunctionStream: createDirectOpenAIFunctionStreamInvoker(upstreamPorts),
+    invokeDirectFunctionStream: createRegisteredDirectFunctionStreamInvoker(upstreamPorts),
   });
 }

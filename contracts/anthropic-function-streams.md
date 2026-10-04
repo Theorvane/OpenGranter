@@ -1,0 +1,21 @@
+# Managed Anthropic client function streams
+
+Issue: #404. Plan: [404-anthropic-function-streams](../docs/plans/404-anthropic-function-streams.md).
+
+## Native response contract
+
+The consumer accepts Messages SSE from the fixed registered Anthropic host. Require HTTP 200, text/event-stream and body; validate message_start assistant/type, exact approved upstream model, empty content, null stop fields and bounded stable ID. A gateway timestamp remains stable across projected deltas. Unknown events, native fallback, input transformations, thinking/signatures, server/rich/tool caller variants and malformed content fail safely.
+
+Native content blocks open and close sequentially with one active block and at most 128 total blocks. Plain text starts empty and streams without retaining text in the completion summary. Custom tool_use starts with an empty object placeholder and valid native name/nonempty ID. Dense compatible tool indices count only tools, independent of native text indices. input_json_delta fragments (including empty fragments before real JSON) preserve argument spelling and are awaited at delivery. At block_stop the assembled argument string must parse as a bounded plain JSON object. A block with no argument deltas retains the official SDK's {} placeholder; a block with only empty deltas fails as incomplete JSON. Nonempty initial inputs are outside this subset. The existing shared sequence caps retained call IDs/names/arguments at 1,048,576 JavaScript string units; object validation caps depth 64 and 20,000 nodes.
+
+Native cumulative usage updates never sum snapshots and valid output counts cannot decrease. A tool_use terminal requires completed calls; calls with max_tokens/end_turn/refusal or other terminals fail safely, including provider-valid truncated tool output that cannot meet this subset's complete-call contract. No-call text stop/length/filter remains supported. Require terminal message_delta and message_stop before completing with final aggregate usage. Initial output estimates cannot replace missing final usage. Native streams have no [DONE]; compatible usage and [DONE] are generated only after required accounting/audit handoffs.
+
+Opened-response failures are sanitized, possibly billed, discard private assembly and cancel the body. Awaited callbacks, secret/fetch timeouts and caller cancellation share existing bounded waits; no replay after output or cancellation. Completed calls are response content, excluded from routing/accounting responses, operational logs and event metadata. No tool runs inside the gateway.
+
+## Request and public wiring
+
+Explicit anthropic-function transport uses the captured native definitions, choices, parallel controls and grouped result history from [nonstream client functions](anthropic-client-functions.md), fixed /v1/messages endpoint and headers, administrator output caps and stream:true without OpenAI stream_options. Text modes stay tool-free; named OpenAI function adapters stay OpenAI-only. A captured administrator registration dispatcher accepts OpenAI and Anthropic functions; Google and missing registrations fail before secrets. Persisted direct/dual handlers generate this trusted port after caller gateway settings, replacing runtime overrides.
+
+Both /v1 and /api/v1 retain authentication, complete model/final-provider IAM and Deny, limits, selection, per-attempt usage/audit, safe partial failure and fresh evaluation on correlated result requests. Actual installed OpenAI/OpenRouter SDK sockets cover two Unicode calls, result continuation, Deny/auth/limits/audit/usage failures, unknown usage and cancellation. Buffered SDK deltas after abort are drained without interpreting them as terminal success. Stored direct/dual tests cover both bases, caps, result histories, required persistence failure, midstream error, metadata privacy and fresh provider Deny. Native tests cover block/terminal ordering, JSON/type/node/retained-size limits, empty input, UTF-8 fragmentation and cancellation.
+
+This is fixture conformance, not live-provider or full external-app certification. Native thinking/server/rich tools, fine-grained tool settings, model snapshot equivalence, Gemini tools and broader named clients remain open. Full #116 and unresolved #7 remain open; OpenRouter pin v19 is unchanged.
