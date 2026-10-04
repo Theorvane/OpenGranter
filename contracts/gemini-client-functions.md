@@ -27,3 +27,5 @@ Both installed OpenAI/OpenRouter SDKs exercise parallel calls, complete result c
 Thinking/signature replay, strict guarantees, single-call enforcement beyond NONE, partial argument streams, built-in/rich tools and broader named clients remain open. Fixture tests are not live-provider certification. Full #116 and unresolved #7 stay open; OpenRouter pin v19 remains unchanged.
 
 Registered signature-free complete function SSE and result continuation are now supported separately by [Gemini function streams](gemini-function-streams.md). The historical nonstream scope above remains the initial implementation record; thinking/signature replay and partial argument streaming stay open.
+
+Managed nonstream function-part signatures are now supported separately by [Gemini function signatures](gemini-function-signatures.md), using the official tool-call extension. Signed text/streams and the installed OpenRouter SDK stripping gap remain open; the original signature-free scope above is historical.

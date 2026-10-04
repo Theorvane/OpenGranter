@@ -1,6 +1,12 @@
+import {
+  type GoogleThoughtSignatureContent,
+  MAX_GOOGLE_SIGNATURE_UNITS,
+  snapshotGoogleThoughtSignature,
+} from '../providers/google-thought-signature.ts';
 import { type ReasoningDetail, snapshotReasoningDetails } from '../providers/reasoning-details.ts';
 
 export interface ChatFunctionCall {
+  readonly extra_content?: GoogleThoughtSignatureContent;
   readonly id: string;
   readonly type: 'function';
   readonly function: { readonly name: string; readonly arguments: string };
@@ -55,6 +61,7 @@ function snapshotCalls(value: unknown): readonly ChatFunctionCall[] {
     throw new TypeError('Invalid chat messages');
   const ids = new Set<string>();
   const calls: ChatFunctionCall[] = [];
+  let signatureUnits = 0;
   const source: readonly unknown[] = value;
   const entries = Array.from({ length }, (_, index) => source[index]);
   for (const item of entries) {
@@ -65,7 +72,7 @@ function snapshotCalls(value: unknown): readonly ChatFunctionCall[] {
     if (!operation) throw new TypeError('Invalid chat messages');
     const { name, arguments: argumentsValue } = operation;
     if (
-      !exact(call, ['id', 'type', 'function']) ||
+      !exact(call, ['id', 'type', 'function', 'extra_content']) ||
       typeof id !== 'string' ||
       !id ||
       ids.has(id) ||
@@ -76,11 +83,17 @@ function snapshotCalls(value: unknown): readonly ChatFunctionCall[] {
       typeof argumentsValue !== 'string'
     )
       throw new TypeError('Invalid chat messages');
+    const extra = Object.hasOwn(call, 'extra_content')
+      ? snapshotGoogleThoughtSignature(call.extra_content)
+      : undefined;
+    signatureUnits += extra?.google.thought_signature.length ?? 0;
+    if (signatureUnits > MAX_GOOGLE_SIGNATURE_UNITS) throw new TypeError('Invalid chat messages');
     ids.add(id);
     calls.push(
       Object.freeze({
         id,
         type: 'function',
+        ...(extra === undefined ? {} : { extra_content: extra }),
         function: Object.freeze({ name, arguments: argumentsValue }),
       }),
     );
