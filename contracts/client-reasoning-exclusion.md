@@ -19,9 +19,8 @@ even if an upstream returns them despite exclude true. No summary/exclusion
 precedence, encrypted-detail removal or exclusion guarantee is asserted. The
 preference does not disable model reasoning or imply free/reduced usage. Preserve
 actual aggregate accounting, unknown usage and safe possibly-billed failures.
-Existing empty-string length responses remain successful. Missing/null content
-without substantive reasoning/refusal still fails safely; broader no-content
-success remains a separate response-contract gap under #116.
+Existing empty-string length responses remain successful. Missing/null content with length now succeeds under [its response contract](no-text-length.md);
+other no-content outcomes remain bounded under #116.
 
 Authentication, complete model/provider IAM with explicit Deny precedence, limits,
 required audit/usage and persistence-gated stream completion remain shared.

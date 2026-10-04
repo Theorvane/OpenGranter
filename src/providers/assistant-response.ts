@@ -106,9 +106,11 @@ export function normalizeAssistantResponse(
         return typeof payload === 'string' && payload.length > 0;
       })) &&
     (finish === 'stop' || finish === 'length');
+  const noTextLength = (content === null || content === undefined) && finish === 'length';
   if (
     typeof content !== 'string' &&
     !reasoningOnly &&
+    !noTextLength &&
     !(
       content === null &&
       (finish === 'content_filter' || (typeof refusal === 'string' && refusal.length > 0))
