@@ -35,9 +35,11 @@ function json(value: unknown, depth: number, seen: Set<object>, budget: { left: 
   seen.add(value);
   try {
     if (Array.isArray(value)) {
-      if (value.length > budget.left) throw new TypeError('Invalid function tool');
+      const length = value.length;
+      if (!Number.isSafeInteger(length) || length < 0 || length > budget.left)
+        throw new TypeError('Invalid function tool');
       const parts: unknown[] = [];
-      for (let index = 0; index < value.length; index++) {
+      for (let index = 0; index < length; index++) {
         const property = Object.getOwnPropertyDescriptor(value, index);
         if (!property || !('value' in property)) throw new TypeError('Invalid function tool');
         parts.push(json(property.value, depth + 1, seen, budget));
@@ -66,43 +68,47 @@ export function snapshotBoundedJsonObject(value: unknown): Readonly<Record<strin
 
 export function snapshotFunctionTools(value: unknown): readonly FunctionTool[] | undefined {
   if (value === undefined) return undefined;
-  if (!Array.isArray(value) || value.length > 20_000) throw new TypeError('Invalid function tools');
+  if (!Array.isArray(value)) throw new TypeError('Invalid function tools');
+  const length = value.length;
+  if (!Number.isSafeInteger(length) || length < 0 || length > 20_000)
+    throw new TypeError('Invalid function tools');
+  const source: readonly unknown[] = value;
+  const entries = Array.from({ length }, (_, index) => {
+    if (!Object.hasOwn(source, index)) throw new TypeError('Invalid function tools');
+    return source[index];
+  });
   const budget = { left: 20_000 };
   return Object.freeze(
-    Array.from({ length: value.length }, (_, index) => {
-      if (!Object.hasOwn(value, index)) throw new TypeError('Invalid function tools');
-      const entry = value[index];
+    entries.map((entry) => {
       const tool = record(entry);
-      const definition = record(tool?.function);
+      if (!tool) throw new TypeError('Invalid function tools');
+      const { type, function: rawDefinition } = tool;
+      const definition = record(rawDefinition);
+      if (!definition) throw new TypeError('Invalid function tools');
+      const { name, description, parameters: rawParameters, strict } = definition;
       if (
-        !tool ||
         !keys(tool, ['type', 'function']) ||
-        tool.type !== 'function' ||
-        !definition ||
+        type !== 'function' ||
         !keys(definition, ['name', 'description', 'parameters', 'strict']) ||
-        typeof definition.name !== 'string' ||
-        definition.name.length === 0 ||
-        definition.name.length > 64 ||
-        (definition.description !== undefined && typeof definition.description !== 'string') ||
-        (definition.strict !== undefined &&
-          definition.strict !== null &&
-          typeof definition.strict !== 'boolean') ||
-        (definition.parameters !== undefined && !record(definition.parameters))
+        typeof name !== 'string' ||
+        name.length === 0 ||
+        name.length > 64 ||
+        (description !== undefined && typeof description !== 'string') ||
+        (strict !== undefined && strict !== null && typeof strict !== 'boolean') ||
+        (rawParameters !== undefined && !record(rawParameters))
       )
         throw new TypeError('Invalid function tools');
       const parameters =
-        definition.parameters === undefined
+        rawParameters === undefined
           ? undefined
-          : (json(definition.parameters, 0, new Set(), budget) as Readonly<
-              Record<string, unknown>
-            >);
+          : (json(rawParameters, 0, new Set(), budget) as Readonly<Record<string, unknown>>);
       return Object.freeze({
         type: 'function' as const,
         function: Object.freeze({
-          name: definition.name,
-          ...(definition.description === undefined ? {} : { description: definition.description }),
+          name,
+          ...(description === undefined ? {} : { description }),
           ...(parameters === undefined ? {} : { parameters }),
-          ...(definition.strict === undefined ? {} : { strict: definition.strict }),
+          ...(strict === undefined ? {} : { strict }),
         }),
       });
     }),
@@ -113,19 +119,21 @@ export function snapshotToolChoice(value: unknown): ToolChoice | undefined {
   if (value === undefined) return undefined;
   if (value === 'none' || value === 'auto' || value === 'required') return value;
   const choice = record(value);
-  const definition = record(choice?.function);
+  if (!choice) throw new TypeError('Invalid tool choice');
+  const { type, function: rawDefinition } = choice;
+  const definition = record(rawDefinition);
+  if (!definition) throw new TypeError('Invalid tool choice');
+  const name = definition.name;
   if (
-    !choice ||
     !keys(choice, ['type', 'function']) ||
-    choice.type !== 'function' ||
-    !definition ||
+    type !== 'function' ||
     !keys(definition, ['name']) ||
-    typeof definition.name !== 'string' ||
-    definition.name.length === 0 ||
-    definition.name.length > 64
+    typeof name !== 'string' ||
+    name.length === 0 ||
+    name.length > 64
   )
     throw new TypeError('Invalid tool choice');
-  return Object.freeze({ type: 'function', function: Object.freeze({ name: definition.name }) });
+  return Object.freeze({ type: 'function', function: Object.freeze({ name }) });
 }
 
 export function snapshotParallelToolCalls(value: unknown): boolean | undefined {
