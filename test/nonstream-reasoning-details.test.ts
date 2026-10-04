@@ -170,7 +170,7 @@ for (const kind of ['managed', 'delegated'] as const) {
               safe(f);
             }
   });
-  test(`${kind}: detail-only completion guard rejects empty payloads and incompatible semantics`, async () => {
+  test(`${kind}: optional-content completions preserve empty details and reject incompatible semantics`, async () => {
     for (const base of ['/v1', '/api/v1']) {
       for (const payload of [
         [],
@@ -187,12 +187,13 @@ for (const kind of ['managed', 'delegated'] as const) {
             reasoning_details: payload,
           });
           const response = await createChatHandler(f.ports)(f.request(base));
-          assert.equal(response.status, 502);
+          assert.equal(response.status, 200);
           assert.equal(f.usage.length, 1);
-          assert.equal(f.usage[0]?.outcome, 'failed');
-          assert.equal(f.usage[0]?.possiblyBilled, true);
+          assert.equal(f.usage[0]?.outcome, 'succeeded');
           safe(f);
-          assert.doesNotMatch(await response.text(), /private/u);
+          const result = (await response.json()) as ChatCompletion;
+          assert.equal(result.choices[0].message.content, null);
+          assert.deepEqual(result.choices[0].message.reasoning_details, payload);
         }
       for (const [content, finish] of [
         [null, null],
@@ -291,8 +292,14 @@ for (const kind of ['managed', 'delegated'] as const) {
       content: null,
       reasoning_details: [{ type: 'reasoning.text', signature: 'private signature' }],
     });
-    assert.equal((await createChatHandler(f.ports)(f.request('/api/v1'))).status, 502);
-    assert.equal(f.usage[0]?.outcome, 'failed');
+    const response = await createChatHandler(f.ports)(f.request('/api/v1'));
+    assert.equal(response.status, 200);
+    const result = (await response.json()) as ChatCompletion;
+    assert.deepEqual(result.choices[0].message.reasoning_details, [
+      { type: 'reasoning.text', signature: 'private signature' },
+    ]);
+    assert.equal(f.usage[0]?.outcome, 'succeeded');
+    safe(f);
   });
   test(`${kind}: reasoning details do not fabricate missing usage`, async () => {
     const f = fixture(
@@ -416,9 +423,9 @@ test('own undefined detail fields and sparse arrays are malformed', () => {
     );
 });
 
-test('inherited detail arrays cannot grant unprojected reasoning-only success', () => {
+test('inherited detail arrays remain absent from valid optional-content stop output', () => {
   const value: Record<string, unknown> = Object.create({ reasoning_details: details });
   value.role = 'assistant';
   value.content = null;
-  assert.equal(normalizeAssistantResponse(value, 'stop'), undefined);
+  assert.deepEqual(normalizeAssistantResponse(value, 'stop'), { role: 'assistant', content: null });
 });

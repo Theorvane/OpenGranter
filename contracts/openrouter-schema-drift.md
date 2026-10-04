@@ -93,3 +93,5 @@ Documented reasoning budget follows [its separate HTTP contract](client-reasonin
 Legacy inclusion normalization follows [its separate HTTP contract](client-legacy-reasoning.md). Current official ChatRequest and SDK omit include_reasoning despite its parameter-catalog name; unchanged v18 cannot certify the absent flag or prose alias rules.
 
 [No-text length responses](no-text-length.md) use the already-selected optional nullable assistant content shape; v18 is unchanged and no fresh full-source comparison is claimed by this runtime slice.
+
+[Optional stop content](no-text-stop.md) uses the already-selected nullable assistant shape; v18 is unchanged, source rules are not fabricated and no fresh full-source comparison is claimed.
