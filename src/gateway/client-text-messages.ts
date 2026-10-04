@@ -19,30 +19,39 @@ export function normalizeClientTextMessages(value: unknown): readonly Record<str
     ) {
       if (!Array.isArray(content) || content.length === 0)
         throw new TypeError('Invalid client messages');
-      const sole = content.length === 1 ? record(content[0]) : undefined;
-      if (fields.role === 'assistant' && sole?.type === 'refusal') {
-        const refusal = sole.refusal;
-        if (
-          !Object.hasOwn(sole, 'type') ||
-          !Object.hasOwn(sole, 'refusal') ||
-          typeof refusal !== 'string' ||
-          Object.keys(sole).some((key) => key !== 'type' && key !== 'refusal') ||
-          Object.hasOwn(fields, 'refusal')
-        )
-          throw new TypeError('Invalid client messages');
-        messages.push({ ...fields, content: null, refusal });
-        continue;
-      }
+      const inputParts: readonly unknown[] = content;
+      const parts = Array.from({ length: inputParts.length }, (_, index) => inputParts[index]);
       let text = '';
-      for (const raw of content) {
+      let refusal: string | undefined;
+      for (const raw of parts) {
         const part = record(raw);
+        if (!part) throw new TypeError('Invalid client messages');
+        const type = part.type;
+        if (type === 'refusal' && fields.role === 'assistant' && parts.length === 1) {
+          const payload = part.refusal;
+          if (
+            !Object.hasOwn(part, 'type') ||
+            !Object.hasOwn(part, 'refusal') ||
+            typeof payload !== 'string' ||
+            Object.keys(part).some((key) => key !== 'type' && key !== 'refusal') ||
+            Object.hasOwn(fields, 'refusal')
+          )
+            throw new TypeError('Invalid client messages');
+          refusal = payload;
+          continue;
+        }
+        if (type !== 'text') throw new TypeError('Invalid client messages');
+        const payload = part.text;
         if (
-          part?.type !== 'text' ||
-          typeof part.text !== 'string' ||
+          typeof payload !== 'string' ||
           Object.keys(part).some((key) => key !== 'type' && key !== 'text')
         )
           throw new TypeError('Invalid client messages');
-        text += part.text;
+        text += payload;
+      }
+      if (refusal !== undefined) {
+        messages.push({ ...fields, content: null, refusal });
+        continue;
       }
       content = text;
     }
