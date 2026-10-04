@@ -3,6 +3,7 @@ import {
   createDirectChatInvoker,
   type DirectChatPorts,
 } from '../providers/direct-chat.ts';
+import { createDirectOpenAIFunctionStreamInvoker } from '../providers/direct-openai-function-stream.ts';
 import { createDirectOpenAITextStreamInvoker } from '../providers/direct-openai-stream.ts';
 import { createPostgresDirectProviderRegistrationReader } from '../providers/postgres-direct-providers.ts';
 import {
@@ -11,7 +12,10 @@ import {
 } from './postgres-chat-handler.ts';
 
 export interface PostgresDirectChatHandlerPorts
-  extends Omit<PostgresChatHandlerPorts<ChatCompletion>, 'invokeDirect' | 'invokeDirectTextStream'>,
+  extends Omit<
+      PostgresChatHandlerPorts<ChatCompletion>,
+      'invokeDirect' | 'invokeDirectTextStream' | 'invokeDirectFunctionStream'
+    >,
     Pick<DirectChatPorts, 'fetcher' | 'timeoutMs'> {}
 
 /** Load one configuration snapshot; caller owns migrations, secrets, and resource lifecycle. */
@@ -30,5 +34,6 @@ export async function createPostgresDirectChatHandler(
     ...gateway,
     invokeDirect: createDirectChatInvoker(upstreamPorts),
     invokeDirectTextStream: createDirectOpenAITextStreamInvoker(upstreamPorts),
+    invokeDirectFunctionStream: createDirectOpenAIFunctionStreamInvoker(upstreamPorts),
   });
 }

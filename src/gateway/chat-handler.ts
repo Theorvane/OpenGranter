@@ -23,10 +23,12 @@ import type { JevFetcher } from '../routing/jev-managed-routing.ts';
 import {
   createDelegatedFunctionHttpStreamResponse,
   createDelegatedHttpStreamResponse,
+  createManagedFunctionHttpStreamResponse,
   createManagedHttpStreamResponse,
 } from '../streaming/delegated-http-stream.ts';
 import type { DelegatedFunctionStreamInput } from '../streaming/invoke-delegated-function-stream.ts';
 import type { DelegatedTextStreamInput } from '../streaming/invoke-delegated-text-stream.ts';
+import type { ManagedFunctionStreamInput } from '../streaming/invoke-managed-function-stream.ts';
 import type { ManagedTextStreamInput } from '../streaming/invoke-managed-text-stream.ts';
 import { serializeUsageCsv } from '../usage/csv.ts';
 import {
@@ -213,6 +215,7 @@ export type GatewayAuditEvent =
 
 export interface ChatHandlerPorts<T> {
   readonly invokeOpenRouterFunctionStream?: DelegatedFunctionStreamInput['ports']['invokeOpenRouterFunctionStream'];
+  readonly invokeDirectFunctionStream?: ManagedFunctionStreamInput['ports']['invokeDirectFunctionStream'];
   readonly invokeDirectTextStream?: ManagedTextStreamInput['ports']['invokeDirectTextStream'];
   readonly invokeOpenRouterTextStream?: DelegatedTextStreamInput['ports']['invokeOpenRouterTextStream'];
   readonly newRequestId: () => string;
@@ -956,9 +959,11 @@ export function createChatHandler<T>(
     const chat = validateChat(
       await readJsonBody(request).catch(() => undefined),
       typeof ports.invokeDirectTextStream === 'function' ||
+        typeof ports.invokeDirectFunctionStream === 'function' ||
         typeof ports.invokeOpenRouterTextStream === 'function' ||
         typeof ports.invokeOpenRouterFunctionStream === 'function',
-      typeof ports.invokeOpenRouterFunctionStream === 'function',
+      typeof ports.invokeDirectFunctionStream === 'function' ||
+        typeof ports.invokeOpenRouterFunctionStream === 'function',
     );
     if (!chat) {
       try {
@@ -1019,13 +1024,36 @@ export function createChatHandler<T>(
       return errorResponse(404, 'unknown_model', requestId);
     }
 
+    const functionRequest =
+      chat.tools !== undefined ||
+      chat.tool_choice !== undefined ||
+      chat.parallel_tool_calls !== undefined ||
+      chat.messages.some((message) => message.role === 'tool' || 'tool_calls' in message);
+    const streamAvailable =
+      route.kind === 'delegated'
+        ? functionRequest
+          ? !!ports.invokeOpenRouterFunctionStream
+          : !!ports.invokeOpenRouterTextStream || !!ports.invokeOpenRouterFunctionStream
+        : functionRequest
+          ? !!ports.invokeDirectFunctionStream
+          : !!ports.invokeDirectTextStream || !!ports.invokeDirectFunctionStream;
+    if (chat.stream && !streamAvailable) {
+      try {
+        await ports.writeAudit({
+          ...attribution,
+          kind: 'request-denied',
+          requestId,
+          reason: 'invalid-request',
+          modelAlias: chat.model,
+        });
+      } catch {
+        return errorResponse(503, 'audit_unavailable', requestId);
+      }
+      return errorResponse(400, 'invalid_request', requestId);
+    }
+
     if (route.kind === 'delegated') {
       if (chat.stream) {
-        const functionRequest =
-          chat.tools !== undefined ||
-          chat.tool_choice !== undefined ||
-          chat.parallel_tool_calls !== undefined ||
-          chat.messages.some((message) => message.role === 'tool' || 'tool_calls' in message);
         const createResponse =
           ports.invokeOpenRouterFunctionStream &&
           (functionRequest || !ports.invokeOpenRouterTextStream)
@@ -1120,31 +1148,6 @@ export function createChatHandler<T>(
       }
     }
 
-    if (
-      chat.stream &&
-      (!ports.invokeDirectTextStream ||
-        chat.tools !== undefined ||
-        chat.tool_choice !== undefined ||
-        chat.parallel_tool_calls !== undefined ||
-        chat.messages.some(
-          (message) =>
-            message.role === 'tool' ||
-            (message.role === 'assistant' && message.tool_calls !== undefined),
-        ))
-    ) {
-      try {
-        await ports.writeAudit({
-          ...attribution,
-          kind: 'request-denied',
-          requestId,
-          reason: 'invalid-request',
-          modelAlias: chat.model,
-        });
-      } catch {
-        return errorResponse(503, 'audit_unavailable', requestId);
-      }
-      return errorResponse(400, 'invalid_request', requestId);
-    }
     try {
       if (
         'jev' in route &&
@@ -1185,6 +1188,18 @@ export function createChatHandler<T>(
         ...(ports.now ? { now: ports.now } : {}),
         ...(ports.fetchJev ? { fetchJev: ports.fetchJev } : {}),
       };
+      if (
+        chat.stream &&
+        ports.invokeDirectFunctionStream &&
+        (functionRequest || !ports.invokeDirectTextStream)
+      )
+        return createManagedFunctionHttpStreamResponse({
+          ...managedScope,
+          request: chat,
+          signal: request.signal,
+          format,
+          ports: { ...managedPorts, invokeDirectFunctionStream: ports.invokeDirectFunctionStream },
+        });
       if (chat.stream && ports.invokeDirectTextStream)
         return createManagedHttpStreamResponse({
           ...managedScope,

@@ -77,19 +77,42 @@ test('persisted direct server authenticates, invokes its stored registration, an
           model: 'gpt',
           object: 'chat.completion.chunk',
         };
+        const answered = JSON.parse(String(init?.body)).messages.some(
+          (message: { role: string }) => message.role === 'tool',
+        );
+        const functionCall =
+          Array.isArray(JSON.parse(String(init?.body)).tools) &&
+          JSON.parse(String(init?.body)).tools.length > 0 &&
+          !answered;
         const frames = [
           {
             ...identity,
             choices: [
               {
                 index: 0,
-                delta: { role: 'assistant', content: 'private response' },
+                delta: functionCall
+                  ? {
+                      role: 'assistant',
+                      tool_calls: [
+                        {
+                          index: 0,
+                          id: 'call',
+                          type: 'function',
+                          function: { name: 'lookup', arguments: '{"q":"private"}' },
+                        },
+                      ],
+                    }
+                  : { role: 'assistant', content: 'private response' },
                 finish_reason: null,
               },
             ],
             usage: null,
           },
-          { ...identity, choices: [{ index: 0, delta: {}, finish_reason: 'stop' }], usage: null },
+          {
+            ...identity,
+            choices: [{ index: 0, delta: {}, finish_reason: functionCall ? 'tool_calls' : 'stop' }],
+            usage: null,
+          },
           {
             ...identity,
             choices: [],
@@ -167,8 +190,52 @@ test('persisted direct server authenticates, invokes its stored registration, an
         assert.ok(content.includes('"model":"chat"'));
         assert.ok(content.endsWith('data: [DONE]\n\n'));
       }
+      for (const prefix of ['/v1', '/api/v1']) {
+        const tools = [
+          { type: 'function', function: { name: 'lookup', parameters: { type: 'object' } } },
+        ];
+        const body = {
+          model: 'chat',
+          messages: [{ role: 'user', content: 'private prompt' }],
+          tools,
+          tool_choice: 'required',
+          stream: true,
+        };
+        const first = await fetch(base + prefix + '/chat/completions', {
+          ...chatOptions,
+          body: JSON.stringify(body),
+        });
+        assert.equal(first.status, 200);
+        assert.ok((await first.text()).includes('tool_calls'));
+        const follow = await fetch(base + prefix + '/chat/completions', {
+          ...chatOptions,
+          body: JSON.stringify({
+            ...body,
+            tool_choice: 'none',
+            messages: [
+              ...body.messages,
+              {
+                role: 'assistant',
+                content: null,
+                tool_calls: [
+                  {
+                    id: 'call',
+                    type: 'function',
+                    function: { name: 'lookup', arguments: '{"q":"private"}' },
+                  },
+                ],
+              },
+              { role: 'tool', tool_call_id: 'call', content: 'private result' },
+            ],
+          }),
+        });
+        assert.equal(follow.status, 200);
+        const content = await follow.text();
+        assert.ok(content.includes('private response'));
+        assert.ok(content.endsWith('data: [DONE]\n\n'));
+      }
       const persistedUsage = await db.query('SELECT record FROM usage_records ORDER BY attempt_id');
-      assert.equal(persistedUsage.rows.length, 3);
+      assert.equal(persistedUsage.rows.length, 7);
       for (const path of ['/v1/usage', '/v1/audit']) {
         const history = await fetch(`${base}${path}`, { headers });
         assert.equal(history.status, 200, path);
@@ -196,7 +263,7 @@ test('persisted direct server authenticates, invokes its stored registration, an
       const forbidden = await fetch(`${base}/v1/chat/completions`, chatOptions);
       assert.equal(forbidden.status, 403);
       await forbidden.text();
-      assert.equal(secretCalls, 3);
+      assert.equal(secretCalls, 7);
       await tokens.revoke({
         credentialId: issued.credentialId,
         actorId: 'admin-1',
@@ -205,8 +272,8 @@ test('persisted direct server authenticates, invokes its stored registration, an
       const denied = await fetch(`${base}/v1/chat/completions`, chatOptions);
       assert.equal(denied.status, 401);
       await denied.text();
-      assert.equal(upstreamCalls, 3);
-      assert.equal(secretCalls, 3);
+      assert.equal(upstreamCalls, 7);
+      assert.equal(secretCalls, 7);
     } finally {
       await new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),
