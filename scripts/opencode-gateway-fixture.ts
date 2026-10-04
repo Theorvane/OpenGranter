@@ -1,26 +1,53 @@
 import assert from 'node:assert/strict';
 import type { ChatHandlerPorts } from '../src/gateway/chat-handler.ts';
 import type { DirectChatPorts } from '../src/providers/direct-chat.ts';
-import { createDirectOpenAIFunctionStreamInvoker } from '../src/providers/direct-openai-function-stream.ts';
+import { createRegisteredDirectFunctionStreamInvoker } from '../src/providers/direct-function-stream.ts';
 import { createOpenRouterFunctionStreamInvoker } from '../src/providers/openrouter-function-stream.ts';
 import type { RouteKind } from '../src/routing/authorize-candidates.ts';
 import type { UsageRecord } from '../src/usage/record-usage.ts';
+import {
+  type OpenCodeNativeProvider,
+  openCodeNativeFixtureResponse,
+  openCodeNativeHasResult,
+  openCodeNativeToolNames,
+} from './opencode-native-fixture.ts';
 
-export type OpenCodeFixtureMode = 'text' | 'tools' | 'model-deny' | 'provider-deny' | 'cancel';
+export type OpenCodeFixtureMode =
+  | 'text'
+  | 'tools'
+  | 'model-deny'
+  | 'provider-deny'
+  | 'cancel'
+  | 'followup-deny'
+  | 'signed-tools';
 export function openCodeGatewayFixture(
   mode: OpenCodeFixtureMode = 'text',
   routeKind: RouteKind = 'delegated',
+  nativeProvider: OpenCodeNativeProvider = 'openai',
 ) {
+  if (
+    (routeKind !== 'managed' && nativeProvider !== 'openai') ||
+    (mode === 'signed-tools' && (routeKind !== 'managed' || nativeProvider !== 'google'))
+  )
+    throw new Error('Unsupported conformance registration');
+  const nativeModel =
+    nativeProvider === 'anthropic'
+      ? 'claude-exact'
+      : nativeProvider === 'google'
+        ? 'gemini-exact'
+        : 'gpt-exact';
   let authenticated = 0,
     secrets = 0,
     limits = 0,
-    aborted = false;
+    aborted = false,
+    toolIssued = false;
   const sent: Record<string, unknown>[] = [],
     audit: unknown[] = [],
     usage: UsageRecord[] = [];
   const upstreamPorts: Pick<DirectChatPorts, 'resolveSecret' | 'fetcher' | 'timeoutMs'> = {
     timeoutMs: 15000,
-    resolveSecret: async () => {
+    resolveSecret: async (ref) => {
+      assert.equal(ref, routeKind === 'managed' ? `secret/${nativeProvider}` : 'secret/openrouter');
       secrets++;
       return 'fixture-upstream-key';
     },
@@ -28,12 +55,44 @@ export function openCodeGatewayFixture(
       assert.equal(
         String(url),
         routeKind === 'managed'
-          ? 'https://api.openai.com/v1/chat/completions'
+          ? nativeProvider === 'anthropic'
+            ? 'https://api.anthropic.com/v1/messages'
+            : nativeProvider === 'google'
+              ? 'https://generativelanguage.googleapis.com/v1beta/models/gemini-exact:streamGenerateContent?alt=sse'
+              : 'https://api.openai.com/v1/chat/completions'
           : 'https://openrouter.ai/api/v1/chat/completions',
       );
       assert.equal(init?.redirect, 'error');
       const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
       sent.push(body);
+      if (routeKind === 'managed' && nativeProvider !== 'openai') {
+        assert.equal(
+          new Headers(init?.headers).get(
+            nativeProvider === 'anthropic' ? 'x-api-key' : 'x-goog-api-key',
+          ),
+          'fixture-upstream-key',
+        );
+        const response = openCodeNativeFixtureResponse(
+          body,
+          nativeProvider,
+          {
+            tools: ['tools', 'followup-deny', 'signed-tools'].includes(mode),
+            cancel: mode === 'cancel',
+            signed: mode === 'signed-tools',
+          },
+          init?.signal,
+          () => {
+            aborted = true;
+          },
+        );
+        if (
+          mode === 'followup-deny' &&
+          openCodeNativeToolNames(body, nativeProvider).length &&
+          !openCodeNativeHasResult(body, nativeProvider)
+        )
+          toolIssued = true;
+        return response;
+      }
       assert.equal(body.model, routeKind === 'managed' ? 'gpt-exact' : 'openai/example');
       if (routeKind === 'managed') {
         assert.equal(body.provider, undefined);
@@ -78,7 +137,11 @@ export function openCodeGatewayFixture(
       const history = body.messages as { role: string; tool_call_id?: string; content?: string }[];
       const answered = history.some((message) => message.role === 'tool');
       const toolTurn =
-        mode === 'tools' && Array.isArray(body.tools) && body.tools.length > 0 && !answered;
+        (mode === 'tools' || mode === 'followup-deny') &&
+        Array.isArray(body.tools) &&
+        body.tools.length > 0 &&
+        !answered;
+      if (mode === 'followup-deny' && toolTurn) toolIssued = true;
       if (answered) {
         const result = history.find((message) => message.role === 'tool');
         assert.equal(result?.tool_call_id, 'call_read');
@@ -117,9 +180,16 @@ export function openCodeGatewayFixture(
     ...upstreamPorts,
     credentialRef: 'secret/openrouter',
   });
-  const native = createDirectOpenAIFunctionStreamInvoker({
+  const native = createRegisteredDirectFunctionStreamInvoker({
     ...upstreamPorts,
-    registrations: [{ providerId: 'openai', kind: 'openai', credentialRef: 'secret/openai' }],
+    registrations: [
+      {
+        providerId: nativeProvider,
+        kind: nativeProvider,
+        credentialRef: `secret/${nativeProvider}`,
+        maxOutputTokens: 1000,
+      },
+    ],
   });
   const delegated: NonNullable<
     ChatHandlerPorts<unknown>['invokeOpenRouterFunctionStream']
@@ -136,7 +206,9 @@ export function openCodeGatewayFixture(
         policyVersions: [],
         statements: [
           { effect: 'Allow', actions: ['llm:InvokeModel', 'llm:UseProvider'], resources: ['*'] },
-          ...(mode === 'model-deny' || mode === 'provider-deny'
+          ...(mode === 'model-deny' ||
+          mode === 'provider-deny' ||
+          (mode === 'followup-deny' && toolIssued)
             ? [
                 {
                   effect: 'Deny' as const,
@@ -157,8 +229,8 @@ export function openCodeGatewayFixture(
               {
                 id: 'candidate',
                 kind: 'managed' as const,
-                upstreamModelId: 'gpt-exact',
-                providerId: 'openai',
+                upstreamModelId: nativeModel,
+                providerId: nativeProvider,
               },
             ],
           }
