@@ -1,0 +1,5 @@
+# Native Anthropic text response validation
+
+Internal response-only preparation validates native Anthropic text SSE, exact model identity, sequential blocks, cumulative aggregate usage, safe failure and cancellation. Anthropic transport, public activation, functions, reasoning and server tools remain follow-up work.
+
+Native Anthropic Messages streaming uses exact approved model IDs and one gateway-created timestamp. Sequential text-only blocks are bounded by the shared 1 MiB SSE framing limit and a 128-block limit. Nontext blocks, routing/model changes, out-of-order events, unknown events, provider errors and incomplete EOF fail safely. Ping is ignored. Aggregate final usage follows existing Anthropic normalization and is cumulative; missing final output is not replaced with the initial output estimate. Completion metadata contains no response content. Cancellation and callback failures are opened, possibly-billed failures. No public activation or tools are introduced by the response-only stage.
