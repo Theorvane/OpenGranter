@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { StringDecoder } from 'node:string_decoder';
 
 export const OPENCODE_VERSION = '1.18.5';
-export function openCodeConfig(baseURL: string) {
+export function openCodeConfig(baseURL: string, readFixture = false) {
   return {
     $schema: 'https://opencode.ai/config.json',
     model: 'opengranter/chat',
@@ -17,7 +17,9 @@ export function openCodeConfig(baseURL: string) {
         models: { chat: { name: 'Conformance fixture', limit: { context: 32000, output: 1000 } } },
       },
     },
-    permission: { '*': 'deny' },
+    permission: readFixture
+      ? { '*': 'deny', read: { '*': 'deny', 'fixture.txt': 'allow' } }
+      : { '*': 'deny' },
   };
 }
 export function openCodeEnvironment(root: string, token: string): NodeJS.ProcessEnv {
@@ -38,13 +40,13 @@ export function openCodeEnvironment(root: string, token: string): NodeJS.Process
     OPENGRANTER_PROXY_TOKEN: token,
   };
 }
-export async function runBoundedProcess(
+export async function runBoundedProcessResult(
   executable: string,
   args: readonly string[],
   root: string,
   env: NodeJS.ProcessEnv,
   timeoutMs = 30000,
-): Promise<string> {
+): Promise<{ code: number; output: string }> {
   return new Promise((resolve, reject) => {
     const child = spawn(executable, [...args], {
       cwd: root,
@@ -75,8 +77,20 @@ export async function runBoundedProcess(
     });
     child.once('close', (code) => {
       clearTimeout(timer);
-      if (failed || code !== 0) reject(new Error('External client process failed'));
-      else resolve(output + decoder.end());
+      if (failed || code === null) reject(new Error('External client process failed'));
+      else resolve({ code, output: output + decoder.end() });
     });
   });
+}
+
+export async function runBoundedProcess(
+  executable: string,
+  args: readonly string[],
+  root: string,
+  env: NodeJS.ProcessEnv,
+  timeoutMs = 30000,
+): Promise<string> {
+  const result = await runBoundedProcessResult(executable, args, root, env, timeoutMs);
+  if (result.code !== 0) throw new Error('External client process failed');
+  return result.output;
 }

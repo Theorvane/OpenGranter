@@ -813,3 +813,11 @@ Register a custom @ai-sdk/openai-compatible provider with an explicit proxy-toke
 See [plan](plans/366-opencode-text-conformance.md) and [contract](../contracts/opencode-text-conformance.md).
 Further client conformance, transitive schema drift and full #116 remain open;
 pin v19 tracks five selected stream definitions.
+
+## OpenCode streamed tool lifecycle and controls
+
+Extend installed OpenCode 1.18.5 conformance over both bases with incremental read-function fragments, an actual temporary fixture-file read and correlated tool-result continuation. Evaluate fresh IAM and limits for every request; verify explicit model and provider Deny before secrets and process-termination cancellation with failed accounting. Restrict reads to the single temporary fixture, deny all other tools and external skills, and retain bounded child lifetime/output and cleanup. No product API, provider routing or schema behavior changes; broader app cancellation/failure semantics, direct streaming and full #116 remain open.
+
+See [plan](plans/367-opencode-tool-conformance.md) and [contract](../contracts/opencode-tool-conformance.md).
+Further client conformance, transitive schema drift and full #116 remain open;
+pin v19 is unchanged.

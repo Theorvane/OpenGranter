@@ -53,9 +53,11 @@ npm run compatibility:opencode -- /absolute/path/to/opencode
 The command fails explicitly if the binary is absent or its version differs. It
 creates fresh temporary config/data/cache/state/work directories, passes a whitelist
 of environment variables, disables external skills, project config, updates,
-model fetching and plugins, and uses `run --pure --format json` with all tools denied.
+model fetching and plugins, and uses `run --pure --format json`. Text, Deny and disconnect probes deny all tools;
+the tool probe allows only reading its single project-relative fixture-file path and denies
+all other tools/paths.
 HOME is preserved; no user configuration or credentials are written. Each child
-has a 30-second timeout and a one-MiB combined-output cap. Temporary files and the
+has a 30-second timeout (five seconds for the intentional disconnect probe) and a one-MiB combined-output cap. Temporary files and the
 loopback server are removed on success or failure. Child failure messages omit
 stderr, paths and request content.
 
@@ -63,9 +65,20 @@ The real gateway authenticates a fixture proxy token, evaluates the approved
 model/provider route and limits, invokes a fixed-host mocked delegated transport,
 and records usage/audit before successful completion. No real provider, real
 secret or external model is involved. The command verifies registered model
-selection, rendered text and completed usage on both bases. Default CI tests the
+selection, rendered text, actual streamed read-function assembly and execution,
+correlated tool-result continuation, fresh IAM/limit checks and completed usage on
+both bases. It also verifies explicit model/provider Deny and upstream cancellation
+with failed possibly-billed/missing-usage accounting after child termination.
+OpenCode emits an APIError event with status 403 and exit code 1 on these Deny
+responses; the probe checks both rather than inferring success from iterator/exit
+completion. Diagnostic events remain local in-memory conformance data, never
+operational gateway metadata. Default CI tests the
 process/config helper without requiring a globally installed client; this explicit
 client command is a separate recorded conformance gate.
 
-Tool workflows, cancellation/failure application semantics, direct streaming,
+Interactive cancellation actions, retry/error variants, richer tools, direct streaming,
 other application versions/configurations and complete #116 certification remain open.
+
+The runner also requires Git and initializes an empty temporary project for exact
+project-relative read matching. The read permission map denies every path except
+the literal fixture.txt. The temporary project is removed with the other fixtures.
