@@ -32,6 +32,7 @@ import {
 } from './anthropic-client-functions.ts';
 import { type AssistantResponse, normalizeAssistantResponse } from './assistant-response.ts';
 import { type ChatUsage, normalizeChatUsage } from './chat-usage.ts';
+import { normalizeGoogleChatUsage } from './google-chat-usage.ts';
 import {
   normalizeGoogleFunctionResponse,
   prepareGoogleFunctions,
@@ -255,11 +256,7 @@ function normalize(
       normalizeProviderUsage(value.usage, ['input_tokens', 'output_tokens']),
     );
   }
-  const googleUsage = normalizeProviderUsage(
-    value.usageMetadata,
-    ['promptTokenCount', 'candidatesTokenCount', 'totalTokenCount'],
-    false,
-  );
+  const googleUsage = normalizeGoogleChatUsage(value.usageMetadata);
   const candidates = items(value.candidates);
   if (record(value.promptFeedback)?.blockReason === 'SAFETY') {
     if (value.candidates !== undefined && candidates?.length !== 0) fail('other');

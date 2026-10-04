@@ -1,8 +1,8 @@
+import { normalizeGoogleChatUsage } from '../providers/google-chat-usage.ts';
 import {
   DirectProviderFailure,
   type DirectProviderFailureCategory,
 } from '../routing/invoke-jev-managed-route.ts';
-import { normalizeProviderUsage } from '../usage/normalize-provider-tokens.ts';
 import type {
   DirectOpenAITextStreamCompletion,
   DirectOpenAITextStreamPayload,
@@ -108,11 +108,7 @@ export async function consumeDirectGoogleTextResponse(
           (candidates !== undefined && (!Array.isArray(candidates) || candidates.length !== 0))
         )
           throw Error();
-        usage = normalizeProviderUsage(
-          value.usageMetadata,
-          ['promptTokenCount', 'candidatesTokenCount', 'totalTokenCount'],
-          false,
-        );
+        usage = normalizeGoogleChatUsage(value.usageMetadata);
         tail = true;
         continue;
       }
@@ -192,11 +188,7 @@ export async function consumeDirectGoogleTextResponse(
             reason === 'STOP' ? 'stop' : reason === 'MAX_TOKENS' ? 'length' : 'content_filter';
       }
       if (finish !== null) {
-        usage = normalizeProviderUsage(
-          value.usageMetadata,
-          ['promptTokenCount', 'candidatesTokenCount', 'totalTokenCount'],
-          false,
-        );
+        usage = normalizeGoogleChatUsage(value.usageMetadata);
         await emit({ finishReason: finish });
       }
     }

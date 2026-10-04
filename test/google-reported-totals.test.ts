@@ -112,6 +112,7 @@ for (const base of ['/v1', '/api/v1'])
             : {
                 prompt_tokens: 3,
                 completion_tokens: completion,
+                completion_tokens_details: { reasoning_tokens: completion },
                 ...(reported ? { total_tokens: total } : {}),
               },
         );
