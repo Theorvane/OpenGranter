@@ -461,6 +461,11 @@ export function createDirectChatInvoker(
           (registration.kind === 'openai' && (verbosity === 'xhigh' || verbosity === 'max'))))
     )
       fail('other');
+    try {
+      if (request.reasoning !== undefined) fail('other');
+    } catch {
+      fail('other');
+    }
     const reasoningEffort = request.reasoning_effort ?? undefined;
     if (
       !validReasoningEffort(reasoningEffort) ||
