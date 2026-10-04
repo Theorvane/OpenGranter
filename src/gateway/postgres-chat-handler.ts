@@ -20,6 +20,7 @@ export interface PostgresChatHandlerPorts<T>
     | 'resolveSecret'
     | 'invokeDirect'
     | 'invokeDirectTextStream'
+    | 'invokeDirectFunctionStream'
     | 'resolveVerifiedProviderSlug'
     | 'invokeOpenRouter'
     | 'invokeOpenRouterTextStream'

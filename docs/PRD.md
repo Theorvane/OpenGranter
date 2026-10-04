@@ -679,3 +679,10 @@ Compose trusted native function streams with existing managed IAM, limits, Jev/o
 
 See [plan](plans/386-managed-function-stream.md) and [contract](../contracts/managed-function-stream.md).
 Managed OpenAI text streams remain supported. Public managed function streaming and full #116 remain open; pin v19 is unchanged.
+
+## Public managed OpenAI function streaming
+
+Activate the trusted native function stream port on both chat bases and generate it from stored native registrations in direct/dual PostgreSQL servers. Preserve authentication, complete model/final-provider IAM, limits, Jev/order selection, accounting/audit gates, no replay and cancellation. Both installed SDKs must complete two interleaved calls and correlated tool-result continuation on both bases with fresh Deny, persistence errors, unknown usage and abort. Keep exact native model IDs and rich/custom/server-tool/other-native-provider gaps open.
+
+See [plan](plans/388-public-managed-functions.md) and [contract](../contracts/public-managed-functions.md).
+Managed OpenAI text streams remain supported. Managed OpenAI function streams are activated; broader compatibility and full #116 remain open. Pin v19 is unchanged.

@@ -65,6 +65,9 @@ async function fixture(direct = true) {
     },
     timeoutMs: 1000,
     ...{
+      invokeDirectFunctionStream: async () => {
+        throw new Error('unexpected native function override');
+      },
       invokeDirectTextStream: async () => {
         throw new Error('unexpected direct stream override');
       },
@@ -101,13 +104,36 @@ async function fixture(direct = true) {
           model: body.model,
           object: 'chat.completion.chunk',
         };
+        const answered = body.messages.some((message: { role: string }) => message.role === 'tool');
+        const functionCall = body.tools?.length > 0 && !answered;
         const frames = [
           {
             ...identity,
-            choices: [{ index: 0, delta: { content: 'private-response' }, finish_reason: null }],
+            choices: [
+              {
+                index: 0,
+                delta: functionCall
+                  ? {
+                      tool_calls: [
+                        {
+                          index: 0,
+                          id: 'call',
+                          type: 'function',
+                          function: { name: 'lookup', arguments: '{}' },
+                        },
+                      ],
+                    }
+                  : { content: 'private-response' },
+                finish_reason: null,
+              },
+            ],
             usage: null,
           },
-          { ...identity, choices: [{ index: 0, delta: {}, finish_reason: 'stop' }], usage: null },
+          {
+            ...identity,
+            choices: [{ index: 0, delta: {}, finish_reason: functionCall ? 'tool_calls' : 'stop' }],
+            usage: null,
+          },
           {
             ...identity,
             choices: [],
@@ -537,6 +563,72 @@ test('persisted dual composition generates controlled native stream port and ign
     const history = await fetch(base + '/v1/audit', { headers });
     assert.equal(history.status, 200);
     assert.ok(!(await history.text()).includes('private-response'));
+  } finally {
+    await close();
+  }
+});
+
+test('persisted dual generated native function streams complete correlated results and re-evaluate Deny', async () => {
+  const { db, base, headers, close, secrets } = await fixture();
+  try {
+    for (const prefix of ['/v1', '/api/v1']) {
+      const body = {
+        model: 'direct-chat',
+        messages: [{ role: 'user', content: 'private-prompt' }],
+        tools: [{ type: 'function', function: { name: 'lookup', parameters: { type: 'object' } } }],
+        stream: true,
+      };
+      const send = (value: unknown) =>
+        fetch(base + prefix + '/chat/completions', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(value),
+        });
+      const first = await send(body);
+      assert.equal(first.status, 200);
+      assert.ok((await first.text()).includes('tool_calls'));
+      const follow = await send({
+        ...body,
+        messages: [
+          ...body.messages,
+          {
+            role: 'assistant',
+            content: null,
+            tool_calls: [
+              { id: 'call', type: 'function', function: { name: 'lookup', arguments: '{}' } },
+            ],
+          },
+          { role: 'tool', tool_call_id: 'call', content: 'private-result' },
+        ],
+      });
+      assert.equal(follow.status, 200);
+      assert.ok((await follow.text()).includes('private-response'));
+    }
+    const usage = await db.query<{ record: { routeKind: string; outcome: string } }>(
+      'SELECT record FROM usage_records',
+    );
+    assert.equal(usage.rows.length, 4);
+    assert.ok(
+      usage.rows.every(
+        (row) => row.record.routeKind === 'managed' && row.record.outcome === 'succeeded',
+      ),
+    );
+    await db.exec(
+      'INSERT INTO iam_policies VALUES (\'native-deny\', \'v1\', \'[{"effect":"Deny","actions":["llm:UseProvider"],"resources":["provider:openai"]}]\'); INSERT INTO iam_principal_policies VALUES (\'service-1\', \'native-deny\');',
+    );
+    const denied = await fetch(base + '/api/v1/chat/completions', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        model: 'direct-chat',
+        messages: [{ role: 'user', content: 'private-prompt' }],
+        tools: [{ type: 'function', function: { name: 'lookup', parameters: { type: 'object' } } }],
+        stream: true,
+      }),
+    });
+    assert.equal(denied.status, 403);
+    await denied.text();
+    assert.equal(secrets.length, 4);
   } finally {
     await close();
   }
