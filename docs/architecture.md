@@ -916,3 +916,9 @@ See [plan](plans/393-anthropic-text-invoker.md) and [contract](../contracts/anth
 Public managed Anthropic text streaming is activated through a captured registration-kind dispatcher and generated persisted direct/dual handlers. Both API bases and actual OpenAI/OpenRouter SDK text consumption preserve authentication, model/provider Deny, limits, required usage/audit, cancellation and safe partial failure. Gemini and Anthropic functions/thinking/server tools remain unsupported.
 
 See [plan](plans/395-anthropic-managed-stream.md) and [contract](../contracts/anthropic-managed-stream.md). OpenAI managed text/function support remains in place; full #116 compatibility and #7 unresolved decisions remain open. Pin v19 is unchanged.
+
+## Managed Gemini public text streaming
+
+Add bounded native Gemini text SSE validation, an explicit registered Google streaming transport and generated managed text dispatch through both API bases and persisted direct/dual composition. Preserve exact approved version scope, stable response identity, native output caps, authentication, model/provider Deny, limits, required usage/audit and cancellable backpressure.
+
+See [plan](plans/398-gemini-managed-stream.md) and [contract](../contracts/gemini-managed-stream.md). Exact native version identity and final reported Google totals are required; functions/thoughts/signatures/server tools and full #116 remain open. Pin v19 is unchanged.

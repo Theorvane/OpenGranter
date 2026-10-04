@@ -1,6 +1,7 @@
 import { DirectProviderFailure } from '../routing/invoke-jev-managed-route.ts';
 import { createDirectAnthropicTextStreamInvoker } from './direct-anthropic-stream.ts';
 import { type DirectChatPorts, snapshotDirectProviderRegistrations } from './direct-chat.ts';
+import { createDirectGoogleTextStreamInvoker } from './direct-google-stream.ts';
 import { createDirectOpenAITextStreamInvoker } from './direct-openai-stream.ts';
 
 /** Dispatch only captured administrator registrations after managed authorization. */
@@ -12,7 +13,8 @@ export function createRegisteredDirectTextStreamInvoker(
   );
   const fixedPorts = { ...ports, registrations: Object.freeze(registrations) };
   const openai = createDirectOpenAITextStreamInvoker(fixedPorts),
-    anthropic = createDirectAnthropicTextStreamInvoker(fixedPorts);
+    anthropic = createDirectAnthropicTextStreamInvoker(fixedPorts),
+    google = createDirectGoogleTextStreamInvoker(fixedPorts);
   const kinds = new Map(
     registrations.map((registration) => [registration.providerId, registration.kind]),
   );
@@ -26,6 +28,7 @@ export function createRegisteredDirectTextStreamInvoker(
     const kind = kinds.get(fixed.providerId);
     if (kind === 'openai') return openai(fixed, request, onDelta, signal);
     if (kind === 'anthropic') return anthropic(fixed, request, onDelta, signal);
+    if (kind === 'google') return google(fixed, request, onDelta, signal);
     return Promise.reject(new DirectProviderFailure('other', false, false));
   };
 }

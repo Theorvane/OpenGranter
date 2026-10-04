@@ -11,6 +11,7 @@ export async function* parseSseDataEvents(
   source: ReadableStream<Uint8Array>,
   maxEventBytes = DEFAULT_MAX_EVENT_BYTES,
   signal?: AbortSignal,
+  requireCompleteEvents = false,
 ): AsyncGenerator<string> {
   if (
     !Number.isSafeInteger(maxEventBytes) ||
@@ -74,6 +75,7 @@ export async function* parseSseDataEvents(
       if (signal?.aborted) throw invalidStream();
       if (next.done) {
         decoder.decode();
+        if (requireCompleteEvents && (line !== '' || data.length !== 0)) throw invalidStream();
         complete = true;
         break;
       }

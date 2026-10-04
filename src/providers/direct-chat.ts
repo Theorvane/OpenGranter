@@ -379,7 +379,7 @@ function prepare(
   if (!/^[A-Za-z0-9._-]+$/u.test(candidate.upstreamModelId)) fail('other');
   headers['x-goog-api-key'] = key;
   return {
-    url: `https://generativelanguage.googleapis.com/v1beta/models/${candidate.upstreamModelId}:generateContent`,
+    url: `https://generativelanguage.googleapis.com/v1beta/models/${candidate.upstreamModelId}:${streaming ? 'streamGenerateContent?alt=sse' : 'generateContent'}`,
     headers,
     body: {
       ...(outputLimit === undefined &&
@@ -439,7 +439,7 @@ export function createDirectChatTransport(
 ): (
   candidate: RouteCandidate,
   request: ChatRequest,
-  streaming?: boolean | 'function' | 'anthropic-text',
+  streaming?: boolean | 'function' | 'anthropic-text' | 'google-text',
   cancellation?: AbortSignal,
 ) => Promise<DirectChatTransportResult> {
   const registrations = snapshotDirectProviderRegistrations(ports.registrations);
@@ -595,7 +595,12 @@ export function createDirectChatTransport(
       try {
         snapshotStreamOptions(request.stream_options);
         if (
-          registration.kind !== (streaming === 'anthropic-text' ? 'anthropic' : 'openai') ||
+          registration.kind !==
+            (streaming === 'anthropic-text'
+              ? 'anthropic'
+              : streaming === 'google-text'
+                ? 'google'
+                : 'openai') ||
           (streaming !== 'function' &&
             (tools !== undefined ||
               toolChoice !== undefined ||
