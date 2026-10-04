@@ -68,6 +68,9 @@ async function fixture(direct = true) {
       invokeOpenRouter: async () => {
         throw new Error('unexpected runtime override');
       },
+      invokeOpenRouterFunctionStream: async () => {
+        throw new Error('unexpected function override');
+      },
       resolveVerifiedProviderSlug: async () => {
         throw new Error('unexpected mapping override');
       },
@@ -97,6 +100,43 @@ async function fixture(direct = true) {
             choices: [{ index: 0, delta, finish_reason: finish }],
             ...(usage ? { usage } : {}),
           })}\n\n`;
+        if (
+          body.tools !== undefined ||
+          body.messages.some((message: { role: string }) => message.role === 'tool')
+        ) {
+          const answered = body.messages.some(
+            (message: { role: string }) => message.role === 'tool',
+          );
+          const finish = answered ? 'stop' : 'tool_calls';
+          const delta = answered
+            ? { content: 'private final answer' }
+            : {
+                tool_calls: [
+                  {
+                    index: 0,
+                    id: 'call',
+                    type: 'function',
+                    function: { name: 'lookup', arguments: '{"q":' },
+                  },
+                ],
+              };
+          const source =
+            frame(delta, null) +
+            (answered
+              ? ''
+              : frame(
+                  { tool_calls: [{ index: 0, function: { arguments: '"private 終"}' } }] },
+                  null,
+                )) +
+            (state.streamFailure
+              ? 'data: ' +
+                JSON.stringify({ error: { code: 502, message: 'private-stream-failure' } }) +
+                '\n\n'
+              : frame({}, finish) +
+                frame({}, finish, { prompt_tokens: 2, completion_tokens: 3, total_tokens: 5 }) +
+                'data: [DONE]\n\n');
+          return new Response(source, { headers: { 'content-type': 'text/event-stream' } });
+        }
         const source =
           frame({ content: 'private-response' }, null) +
           (state.streamFailure
@@ -335,4 +375,102 @@ test('registration bootstrap failure rejects safely before transport or secret l
     },
   );
   assert.equal(external, 0);
+});
+
+test('persisted dual composition activates scoped function streams and complete tool results on both bases', async () => {
+  const f = await fixture(false);
+  try {
+    for (const prefix of ['/v1', '/api/v1']) {
+      const messages: object[] = [{ role: 'user', content: 'private prompt' }];
+      const body = {
+        model: 'or-chat',
+        messages,
+        stream: true,
+        tools: [{ type: 'function', function: { name: 'lookup' } }],
+        tool_choice: 'auto',
+        parallel_tool_calls: false,
+      };
+      const call = () =>
+        fetch(f.base + prefix + '/chat/completions', {
+          method: 'POST',
+          headers: f.headers,
+          body: JSON.stringify(body),
+        });
+      const first = await call();
+      assert.equal(first.status, 200);
+      const text = await first.text();
+      assert.ok(text.includes('"finish_reason":"tool_calls"'));
+      assert.ok(text.endsWith('data: [DONE]\n\n'));
+      messages.push(
+        {
+          role: 'assistant',
+          content: null,
+          tool_calls: [
+            {
+              id: 'call',
+              type: 'function',
+              function: { name: 'lookup', arguments: '{"q":"private 終"}' },
+            },
+          ],
+        },
+        { role: 'tool', tool_call_id: 'call', content: 'private result' },
+      );
+      const second = await call();
+      assert.equal(second.status, 200);
+      const final = await second.text();
+      assert.ok(final.includes('private final answer'));
+      assert.ok(final.endsWith('data: [DONE]\n\n'));
+    }
+    const records = await f.db.query<{ record: unknown }>('SELECT record FROM usage_records');
+    assert.equal(records.rows.length, 4);
+    const audit = await f.db.query<{ details: unknown }>(
+      'SELECT details FROM gateway_audit_events',
+    );
+    assert.equal(JSON.stringify([records.rows, audit.rows]).includes('private'), false);
+    assert.ok(f.hosts.every((host) => host === 'https://openrouter.ai/api/v1/chat/completions'));
+  } finally {
+    await f.close();
+  }
+});
+
+test('persisted function streams deny before secrets and sanitize partial failures', async () => {
+  const f = await fixture(false);
+  try {
+    const body = {
+      model: 'or-chat',
+      messages: [{ role: 'user', content: 'private prompt' }],
+      stream: true,
+      tools: [{ type: 'function', function: { name: 'lookup' } }],
+    };
+    const call = () =>
+      fetch(f.base + '/api/v1/chat/completions', {
+        method: 'POST',
+        headers: f.headers,
+        body: JSON.stringify(body),
+      });
+    f.state.limit = false;
+    assert.equal((await call()).status, 429);
+    f.state.limit = true;
+    await f.db.exec(
+      `INSERT INTO iam_policies VALUES ('deny-stream', 'v1', '[{"effect":"Deny","actions":["llm:UseProvider"],"resources":["provider:openai"]}]'); INSERT INTO iam_principal_policies VALUES ('service-1', 'deny-stream')`,
+    );
+    assert.equal((await call()).status, 403);
+    assert.equal(f.secrets.length, 0);
+    assert.equal(f.hosts.length, 0);
+    await f.db.exec("DELETE FROM iam_principal_policies WHERE policy_id='deny-stream'");
+    f.state.streamFailure = true;
+    const response = await call(),
+      text = await response.text();
+    assert.equal(response.status, 200);
+    assert.equal(text.includes('[DONE]'), false);
+    assert.equal(text.includes('private-stream-failure'), false);
+    const usage = await f.db.query<{ record: { outcome: string } }>(
+      'SELECT record FROM usage_records',
+    );
+    assert.equal(usage.rows[0]?.record.outcome, 'failed');
+    const audit = await f.db.query('SELECT details FROM gateway_audit_events');
+    assert.equal(JSON.stringify([usage.rows, audit.rows]).includes('private'), false);
+  } finally {
+    await f.close();
+  }
 });

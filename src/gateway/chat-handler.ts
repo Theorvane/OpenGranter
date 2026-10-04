@@ -20,7 +20,11 @@ import {
   type ManagedRouteAuditEvent,
 } from '../routing/invoke-jev-managed-route.ts';
 import type { JevFetcher } from '../routing/jev-managed-routing.ts';
-import { createDelegatedHttpStreamResponse } from '../streaming/delegated-http-stream.ts';
+import {
+  createDelegatedFunctionHttpStreamResponse,
+  createDelegatedHttpStreamResponse,
+} from '../streaming/delegated-http-stream.ts';
+import type { DelegatedFunctionStreamInput } from '../streaming/invoke-delegated-function-stream.ts';
 import type { DelegatedTextStreamInput } from '../streaming/invoke-delegated-text-stream.ts';
 import { serializeUsageCsv } from '../usage/csv.ts';
 import {
@@ -206,6 +210,7 @@ export type GatewayAuditEvent =
     });
 
 export interface ChatHandlerPorts<T> {
+  readonly invokeOpenRouterFunctionStream?: DelegatedFunctionStreamInput['ports']['invokeOpenRouterFunctionStream'];
   readonly invokeOpenRouterTextStream?: DelegatedTextStreamInput['ports']['invokeOpenRouterTextStream'];
   readonly newRequestId: () => string;
   readonly authenticate: (proxyToken: string) => Promise<AuthenticatedPrincipal | undefined>;
@@ -385,7 +390,11 @@ interface ValidatedChatRequest extends ChatRequest {
   readonly stream?: true;
 }
 
-function validateChat(value: unknown, streaming = false): ValidatedChatRequest | undefined {
+function validateChat(
+  value: unknown,
+  streaming = false,
+  functionStreaming = false,
+): ValidatedChatRequest | undefined {
   if (!isRecord(value)) return undefined;
   if (
     Object.keys(value).some(
@@ -426,6 +435,7 @@ function validateChat(value: unknown, streaming = false): ValidatedChatRequest |
     return undefined;
   if (
     value.stream === true &&
+    !functionStreaming &&
     (value.tools !== undefined ||
       value.tool_choice !== undefined ||
       value.parallel_tool_calls !== undefined)
@@ -497,6 +507,7 @@ function validateChat(value: unknown, streaming = false): ValidatedChatRequest |
   }
   if (
     value.stream === true &&
+    !functionStreaming &&
     messages.some((message) => message.role === 'tool' || 'tool_calls' in message)
   )
     return undefined;
@@ -941,7 +952,9 @@ export function createChatHandler<T>(
 
     const chat = validateChat(
       await readJsonBody(request).catch(() => undefined),
-      typeof ports.invokeOpenRouterTextStream === 'function',
+      typeof ports.invokeOpenRouterTextStream === 'function' ||
+        typeof ports.invokeOpenRouterFunctionStream === 'function',
+      typeof ports.invokeOpenRouterFunctionStream === 'function',
     );
     if (!chat) {
       try {
@@ -1004,7 +1017,17 @@ export function createChatHandler<T>(
 
     if (route.kind === 'delegated') {
       if (chat.stream) {
-        return createDelegatedHttpStreamResponse({
+        const functionRequest =
+          chat.tools !== undefined ||
+          chat.tool_choice !== undefined ||
+          chat.parallel_tool_calls !== undefined ||
+          chat.messages.some((message) => message.role === 'tool' || 'tool_calls' in message);
+        const createResponse =
+          ports.invokeOpenRouterFunctionStream &&
+          (functionRequest || !ports.invokeOpenRouterTextStream)
+            ? createDelegatedFunctionHttpStreamResponse
+            : createDelegatedHttpStreamResponse;
+        return createResponse({
           ...attribution,
           requestId,
           routeVersion: route.version,
@@ -1023,6 +1046,9 @@ export function createChatHandler<T>(
             ...(ports.now ? { now: ports.now } : {}),
             ...(ports.resolveVerifiedProviderSlug
               ? { resolveVerifiedProviderSlug: ports.resolveVerifiedProviderSlug }
+              : {}),
+            ...(ports.invokeOpenRouterFunctionStream
+              ? { invokeOpenRouterFunctionStream: ports.invokeOpenRouterFunctionStream }
               : {}),
             ...(ports.invokeOpenRouterTextStream
               ? { invokeOpenRouterTextStream: ports.invokeOpenRouterTextStream }

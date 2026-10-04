@@ -773,3 +773,14 @@ pin v18 is unchanged.
 See [plan](plans/358-function-http-stream.md) and [contract](../contracts/function-http-stream.md).
 Public HTTP function streams, transitive schema drift and full #116 remain open;
 pin v18 is unchanged.
+
+## Delegated public function stream activation
+
+- Both chat bases accept validated function declarations, choice, parallel controls and complete histories when a trusted function-stream invoker is installed. Text-only installations retain early tool rejection; managed direct streaming stays unsupported.
+- Select the function coordinator for supplied tool controls/history, or for function-only installations; ordinary text requests retain the text path when installed.
+- Persisted dual-route composition installs the function adapter using server credentials and verified mappings. Authentication, model/provider IAM including Deny, limits and required audit/usage precede or gate delivery as before.
+- Safe errors, bounded flow control, cancellation, unknown usage and content-free operational records stay shared. Earlier internal-stage gate descriptions are superseded by this delegated activation; external SDK workflows and complete compatibility remain subsequent work.
+
+See [plan](plans/360-public-function-stream.md) and [contract](../contracts/public-function-stream.md).
+Further client conformance, transitive schema drift and full #116 remain open;
+pin v18 is unchanged.
