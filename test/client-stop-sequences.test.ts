@@ -249,3 +249,55 @@ test('stop preserves IAM, limits, mandatory audit and provider failure accountin
     }
   }
 });
+
+for (const kind of kinds) {
+  test(`${kind} forwards indexed stop capture instead of changing count or iterator`, async () => {
+    let countReads = 0;
+    const source = new Proxy(['private-stop-first', 'second', 'third', 'fourth', 'fifth'], {
+      get(target, key, receiver) {
+        return key === 'length' ? (++countReads === 1 ? 1 : 5) : Reflect.get(target, key, receiver);
+      },
+    });
+    const f = fixture(kind, {
+      mutate: () => {
+        source[0] = 'changed';
+      },
+    });
+    await f.call(request(source));
+    assert.deepEqual(native(kind, f.sent[0]), { stop: ['private-stop-first'], max: 17 });
+    assert.equal(countReads, 1);
+    const entries = ['private-indexed-stop'];
+    Object.defineProperty(entries, Symbol.iterator, {
+      get() {
+        throw new Error('private iterator fixture-key');
+      },
+    });
+    const g = fixture(kind);
+    await g.call(request(entries));
+    assert.deepEqual(native(kind, g.sent[0]).stop, ['private-indexed-stop']);
+  });
+  test(`${kind} rejects malformed or throwing indexed stop before secrets`, async () => {
+    for (const throwing of [false, true]) {
+      const entries = ['stop'];
+      Object.defineProperty(entries, '0', {
+        get() {
+          if (throwing) throw new Error('private-stop fixture-key');
+          return 42;
+        },
+      });
+      Object.defineProperty(entries, Symbol.iterator, {
+        value: function* () {
+          yield 'masked';
+        },
+      });
+      const f = fixture(kind);
+      await assert.rejects(f.call(request(entries)), (error: unknown) => {
+        assert.equal((error as { possiblyBilled: boolean }).possiblyBilled, false);
+        assert.doesNotMatch(String(error), /private-stop|fixture-key/u);
+        return true;
+      });
+      assert.equal(f.secrets(), 0);
+      assert.deepEqual(f.sent, []);
+    }
+  });
+}
