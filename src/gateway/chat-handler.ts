@@ -75,6 +75,10 @@ import {
   snapshotOpenRouterMetadata,
 } from './model-discovery-metadata.ts';
 import { parseModelListQuery } from './model-list-query.ts';
+import {
+  type ReasoningSummaryConfiguration,
+  snapshotReasoningSummary,
+} from './reasoning-summary.ts';
 
 const MAX_BODY_BYTES = 1024 * 1024;
 
@@ -91,6 +95,7 @@ export interface ChatRequest {
   readonly seed?: number;
   readonly verbosity?: Verbosity;
   readonly reasoning_effort?: ReasoningEffort;
+  readonly reasoning?: ReasoningSummaryConfiguration;
   readonly frequency_penalty?: number;
   readonly presence_penalty?: number;
   readonly response_format?: ResponseFormat;
@@ -406,6 +411,7 @@ function validateChat(value: unknown, streaming = false): ValidatedChatRequest |
           'seed',
           'verbosity',
           'reasoning_effort',
+          'reasoning',
           'frequency_penalty',
           'presence_penalty',
           'response_format',
@@ -437,12 +443,14 @@ function validateChat(value: unknown, streaming = false): ValidatedChatRequest |
   if (!validPenalty(frequencyPenalty) || !validPenalty(presencePenalty)) return undefined;
   const topK = value.top_k ?? undefined;
   if (!validTopK(topK)) return undefined;
+  let reasoning: ReasoningSummaryConfiguration | undefined;
   let logitBias: ReturnType<typeof snapshotLogitBias>;
   let streamOptions: ReturnType<typeof snapshotStreamOptions>;
   let tools: ReturnType<typeof snapshotFunctionTools>;
   let toolChoice: ReturnType<typeof snapshotToolChoice>;
   let parallelToolCalls: ReturnType<typeof snapshotParallelToolCalls>;
   try {
+    reasoning = snapshotReasoningSummary(value.reasoning);
     streamOptions = snapshotStreamOptions(value.stream_options);
     if (streamOptions !== undefined && value.stream !== true) return undefined;
     logitBias = snapshotLogitBias(value.logit_bias);
@@ -494,6 +502,7 @@ function validateChat(value: unknown, streaming = false): ValidatedChatRequest |
     ...(seed === undefined ? {} : { seed }),
     ...(verbosity === undefined ? {} : { verbosity }),
     ...(reasoningEffort === undefined ? {} : { reasoning_effort: reasoningEffort }),
+    ...(reasoning === undefined ? {} : { reasoning }),
     ...(frequencyPenalty === undefined ? {} : { frequency_penalty: frequencyPenalty }),
     ...(presencePenalty === undefined ? {} : { presence_penalty: presencePenalty }),
     ...(responseFormat === undefined ? {} : { response_format: responseFormat }),
