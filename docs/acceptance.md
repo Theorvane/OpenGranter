@@ -1091,3 +1091,11 @@ See [plan](plans/392-anthropic-text-response.md) and [contract](../contracts/ant
 Internal native Anthropic text invocation uses an explicit transport mode, captured administrator registration and Messages request, fixed host and headers, capped output, timeout and caller cancellation. Existing OpenAI-only stream modes remain restricted. This stage does not yet wire persisted public Anthropic streams or tools.
 
 See [plan](plans/393-anthropic-text-invoker.md) and [contract](../contracts/anthropic-text-invoker.md). OpenAI managed text/function support remains in place; full #116 compatibility and #7 unresolved decisions remain open. Pin v19 is unchanged.
+
+## Managed Anthropic public text streaming
+
+Public managed Anthropic text streaming is activated through a captured registration-kind dispatcher and generated persisted direct/dual handlers. Both API bases and actual OpenAI/OpenRouter SDK text consumption preserve authentication, model/provider Deny, limits, required usage/audit, cancellation and safe partial failure. Gemini and Anthropic functions/thinking/server tools remain unsupported.
+
+See [plan](plans/395-anthropic-managed-stream.md) and [contract](../contracts/anthropic-managed-stream.md). OpenAI managed text/function support remains in place; full #116 compatibility and #7 unresolved decisions remain open. Pin v19 is unchanged.
+
+For #395, successful managed Anthropic native text streams finish with alias-projected chunks and cumulative aggregate usage on /v1 and /api/v1. Actual OpenAI and OpenRouter SDKs consume the controlled native stream. Authentication, model/provider Deny, limit and absent-capability cases prevent credential lookup. Stored direct/dual registrations generate the adapter and replace runtime overrides. Newly attached stored provider Deny applies before another key lookup. Required usage/outcome-audit failures and partial native errors withhold successful DONE; SDK disconnect cancels the native body and records billed uncertainty. Native functions, reasoning/server tools and live certification remain open.
