@@ -1,4 +1,5 @@
 import type { AssistantFunctionCall } from '../providers/assistant-response.ts';
+import { type ChatLogprobs, snapshotChatLogprobs } from '../providers/chat-logprobs.ts';
 import { snapshotChatUsage } from '../providers/chat-usage.ts';
 import {
   type GoogleThoughtSignatureContent,
@@ -31,6 +32,8 @@ export type OpenRouterFunctionStreamOutcome =
       model: string;
       finishReason: FinishReason;
       usage: Usage;
+      /** Private final usage-choice response content; omit from routing/accounting. */
+      usageLogprobs?: ChatLogprobs | null;
       toolCalls?: readonly AssistantFunctionCall[];
       systemFingerprint?: string | null;
       serviceTier?: string | null;
@@ -44,6 +47,7 @@ export class OpenRouterFunctionStreamSequence {
   #model: string | undefined;
   #finishReason: FinishReason | undefined;
   #usage: Usage;
+  #usageLogprobs: ChatLogprobs | null | undefined;
   #systemFingerprint: string | null | undefined;
   #serviceTier: string | null | undefined;
   #nativeFinishReason: string | null | undefined;
@@ -52,6 +56,7 @@ export class OpenRouterFunctionStreamSequence {
   #hasRefusal = false;
 
   private clearCalls(): void {
+    this.#usageLogprobs = undefined;
     this.#calls.clear();
     this.#retainedUnits = 0;
   }
@@ -179,6 +184,11 @@ export class OpenRouterFunctionStreamSequence {
       (event.finishReason !== null && event.finishReason !== this.#finishReason)
     )
       this.fail();
+    try {
+      this.#usageLogprobs = snapshotChatLogprobs(event.logprobs);
+    } catch {
+      this.fail();
+    }
     this.#usage = snapshotChatUsage(event.usage);
     this.#systemFingerprint = event.systemFingerprint;
     this.#serviceTier = event.serviceTier;
@@ -199,12 +209,14 @@ export class OpenRouterFunctionStreamSequence {
     )
       this.fail();
     const calls = this.#calls.size > 0 ? this.completeCalls() : undefined;
+    const usageLogprobs = this.#usageLogprobs;
     const result = Object.freeze({
       status: 'complete' as const,
       id: this.#id,
       model: this.#model,
       finishReason: this.#finishReason,
       usage: this.#usage,
+      ...(usageLogprobs === undefined ? {} : { usageLogprobs }),
       ...(calls === undefined ? {} : { toolCalls: calls }),
       ...(this.#systemFingerprint === undefined
         ? {}

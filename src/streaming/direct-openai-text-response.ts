@@ -69,12 +69,12 @@ export async function consumeDirectOpenAITextResponse(
     !response.body
   )
     return fail(response, 'other');
+  const sequence = new OpenRouterTextStreamSequence();
   try {
     const fixedScope = Object.freeze({
       upstreamModelId: scope.upstreamModelId,
       clientModelAlias: scope.clientModelAlias,
     });
-    const sequence = new OpenRouterTextStreamSequence();
     let created: number | undefined;
     for await (const data of parseSseDataEvents(response.body, undefined, signal)) {
       const event = decodeDirectOpenAITextPayload(data, fixedScope);
@@ -91,6 +91,7 @@ export async function consumeDirectOpenAITextResponse(
     if (result.status !== 'complete') return fail(response, 'other');
     return result;
   } catch {
+    sequence.discard();
     return fail(response, 'other');
   }
 }

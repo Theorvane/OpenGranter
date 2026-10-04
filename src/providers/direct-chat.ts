@@ -4,7 +4,7 @@ import {
   type ReasoningEffort,
   resolveOutputTokenLimit,
   snapshotLogitBias,
-  snapshotNonstreamLogprobControls,
+  snapshotLogprobControls,
   snapshotResponseFormat,
   snapshotStopSequences,
   snapshotStreamOptions,
@@ -351,7 +351,7 @@ function prepare(
   seed: number | undefined,
   verbosity: ChatRequest['verbosity'],
   reasoningEffort: ReasoningEffort | undefined,
-  logprobControls: ReturnType<typeof snapshotNonstreamLogprobControls>,
+  logprobControls: ReturnType<typeof snapshotLogprobControls>,
   streaming = false,
 ): { url: string; headers: Record<string, string>; body: object } {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
@@ -521,13 +521,9 @@ export function createDirectChatTransport(
     }
     const registration = registrations.find((item) => item.providerId === candidate.providerId);
     if (!registration || candidate.kind !== 'managed') fail('other');
-    let logprobControls: ReturnType<typeof snapshotNonstreamLogprobControls>;
+    let logprobControls: ReturnType<typeof snapshotLogprobControls>;
     try {
-      logprobControls = snapshotNonstreamLogprobControls(
-        request.logprobs,
-        request.top_logprobs,
-        streaming !== false,
-      );
+      logprobControls = snapshotLogprobControls(request.logprobs, request.top_logprobs);
       if (registration.kind !== 'openai' && Object.keys(logprobControls).length > 0) fail('other');
     } catch {
       fail('other');

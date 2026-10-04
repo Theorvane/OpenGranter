@@ -1,4 +1,5 @@
 import type { ChatRequest } from '../gateway/chat-handler.ts';
+import { type ChatLogprobs, snapshotChatLogprobs } from '../providers/chat-logprobs.ts';
 import { snapshotChatUsage } from '../providers/chat-usage.ts';
 import { type OpenRouterChatAttempt, OpenRouterChatFailure } from '../providers/openrouter-chat.ts';
 import {
@@ -14,7 +15,7 @@ import type { OpenRouterFunctionStreamPayload } from './openrouter-stream-chunks
 type Delta = Extract<OpenRouterFunctionStreamPayload, { kind: 'delta' }>;
 type Complete = Extract<OpenRouterFunctionStreamOutcome, { status: 'complete' }>;
 /** Response calls never enter the routing/accounting result. */
-type Summary = Omit<Complete, 'toolCalls'>;
+type Summary = Omit<Complete, 'toolCalls' | 'usageLogprobs'>;
 export type FunctionStreamChunkIdentity = Readonly<Pick<Delta, 'id' | 'created' | 'model'>>;
 type Terminal = Pick<Delta, 'id' | 'model' | 'created'> & {
   readonly finishReason: NonNullable<Delta['finishReason']>;
@@ -47,6 +48,7 @@ export async function invokeDelegatedFunctionStream(
   input: DelegatedFunctionStreamInput,
 ): Promise<DelegatedFunctionStreamResult> {
   let terminal: Terminal | undefined;
+  let usageLogprobs: ChatLogprobs | null | undefined;
   const { invokeOpenRouterFunctionStream: invoker, ...routePorts } = input.ports;
   const result = await invokeDelegatedRoute({
     ...input,
@@ -97,6 +99,7 @@ export async function invokeDelegatedFunctionStream(
                 terminal.finishReason !== finishReason
               )
                 throw new OpenRouterChatFailure('upstream', true, true);
+              usageLogprobs = snapshotChatLogprobs(complete.usageLogprobs);
               return {
                 status: 'complete',
                 id,
@@ -122,6 +125,7 @@ export async function invokeDelegatedFunctionStream(
     created: terminal.created,
     finishReason: terminal.finishReason,
     usage: result.response.usage,
+    ...(usageLogprobs === undefined ? {} : { logprobs: usageLogprobs }),
     ...(result.response.nativeFinishReason === undefined
       ? {}
       : { nativeFinishReason: result.response.nativeFinishReason }),

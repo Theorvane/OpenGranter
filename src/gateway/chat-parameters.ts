@@ -209,11 +209,10 @@ export function validRepetitionPenalty(value: unknown): value is number | undefi
   return validTemperature(value);
 }
 
-/** Capture the bounded nonstream subset; null follows the omission convention. */
-export function snapshotNonstreamLogprobControls(
+/** Capture bounded chat probability controls; null follows the omission convention. */
+export function snapshotLogprobControls(
   logprobs: unknown,
   topLogprobs: unknown,
-  streaming = false,
 ): Readonly<{ logprobs?: boolean; top_logprobs?: number }> {
   const enabled = logprobs ?? undefined;
   const alternatives = topLogprobs ?? undefined;
@@ -224,8 +223,7 @@ export function snapshotNonstreamLogprobControls(
         !Number.isSafeInteger(alternatives) ||
         alternatives < 0 ||
         alternatives > 20 ||
-        enabled !== true)) ||
-    (streaming && (enabled !== undefined || alternatives !== undefined))
+        enabled !== true))
   )
     throw new Error('Unsupported log probability controls');
   return Object.freeze({
