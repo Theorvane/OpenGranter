@@ -188,6 +188,136 @@ const jsonSchemaShapes = {
   },
 };
 
+const historyShapes = {
+  ChatMessages: {
+    discriminator: {
+      mapping: {
+        assistant: '#/components/schemas/ChatAssistantMessage',
+        developer: '#/components/schemas/ChatDeveloperMessage',
+        system: '#/components/schemas/ChatSystemMessage',
+        tool: '#/components/schemas/ChatToolMessage',
+        user: '#/components/schemas/ChatUserMessage',
+      },
+      propertyName: 'role',
+    },
+    oneOf: [
+      {
+        $ref: '#/components/schemas/ChatSystemMessage',
+      },
+      {
+        $ref: '#/components/schemas/ChatUserMessage',
+      },
+      {
+        $ref: '#/components/schemas/ChatDeveloperMessage',
+      },
+      {
+        $ref: '#/components/schemas/ChatAssistantMessage',
+      },
+      {
+        $ref: '#/components/schemas/ChatToolMessage',
+      },
+    ],
+  },
+  ChatSystemMessage: {
+    properties: {
+      configuration_update: {
+        additionalProperties: false,
+        properties: {
+          reasoning: {
+            $ref: '#/components/schemas/ConfigurationUpdateReasoning',
+          },
+        },
+        required: ['reasoning'],
+        type: ['object', 'null'],
+      },
+      content: {
+        anyOf: [
+          {
+            type: 'string',
+          },
+          {
+            items: {
+              $ref: '#/components/schemas/ChatContentText',
+            },
+            type: 'array',
+          },
+        ],
+      },
+      name: {
+        type: 'string',
+      },
+      role: {
+        enum: ['system'],
+        type: 'string',
+      },
+    },
+    required: ['role', 'content'],
+    type: 'object',
+  },
+  ChatDeveloperMessage: {
+    properties: {
+      configuration_update: {
+        additionalProperties: false,
+        properties: {
+          reasoning: {
+            $ref: '#/components/schemas/ConfigurationUpdateReasoning',
+          },
+        },
+        required: ['reasoning'],
+        type: ['object', 'null'],
+      },
+      content: {
+        anyOf: [
+          {
+            type: 'string',
+          },
+          {
+            items: {
+              $ref: '#/components/schemas/ChatContentText',
+            },
+            type: 'array',
+          },
+        ],
+      },
+      name: {
+        type: 'string',
+      },
+      role: {
+        enum: ['developer'],
+        type: 'string',
+      },
+    },
+    required: ['role', 'content'],
+    type: 'object',
+  },
+  ChatUserMessage: {
+    properties: {
+      content: {
+        anyOf: [
+          {
+            type: 'string',
+          },
+          {
+            items: {
+              $ref: '#/components/schemas/ChatContentItems',
+            },
+            type: 'array',
+          },
+        ],
+      },
+      name: {
+        type: 'string',
+      },
+      role: {
+        enum: ['user'],
+        type: 'string',
+      },
+    },
+    required: ['role', 'content'],
+    type: 'object',
+  },
+};
+
 function source(): Record<string, unknown> {
   const data = {
     openapi: '3.1.0',
@@ -328,6 +458,7 @@ function source(): Record<string, unknown> {
     tool_choice: structuredClone(pinned.projection.fields.tool_choice),
     parallel_tool_calls: structuredClone(pinned.projection.fields.parallel_tool_calls),
   });
+  Object.assign(data.components.schemas, structuredClone(historyShapes));
   Object.assign(data.components.schemas, structuredClone(pinned.projection.definitions), {
     ChatToolMessage: structuredClone(pinned.projection.toolMessages.ChatToolMessage),
   });
@@ -669,21 +800,25 @@ for (const name of ['ChatFormatTextConfig', 'ChatFormatJsonObjectConfig']) {
     }
   });
 }
-test('version-16 pin retains exact selected definitions', () => {
-  assert.equal(pinned.version, 16);
+test('version-17 pin retains exact selected definitions', () => {
+  assert.equal(pinned.version, 17);
   const definitions = (
     projectOfficialSchema(source()) as unknown as { definitions: Record<string, unknown> }
   ).definitions;
   assert.deepEqual(Object.keys(definitions).sort(), [
+    'ChatDeveloperMessage',
     'ChatFinishReasonEnum',
     'ChatFormatJsonObjectConfig',
     'ChatFormatJsonSchemaConfig',
     'ChatFormatTextConfig',
     'ChatFunctionTool',
     'ChatJsonSchemaConfig',
+    'ChatMessages',
     'ChatNamedToolChoice',
+    'ChatSystemMessage',
     'ChatToolCall',
     'ChatToolChoice',
+    'ChatUserMessage',
   ]);
 });
 
@@ -819,7 +954,7 @@ for (const name of messageDefinitions) {
     assert.throws(() => projectOfficialSchema(data), /Invalid official schema/);
   });
 }
-test('message name selection ignores editorial and unrelated message changes', () => {
+test('message selections ignore editorial annotations but detect content and required changes', () => {
   const data = source();
   for (const name of messageDefinitions) {
     const schema = messageSchema(data, name);
@@ -828,10 +963,6 @@ test('message name selection ignores editorial and unrelated message changes', (
       description: 'private annotation',
       example: 'example',
     };
-    if (name !== 'ChatAssistantMessage') {
-      schema.properties.content = { type: 'number' };
-      delete schema.required;
-    }
   }
   assert.equal(compareOfficialSchema(data, pinned), true);
   const projected = projectOfficialSchema(data) as unknown as {
@@ -841,8 +972,8 @@ test('message name selection ignores editorial and unrelated message changes', (
   for (const value of Object.values(projected.messageNames))
     assert.deepEqual(value, { schema: { type: 'string' }, required: false });
 });
-test('version-16 message maps reject stale and rehashed malformed pins', () => {
-  for (const version of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])
+test('version-17 message maps reject stale and rehashed malformed pins', () => {
+  for (const version of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16])
     assert.throws(() => validateSchemaPin({ ...pinned, version }), /Invalid schema pin/);
   for (const messageNames of [
     undefined,
@@ -1794,6 +1925,125 @@ test('missing or malformed JSON-schema source definitions fail safely', () => {
 });
 test('JSON-schema exact definition map rejects rehashed missing extra and malformed pins', () => {
   for (const name of Object.keys(jsonSchemaShapes))
+    for (const operation of ['missing', 'extra', 'malformed']) {
+      const definitions = { ...pinned.projection.definitions };
+      if (operation === 'missing') delete definitions[name];
+      if (operation === 'extra') definitions.unselected = { type: 'object' };
+      if (operation === 'malformed') definitions[name] = [];
+      const projection = { ...pinned.projection, definitions };
+      const projectionSha256 = createHash('sha256')
+        .update(canonicalSchema(projection))
+        .digest('hex');
+      assert.throws(
+        () => validateSchemaPin({ ...pinned, projection, projectionSha256 }),
+        /Invalid schema pin/,
+      );
+    }
+});
+
+test('message history union and complete instruction/user schemas are selected exactly', () => {
+  const definitions = projectOfficialSchema(source()).definitions;
+  for (const [name, shape] of Object.entries(historyShapes))
+    assert.deepEqual(definitions[name], JSON.parse(canonicalSchema(shape)));
+});
+test('message history structural drift is detected with unchanged request and variant references', () => {
+  const union = historyShapes.ChatMessages;
+  for (const shape of [
+    { ...union, oneOf: union.oneOf.slice(0, -1) },
+    { ...union, oneOf: [...union.oneOf, { $ref: '#/components/schemas/Other' }] },
+    { ...union, discriminator: { ...union.discriminator, propertyName: 'other' } },
+    {
+      ...union,
+      discriminator: {
+        ...union.discriminator,
+        mapping: { ...union.discriminator.mapping, assistant: '#/components/schemas/Other' },
+      },
+    },
+    { ...union, default: { description: 'literal', role: 'user' } },
+    { ...union, 'x-speakeasy-unknown-values': 'allow' },
+  ]) {
+    const data = source();
+    schemasOf(data).ChatMessages = shape;
+    assert.equal(compareOfficialSchema(data, pinned), false);
+  }
+  for (const name of ['ChatSystemMessage', 'ChatDeveloperMessage', 'ChatUserMessage'] as const) {
+    const shape = historyShapes[name];
+    for (const variant of [
+      { ...shape, required: ['role'] },
+      { ...shape, properties: { ...shape.properties, role: { type: 'string', enum: ['other'] } } },
+      { ...shape, properties: { ...shape.properties, content: { type: ['string', 'null'] } } },
+      {
+        ...shape,
+        properties: {
+          ...shape.properties,
+          content: { type: 'string', maxLength: 100, default: { example: 'literal' } },
+        },
+      },
+      {
+        ...shape,
+        properties: {
+          ...shape.properties,
+          content: { type: 'array', items: { $ref: '#/components/schemas/Other' } },
+        },
+      },
+      { ...shape, additionalProperties: false },
+    ]) {
+      const data = source();
+      schemasOf(data)[name] = variant;
+      assert.equal(compareOfficialSchema(data, pinned), false, name);
+    }
+  }
+  const data = source();
+  const shape = historyShapes.ChatSystemMessage;
+  schemasOf(data).ChatSystemMessage = {
+    ...shape,
+    properties: {
+      ...shape.properties,
+      configuration_update: {
+        ...shape.properties.configuration_update,
+        properties: { reasoning: { $ref: '#/components/schemas/Other' } },
+      },
+    },
+  };
+  assert.equal(compareOfficialSchema(data, pinned), false);
+});
+test('history annotations are ignored but literal defaults and annotation-named properties remain structural', () => {
+  const data = source();
+  for (const [name, shape] of Object.entries(historyShapes))
+    schemasOf(data)[name] = {
+      ...shape,
+      description: 'private editorial',
+      examples: [{ private: 'editorial' }],
+      title: 'editorial',
+    };
+  schemasOf(data).ChatContentItems = { type: 'boolean' };
+  schemasOf(data).ConfigurationUpdateReasoning = { type: 'string' };
+  assert.equal(compareOfficialSchema(data, pinned), true);
+  const literal = { description: 'private literal', example: 'literal', title: 'literal' };
+  schemasOf(data).ChatMessages = { ...historyShapes.ChatMessages, default: literal };
+  assert.deepEqual(
+    (projectOfficialSchema(data).definitions.ChatMessages as { default: unknown }).default,
+    literal,
+  );
+  assert.equal(compareOfficialSchema(data, pinned), false);
+  const named = source();
+  schemasOf(named).ChatUserMessage = {
+    ...historyShapes.ChatUserMessage,
+    properties: { ...historyShapes.ChatUserMessage.properties, description: { type: 'string' } },
+  };
+  assert.equal(compareOfficialSchema(named, pinned), false);
+});
+test('missing or malformed history definitions fail safely', () => {
+  for (const name of Object.keys(historyShapes))
+    for (const value of [undefined, null, [], 'private malformed']) {
+      const data = source();
+      schemasOf(data)[name] = value;
+      assert.throws(() => projectOfficialSchema(data), /Invalid official schema/);
+    }
+});
+test('history exact definition maps reject rehashed absent extra malformed and version-16 pins', () => {
+  assert.throws(() => validateSchemaPin({ ...pinned, version: 16 }), /Invalid schema pin/);
+  for (const name of Object.keys(historyShapes))
     for (const operation of ['missing', 'extra', 'malformed']) {
       const definitions = { ...pinned.projection.definitions };
       if (operation === 'missing') delete definitions[name];
