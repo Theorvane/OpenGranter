@@ -404,9 +404,9 @@ export function createOpenRouterChatInvoker(
     let body: unknown;
     try {
       body = (await response.json()) as unknown;
+      return normalize(body, prepared.clientModelAlias, prepared.attempt);
     } catch {
       fail('upstream', true, true);
     }
-    return normalize(body, prepared.clientModelAlias, prepared.attempt);
   };
 }

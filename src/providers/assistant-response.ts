@@ -22,29 +22,32 @@ function record(value: unknown): Record<string, unknown> | undefined {
     : undefined;
 }
 
-function functionCalls(value: readonly unknown[]): readonly AssistantFunctionCall[] | undefined {
-  if (value.length === 0 || value.length > 128) return undefined;
+function functionCalls(
+  value: readonly unknown[],
+  length: number,
+): readonly AssistantFunctionCall[] | undefined {
+  const entries = Array.from({ length }, (_, index) => value[index]);
   const ids = new Set<string>();
   const calls: AssistantFunctionCall[] = [];
-  for (const item of value) {
+  for (const item of entries) {
     const call = record(item);
+    const id = call?.id;
+    const type = call?.type;
     const operation = record(call?.function);
+    const name = operation?.name;
+    const args = operation?.arguments;
     if (
-      typeof call?.id !== 'string' ||
-      !call.id ||
-      ids.has(call.id) ||
-      call.type !== 'function' ||
-      typeof operation?.name !== 'string' ||
-      !operation.name ||
-      typeof operation.arguments !== 'string'
+      typeof id !== 'string' ||
+      !id ||
+      ids.has(id) ||
+      type !== 'function' ||
+      typeof name !== 'string' ||
+      !name ||
+      typeof args !== 'string'
     )
       return undefined;
-    ids.add(call.id);
-    calls.push({
-      id: call.id,
-      type: 'function',
-      function: { name: operation.name, arguments: operation.arguments },
-    });
+    ids.add(id);
+    calls.push({ id, type: 'function', function: { name, arguments: args } });
   }
   return calls;
 }
@@ -64,13 +67,13 @@ export function normalizeAssistantResponse(
   if (hasDetails && details === undefined) return undefined;
   const detailContent = details === undefined ? {} : { reasoning_details: details };
   const toolCalls = value.tool_calls;
-  if (
-    finish === 'function_call' ||
-    (value.function_call !== undefined && value.function_call !== null)
-  )
+  const legacyCall = value.function_call;
+  if (finish === 'function_call' || (legacyCall !== undefined && legacyCall !== null))
     return undefined;
   if (toolCalls !== undefined && toolCalls !== null && !Array.isArray(toolCalls)) return undefined;
-  const hasCalls = Array.isArray(toolCalls) && toolCalls.length > 0;
+  const callCount = Array.isArray(toolCalls) ? toolCalls.length : 0;
+  if (!Number.isSafeInteger(callCount) || callCount < 0 || callCount > 128) return undefined;
+  const hasCalls = callCount > 0;
   if (hasCalls !== (finish === 'tool_calls')) return undefined;
   const hasRefusal = Object.hasOwn(value, 'refusal');
   const refusal = value.refusal;
@@ -82,7 +85,7 @@ export function normalizeAssistantResponse(
       (typeof refusal === 'string' && refusal.length > 0)
     )
       return undefined;
-    const calls = functionCalls(toolCalls);
+    const calls = functionCalls(toolCalls as readonly unknown[], callCount);
     if (!calls) return undefined;
     return {
       role: 'assistant',

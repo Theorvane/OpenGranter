@@ -13,6 +13,7 @@ function fixture(
   finish = 'stop',
   gate = '',
   extra: Record<string, unknown> = {},
+  injectedMessage?: () => Record<string, unknown>,
 ) {
   let calls = 0;
   const sent: Record<string, unknown>[] = [];
@@ -21,7 +22,7 @@ function fixture(
   const fetcher: typeof fetch = async (_, init) => {
     calls++;
     sent.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
-    return Response.json({
+    const envelope = {
       id: 'completion',
       created: 1,
       model: 'model',
@@ -38,7 +39,16 @@ function fixture(
         },
       ],
       usage: { prompt_tokens: 2, completion_tokens: 1, total_tokens: 3 },
-    });
+    };
+    const response = Response.json(envelope);
+    if (injectedMessage)
+      Object.defineProperty(response, 'json', {
+        value: async () => ({
+          ...envelope,
+          choices: [{ ...envelope.choices[0], message: injectedMessage() }],
+        }),
+      });
+    return response;
   };
   const candidate = {
     id: 'candidate',
@@ -207,6 +217,73 @@ for (const kind of ['openai', 'openrouter'] as const) {
         assert.equal(response.status, status);
         assert.equal(f.calls(), 0);
         assert.equal(f.usage.length, 0);
+      }
+  });
+}
+
+for (const kind of ['openai', 'openrouter'] as const) {
+  test(`${kind}: injected response calls use captured values at both HTTP boundaries`, async () => {
+    for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
+      let reads = 0;
+      const f = fixture(kind, null, undefined, 'tool_calls', '', {}, () => ({
+        role: 'assistant',
+        content: null,
+        tool_calls: [
+          {
+            ...firstCall,
+            function: {
+              name: 'lookup',
+              get arguments() {
+                return ++reads === 1 ? 'private captured arguments' : 42;
+              },
+            },
+          },
+        ],
+      }));
+      const response = await f.handler(request(path));
+      assert.equal(response.status, 200);
+      const body = (await response.json()) as {
+        choices: { message: { tool_calls: { function: { arguments: string } }[] } }[];
+      };
+      assert.equal(
+        body.choices[0]?.message.tool_calls[0]?.function.arguments,
+        'private captured arguments',
+      );
+      assert.equal(reads, 1);
+      assert.equal(f.usage.length, 1);
+      assert.doesNotMatch(
+        JSON.stringify([f.audits, f.usage]),
+        /private captured|lookup|fixture-key/u,
+      );
+    }
+  });
+  test(`${kind}: invalid or throwing response captures retain possibly-billed accounting`, async () => {
+    for (const path of ['/v1/chat/completions', '/api/v1/chat/completions'])
+      for (const throwing of [false, true]) {
+        const f = fixture(kind, null, undefined, 'tool_calls', '', {}, () => ({
+          role: 'assistant',
+          content: null,
+          tool_calls: [
+            {
+              ...firstCall,
+              function: {
+                name: 'lookup',
+                get arguments() {
+                  if (throwing) throw new Error('private getter fixture-key');
+                  return 42;
+                },
+              },
+            },
+          ],
+        }));
+        const response = await f.handler(request(path));
+        assert.equal(response.status, 502);
+        assert.equal(f.usage.length, 1);
+        assert.equal((f.usage[0] as { possiblyBilled: boolean }).possiblyBilled, true);
+        assert.doesNotMatch(
+          JSON.stringify([await response.text(), f.audits, f.usage]),
+          /private getter|lookup|fixture-key/u,
+        );
       }
   });
 }
