@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import OpenAI from 'openai';
 import { type ChatRequest, createChatHandler } from '../src/gateway/chat-handler.ts';
+import { normalizeClientTextMessages } from '../src/gateway/client-text-messages.ts';
 import { createNodeRequestServer } from '../src/gateway/node-request-server.ts';
 import { createDirectChatInvoker } from '../src/providers/direct-chat.ts';
 import { createOpenRouterChatInvoker } from '../src/providers/openrouter-chat.ts';
@@ -502,4 +503,33 @@ test('instruction/history arrays retain denial and safe failed-attempt accountin
       }
     }
   }
+});
+
+test('captured text-part values cross HTTP and all provider mappings without operational content', async () => {
+  for (const kind of kinds)
+    for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
+      let reads = 0;
+      const part = Object.defineProperty({ type: 'text' }, 'text', {
+        enumerable: true,
+        get: () => {
+          reads++;
+          return reads === 1 ? 'private captured Ω' : 42;
+        },
+      });
+      const payload = input([part]);
+      const messages = normalizeClientTextMessages(payload.messages);
+      const f = httpFixture(kind);
+      const response = await f.handler(
+        new Request('http://localhost' + path, {
+          method: 'POST',
+          headers: { authorization: 'Bearer fixture', 'content-type': 'application/json' },
+          body: JSON.stringify({ ...payload, messages }),
+        }),
+      );
+      assert.equal(response.status, 200);
+      assert.equal(reads, 1);
+      assertNative(kind, f.sent[0], 'private captured Ω');
+      assert.equal(f.usage.length, 1);
+      assert.doesNotMatch(JSON.stringify([f.audits, f.usage]), /private captured|fixture-key/u);
+    }
 });

@@ -13,3 +13,7 @@ Instruction arrays still belong only to the leading system/developer prefix. Ass
 Single assistant refusal parts normalize to canonical nullable content/scalar
 refusal under the [translation contract](client-refusal-parts.md). Mixed text/refusal
 parts remain rejected. Text concatenation and role/order checks stay unchanged.
+
+Fixed input part positions and each discriminator/payload are captured once under
+the [capture contract](content-part-capture.md); normalization uses only validated
+first captures without retry or coercion. Existing accepted JSON shapes stay fixed.

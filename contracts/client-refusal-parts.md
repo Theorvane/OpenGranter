@@ -37,3 +37,7 @@ stream mappings remain open.
 See [plan](../docs/plans/332-refusal-parts.md),
 [scalar refusal history](client-refusal-history.md),
 [text parts](client-user-text-parts.md), and [function groups](function-tool-history.md).
+
+Fixed input part positions and each discriminator/payload are captured once under
+the [capture contract](content-part-capture.md); normalization uses only validated
+first captures without retry or coercion. Existing accepted JSON shapes stay fixed.
