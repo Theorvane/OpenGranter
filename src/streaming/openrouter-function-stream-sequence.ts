@@ -51,6 +51,12 @@ export class OpenRouterFunctionStreamSequence {
     this.#retainedUnits = 0;
   }
 
+  /** Discard private response assembly after an external transport/delivery failure. */
+  discard(): void {
+    this.clearCalls();
+    this.#phase = 'invalid';
+  }
+
   private fail(): never {
     this.clearCalls();
     this.#phase = 'invalid';
