@@ -673,3 +673,9 @@ Managed OpenAI text/functions remain supported. Broader named-client cases and f
 Internal response-only preparation validates native Anthropic text SSE, exact model identity, sequential blocks, cumulative aggregate usage, safe failure and cancellation. Anthropic transport, public activation, functions, reasoning and server tools remain follow-up work.
 
 See [plan](plans/392-anthropic-text-response.md) and [contract](../contracts/anthropic-text-response.md). OpenAI managed text/function support remains in place; full #116 compatibility and #7 unresolved decisions remain open. Pin v19 is unchanged.
+
+## Registered Anthropic text stream invocation
+
+Internal native Anthropic text invocation uses an explicit transport mode, captured administrator registration and Messages request, fixed host and headers, capped output, timeout and caller cancellation. Existing OpenAI-only stream modes remain restricted. This stage does not yet wire persisted public Anthropic streams or tools.
+
+See [plan](plans/393-anthropic-text-invoker.md) and [contract](../contracts/anthropic-text-invoker.md). OpenAI managed text/function support remains in place; full #116 compatibility and #7 unresolved decisions remain open. Pin v19 is unchanged.
