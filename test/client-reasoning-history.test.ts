@@ -290,11 +290,9 @@ test('delegated scalar reasoning preserves complete function history without exe
 test('invalid reasoning history fails before routing or credentials without content disclosure', async () => {
   const invalid = [
     ...[true, 42, [], {}].map((reasoning) => messages({ content: 'private answer', reasoning })),
-    ...[null, ''].map((reasoning) => messages({ content: null, reasoning })),
     ...['user', 'system', 'developer', 'tool'].map((role) => [
       { role, content: 'private prompt', reasoning },
     ]),
-    messages({ content: null }),
     messages({ content: false, reasoning }),
   ];
   for (const history of invalid) {

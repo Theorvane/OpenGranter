@@ -14,13 +14,7 @@ export function normalizeClientTextMessages(value: unknown): readonly Record<str
     let content = message.content;
     if (
       typeof content !== 'string' &&
-      !(
-        (content === null || content === undefined) &&
-        message.role === 'assistant' &&
-        ((Array.isArray(message.tool_calls) && message.tool_calls.length > 0) ||
-          Object.hasOwn(message, 'reasoning') ||
-          Object.hasOwn(message, 'reasoning_details'))
-      )
+      !((content === null || content === undefined) && message.role === 'assistant')
     ) {
       if (!Array.isArray(content) || content.length === 0)
         throw new TypeError('Invalid client messages');

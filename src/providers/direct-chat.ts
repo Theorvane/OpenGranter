@@ -555,7 +555,11 @@ export function createDirectChatInvoker(
       if (
         messages.some(
           (message) =>
-            Object.hasOwn(message, 'reasoning') || Object.hasOwn(message, 'reasoning_details'),
+            Object.hasOwn(message, 'reasoning') ||
+            Object.hasOwn(message, 'reasoning_details') ||
+            (message.role === 'assistant' &&
+              message.content === null &&
+              !message.tool_calls?.length),
         )
       )
         fail('other');

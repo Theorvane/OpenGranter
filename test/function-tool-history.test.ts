@@ -268,10 +268,6 @@ for (const kind of kinds) {
         },
         ...history.slice(2),
       ],
-      [
-        { role: 'user', content: 'private prompt' },
-        { role: 'assistant', content: null },
-      ],
     ]) {
       const f = httpFixture(kind);
       const response = await f.handler(request('/api/v1/chat/completions', { messages }));

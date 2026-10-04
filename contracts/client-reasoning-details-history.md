@@ -13,17 +13,15 @@ nonstream function-call/result groups. The supported response subset is reused:
   unsupported server-tool-call variants, null/undefined arrays or entries, sparse
   arrays, invalid types and explicit own undefined fields reject before routing.
 
-Ordinary assistant string/normalized text-part content accepts even empty or
-metadata-only arrays. Ordinary missing/null content requires nonempty scalar
-reasoning or at least one validated nonempty summary, text or encrypted data
-payload. Missing content normalizes to null. Signatures/metadata alone do not
-satisfy this local bounded guard, even though the SDK permits broader shapes.
-Complete function groups retain call IDs and required matching pending results;
-empty call arrays still require string content. No tool stream/execution is added.
-Other roles reject detail fields. Supplied details never grant routing authority.
+Ordinary assistant string/normalized text-part and null/missing content accept
+even empty or metadata-only arrays independently of substantive payloads; missing
+content normalizes to null. See [no-text history](no-text-history.md). Complete
+function groups retain call IDs and required matching pending results; empty call
+arrays accept null/missing content delegated nonstream. No tool stream/execution
+is added. Other roles reject detail fields. History never grants authority.
 
 Capture each detail field once and freeze projected arrays/records before async
-routing or credentials. The content guard consumes that same validated snapshot.
+routing or credentials. The upstream message uses that same validated snapshot.
 All direct OpenAI/Anthropic/Gemini paths reject every supplied details marker,
 including empty arrays, before secrets until explicit native mappings exist.
 Do not silently discard, decrypt, interpret or authenticate history payloads.
