@@ -1,0 +1,11 @@
+# Gemini cached and reasoning token details
+
+Issue: #416. Plan: [416-gemini-token-details](../docs/plans/416-gemini-token-details.md).
+
+Supported Google nonstream text/safety/function completions and text/function SSE map supplied cachedContentTokenCount to prompt_tokens_details.cached_tokens and thoughtsTokenCount to completion_tokens_details.reasoning_tokens on both bases. Accept nonnegative safe integers including zero; omit absent/null/invalid categories independently. Ignore all other native details, OpenAI-shaped groups, costs and opaque payloads. Capture only immutable allowlisted numbers.
+
+Retain reported promptTokenCount/candidatesTokenCount/totalTokenCount and aggregate availability exactly. Never derive missing Google totals, subtract cached counts, add thought counts, infer subset/sum relationships, or interpret categories as billed cost. Detail-only usage stays missing. Compatible nonstream /api/v1 omits incomplete usage; /v1 preserves sparse aggregates/details. Streams emit final usage only for valid complete aggregates, after required usage/audit persistence.
+
+Only the final selected terminal usage or permitted usage-only replacement tail supplies stream categories. Replacing with absent/null/invalid categories clears earlier detail values; intermediate snapshots cannot provide them. Do not accumulate or merge. Authentication, model/final-provider IAM/Deny, limits, registered destinations, cancellation, interruption audit and per-attempt aggregate accounting stay unchanged. Category fields stay out of usage ledger/audit records; secrets and content stay out of operational errors.
+
+No thinking/default/eligibility, cached-content request, native thought-body, category ledger, SDK or schema pin change. Anthropic/modality/server-tool categories, billed-cost reconciliation, live providers, full #116 and unresolved #7 remain open. Sources: [Gemini UsageMetadata](https://ai.google.dev/api/generate-content#UsageMetadata), [ProtoJSON](https://protobuf.dev/programming-guides/json/). This extends only the Google category exclusions in the historical [nonstream](nonstream-token-details.md), [stream](stream-token-details.md) and [native stream](gemini-managed-stream.md) contracts.

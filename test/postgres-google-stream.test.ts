@@ -26,7 +26,13 @@ const native = () => [
     responseId: 'msg',
     modelVersion: 'gemini-exact',
     candidates: [{ index: 0, finishReason: 'STOP' }],
-    usageMetadata: { promptTokenCount: 2, candidatesTokenCount: 3, totalTokenCount: 5 },
+    usageMetadata: {
+      promptTokenCount: 2,
+      candidatesTokenCount: 3,
+      totalTokenCount: 5,
+      cachedContentTokenCount: 1,
+      thoughtsTokenCount: 0,
+    },
   },
 ];
 for (const mode of ['direct', 'dual'] as const)
@@ -139,6 +145,8 @@ for (const mode of ['direct', 'dual'] as const)
           const content = await result.text();
           assert.ok(content.includes('private answer'));
           assert.ok(content.includes('"model":"chat"'));
+          assert.ok(content.includes('"prompt_tokens_details":{"cached_tokens":1}'));
+          assert.ok(content.includes('"completion_tokens_details":{"reasoning_tokens":0}'));
           assert.ok(content.includes('"total_tokens":5'));
           assert.ok(content.endsWith('data: [DONE]\n\n'));
         }
@@ -148,6 +156,7 @@ for (const mode of ['direct', 'dual'] as const)
         assert.equal(records.rows.length, 2);
         assert.ok(JSON.stringify(records.rows).includes('google'));
         assert.ok(!JSON.stringify(records.rows).includes('private'));
+        assert.doesNotMatch(JSON.stringify(records.rows), /cached_tokens|reasoning_tokens/u);
         for (const reason of ['usage', 'mid'] as const) {
           failure = reason;
           const result = await request('/v1');
@@ -173,6 +182,7 @@ for (const mode of ['direct', 'dual'] as const)
           const result = await fetch(base + path, { headers });
           assert.equal(result.status, 200);
           const content = await result.text();
+          assert.doesNotMatch(content, /cached_tokens|reasoning_tokens/u);
           for (const secret of [
             'private prompt',
             'private answer',
