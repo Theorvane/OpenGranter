@@ -1,9 +1,9 @@
 {
-  "version": 17,
+  "version": 18,
   "source": "https://openrouter.ai/openapi.json",
   "retrievedAt": "2026-10-04",
   "sourceSha256": "b818343bf2417ad8abdef9ceeea45140db6e06670d7fa54356591cd3304dd3f5",
-  "projectionSha256": "4f1702e90cb64cabcd243990240bde731276eed2e9f725a3d8e30eb4e364955d",
+  "projectionSha256": "70f384c2ab341bdca6a0ae570938540c714d9e89fec499e7e748bfba33f096a3",
   "projection": {
     "openapi": "3.1.0",
     "documentVersion": "1.0.0",
@@ -599,6 +599,31 @@
         ],
         "x-speakeasy-unknown-values": "allow"
       },
+      "reasoning": {
+        "properties": {
+          "effort": {
+            "enum": [
+              "max",
+              "xhigh",
+              "high",
+              "medium",
+              "low",
+              "minimal",
+              "none",
+              null
+            ],
+            "type": [
+              "string",
+              "null"
+            ],
+            "x-speakeasy-unknown-values": "allow"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/ChatReasoningSummaryVerbosityEnum"
+          }
+        },
+        "type": "object"
+      },
       "response_format": {
         "discriminator": {
           "mapping": {
@@ -832,6 +857,19 @@
           "content"
         ],
         "type": "object"
+      },
+      "ChatReasoningSummaryVerbosityEnum": {
+        "enum": [
+          "auto",
+          "concise",
+          "detailed",
+          null
+        ],
+        "type": [
+          "string",
+          "null"
+        ],
+        "x-speakeasy-unknown-values": "allow"
       },
       "ChatFinishReasonEnum": {
         "enum": [

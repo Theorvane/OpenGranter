@@ -36,8 +36,8 @@ has auto/concise/detailed/null, no default and x-speakeasy-unknown-values:allow.
 Our named-value subset rejects unknown strings despite the SDK open enum.
 The official schema and SDK do not serialize legacy include_reasoning on ChatRequest;
 that separately documented boolean is not accepted or silently rewritten here.
-Current structural pin v17 remains unchanged; summary field/reference selection is
-follow-up scope. Native summaries, nested controls, rich/tool streams and complete
+Structural pin v18 now selects the whole reasoning request field and referenced
+summary enum; see [source contract](openrouter-schema-drift.md). Native summaries, nested controls, rich/tool streams and complete
 named external-client certification remain under #116.
 
 See [plan](../docs/plans/310-reasoning-summary.md),
