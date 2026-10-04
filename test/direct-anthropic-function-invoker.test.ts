@@ -368,7 +368,7 @@ test('registered Anthropic function dispatcher snapshots controls scope and regi
   assert.equal(result.toolCalls?.length, 2);
 });
 for (const kind of ['google', 'unknown'] as const)
-  test(`generic function dispatcher rejects ${kind} without credentials`, async () => {
+  test(`generic function dispatcher rejects ${kind} unsupported inputs without credentials`, async () => {
     let keys = 0;
     const invoker = createRegisteredDirectFunctionStreamInvoker({
       registrations: kind === 'unknown' ? [] : [{ ...registration, kind: 'google' }],
@@ -381,7 +381,16 @@ for (const kind of ['google', 'unknown'] as const)
       },
     });
     await assert.rejects(
-      invoker(candidate(), request(), () => {}),
+      invoker(
+        candidate(),
+        kind === 'google'
+          ? {
+              ...request(),
+              tools: [{ type: 'function', function: { name: 'lookup', strict: true } }],
+            }
+          : request(),
+        () => {},
+      ),
       (error) =>
         error instanceof DirectProviderFailure && !error.possiblyBilled && !error.responseStarted,
     );
