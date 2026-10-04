@@ -23,9 +23,11 @@ import type { JevFetcher } from '../routing/jev-managed-routing.ts';
 import {
   createDelegatedFunctionHttpStreamResponse,
   createDelegatedHttpStreamResponse,
+  createManagedHttpStreamResponse,
 } from '../streaming/delegated-http-stream.ts';
 import type { DelegatedFunctionStreamInput } from '../streaming/invoke-delegated-function-stream.ts';
 import type { DelegatedTextStreamInput } from '../streaming/invoke-delegated-text-stream.ts';
+import type { ManagedTextStreamInput } from '../streaming/invoke-managed-text-stream.ts';
 import { serializeUsageCsv } from '../usage/csv.ts';
 import {
   encodeUsageCursor,
@@ -211,6 +213,7 @@ export type GatewayAuditEvent =
 
 export interface ChatHandlerPorts<T> {
   readonly invokeOpenRouterFunctionStream?: DelegatedFunctionStreamInput['ports']['invokeOpenRouterFunctionStream'];
+  readonly invokeDirectTextStream?: ManagedTextStreamInput['ports']['invokeDirectTextStream'];
   readonly invokeOpenRouterTextStream?: DelegatedTextStreamInput['ports']['invokeOpenRouterTextStream'];
   readonly newRequestId: () => string;
   readonly authenticate: (proxyToken: string) => Promise<AuthenticatedPrincipal | undefined>;
@@ -570,7 +573,7 @@ async function readJsonBody(request: Request): Promise<unknown> {
   }
 }
 
-/** A controlled chat HTTP boundary with optional delegated text streaming. */
+/** A controlled chat HTTP boundary with optional controlled text and delegated function streaming. */
 export function createChatHandler<T>(
   ports: ChatHandlerPorts<T>,
 ): (request: Request) => Promise<Response> {
@@ -952,7 +955,8 @@ export function createChatHandler<T>(
 
     const chat = validateChat(
       await readJsonBody(request).catch(() => undefined),
-      typeof ports.invokeOpenRouterTextStream === 'function' ||
+      typeof ports.invokeDirectTextStream === 'function' ||
+        typeof ports.invokeOpenRouterTextStream === 'function' ||
         typeof ports.invokeOpenRouterFunctionStream === 'function',
       typeof ports.invokeOpenRouterFunctionStream === 'function',
     );
@@ -1116,7 +1120,18 @@ export function createChatHandler<T>(
       }
     }
 
-    if (chat.stream) {
+    if (
+      chat.stream &&
+      (!ports.invokeDirectTextStream ||
+        chat.tools !== undefined ||
+        chat.tool_choice !== undefined ||
+        chat.parallel_tool_calls !== undefined ||
+        chat.messages.some(
+          (message) =>
+            message.role === 'tool' ||
+            (message.role === 'assistant' && message.tool_calls !== undefined),
+        ))
+    ) {
       try {
         await ports.writeAudit({
           ...attribution,
@@ -1145,7 +1160,7 @@ export function createChatHandler<T>(
       ) {
         throw new Error('invalid managed route');
       }
-      const result = await invokeManagedRoute({
+      const managedScope = {
         ...attribution,
         requestId,
         routeVersion: route.version,
@@ -1161,14 +1176,28 @@ export function createChatHandler<T>(
                 .join('\n'),
             }
           : {}),
+      };
+      const managedPorts = {
+        checkLimit: () => ports.checkLimit(principal.id, requestId),
+        resolveSecret: ports.resolveSecret,
+        writeAudit: ports.writeAudit,
+        writeUsage: ports.writeUsage,
+        ...(ports.now ? { now: ports.now } : {}),
+        ...(ports.fetchJev ? { fetchJev: ports.fetchJev } : {}),
+      };
+      if (chat.stream && ports.invokeDirectTextStream)
+        return createManagedHttpStreamResponse({
+          ...managedScope,
+          request: chat,
+          signal: request.signal,
+          format,
+          ports: { ...managedPorts, invokeDirectTextStream: ports.invokeDirectTextStream },
+        });
+      const result = await invokeManagedRoute({
+        ...managedScope,
         ports: {
-          checkLimit: () => ports.checkLimit(principal.id, requestId),
-          resolveSecret: ports.resolveSecret,
-          writeAudit: ports.writeAudit,
-          writeUsage: ports.writeUsage,
-          ...(ports.now ? { now: ports.now } : {}),
+          ...managedPorts,
           invokeDirect: (candidate) => ports.invokeDirect(candidate, chat),
-          ...(ports.fetchJev ? { fetchJev: ports.fetchJev } : {}),
         },
       });
       if (result.status === 'invoked') {

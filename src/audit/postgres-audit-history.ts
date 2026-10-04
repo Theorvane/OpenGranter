@@ -89,7 +89,7 @@ export function createPostgresAuditHistoryReader(
            AND ($4::bigint IS NULL OR occurred_at_ms >= $4::bigint)
            AND ($5::bigint IS NULL OR occurred_at_ms < $5::bigint)
            AND ($6::text IS NULL OR details->>'modelAlias' = $6::text)
-         ORDER BY event_id DESC
+         ORDER BY gateway_audit_events.event_id DESC
          LIMIT $3`,
         [
           query.principalId,

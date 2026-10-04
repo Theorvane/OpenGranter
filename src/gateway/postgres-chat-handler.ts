@@ -19,6 +19,7 @@ export interface PostgresChatHandlerPorts<T>
     | 'checkLimit'
     | 'resolveSecret'
     | 'invokeDirect'
+    | 'invokeDirectTextStream'
     | 'resolveVerifiedProviderSlug'
     | 'invokeOpenRouter'
     | 'invokeOpenRouterTextStream'
