@@ -933,3 +933,14 @@ pin v18 is unchanged.
 See [plan](plans/354-function-stream-sse.md) and [contract](../contracts/function-stream-sse.md).
 Public HTTP function streams, transitive schema drift and full #116 remain open;
 pin v18 is unchanged.
+
+## Internal delegated function stream accounting composition
+
+- Compose internal function delivery with approved model and final-provider IAM, explicit Deny, limits, required selection audit, usage handoff and attempt audit.
+- Deliver awaited function frames with frozen identity-only metadata; project the completed result to accounting-only fields without reading or retaining toolCalls.
+- Return final usage and DONE only after required persistence succeeds. Missing usage stays unknown; dispatched, cancellation and output failures remain sanitized and possibly billed, without retry.
+- Public HTTP function streams remain disabled; no function execution or new permission authority is introduced.
+
+See [plan](plans/356-delegated-function-stream.md) and [contract](../contracts/delegated-function-stream.md).
+Public HTTP function streams, transitive schema drift and full #116 remain open;
+pin v18 is unchanged.
