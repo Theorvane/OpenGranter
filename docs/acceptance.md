@@ -1002,3 +1002,10 @@ Extend installed OpenCode 1.18.5 conformance over both bases with incremental re
 See [plan](plans/367-opencode-tool-conformance.md) and [contract](../contracts/opencode-tool-conformance.md).
 Further client conformance, transitive schema drift and full #116 remain open;
 pin v19 is unchanged.
+
+## Direct OpenAI text-stream transport preparation
+
+Expose an internal fixed-host direct OpenAI text-stream transport. Reuse existing native request controls and administrator output caps; capture approved candidate identity, client alias and complete prepared body before awaiting secrets. Nonstream adapters use the same captured scope. Always request include_usage for internal streams; reject other provider kinds and tool declarations/history before credentials. Support cancellation/deadline while awaiting secrets and fetch without inference retry. Response consumption and public managed streaming follow separately.
+
+See [plan](plans/370-direct-stream-transport.md) and [contract](../contracts/direct-stream-transport.md).
+Public managed streaming and full #116 remain open; pin v19 is unchanged.
