@@ -411,13 +411,8 @@ test('exclusion forwarding does not locally strip returned reasoning or fabricat
     const result = await failed.handler(
       request('/v1/chat/completions', { reasoning: { exclude: true } }),
     );
-    assert.equal(result.status, content === '' ? 200 : 502);
-    assert.equal(
-      (failed.usage[0] as { outcome: string }).outcome,
-      content === '' ? 'succeeded' : 'failed',
-    );
-    if (content === null)
-      assert.equal((failed.usage[0] as { possiblyBilled: boolean }).possiblyBilled, true);
+    assert.equal(result.status, 200);
+    assert.equal((failed.usage[0] as { outcome: string }).outcome, 'succeeded');
     safe(failed);
   }
 });

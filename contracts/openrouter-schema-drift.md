@@ -91,3 +91,5 @@ Documented boolean activation follows [its separate HTTP contract](client-reason
 Documented reasoning budget follows [its separate HTTP contract](client-reasoning-budget.md). Current official reasoning shape and SDK omit max_tokens; unchanged v18 cannot certify the absent child field and no source/default/bounds are invented.
 
 Legacy inclusion normalization follows [its separate HTTP contract](client-legacy-reasoning.md). Current official ChatRequest and SDK omit include_reasoning despite its parameter-catalog name; unchanged v18 cannot certify the absent flag or prose alias rules.
+
+[No-text length responses](no-text-length.md) use the already-selected optional nullable assistant content shape; v18 is unchanged and no fresh full-source comparison is claimed by this runtime slice.

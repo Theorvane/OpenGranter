@@ -13,3 +13,5 @@ Sources reviewed 2026-10-02: [official reasoning guide](https://openrouter.ai/do
 The installed SDK permits optional nullable assistant content independently of finish reason and reasoning. This bounded gateway allowance is schema-compatible, rather than a claim that upstream models always return reasoning-only results. See [follow-up plan](../docs/plans/294-reasoning-only-completions.md).
 
 Delegated scalar reasoning in assistant request history now follows the separate [history contract](client-reasoning-history.md); direct native request mapping remains open.
+
+Length-only null/missing content is now independently supported by [its contract](no-text-length.md), without a substantive reasoning payload. Existing stop payload guards and malformed-field validation remain unchanged.
