@@ -849,3 +849,10 @@ Compose authorized managed candidates with the trusted direct OpenAI text stream
 
 See [plan](plans/376-managed-text-stream.md) and [contract](../contracts/managed-text-stream.md).
 Public managed streaming and full #116 remain open; pin v19 is unchanged.
+
+## Controlled managed HTTP stream delivery
+
+Reuse the existing single-pending-frame HTTP controller for managed text streams. Preserve awaited delivery, zero high-water mark, cancellation, metadata-only interruption audit and post-accounting final frame gates. Project managed provider/credential/usage/audit failures safely for OpenAI and OpenRouter formats; public gateway activation is a subsequent increment.
+
+See [plan](plans/378-managed-http-stream.md) and [contract](../contracts/managed-http-stream.md).
+Public managed streaming and full #116 remain open; pin v19 is unchanged.
