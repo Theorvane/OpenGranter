@@ -23,3 +23,7 @@ Native boundary tests cover parallel/separate whole calls, mixed Unicode, exact/
 This is signature-free GenerateContent fixture conformance. It does not support Interactions deltas, Vertex partial argument streaming, thinking/signature replay, built-in/rich tools or model capability/name equivalence, and does not certify live providers. Full #116, unresolved #7 and broader named-client conformance remain open; schema pin v19 is unchanged.
 
 The separate [nonstream function signature contract](gemini-function-signatures.md) does not activate signed native streams or signed stream histories. These still fail safely before keys or terminal success.
+
+## Same-part signature follow-up
+
+Issue #412 extends this complete-function subset with bounded same-part signatures and signed native Google function history. See [signature stream contract](gemini-signature-streams.md). Signed text, partial native calls, unassociated late signatures and the installed OpenRouter SDK stripping gap remain open.

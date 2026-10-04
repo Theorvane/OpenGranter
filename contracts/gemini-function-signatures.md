@@ -21,3 +21,7 @@ Raw HTTP and installed OpenAI 7.23.0 socket tests on both bases preserve signatu
 Boundary tests cover exact call association/order, parallel/sequential steps, missing IDs, immutable capture, malformed/aggregate bounds, signed-text rejection, non-Google/delegated/stream denial before keys, accounting/audit failures and privacy. Stored direct/dual server tests retain stored registration authority, override replacement, usage failure and fresh Deny. Fixture conformance is not live-provider certification. Signed streams/text, models requiring thinking, an evidenced OpenRouter representation and broader named clients remain open; full #116 and unresolved #7 remain open, with pin v19 unchanged.
 
 Sources: [Google thought signatures](https://ai.google.dev/gemini-api/docs/generate-content/thought-signatures), [native Part](https://ai.google.dev/api/generate-content#Part), [OpenRouter reasoning identity/order](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens). Installed SDK source/runtime evidence is version-specific.
+
+## Function stream follow-up
+
+Issue #412 supersedes the native Google function-stream output/history exclusion above for complete calls with same-part signatures. Native text streams, other adapters, signed text and unassociated late chunks remain closed. See [stream contract](gemini-signature-streams.md) for aggregate retained budget and SDK limitations.

@@ -182,7 +182,7 @@ export async function consumeDirectGoogleFunctionResponse(
         }
         if (reason === 'SAFETY' && parts.length !== 0) throw Error();
         const hasCalls = parts.some((p) => Object.hasOwn(record(p), 'functionCall'));
-        const assistant = hasCalls ? normalizeGoogleFunctionResponse(parts) : undefined;
+        const assistant = hasCalls ? normalizeGoogleFunctionResponse(parts, true) : undefined;
         if (hasCalls && !assistant) throw Error();
         const calls = assistant?.tool_calls ?? [];
         if (toolIndex + calls.length > 128) throw Error();
@@ -214,7 +214,15 @@ export async function consumeDirectGoogleFunctionResponse(
             await emit({
               finishReason: null,
               toolCalls: [
-                { index: toolIndex++, id: call.id, type: 'function', function: call.function },
+                {
+                  index: toolIndex++,
+                  id: call.id,
+                  type: 'function',
+                  function: call.function,
+                  ...(call.extra_content === undefined
+                    ? {}
+                    : { extra_content: call.extra_content }),
+                },
               ],
             });
           } else await emit({ content: p.text as string, finishReason: null });

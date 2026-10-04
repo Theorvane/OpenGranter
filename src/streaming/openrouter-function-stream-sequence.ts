@@ -1,5 +1,9 @@
 import type { AssistantFunctionCall } from '../providers/assistant-response.ts';
 import { snapshotChatUsage } from '../providers/chat-usage.ts';
+import {
+  type GoogleThoughtSignatureContent,
+  snapshotGoogleThoughtSignature,
+} from '../providers/google-thought-signature.ts';
 import type {
   FunctionCallFragment,
   OpenRouterFunctionStreamPayload,
@@ -15,6 +19,7 @@ type CallState = {
   name?: string;
   arguments: string;
   hasArguments: boolean;
+  extra_content?: GoogleThoughtSignatureContent;
 };
 const MAX_RETAINED_UNITS = 1_048_576;
 
@@ -86,6 +91,24 @@ export class OpenRouterFunctionStreamSequence {
       }
     }
     if (fragment.type !== undefined) state.type = fragment.type;
+    if (Object.hasOwn(fragment, 'extra_content')) {
+      let extra: GoogleThoughtSignatureContent;
+      try {
+        extra = snapshotGoogleThoughtSignature(fragment.extra_content);
+      } catch {
+        this.fail();
+      }
+      const signature = extra.google.thought_signature;
+      if (
+        state.extra_content !== undefined &&
+        state.extra_content.google.thought_signature !== signature
+      )
+        this.fail();
+      if (state.extra_content === undefined) {
+        this.retain(signature.length);
+        state.extra_content = extra;
+      }
+    }
     const args = fragment.function?.arguments;
     if (args !== undefined) {
       this.retain(args.length);
@@ -113,6 +136,7 @@ export class OpenRouterFunctionStreamSequence {
           id: state.id,
           type: 'function',
           function: Object.freeze({ name: state.name, arguments: state.arguments }),
+          ...(state.extra_content === undefined ? {} : { extra_content: state.extra_content }),
         }),
       );
     }
