@@ -188,6 +188,23 @@ const jsonSchemaShapes = {
   },
 };
 
+const reasoningRequestShape = {
+  type: 'object',
+  properties: {
+    effort: {
+      type: ['string', 'null'],
+      enum: ['max', 'xhigh', 'high', 'medium', 'low', 'minimal', 'none', null],
+      'x-speakeasy-unknown-values': 'allow',
+    },
+    summary: { $ref: '#/components/schemas/ChatReasoningSummaryVerbosityEnum' },
+  },
+};
+const reasoningSummaryShape = {
+  type: ['string', 'null'],
+  enum: ['auto', 'concise', 'detailed', null],
+  'x-speakeasy-unknown-values': 'allow',
+};
+
 const historyShapes = {
   ChatMessages: {
     discriminator: {
@@ -452,6 +469,7 @@ function source(): Record<string, unknown> {
     },
   };
   Object.assign(data.components.schemas.ChatRequest.properties, {
+    reasoning: structuredClone(reasoningRequestShape),
     logit_bias: structuredClone(pinned.projection.fields.logit_bias),
     stream_options: structuredClone(pinned.projection.fields.stream_options),
     tools: structuredClone(pinned.projection.fields.tools),
@@ -460,6 +478,7 @@ function source(): Record<string, unknown> {
   });
   Object.assign(data.components.schemas, structuredClone(historyShapes));
   Object.assign(data.components.schemas, structuredClone(pinned.projection.definitions), {
+    ChatReasoningSummaryVerbosityEnum: structuredClone(reasoningSummaryShape),
     ChatToolMessage: structuredClone(pinned.projection.toolMessages.ChatToolMessage),
   });
   Object.assign(
@@ -498,6 +517,7 @@ test('official projection and reviewed pin agree; key order is immaterial', () =
     'model',
     'parallel_tool_calls',
     'presence_penalty',
+    'reasoning',
     'reasoning_effort',
     'repetition_penalty',
     'response_format',
@@ -800,8 +820,8 @@ for (const name of ['ChatFormatTextConfig', 'ChatFormatJsonObjectConfig']) {
     }
   });
 }
-test('version-17 pin retains exact selected definitions', () => {
-  assert.equal(pinned.version, 17);
+test('version-18 pin retains exact selected definitions', () => {
+  assert.equal(pinned.version, 18);
   const definitions = (
     projectOfficialSchema(source()) as unknown as { definitions: Record<string, unknown> }
   ).definitions;
@@ -815,6 +835,7 @@ test('version-17 pin retains exact selected definitions', () => {
     'ChatJsonSchemaConfig',
     'ChatMessages',
     'ChatNamedToolChoice',
+    'ChatReasoningSummaryVerbosityEnum',
     'ChatSystemMessage',
     'ChatToolCall',
     'ChatToolChoice',
@@ -972,8 +993,8 @@ test('message selections ignore editorial annotations but detect content and req
   for (const value of Object.values(projected.messageNames))
     assert.deepEqual(value, { schema: { type: 'string' }, required: false });
 });
-test('version-17 message maps reject stale and rehashed malformed pins', () => {
-  for (const version of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16])
+test('version-18 message maps reject stale and rehashed malformed pins', () => {
+  for (const version of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17])
     assert.throws(() => validateSchemaPin({ ...pinned, version }), /Invalid schema pin/);
   for (const messageNames of [
     undefined,
@@ -2050,6 +2071,119 @@ test('history exact definition maps reject rehashed absent extra malformed and v
       if (operation === 'extra') definitions.unselected = { type: 'object' };
       if (operation === 'malformed') definitions[name] = [];
       const projection = { ...pinned.projection, definitions };
+      const projectionSha256 = createHash('sha256')
+        .update(canonicalSchema(projection))
+        .digest('hex');
+      assert.throws(
+        () => validateSchemaPin({ ...pinned, projection, projectionSha256 }),
+        /Invalid schema pin/,
+      );
+    }
+});
+
+test('reasoning request and referenced summary enum are selected exactly without defaults', () => {
+  const projection = projectOfficialSchema(source());
+  assert.deepEqual(projection.fields.reasoning, reasoningRequestShape);
+  assert.deepEqual(projection.definitions.ChatReasoningSummaryVerbosityEnum, reasoningSummaryShape);
+});
+test('summary type enum null default extension and constraints cause drift without reference changes', () => {
+  for (const replacement of [
+    { ...reasoningSummaryShape, type: 'string' },
+    { ...reasoningSummaryShape, type: ['number', 'null'] },
+    { ...reasoningSummaryShape, enum: ['auto', 'concise', null] },
+    { ...reasoningSummaryShape, enum: ['auto', 'concise', 'detailed'] },
+    { ...reasoningSummaryShape, enum: [...reasoningSummaryShape.enum, 'unknown'] },
+    { ...reasoningSummaryShape, default: 'auto' },
+    { ...reasoningSummaryShape, 'x-speakeasy-unknown-values': 'reject' },
+    { ...reasoningSummaryShape, maxLength: 10 },
+  ]) {
+    const data = source();
+    schemasOf(data).ChatReasoningSummaryVerbosityEnum = replacement;
+    assert.equal(compareOfficialSchema(data, pinned), false);
+  }
+});
+test('inline reasoning object references required shape and effort drift stay visible', () => {
+  for (const replacement of [
+    { ...reasoningRequestShape, type: ['object', 'null'] },
+    { ...reasoningRequestShape, required: ['summary'] },
+    { ...reasoningRequestShape, additionalProperties: false },
+    {
+      ...reasoningRequestShape,
+      properties: {
+        ...reasoningRequestShape.properties,
+        summary: { $ref: '#/components/schemas/Other' },
+      },
+    },
+    {
+      ...reasoningRequestShape,
+      properties: { ...reasoningRequestShape.properties, effort: { type: 'integer' } },
+    },
+    { ...reasoningRequestShape, default: { summary: 'concise' } },
+  ]) {
+    const data = source();
+    chatRequestProperties(data).reasoning = replacement;
+    assert.equal(compareOfficialSchema(data, pinned), false);
+  }
+  const data = source();
+  (schemasOf(data).ChatRequest as { required: string[] }).required.push('reasoning');
+  assert.equal(compareOfficialSchema(data, pinned), false);
+});
+test('reasoning summary annotations are ignored while annotation-named properties and literal defaults remain structural', () => {
+  const data = source();
+  chatRequestProperties(data).reasoning = {
+    ...reasoningRequestShape,
+    description: 'private editorial',
+    examples: [{ summary: 'auto' }],
+  };
+  schemasOf(data).ChatReasoningSummaryVerbosityEnum = {
+    ...reasoningSummaryShape,
+    title: 'editorial',
+    example: 'auto',
+  };
+  assert.equal(compareOfficialSchema(data, pinned), true);
+  const literal = { description: 'literal', example: 'literal', title: 'literal' };
+  schemasOf(data).ChatReasoningSummaryVerbosityEnum = {
+    ...reasoningSummaryShape,
+    default: literal,
+  };
+  assert.deepEqual(
+    (
+      projectOfficialSchema(data).definitions.ChatReasoningSummaryVerbosityEnum as {
+        default: unknown;
+      }
+    ).default,
+    literal,
+  );
+  assert.equal(compareOfficialSchema(data, pinned), false);
+  const named = source();
+  chatRequestProperties(named).reasoning = {
+    ...reasoningRequestShape,
+    properties: { ...reasoningRequestShape.properties, description: { type: 'string' } },
+  };
+  assert.equal(compareOfficialSchema(named, pinned), false);
+});
+test('missing or malformed reasoning request and summary definitions fail safely', () => {
+  for (const value of [undefined, null, [], 'private source']) {
+    const field = source();
+    chatRequestProperties(field).reasoning = value;
+    assert.throws(() => projectOfficialSchema(field), /Invalid official schema/);
+    const definition = source();
+    schemasOf(definition).ChatReasoningSummaryVerbosityEnum = value;
+    assert.throws(() => projectOfficialSchema(definition), /Invalid official schema/);
+  }
+});
+test('rehashed reasoning field and summary definition maps and old pins reject safely', () => {
+  assert.throws(() => validateSchemaPin({ ...pinned, version: 17 }), /Invalid schema pin/);
+  for (const [map, key] of [
+    ['fields', 'reasoning'],
+    ['definitions', 'ChatReasoningSummaryVerbosityEnum'],
+  ] as const)
+    for (const operation of ['missing', 'extra', 'malformed']) {
+      const selection = { ...pinned.projection[map] };
+      if (operation === 'missing') delete selection[key];
+      if (operation === 'extra') selection.unselected = { type: 'string' };
+      if (operation === 'malformed') selection[key] = [];
+      const projection = { ...pinned.projection, [map]: selection };
       const projectionSha256 = createHash('sha256')
         .update(canonicalSchema(projection))
         .digest('hex');

@@ -1,6 +1,6 @@
 # Official schema drift contract
 
-The pin records source URL, retrieval date, canonical source SHA-256 and a canonical structural projection SHA-256. Source: [official OpenRouter OpenAPI](https://openrouter.ai/openapi.json), retrieved 2026-10-04 for version 17. The snapshot contains selected schema constraints, with examples/descriptions and other annotations removed.
+The pin records source URL, retrieval date, canonical source SHA-256 and a canonical structural projection SHA-256. Source: [official OpenRouter OpenAPI](https://openrouter.ai/openapi.json), retrieved 2026-10-04 for version 18. The snapshot contains selected schema constraints, with examples/descriptions and other annotations removed.
 
 The offline gate validates provenance shape and projection integrity. `npm run compatibility:drift` explicitly fetches only the official HTTPS URL, rejects redirects, bounds time/body size and compares selected chat request and response definitions. It neither changes the pin nor sends credentials or inference calls. Failures expose fixed messages, not downloaded content or transport errors.
 
@@ -73,3 +73,11 @@ Missing/malformed selected source containers, invalid rehashed exact maps and ve
 The explicit 2026-10-04 fixed-host refresh preserves every version-16 selection. The canonical source hash changes from f6041af462fa5dfea4b1ea246bcb02a208a57af2784fb7110a212e637d0e913e to b818343bf2417ad8abdef9ceeea45140db6e06670d7fa54356591cd3304dd3f5. Reviewed differences are outside selected chat structures: new Models API v2 paths and 26 definitions, unselected Responses/default-parameter/provider metadata nullable flags, audio provider-field changes, parameter nullability/SDK-name overrides and tags. No changes are silently accepted into existing selected structures. Projection hash: 4f1702e90cb64cabcd243990240bde731276eed2e9f725a3d8e30eb4e364955d.
 
 Offline validation neither retrieves nor rewrites the pin; explicit live comparison remains bounded and credential-free. Runtime history support follows its separate contracts, and complete #116 certification remains open. See [plan](../docs/plans/308-message-history-schema.md).
+
+## Reasoning summary request selection
+
+Version 18 adds the whole ChatRequest.reasoning field and exactly ChatReasoningSummaryVerbosityEnum to the main definition map, yielding 23 fields and 14 definitions. The inline object includes optional effort and summary; summary references a string/null enum auto/concise/detailed/null with x-speakeasy-unknown-values:allow and no default. Track summary references, enum membership, type/nullability, constraints, required lists, literal defaults and extensions while ignoring editorial annotations. Annotation-named properties and literal default data remain structural. Changes are detected even when ChatRequest and summary references stay unchanged.
+
+Missing/malformed selected source containers, rehashed missing/extra/malformed exact maps and versions 1..17 reject safely. Explicit fixed-host credential-free retrieval preserves every version-17 selection and canonical source digest b818343bf2417ad8abdef9ceeea45140db6e06670d7fa54356591cd3304dd3f5. New projection digest: 70f384c2ab341bdca6a0ae570938540c714d9e89fec499e7e748bfba33f096a3. Offline checks never retrieve or rewrite the pin.
+
+Whole inline effort selection does not enable nested effort, infer alias precedence or alter runtime/provider/IAM/secrets/usage/audit behavior. Runtime summary remains its bounded named-value subset; source open enums do not widen accepted requests. This structural guard does not certify JSON instances, model capabilities or complete #116 compatibility. See [plan](../docs/plans/312-reasoning-summary-schema.md) and [runtime contract](client-reasoning-summary.md).

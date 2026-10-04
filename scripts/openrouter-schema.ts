@@ -29,6 +29,7 @@ const FIELD_NAMES = [
   'top_a',
   'repetition_penalty',
   'reasoning_effort',
+  'reasoning',
   'response_format',
   'frequency_penalty',
   'presence_penalty',
@@ -44,6 +45,7 @@ const DEFINITION_NAMES = [
   'ChatSystemMessage',
   'ChatDeveloperMessage',
   'ChatUserMessage',
+  'ChatReasoningSummaryVerbosityEnum',
   'ChatFinishReasonEnum',
   'ChatFormatTextConfig',
   'ChatFormatJsonObjectConfig',
@@ -299,7 +301,7 @@ export function validateSchemaPin(value: unknown): { projection: SchemaProjectio
   try {
     const data = record(value);
     if (
-      data?.version !== 17 ||
+      data?.version !== 18 ||
       data.source !== OFFICIAL_SCHEMA_URL ||
       typeof data.retrievedAt !== 'string' ||
       !/^\d{4}-\d{2}-\d{2}$/.test(data.retrievedAt) ||
