@@ -3,6 +3,7 @@ import { type ReasoningEffort, validReasoningEffort } from './chat-parameters.ts
 export interface ReasoningConfiguration {
   readonly effort?: ReasoningEffort | null;
   readonly summary?: 'auto' | 'concise' | 'detailed' | null;
+  readonly exclude?: boolean;
 }
 
 /** Capture supported preferences and compare only already-captured effort aliases. */
@@ -16,7 +17,7 @@ export function snapshotReasoningConfiguration(
   const prototype = Object.getPrototypeOf(value);
   if (prototype !== Object.prototype && prototype !== null)
     throw new TypeError('Invalid reasoning configuration');
-  if (Object.keys(value).some((key) => key !== 'summary' && key !== 'effort'))
+  if (Object.keys(value).some((key) => key !== 'summary' && key !== 'effort' && key !== 'exclude'))
     throw new TypeError('Invalid reasoning configuration');
   const source = value as Record<string, unknown>;
   let effort: ReasoningEffort | null | undefined;
@@ -40,8 +41,15 @@ export function snapshotReasoningConfiguration(
       throw new TypeError('Invalid reasoning configuration');
     summary = captured;
   }
+  let exclude: boolean | undefined;
+  if (Object.hasOwn(source, 'exclude')) {
+    const captured = source.exclude;
+    if (typeof captured !== 'boolean') throw new TypeError('Invalid reasoning configuration');
+    exclude = captured;
+  }
   return Object.freeze({
     ...(effort === undefined ? {} : { effort }),
     ...(summary === undefined ? {} : { summary }),
+    ...(exclude === undefined ? {} : { exclude }),
   });
 }
