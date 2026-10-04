@@ -524,3 +524,16 @@ The internal function consumer composes bounded SSE, decoded fragments and compl
 ## Internal function stream HTTP response boundary
 
 A separate upstream response boundary admits only HTTP 200 SSE bodies to the scoped function consumer and preserves frozen calls/usage after complete termination. Status failures classify 429/5xx/other safely without reading bodies; malformed streams, delivery failures and cancellation retain fixed response-started/possibly-billed errors. Best-effort cleanup cannot stall safe HTTP failure. Completed calls/deltas remain response content, never operational audit/usage metadata. Original text response and public/request tool-stream guards, IAM/limits/persistence/accounting execution remain unchanged. Request adapter/client SSE/accounting integration, transitive schema drift and #116 remain open; pin v18 is unchanged. See [plan](plans/350-function-stream-response.md) and [contract](../contracts/function-stream-response.md).
+
+## Internal scoped function stream invoker
+
+- A separate function invoker accepts validated function declarations, choice,
+  parallel controls and complete history, captured before credential awaits.
+- Fixed approved upstream model/provider slugs, server-only secrets, cancellation
+  and timeout handling compose the existing function HTTP response boundary.
+- Invalid requests reject pre-secret; dispatched failures remain safely possibly
+  billed with no retry. Existing text controls and public HTTP guards stay closed.
+
+See [plan](plans/352-function-stream-invoker.md) and [contract](../contracts/function-stream-invoker.md).
+Public HTTP function streams, transitive schema drift and full #116 remain open;
+pin v18 is unchanged.
