@@ -48,6 +48,7 @@ import {
   resolveOutputTokenLimit,
   type StreamOptions,
   snapshotLogitBias,
+  snapshotNonstreamLogprobControls,
   snapshotResponseFormat,
   snapshotStopSequences,
   snapshotStreamOptions,
@@ -114,6 +115,8 @@ export interface ChatRequest {
   readonly min_p?: number;
   readonly top_k?: number;
   readonly logit_bias?: Readonly<Record<string, number>>;
+  readonly logprobs?: boolean;
+  readonly top_logprobs?: number;
   readonly tools?: readonly FunctionTool[];
   readonly tool_choice?: ToolChoice;
   readonly parallel_tool_calls?: boolean;
@@ -420,6 +423,8 @@ function validateChat(
           'min_p',
           'top_k',
           'logit_bias',
+          'logprobs',
+          'top_logprobs',
           'tools',
           'tool_choice',
           'parallel_tool_calls',
@@ -463,11 +468,17 @@ function validateChat(
   if (!validTopK(topK)) return undefined;
   let reasoning: ReasoningConfiguration | undefined;
   let logitBias: ReturnType<typeof snapshotLogitBias>;
+  let logprobControls: ReturnType<typeof snapshotNonstreamLogprobControls>;
   let streamOptions: ReturnType<typeof snapshotStreamOptions>;
   let tools: ReturnType<typeof snapshotFunctionTools>;
   let toolChoice: ReturnType<typeof snapshotToolChoice>;
   let parallelToolCalls: ReturnType<typeof snapshotParallelToolCalls>;
   try {
+    logprobControls = snapshotNonstreamLogprobControls(
+      value.logprobs,
+      value.top_logprobs,
+      value.stream === true,
+    );
     reasoning = snapshotReasoningConfiguration(
       value.reasoning,
       reasoningEffort,
@@ -537,6 +548,7 @@ function validateChat(
     ...(minP === undefined ? {} : { min_p: minP }),
     ...(topK === undefined ? {} : { top_k: topK }),
     ...(logitBias === undefined ? {} : { logit_bias: logitBias }),
+    ...logprobControls,
     ...(tools === undefined ? {} : { tools }),
     ...(toolChoice === undefined ? {} : { tool_choice: toolChoice }),
     ...(parallelToolCalls === undefined ? {} : { parallel_tool_calls: parallelToolCalls }),

@@ -3,6 +3,7 @@ import { type ChatMessage, snapshotChatMessages } from '../gateway/chat-messages
 import {
   resolveOutputTokenLimit,
   snapshotLogitBias,
+  snapshotNonstreamLogprobControls,
   snapshotResponseFormat,
   snapshotStopSequences,
   snapshotStreamOptions,
@@ -26,6 +27,7 @@ import {
 import { snapshotReasoningConfiguration } from '../gateway/reasoning-configuration.ts';
 import { waitForStreamOperation } from '../streaming/wait-for-stream-operation.ts';
 import { normalizeAssistantResponse } from './assistant-response.ts';
+import { snapshotChatLogprobs } from './chat-logprobs.ts';
 import { normalizeChatUsage } from './chat-usage.ts';
 import type { ChatCompletion } from './direct-chat.ts';
 
@@ -150,6 +152,7 @@ function normalize(
     fail('upstream', true, true);
 
   const stats = normalizeChatUsage(value.usage);
+  const logprobs = snapshotChatLogprobs(first.logprobs);
   const finish = first.finish_reason;
   if (
     finish !== 'stop' &&
@@ -172,6 +175,7 @@ function normalize(
         message,
         finish_reason: finish,
         ...(nativeReason === undefined ? {} : { native_finish_reason: nativeReason }),
+        ...(logprobs === undefined ? {} : { logprobs }),
       },
     ],
     ...(stats ? { usage: stats } : {}),
@@ -220,11 +224,17 @@ function prepareOpenRouterChatRequest(
     fail('configuration');
   }
   let logitBias: ReturnType<typeof snapshotLogitBias>;
+  let logprobControls: ReturnType<typeof snapshotNonstreamLogprobControls>;
   let streamOptions: ReturnType<typeof snapshotStreamOptions>;
   let tools: ReturnType<typeof snapshotFunctionTools>;
   let toolChoice: ReturnType<typeof snapshotToolChoice>;
   let parallelToolCalls: ReturnType<typeof snapshotParallelToolCalls>;
   try {
+    logprobControls = snapshotNonstreamLogprobControls(
+      request.logprobs,
+      request.top_logprobs,
+      stream,
+    );
     streamOptions = snapshotStreamOptions(request.stream_options);
     if (streamOptions !== undefined && !stream) fail('configuration');
     logitBias = snapshotLogitBias(request.logit_bias);
@@ -306,6 +316,7 @@ function prepareOpenRouterChatRequest(
       ...(presencePenalty === undefined ? {} : { presence_penalty: presencePenalty }),
       ...(responseFormat === undefined ? {} : { response_format: responseFormat }),
       ...(logitBias === undefined ? {} : { logit_bias: logitBias }),
+      ...logprobControls,
       ...(tools === undefined ? {} : { tools }),
       ...(toolChoice === undefined ? {} : { tool_choice: toolChoice }),
       ...(parallelToolCalls === undefined ? {} : { parallel_tool_calls: parallelToolCalls }),
