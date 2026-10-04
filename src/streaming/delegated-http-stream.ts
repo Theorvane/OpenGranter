@@ -5,6 +5,12 @@ import {
   createClientErrorResponse,
 } from '../gateway/client-errors.ts';
 import type { DelegatedRouteAuditEvent } from '../routing/invoke-delegated-route.ts';
+import type { UsageRecord } from '../usage/record-usage.ts';
+import {
+  type DelegatedFunctionStreamInput,
+  type DelegatedFunctionStreamResult,
+  invokeDelegatedFunctionStream,
+} from './invoke-delegated-function-stream.ts';
 import {
   type DelegatedTextStreamInput,
   type DelegatedTextStreamResult,
@@ -20,7 +26,18 @@ interface HttpStreamInput extends Omit<DelegatedTextStreamInput, 'onFrame' | 'po
   };
 }
 
-function failure(result: Exclude<DelegatedTextStreamResult, { status: 'invoked' }>): {
+interface FunctionHttpStreamInput
+  extends Omit<DelegatedFunctionStreamInput, 'onFrame' | 'ports' | 'signal'> {
+  readonly signal: AbortSignal;
+  readonly format: ClientErrorFormat;
+  readonly ports: Omit<DelegatedFunctionStreamInput['ports'], 'writeAudit'> & {
+    readonly writeAudit: (event: GatewayAuditEvent | DelegatedRouteAuditEvent) => Promise<void>;
+  };
+}
+
+function failure(
+  result: Exclude<DelegatedTextStreamResult | DelegatedFunctionStreamResult, { status: 'invoked' }>,
+): {
   status: number;
   code: ClientErrorCode;
 } {
@@ -44,6 +61,24 @@ function failure(result: Exclude<DelegatedTextStreamResult, { status: 'invoked' 
 
 /** Stream one controlled delegated attempt with a bounded, awaited HTTP body handoff. */
 export function createDelegatedHttpStreamResponse(input: HttpStreamInput): Promise<Response> {
+  return createControlledHttpStreamResponse(input, invokeDelegatedTextStream);
+}
+
+/** Function response content shares the same bounded delivery and interruption controls. */
+export function createDelegatedFunctionHttpStreamResponse(
+  input: FunctionHttpStreamInput,
+): Promise<Response> {
+  return createControlledHttpStreamResponse(input, invokeDelegatedFunctionStream);
+}
+
+function createControlledHttpStreamResponse<T extends HttpStreamInput | FunctionHttpStreamInput>(
+  input: T,
+  invokeStream: (
+    input: T & {
+      readonly onFrame: (frame: string, identity: StreamChunkIdentity) => void | Promise<void>;
+    },
+  ) => Promise<DelegatedTextStreamResult | DelegatedFunctionStreamResult>,
+): Promise<Response> {
   const writeUsage = input.ports.writeUsage;
   const cancellation = new AbortController();
   const encoder = new TextEncoder();
@@ -168,25 +203,26 @@ export function createDelegatedHttpStreamResponse(input: HttpStreamInput): Promi
   }
   async function run() {
     try {
-      const result = await invokeDelegatedTextStream({
-        ...input,
-        signal: cancellation.signal,
-        onFrame: async (frame, identity) => {
-          await send(frame);
-          delivered = identity;
-        },
-        ports: {
-          ...input.ports,
-          ...(writeUsage
-            ? {
-                writeUsage: async (record) => {
-                  if (record.outcome === 'succeeded') upstreamCompleted = true;
-                  await writeUsage(record);
-                },
-              }
-            : {}),
-        },
-      });
+      const result = await invokeStream(
+        Object.assign({}, input, {
+          signal: cancellation.signal,
+          onFrame: async (frame: string, identity: StreamChunkIdentity): Promise<void> => {
+            await send(frame);
+            delivered = identity;
+          },
+          ports: {
+            ...input.ports,
+            ...(writeUsage
+              ? {
+                  writeUsage: async (record: UsageRecord) => {
+                    if (record.outcome === 'succeeded') upstreamCompleted = true;
+                    await writeUsage(record);
+                  },
+                }
+              : {}),
+          },
+        }),
+      );
       if (result.status === 'invoked') {
         upstreamCompleted = true;
         try {
