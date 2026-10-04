@@ -1,6 +1,6 @@
 # Delegated reasoning summary configuration
 
-Both chat bases accept optional reasoning objects containing supported optional effort and
+Both chat bases accept optional reasoning objects containing supported optional effort, exclusion and
 summary preferences for delegated OpenRouter nonstream and existing ordinary text
 streams. Supported exact values are auto, concise, detailed and null. Preserve
 omission, {}, summary omission and summary null without defaults or alias rewriting.
@@ -12,7 +12,8 @@ Capture the request field and nested summary once before async routing/credentia
 caller mutation cannot change the selected upstream body. Top-level reasoning_effort
 is independent: summary-only objects have no duplicated nested effort field.
 Nested effort is now supported under [its bounded alias contract](nested-reasoning-effort.md).
-Budgets, enabled, exclude and legacy include_reasoning stay rejected.
+Budgets, enabled and legacy include_reasoning stay rejected. Boolean exclusion follows
+[its documented subset](client-reasoning-exclusion.md).
 All direct OpenAI/Anthropic/Gemini providers reject supplied configurations, including
 {}, before credentials until explicit native mappings are defined.
 
@@ -44,3 +45,6 @@ named external-client certification remain under #116.
 See [plan](../docs/plans/310-reasoning-summary.md),
 [effort](client-reasoning-effort.md) and
 [history](client-reasoning-details-history.md).
+
+Optional boolean exclusion is covered by [its separate contract](client-reasoning-exclusion.md);
+existing effort alias and summary semantics remain unchanged.

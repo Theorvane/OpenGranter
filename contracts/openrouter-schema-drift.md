@@ -83,3 +83,5 @@ Missing/malformed selected source containers, rehashed missing/extra/malformed e
 Whole inline effort selection does not enable nested effort, infer alias precedence or alter runtime/provider/IAM/secrets/usage/audit behavior. Runtime summary remains its bounded named-value subset; source open enums do not widen accepted requests. This structural guard does not certify JSON instances, model capabilities or complete #116 compatibility. See [plan](../docs/plans/312-reasoning-summary-schema.md) and [runtime contract](client-reasoning-summary.md).
 
 Runtime #314 now supports the bounded delegated nested effort subset; structural pin v18 is unchanged. Alias differing-value guidance is prose stripped as an annotation and is not covered by structural drift alone. See [runtime contract](nested-reasoning-effort.md).
+
+Documented boolean exclusion is implemented by [its separate HTTP contract](client-reasoning-exclusion.md). Current official reasoning structure and SDK omit exclude; unchanged v18 selects the official object but cannot certify the absent extension. No invented source field or fresh full-source comparison is asserted by this runtime change.
