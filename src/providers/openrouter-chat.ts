@@ -3,7 +3,7 @@ import { type ChatMessage, snapshotChatMessages } from '../gateway/chat-messages
 import {
   resolveOutputTokenLimit,
   snapshotLogitBias,
-  snapshotNonstreamLogprobControls,
+  snapshotLogprobControls,
   snapshotResponseFormat,
   snapshotStopSequences,
   snapshotStreamOptions,
@@ -224,17 +224,13 @@ function prepareOpenRouterChatRequest(
     fail('configuration');
   }
   let logitBias: ReturnType<typeof snapshotLogitBias>;
-  let logprobControls: ReturnType<typeof snapshotNonstreamLogprobControls>;
+  let logprobControls: ReturnType<typeof snapshotLogprobControls>;
   let streamOptions: ReturnType<typeof snapshotStreamOptions>;
   let tools: ReturnType<typeof snapshotFunctionTools>;
   let toolChoice: ReturnType<typeof snapshotToolChoice>;
   let parallelToolCalls: ReturnType<typeof snapshotParallelToolCalls>;
   try {
-    logprobControls = snapshotNonstreamLogprobControls(
-      request.logprobs,
-      request.top_logprobs,
-      stream,
-    );
+    logprobControls = snapshotLogprobControls(request.logprobs, request.top_logprobs);
     streamOptions = snapshotStreamOptions(request.stream_options);
     if (streamOptions !== undefined && !stream) fail('configuration');
     logitBias = snapshotLogitBias(request.logit_bias);

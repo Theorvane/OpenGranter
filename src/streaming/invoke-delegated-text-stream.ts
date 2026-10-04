@@ -1,4 +1,5 @@
 import type { ChatRequest } from '../gateway/chat-handler.ts';
+import { type ChatLogprobs, snapshotChatLogprobs } from '../providers/chat-logprobs.ts';
 import { snapshotChatUsage } from '../providers/chat-usage.ts';
 import { type OpenRouterChatAttempt, OpenRouterChatFailure } from '../providers/openrouter-chat.ts';
 import {
@@ -13,15 +14,16 @@ import type { OpenRouterTextStreamOutcome } from './openrouter-stream-sequence.t
 
 type Delta = Extract<OpenRouterTextStreamPayload, { kind: 'delta' }>;
 type Complete = Extract<OpenRouterTextStreamOutcome, { status: 'complete' }>;
+type Summary = Omit<Complete, 'usageLogprobs'>;
 export type StreamChunkIdentity = Readonly<Pick<Delta, 'id' | 'created' | 'model'>>;
 type Terminal = Pick<Delta, 'id' | 'model' | 'created'> & {
   readonly finishReason: NonNullable<Delta['finishReason']>;
 };
 
-export interface DelegatedTextStreamInput extends Omit<DelegatedRouteInput<Complete>, 'ports'> {
+export interface DelegatedTextStreamInput extends Omit<DelegatedRouteInput<Summary>, 'ports'> {
   readonly onFrame: (frame: string, identity: StreamChunkIdentity) => void | Promise<void>;
   readonly signal?: AbortSignal;
-  readonly ports: Omit<DelegatedRoutePorts<Complete>, 'invokeOpenRouter'> & {
+  readonly ports: Omit<DelegatedRoutePorts<Summary>, 'invokeOpenRouter'> & {
     readonly invokeOpenRouterTextStream?: (
       credentialRef: string,
       attempt: OpenRouterChatAttempt,
@@ -33,10 +35,10 @@ export interface DelegatedTextStreamInput extends Omit<DelegatedRouteInput<Compl
 }
 
 export type DelegatedTextStreamResult =
-  | Exclude<DelegatedRouteResult<Complete>, { status: 'invoked' }>
+  | Exclude<DelegatedRouteResult<Summary>, { status: 'invoked' }>
   | {
       readonly status: 'invoked';
-      readonly response: Complete;
+      readonly response: Summary;
       readonly finalFrames: readonly string[];
     };
 
@@ -45,6 +47,7 @@ export async function invokeDelegatedTextStream(
   input: DelegatedTextStreamInput,
 ): Promise<DelegatedTextStreamResult> {
   let terminal: Terminal | undefined;
+  let usageLogprobs: ChatLogprobs | null | undefined;
   const { invokeOpenRouterTextStream: invoker, ...routePorts } = input.ports;
   const result = await invokeDelegatedRoute({
     ...input,
@@ -56,7 +59,7 @@ export async function invokeDelegatedTextStream(
               credentialRef: string,
               attempt: OpenRouterChatAttempt,
               request: ChatRequest,
-            ): Promise<Complete> => {
+            ): Promise<Summary> => {
               const complete = await invoker(
                 credentialRef,
                 attempt,
@@ -95,6 +98,7 @@ export async function invokeDelegatedTextStream(
                 terminal.finishReason !== finishReason
               )
                 throw new OpenRouterChatFailure('upstream', true, true);
+              usageLogprobs = snapshotChatLogprobs(complete.usageLogprobs);
               return {
                 status: 'complete',
                 id,
@@ -120,6 +124,7 @@ export async function invokeDelegatedTextStream(
     created: terminal.created,
     finishReason: terminal.finishReason,
     usage: result.response.usage,
+    ...(usageLogprobs === undefined ? {} : { logprobs: usageLogprobs }),
     ...(result.response.nativeFinishReason === undefined
       ? {}
       : { nativeFinishReason: result.response.nativeFinishReason }),

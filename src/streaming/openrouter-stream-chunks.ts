@@ -1,3 +1,4 @@
+import { type ChatLogprobs, snapshotChatLogprobs } from '../providers/chat-logprobs.ts';
 import { normalizeChatUsage } from '../providers/chat-usage.ts';
 import {
   type GoogleThoughtSignatureContent,
@@ -30,6 +31,7 @@ export type OpenRouterTextStreamPayload =
       readonly reasoningDetails?: readonly ReasoningDetail[];
       readonly finishReason: FinishReason | null;
       readonly nativeFinishReason?: string | null;
+      readonly logprobs?: ChatLogprobs | null;
     }
   | {
       readonly kind: 'usage';
@@ -40,6 +42,7 @@ export type OpenRouterTextStreamPayload =
       readonly serviceTier?: string | null;
       readonly finishReason: FinishReason | null;
       readonly nativeFinishReason?: string | null;
+      readonly logprobs?: ChatLogprobs | null;
       readonly usage: NormalizedUsage;
     };
 
@@ -281,6 +284,13 @@ function decodePayload(
   )
     throw invalidChunk();
 
+  let logprobs: ChatLogprobs | null | undefined;
+  try {
+    logprobs = snapshotChatLogprobs(choice.logprobs);
+  } catch {
+    throw invalidChunk();
+  }
+  const probabilities = logprobs === undefined ? {} : { logprobs };
   const hasCalls = hasOwn(delta, 'tool_calls');
   const calls = hasCalls ? snapshotFunctionCallFragments(delta.tool_calls) : undefined;
   const hasDetails = hasOwn(delta, 'reasoning_details');
@@ -301,6 +311,7 @@ function decodePayload(
       kind: 'usage',
       ...common,
       finishReason: finish,
+      ...probabilities,
       ...(nativeFinishReason === undefined ? {} : { nativeFinishReason }),
       usage: usage && Object.freeze(usage),
     });
@@ -315,6 +326,7 @@ function decodePayload(
     ...(details === undefined ? {} : { reasoningDetails: details }),
     ...(calls === undefined ? {} : { toolCalls: calls }),
     finishReason: finish,
+    ...probabilities,
     ...(nativeFinishReason === undefined ? {} : { nativeFinishReason }),
   });
 }

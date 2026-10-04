@@ -1,4 +1,5 @@
 import type { ChatRequest } from '../gateway/chat-handler.ts';
+import { type ChatLogprobs, snapshotChatLogprobs } from '../providers/chat-logprobs.ts';
 import { snapshotChatUsage } from '../providers/chat-usage.ts';
 import type { createDirectOpenAITextStreamInvoker } from '../providers/direct-openai-stream.ts';
 import {
@@ -12,7 +13,7 @@ import type { DirectOpenAITextStreamCompletion } from './direct-openai-text-resp
 import type { StreamChunkIdentity } from './invoke-delegated-text-stream.ts';
 import { encodeOpenRouterTextSse } from './openrouter-client-sse.ts';
 
-type Complete = DirectOpenAITextStreamCompletion;
+type Complete = Omit<DirectOpenAITextStreamCompletion, 'usageLogprobs'>;
 export interface ManagedTextStreamInput extends Omit<JevManagedRouteInput<Complete>, 'ports'> {
   readonly request: ChatRequest;
   readonly signal?: AbortSignal;
@@ -36,6 +37,7 @@ export async function invokeManagedTextStream(
   const state: {
     terminal?: StreamChunkIdentity & { readonly finishReason: Complete['finishReason'] };
   } = {};
+  let usageLogprobs: ChatLogprobs | null | undefined;
   const getTerminal = () => state.terminal;
   const { invokeDirectTextStream, ...ports } = input.ports;
   const result = await invokeManagedRoute({
@@ -46,6 +48,7 @@ export async function invokeManagedTextStream(
         let emitted = false;
         let identity: StreamChunkIdentity | undefined;
         delete state.terminal;
+        usageLogprobs = undefined;
         try {
           if (input.signal?.aborted) throw new DirectProviderFailure('other', false, false);
           const complete = await invokeDirectTextStream(
@@ -85,6 +88,7 @@ export async function invokeManagedTextStream(
             terminal.finishReason !== complete.finishReason
           )
             throw new DirectProviderFailure('other', true, true);
+          usageLogprobs = snapshotChatLogprobs(complete.usageLogprobs);
           return {
             status: 'complete' as const,
             id: complete.id,
@@ -114,6 +118,7 @@ export async function invokeManagedTextStream(
     kind: 'usage',
     ...state.terminal,
     usage: result.response.usage,
+    ...(usageLogprobs === undefined ? {} : { logprobs: usageLogprobs }),
     ...(result.response.serviceTier === undefined
       ? {}
       : { serviceTier: result.response.serviceTier }),

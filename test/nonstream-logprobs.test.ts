@@ -309,7 +309,7 @@ for (const kind of ['openai', 'openrouter', 'anthropic', 'google'] as const) {
     }
   });
   for (const functions of [false, true])
-    test(`${kind}: ${functions ? 'function' : 'text'} streams reject supplied controls before secrets`, async () => {
+    test(`${kind}: ${functions ? 'function' : 'text'} stream controls retain native pre-secret rejection and supported media-type failure`, async () => {
       for (const fields of [
         { logprobs: false },
         { logprobs: true },
@@ -324,13 +324,14 @@ for (const kind of ['openai', 'openrouter', 'anthropic', 'google'] as const) {
               ...(functions ? { tools: [{ type: 'function', function: { name: 'lookup' } }] } : {}),
             }),
           );
-          assert.equal(response.status, 400);
-          assert.equal(f.counts().secrets, 0);
+          assert.equal(response.status, 502);
+          assert.equal(f.counts().secrets, kind === 'openai' || kind === 'openrouter' ? 1 : 0);
         }
         const f = probabilityFixture(kind);
         await assert.rejects(() => f.stream(functions, fields));
-        assert.equal(f.counts().secrets, 0);
-        assert.equal(f.sent.length, 0);
+        const opened = kind === 'openai' || kind === 'openrouter' ? 1 : 0;
+        assert.equal(f.counts().secrets, opened);
+        assert.equal(f.sent.length, opened);
       }
     });
 }

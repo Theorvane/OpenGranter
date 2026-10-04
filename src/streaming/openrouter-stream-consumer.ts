@@ -35,6 +35,7 @@ export async function consumeOpenRouterTextStream(
     }
     return sequence.finish();
   } catch {
+    sequence.discard();
     throw new OpenRouterStreamSequenceFailure();
   }
 }

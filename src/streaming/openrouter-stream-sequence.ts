@@ -1,3 +1,4 @@
+import { type ChatLogprobs, snapshotChatLogprobs } from '../providers/chat-logprobs.ts';
 import { snapshotChatUsage } from '../providers/chat-usage.ts';
 import type { OpenRouterTextStreamPayload } from './openrouter-stream-chunks.ts';
 
@@ -12,6 +13,8 @@ export type OpenRouterTextStreamOutcome =
       model: string;
       finishReason: FinishReason;
       usage: Usage;
+      /** Private final usage-choice response content; omit from routing/accounting. */
+      usageLogprobs?: ChatLogprobs | null;
       systemFingerprint?: string | null;
       serviceTier?: string | null;
       nativeFinishReason?: string | null;
@@ -27,7 +30,7 @@ export class OpenRouterStreamSequenceFailure extends Error {
   }
 }
 
-/** Validate decoded, text-only OpenRouter events without retaining response content. */
+/** Validate text events; retain only the bounded private final usage-choice probabilities. */
 export class OpenRouterTextStreamSequence {
   private phase: 'open' | 'terminal' | 'usage' | 'done' | 'error' | 'invalid' | 'finalized' =
     'open';
@@ -35,13 +38,21 @@ export class OpenRouterTextStreamSequence {
   private model: string | undefined;
   private finishReason: FinishReason | undefined;
   private usage: Usage;
+  #usageLogprobs: ChatLogprobs | null | undefined;
   private nativeFinishReason: string | null | undefined;
   private systemFingerprint: string | null | undefined;
   private serviceTier: string | null | undefined;
 
   private fail(): never {
+    this.#usageLogprobs = undefined;
     this.phase = 'invalid';
     throw new OpenRouterStreamSequenceFailure();
+  }
+
+  /** Discard private content after an external delivery/transport failure. */
+  discard(): void {
+    this.#usageLogprobs = undefined;
+    this.phase = 'invalid';
   }
 
   accept(event: OpenRouterTextStreamPayload): void {
@@ -53,6 +64,7 @@ export class OpenRouterTextStreamSequence {
     )
       this.fail();
     if (event.kind === 'error') {
+      this.#usageLogprobs = undefined;
       this.phase = 'error';
       return;
     }
@@ -79,6 +91,11 @@ export class OpenRouterTextStreamSequence {
       (event.finishReason !== null && event.finishReason !== this.finishReason)
     )
       this.fail();
+    try {
+      this.#usageLogprobs = snapshotChatLogprobs(event.logprobs);
+    } catch {
+      this.fail();
+    }
     this.usage = snapshotChatUsage(event.usage);
     this.systemFingerprint = event.systemFingerprint;
     this.serviceTier = event.serviceTier;
@@ -99,6 +116,8 @@ export class OpenRouterTextStreamSequence {
       this.finishReason === undefined
     )
       this.fail();
+    const usageLogprobs = this.#usageLogprobs;
+    this.#usageLogprobs = undefined;
     this.phase = 'finalized';
     return Object.freeze({
       status: 'complete',
@@ -106,6 +125,7 @@ export class OpenRouterTextStreamSequence {
       model: this.model,
       finishReason: this.finishReason,
       usage: this.usage,
+      ...(usageLogprobs === undefined ? {} : { usageLogprobs }),
       ...(this.serviceTier === undefined ? {} : { serviceTier: this.serviceTier }),
       ...(this.nativeFinishReason === undefined
         ? {}

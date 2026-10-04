@@ -1,3 +1,4 @@
+import { type ChatLogprobs, snapshotChatLogprobs } from '../providers/chat-logprobs.ts';
 import { snapshotChatUsage } from '../providers/chat-usage.ts';
 import { snapshotReasoningDetails } from '../providers/reasoning-details.ts';
 import {
@@ -50,7 +51,7 @@ function base(event: Chunk, serviceTier: unknown): object {
   };
 }
 
-/** Project a validated text event into one client SSE frame. Missing usage has no frame. */
+/** Project a validated text event into one client SSE frame. Missing usage emits only supplied choice probability metadata. */
 export function encodeOpenRouterTextSse(event: OpenRouterTextStreamPayload): string | undefined {
   return encodeSse(event, false);
 }
@@ -75,6 +76,13 @@ function encodeSse(event: OpenRouterFunctionStreamPayload, functions: boolean): 
   }
   if (event.kind === 'done') return 'data: [DONE]\n\n';
   if (event.kind === 'error') unsupported();
+  let logprobs: ChatLogprobs | null | undefined;
+  try {
+    logprobs = snapshotChatLogprobs(event.logprobs);
+  } catch {
+    unsupported();
+  }
+  const probabilities = logprobs === undefined ? {} : { logprobs };
   const content = 'content' in event ? event.content : undefined;
   const refusal = 'refusal' in event ? event.refusal : undefined;
   const reasoning = 'reasoning' in event ? event.reasoning : undefined;
@@ -118,6 +126,7 @@ function encodeSse(event: OpenRouterFunctionStreamPayload, functions: boolean): 
           },
           finish_reason: event.finishReason,
           ...nativeChoice,
+          ...probabilities,
         },
       ],
     });
@@ -131,12 +140,6 @@ function encodeSse(event: OpenRouterFunctionStreamPayload, functions: boolean): 
     if (reasoning !== undefined && reasoning !== null && reasoning !== '') unsupported();
     const usage = snapshotChatUsage(event.usage);
     if (
-      !validCount(usage?.prompt_tokens) ||
-      !validCount(usage.completion_tokens) ||
-      !validCount(usage.total_tokens)
-    )
-      return undefined;
-    if (
       event.finishReason !== null &&
       event.finishReason !== 'stop' &&
       event.finishReason !== 'length' &&
@@ -144,19 +147,28 @@ function encodeSse(event: OpenRouterFunctionStreamPayload, functions: boolean): 
       !(functions && event.finishReason === 'tool_calls')
     )
       unsupported();
+    if (event.finishReason === null && logprobs !== undefined) unsupported();
+    const choices =
+      event.finishReason === null
+        ? []
+        : [
+            {
+              index: 0,
+              delta: { role: 'assistant', content: '' },
+              finish_reason: event.finishReason,
+              ...nativeChoice,
+              ...probabilities,
+            },
+          ];
+    if (
+      !validCount(usage?.prompt_tokens) ||
+      !validCount(usage.completion_tokens) ||
+      !validCount(usage.total_tokens)
+    )
+      return logprobs === undefined ? undefined : frame({ ...base(event, serviceTier), choices });
     return frame({
       ...base(event, serviceTier),
-      choices:
-        event.finishReason === null
-          ? []
-          : [
-              {
-                index: 0,
-                delta: { role: 'assistant', content: '' },
-                finish_reason: event.finishReason,
-                ...nativeChoice,
-              },
-            ],
+      choices,
       usage: {
         prompt_tokens: usage.prompt_tokens,
         completion_tokens: usage.completion_tokens,

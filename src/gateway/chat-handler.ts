@@ -48,7 +48,7 @@ import {
   resolveOutputTokenLimit,
   type StreamOptions,
   snapshotLogitBias,
-  snapshotNonstreamLogprobControls,
+  snapshotLogprobControls,
   snapshotResponseFormat,
   snapshotStopSequences,
   snapshotStreamOptions,
@@ -468,17 +468,13 @@ function validateChat(
   if (!validTopK(topK)) return undefined;
   let reasoning: ReasoningConfiguration | undefined;
   let logitBias: ReturnType<typeof snapshotLogitBias>;
-  let logprobControls: ReturnType<typeof snapshotNonstreamLogprobControls>;
+  let logprobControls: ReturnType<typeof snapshotLogprobControls>;
   let streamOptions: ReturnType<typeof snapshotStreamOptions>;
   let tools: ReturnType<typeof snapshotFunctionTools>;
   let toolChoice: ReturnType<typeof snapshotToolChoice>;
   let parallelToolCalls: ReturnType<typeof snapshotParallelToolCalls>;
   try {
-    logprobControls = snapshotNonstreamLogprobControls(
-      value.logprobs,
-      value.top_logprobs,
-      value.stream === true,
-    );
+    logprobControls = snapshotLogprobControls(value.logprobs, value.top_logprobs);
     reasoning = snapshotReasoningConfiguration(
       value.reasoning,
       reasoningEffort,

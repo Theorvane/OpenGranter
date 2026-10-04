@@ -32,6 +32,7 @@ export function probabilityFixture(
   kind: ProbabilityKind,
   probability: unknown = probabilityGroups,
   options: {
+    reply?: (signal: AbortSignal | null | undefined) => Response;
     mode?: 'text' | 'refusal' | 'function';
     missingUsage?: boolean;
     absent?: boolean;
@@ -72,6 +73,7 @@ export function probabilityFixture(
       );
       sent.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
       if (options.transportFails) return new Response('private upstream error', { status: 500 });
+      if (options.reply) return options.reply(init?.signal);
       if (kind === 'anthropic')
         return Response.json({
           id: 'completion',

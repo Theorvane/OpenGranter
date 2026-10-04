@@ -1,4 +1,5 @@
 import type { ChatRequest } from '../gateway/chat-handler.ts';
+import { type ChatLogprobs, snapshotChatLogprobs } from '../providers/chat-logprobs.ts';
 import { snapshotChatUsage } from '../providers/chat-usage.ts';
 import type { createDirectOpenAIFunctionStreamInvoker } from '../providers/direct-openai-function-stream.ts';
 import {
@@ -12,7 +13,7 @@ import type { DirectOpenAIFunctionStreamCompletion } from './direct-openai-funct
 import type { StreamChunkIdentity } from './invoke-delegated-text-stream.ts';
 import { encodeOpenRouterFunctionSse } from './openrouter-client-sse.ts';
 
-type Complete = Omit<DirectOpenAIFunctionStreamCompletion, 'toolCalls'>;
+type Complete = Omit<DirectOpenAIFunctionStreamCompletion, 'toolCalls' | 'usageLogprobs'>;
 export interface ManagedFunctionStreamInput extends Omit<JevManagedRouteInput<Complete>, 'ports'> {
   readonly request: ChatRequest;
   readonly signal?: AbortSignal;
@@ -36,6 +37,7 @@ export async function invokeManagedFunctionStream(
   const state: {
     terminal?: StreamChunkIdentity & { readonly finishReason: Complete['finishReason'] };
   } = {};
+  let usageLogprobs: ChatLogprobs | null | undefined;
   const getTerminal = () => state.terminal;
   const { invokeDirectFunctionStream, ...ports } = input.ports;
   const result = await invokeManagedRoute({
@@ -46,6 +48,7 @@ export async function invokeManagedFunctionStream(
         let emitted = false;
         let identity: StreamChunkIdentity | undefined;
         delete state.terminal;
+        usageLogprobs = undefined;
         try {
           if (input.signal?.aborted) throw new DirectProviderFailure('other', false, false);
           const complete = await invokeDirectFunctionStream(
@@ -85,6 +88,7 @@ export async function invokeManagedFunctionStream(
             terminal.finishReason !== complete.finishReason
           )
             throw new DirectProviderFailure('other', true, true);
+          usageLogprobs = snapshotChatLogprobs(complete.usageLogprobs);
           return {
             status: 'complete' as const,
             id: complete.id,
@@ -114,6 +118,7 @@ export async function invokeManagedFunctionStream(
     kind: 'usage',
     ...state.terminal,
     usage: result.response.usage,
+    ...(usageLogprobs === undefined ? {} : { logprobs: usageLogprobs }),
     ...(result.response.serviceTier === undefined
       ? {}
       : { serviceTier: result.response.serviceTier }),
