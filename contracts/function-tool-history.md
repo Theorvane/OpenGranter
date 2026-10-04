@@ -11,3 +11,7 @@ Sources: https://openrouter.ai/openapi.json and the installed OpenAI SDK request
 Optional assistant refusal is preserved on direct OpenAI/delegated OpenRouter
 complete groups under the [refusal history contract](client-refusal-history.md);
 it cannot resolve pending results or authorize tool execution.
+
+Fixed history/call positions and every used scalar/reference are captured once
+under the [capture contract](function-history-capture.md). Uniqueness, pending
+matching and immutable output use the same validated IDs and function payload.

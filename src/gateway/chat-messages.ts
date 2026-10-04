@@ -49,32 +49,39 @@ function exact(value: Record<string, unknown>, allowed: readonly string[]): bool
 }
 
 function snapshotCalls(value: unknown): readonly ChatFunctionCall[] {
-  if (!Array.isArray(value) || value.length > 128) throw new TypeError('Invalid chat messages');
+  if (!Array.isArray(value)) throw new TypeError('Invalid chat messages');
+  const length = value.length;
+  if (!Number.isSafeInteger(length) || length < 0 || length > 128)
+    throw new TypeError('Invalid chat messages');
   const ids = new Set<string>();
   const calls: ChatFunctionCall[] = [];
-  for (const item of value) {
+  const source: readonly unknown[] = value;
+  const entries = Array.from({ length }, (_, index) => source[index]);
+  for (const item of entries) {
     const call = record(item);
-    const operation = record(call?.function);
+    if (!call) throw new TypeError('Invalid chat messages');
+    const { id, type, function: rawOperation } = call;
+    const operation = record(rawOperation);
+    if (!operation) throw new TypeError('Invalid chat messages');
+    const { name, arguments: argumentsValue } = operation;
     if (
-      !call ||
       !exact(call, ['id', 'type', 'function']) ||
-      typeof call.id !== 'string' ||
-      !call.id ||
-      ids.has(call.id) ||
-      call.type !== 'function' ||
-      !operation ||
+      typeof id !== 'string' ||
+      !id ||
+      ids.has(id) ||
+      type !== 'function' ||
       !exact(operation, ['name', 'arguments']) ||
-      typeof operation.name !== 'string' ||
-      !operation.name ||
-      typeof operation.arguments !== 'string'
+      typeof name !== 'string' ||
+      !name ||
+      typeof argumentsValue !== 'string'
     )
       throw new TypeError('Invalid chat messages');
-    ids.add(call.id);
+    ids.add(id);
     calls.push(
       Object.freeze({
-        id: call.id,
+        id,
         type: 'function',
-        function: Object.freeze({ name: operation.name, arguments: operation.arguments }),
+        function: Object.freeze({ name, arguments: argumentsValue }),
       }),
     );
   }
@@ -83,23 +90,30 @@ function snapshotCalls(value: unknown): readonly ChatFunctionCall[] {
 
 /** Capture a complete portable text/function history before asynchronous routing. */
 export function snapshotChatMessages(value: unknown): readonly ChatMessage[] {
-  if (!Array.isArray(value) || value.length === 0) throw new TypeError('Invalid chat messages');
+  if (!Array.isArray(value)) throw new TypeError('Invalid chat messages');
+  const length = value.length;
+  if (!Number.isSafeInteger(length) || length < 1) throw new TypeError('Invalid chat messages');
   const messages: ChatMessage[] = [];
   let conversationSeen = false;
   const pending = new Set<string>();
-  for (const raw of value) {
+  const source: readonly unknown[] = value;
+  const entries = Array.from({ length }, (_, index) => source[index]);
+  for (const raw of entries) {
     const item = record(raw);
-    if (!item || typeof item.role !== 'string') throw new TypeError('Invalid chat messages');
-    const { role, content, name } = item;
+    if (!item) throw new TypeError('Invalid chat messages');
+    const role = item.role;
+    if (typeof role !== 'string') throw new TypeError('Invalid chat messages');
+    const { content, name } = item;
     if (role === 'tool') {
+      const toolCallId = item.tool_call_id;
       if (
         !exact(item, ['role', 'content', 'tool_call_id']) ||
         typeof content !== 'string' ||
-        typeof item.tool_call_id !== 'string' ||
-        !pending.delete(item.tool_call_id)
+        typeof toolCallId !== 'string' ||
+        !pending.delete(toolCallId)
       )
         throw new TypeError('Invalid chat messages');
-      messages.push(Object.freeze({ role, content, tool_call_id: item.tool_call_id }));
+      messages.push(Object.freeze({ role, content, tool_call_id: toolCallId }));
       continue;
     }
     if (pending.size > 0) throw new TypeError('Invalid chat messages');
@@ -128,11 +142,8 @@ export function snapshotChatMessages(value: unknown): readonly ChatMessage[] {
     if (hasDetails && (role !== 'assistant' || details === undefined))
       throw new TypeError('Invalid chat messages');
     const detailContent = details === undefined ? {} : { reasoning_details: details };
-    if (
-      role === 'assistant' &&
-      Object.hasOwn(item, 'tool_calls') &&
-      item.tool_calls !== undefined
-    ) {
+    if (role === 'assistant' && Object.hasOwn(item, 'tool_calls')) {
+      const toolCalls = item.tool_calls;
       if (
         !exact(item, [
           'role',
@@ -145,7 +156,7 @@ export function snapshotChatMessages(value: unknown): readonly ChatMessage[] {
         ])
       )
         throw new TypeError('Invalid chat messages');
-      const calls = snapshotCalls(item.tool_calls);
+      const calls = snapshotCalls(toolCalls);
       if (content !== null && content !== undefined && typeof content !== 'string')
         throw new TypeError('Invalid chat messages');
       for (const call of calls) pending.add(call.id);
