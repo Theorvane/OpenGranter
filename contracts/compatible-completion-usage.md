@@ -1,6 +1,6 @@
 # Compatible nonstream completion usage
 
-Successful normalized object:chat.completion responses on /api/v1 include usage only when prompt_tokens, completion_tokens and total_tokens are safe nonnegative integers. Complete counters, including zero and a supplied total that differs from the sum, survive exactly. Existing provider normalization may derive total when prompt/completion are valid and total is omitted; this boundary adds no derivation and never replaces unknown values with zero.
+Successful normalized object:chat.completion responses on /api/v1 include usage only when prompt_tokens, completion_tokens and total_tokens are safe nonnegative integers. Complete counters, including zero and a supplied total that differs from the sum, survive exactly. OpenAI/Anthropic/delegated provider normalization may derive total when prompt/completion are valid and total is omitted; Google totals remain reported-only because hidden thoughts may contribute; this boundary adds no derivation and never replaces unknown values with zero.
 
 Incomplete, null or malformed normalized usage is omitted as a whole. The official ChatResult permits absence, while ChatUsage requires all three integer counters. An otherwise valid response can therefore deserialize in the pinned official SDK without fabricated usage. Consumers needing partial reporting can inspect protected usage history according to existing IAM rules.
 

@@ -232,11 +232,11 @@ function normalize(
       normalizeProviderUsage(value.usage, ['input_tokens', 'output_tokens']),
     );
   }
-  const googleUsage = normalizeProviderUsage(value.usageMetadata, [
-    'promptTokenCount',
-    'candidatesTokenCount',
-    'totalTokenCount',
-  ]);
+  const googleUsage = normalizeProviderUsage(
+    value.usageMetadata,
+    ['promptTokenCount', 'candidatesTokenCount', 'totalTokenCount'],
+    false,
+  );
   const candidates = items(value.candidates);
   if (record(value.promptFeedback)?.blockReason === 'SAFETY') {
     if (value.candidates !== undefined && candidates?.length !== 0) fail('other');

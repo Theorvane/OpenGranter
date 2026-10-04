@@ -922,3 +922,7 @@ See [plan](plans/395-anthropic-managed-stream.md) and [contract](../contracts/an
 Add bounded native Gemini text SSE validation, an explicit registered Google streaming transport and generated managed text dispatch through both API bases and persisted direct/dual composition. Preserve exact approved version scope, stable response identity, native output caps, authentication, model/provider Deny, limits, required usage/audit and cancellable backpressure.
 
 See [plan](plans/398-gemini-managed-stream.md) and [contract](../contracts/gemini-managed-stream.md). Exact native version identity and final reported Google totals are required; functions/thoughts/signatures/server tools and full #116 remain open. Pin v19 is unchanged.
+
+## Gemini reported-only aggregate totals
+
+Native Google nonstream text and supported prompt/candidate safety outcomes preserve only supplied totalTokenCount. Missing total stays partial despite known prompt/candidate counters; hidden thinking prevents deriving their sum. Both API bases, known/invalid counters, provider regressions and operational secrecy are covered. See [plan](plans/399-google-reported-totals.md) and [contract](../contracts/direct-usage-availability.md). Full #116 remains open.

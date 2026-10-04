@@ -71,6 +71,14 @@ for (const kind of ['openai', 'anthropic', 'google'] as const) {
   for (const scenario of cases) {
     if (kind === 'anthropic' && ['total only', 'invalid total'].includes(scenario.name)) continue;
     test(`${kind} gateway preserves ${scenario.name} usage availability`, async () => {
+      const expected =
+        kind === 'google' && scenario.name === 'unsafe sum'
+          ? {
+              normalized: { prompt_tokens: Number.MAX_SAFE_INTEGER, completion_tokens: 1 },
+              status: 'partial',
+              counts: [Number.MAX_SAFE_INTEGER, 1, null],
+            }
+          : scenario;
       const values = scenario as { p?: unknown; c?: unknown; t?: unknown };
       const responseBody =
         kind === 'openai'
@@ -141,13 +149,13 @@ for (const kind of ['openai', 'anthropic', 'google'] as const) {
       );
       assert.equal(response.status, 200);
       const body = (await response.json()) as { usage?: unknown };
-      assert.deepEqual(body.usage, scenario.normalized);
+      assert.deepEqual(body.usage, expected.normalized);
       assert.equal(records.length, 1);
       assert.deepEqual(records[0]?.usage, {
-        status: scenario.status,
-        promptTokens: scenario.counts[0],
-        completionTokens: scenario.counts[1],
-        totalTokens: scenario.counts[2],
+        status: expected.status,
+        promptTokens: expected.counts[0],
+        completionTokens: expected.counts[1],
+        totalTokens: expected.counts[2],
       });
       assert.equal(records[0]?.outcome, 'succeeded');
       assert.equal(

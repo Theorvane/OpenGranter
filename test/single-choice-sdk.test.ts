@@ -5,6 +5,7 @@ import { type ChatRequest, createChatHandler } from '../src/gateway/chat-handler
 import { createNodeRequestServer } from '../src/gateway/node-request-server.ts';
 import { createDirectChatInvoker } from '../src/providers/direct-chat.ts';
 import { createOpenRouterChatInvoker } from '../src/providers/openrouter-chat.ts';
+import type { UsageRecord } from '../src/usage/record-usage.ts';
 
 const kinds = ['openai', 'anthropic', 'google', 'openrouter'] as const;
 type Kind = (typeof kinds)[number];
@@ -106,7 +107,7 @@ function httpFixture(
 ) {
   const f = adapter(kind, undefined, undefined, options.fail);
   const audits: unknown[] = [];
-  const usage: unknown[] = [];
+  const usage: UsageRecord[] = [];
   let routes = 0;
   const handler = createChatHandler({
     newRequestId: () => 'request',
@@ -248,7 +249,13 @@ for (const kind of kinds) {
         assert.equal(completion.model, 'chat');
         assert.equal(completion.choices.length, 1);
         assert.equal(completion.choices[0]?.message.content, 'reply');
-        assert.equal(completion.usage?.total_tokens, 3);
+        assert.equal(completion.usage?.total_tokens, kind === 'google' ? undefined : 3);
+        if (kind === 'google') {
+          assert.equal(f.usage[0]?.usage.status, 'partial');
+          assert.equal(f.usage[0]?.usage.totalTokens, null);
+          assert.equal(completion.usage?.prompt_tokens, base === '/v1' ? 2 : undefined);
+          assert.equal(completion.usage?.completion_tokens, base === '/v1' ? 1 : undefined);
+        }
         assert.equal(f.usage.length, 1);
         assert.equal(nativeCount(kind, f.sent[0]), kind === 'anthropic' ? undefined : 1);
         assert.equal(nativeLimit(kind, f.sent[0]), 17);
