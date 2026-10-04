@@ -25,6 +25,11 @@ import type { RouteCandidate } from '../routing/authorize-candidates.ts';
 import { DirectProviderFailure } from '../routing/invoke-jev-managed-route.ts';
 import { waitForStreamOperation } from '../streaming/wait-for-stream-operation.ts';
 import { normalizeProviderUsage } from '../usage/normalize-provider-tokens.ts';
+import {
+  normalizeAnthropicFunctionResponse,
+  prepareAnthropicFunctions,
+  prepareAnthropicMessages,
+} from './anthropic-client-functions.ts';
 import { type AssistantResponse, normalizeAssistantResponse } from './assistant-response.ts';
 import { type ChatUsage, normalizeChatUsage } from './chat-usage.ts';
 
@@ -201,6 +206,19 @@ function normalize(
   if (kind === 'anthropic') {
     const refusal = value.stop_reason === 'refusal';
     const blocks = items(value.content);
+    if (value.stop_reason === 'tool_use') {
+      const assistant = blocks && normalizeAnthropicFunctionResponse(blocks, value.stop_reason);
+      if (!assistant) fail('other');
+      return completion(
+        value.id,
+        undefined,
+        model,
+        assistant.content,
+        'tool_calls',
+        normalizeProviderUsage(value.usage, ['input_tokens', 'output_tokens']),
+        assistant,
+      );
+    }
     if (
       !blocks ||
       (!refusal && blocks.length === 0) ||
@@ -372,7 +390,8 @@ function prepare(
         ...(topK === undefined ? {} : { top_k: topK }),
         ...(stop === undefined ? {} : { stop_sequences: typeof stop === 'string' ? [stop] : stop }),
         ...(system.length ? { system: system.map((message) => message.content).join('\n') } : {}),
-        messages,
+        ...prepareAnthropicFunctions(tools, toolChoice, parallelToolCalls),
+        messages: prepareAnthropicMessages(messages),
       },
     };
   }
@@ -540,7 +559,7 @@ export function createDirectChatTransport(
       fail('other');
     }
     if (
-      registration.kind !== 'openai' &&
+      registration.kind === 'google' &&
       (tools !== undefined || toolChoice !== undefined || parallelToolCalls !== undefined)
     )
       fail('other');
@@ -570,8 +589,8 @@ export function createDirectChatTransport(
         messages.some(
           (message) =>
             message.name !== undefined ||
-            message.role === 'tool' ||
-            message.tool_calls !== undefined,
+            (registration.kind === 'google' &&
+              (message.role === 'tool' || message.tool_calls !== undefined)),
         )
       )
         fail('other');
@@ -719,7 +738,10 @@ export function createDirectChatInvoker(
       fail('other', true, true);
     }
     try {
-      return normalize(providerKind, body, clientModelAlias);
+      const normalized = normalize(providerKind, body, clientModelAlias);
+      return providerKind === 'anthropic'
+        ? { ...normalized, system_fingerprint: null }
+        : normalized;
     } catch {
       fail('other', true, true);
     }
