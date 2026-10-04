@@ -57,3 +57,7 @@ outside that local subset pending raw-chat interaction clarification.
 Optional positive-safe-integer budget is covered by [its separate contract](client-reasoning-budget.md).
 Budget with any nested effort, forwarded named shorthand or supplied enabled stays
 outside that local subset pending source clarification; outer output caps stay unchanged.
+
+Legacy inclusion aliases are supported by [their separate contract](client-legacy-reasoning.md).
+A supplied raw configuration together with the flag remains outside that local subset;
+canonical configuration behavior is unchanged.

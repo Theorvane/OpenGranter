@@ -89,3 +89,5 @@ Documented boolean exclusion is implemented by [its separate HTTP contract](clie
 Documented boolean activation follows [its separate HTTP contract](client-reasoning-activation.md). Current official reasoning shape and SDK omit enabled; unchanged v18 cannot certify this absent extension and no source shape is invented.
 
 Documented reasoning budget follows [its separate HTTP contract](client-reasoning-budget.md). Current official reasoning shape and SDK omit max_tokens; unchanged v18 cannot certify the absent child field and no source/default/bounds are invented.
+
+Legacy inclusion normalization follows [its separate HTTP contract](client-legacy-reasoning.md). Current official ChatRequest and SDK omit include_reasoning despite its parameter-catalog name; unchanged v18 cannot certify the absent flag or prose alias rules.

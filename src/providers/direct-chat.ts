@@ -462,7 +462,7 @@ export function createDirectChatInvoker(
     )
       fail('other');
     try {
-      if (request.reasoning !== undefined) fail('other');
+      if (request.reasoning !== undefined || request.include_reasoning !== undefined) fail('other');
     } catch {
       fail('other');
     }

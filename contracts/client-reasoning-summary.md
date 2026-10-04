@@ -12,7 +12,8 @@ Capture the request field and nested summary once before async routing/credentia
 caller mutation cannot change the selected upstream body. Top-level reasoning_effort
 is independent: summary-only objects have no duplicated nested effort field.
 Nested effort is now supported under [its bounded alias contract](nested-reasoning-effort.md).
-Legacy include_reasoning stays rejected; budget follows its bounded contract below. Boolean exclusion follows
+Legacy include_reasoning follows its separate bounded contract below; budget follows
+its bounded contract below. Boolean exclusion follows
 [its documented subset](client-reasoning-exclusion.md).
 All direct OpenAI/Anthropic/Gemini providers reject supplied configurations, including
 {}, before credentials until explicit native mappings are defined.
@@ -37,7 +38,7 @@ ChatRequest.reasoning.summary references ChatReasoningSummaryVerbosityEnum, whic
 has auto/concise/detailed/null, no default and x-speakeasy-unknown-values:allow.
 Our named-value subset rejects unknown strings despite the SDK open enum.
 The official schema and SDK do not serialize legacy include_reasoning on ChatRequest;
-that separately documented boolean is not accepted or silently rewritten here.
+that documented boolean now follows the explicit normalization contract linked below.
 Structural pin v18 now selects the whole reasoning request field and referenced
 summary enum; see [source contract](openrouter-schema-drift.md). Native summaries, broader nested controls, rich/tool streams and complete
 named external-client certification remain under #116.
@@ -56,3 +57,7 @@ outside that local subset pending raw-chat interaction clarification.
 Optional positive-safe-integer budget is covered by [its separate contract](client-reasoning-budget.md).
 Budget with any nested effort, forwarded named shorthand or supplied enabled stays
 outside that local subset pending source clarification; outer output caps stay unchanged.
+
+Legacy inclusion aliases are supported by [their separate contract](client-legacy-reasoning.md).
+A supplied raw configuration together with the flag remains outside that local subset;
+canonical configuration behavior is unchanged.
