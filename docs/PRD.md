@@ -637,3 +637,10 @@ Compose the captured direct OpenAI transport and native SSE response boundary in
 
 See [plan](plans/373-direct-openai-stream-invoker.md) and [contract](../contracts/direct-openai-stream-invoker.md).
 Public managed streaming and full #116 remain open; pin v19 is unchanged.
+
+## Managed text stream coordination
+
+Compose authorized managed candidates with the trusted direct OpenAI text stream port. Preserve model and final-provider IAM, limits, Jev/order selection, per-attempt metadata-only usage and required audit. Deliver scoped text frames with awaited backpressure; expose final usage/DONE only after successful usage and audit. Never retry after any emitted delta or cancellation. Public HTTP activation remains a subsequent increment.
+
+See [plan](plans/376-managed-text-stream.md) and [contract](../contracts/managed-text-stream.md).
+Public managed streaming and full #116 remain open; pin v19 is unchanged.
