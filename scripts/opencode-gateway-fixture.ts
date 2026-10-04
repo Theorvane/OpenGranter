@@ -1,10 +1,16 @@
 import assert from 'node:assert/strict';
 import type { ChatHandlerPorts } from '../src/gateway/chat-handler.ts';
+import type { DirectChatPorts } from '../src/providers/direct-chat.ts';
+import { createDirectOpenAIFunctionStreamInvoker } from '../src/providers/direct-openai-function-stream.ts';
 import { createOpenRouterFunctionStreamInvoker } from '../src/providers/openrouter-function-stream.ts';
+import type { RouteKind } from '../src/routing/authorize-candidates.ts';
 import type { UsageRecord } from '../src/usage/record-usage.ts';
 
 export type OpenCodeFixtureMode = 'text' | 'tools' | 'model-deny' | 'provider-deny' | 'cancel';
-export function openCodeGatewayFixture(mode: OpenCodeFixtureMode = 'text') {
+export function openCodeGatewayFixture(
+  mode: OpenCodeFixtureMode = 'text',
+  routeKind: RouteKind = 'delegated',
+) {
   let authenticated = 0,
     secrets = 0,
     limits = 0,
@@ -12,28 +18,36 @@ export function openCodeGatewayFixture(mode: OpenCodeFixtureMode = 'text') {
   const sent: Record<string, unknown>[] = [],
     audit: unknown[] = [],
     usage: UsageRecord[] = [];
-  const invoker = createOpenRouterFunctionStreamInvoker({
-    credentialRef: 'secret/openrouter',
+  const upstreamPorts: Pick<DirectChatPorts, 'resolveSecret' | 'fetcher' | 'timeoutMs'> = {
     timeoutMs: 15000,
     resolveSecret: async () => {
       secrets++;
       return 'fixture-upstream-key';
     },
     fetcher: async (url, init) => {
-      assert.equal(String(url), 'https://openrouter.ai/api/v1/chat/completions');
+      assert.equal(
+        String(url),
+        routeKind === 'managed'
+          ? 'https://api.openai.com/v1/chat/completions'
+          : 'https://openrouter.ai/api/v1/chat/completions',
+      );
       assert.equal(init?.redirect, 'error');
       const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
       sent.push(body);
-      assert.equal(body.model, 'openai/example');
-      assert.deepEqual(body.provider, { only: ['OpenAI'] });
+      assert.equal(body.model, routeKind === 'managed' ? 'gpt-exact' : 'openai/example');
+      if (routeKind === 'managed') {
+        assert.equal(body.provider, undefined);
+        assert.deepEqual(body.stream_options, { include_usage: true });
+      } else assert.deepEqual(body.provider, { only: ['OpenAI'] });
       assert.equal(body.stream, true);
       const frame = (delta: object, finish: string | null, extra = {}) =>
         `data: ${JSON.stringify({
           id: 'gen-fixture',
           object: 'chat.completion.chunk',
           created: 42,
-          model: 'openai/example',
+          model: routeKind === 'managed' ? 'gpt-exact' : 'openai/example',
           choices: [{ index: 0, delta, finish_reason: finish }],
+          ...(routeKind === 'managed' ? { usage: null } : {}),
           ...extra,
         })}\n\n`;
       if (mode === 'cancel') {
@@ -91,13 +105,25 @@ export function openCodeGatewayFixture(mode: OpenCodeFixtureMode = 'text') {
         delta +
           frame({}, finish) +
           frame({}, finish, {
+            ...(routeKind === 'managed' ? { choices: [] } : {}),
             usage: { prompt_tokens: 2, completion_tokens: 3, total_tokens: 5 },
           }) +
           'data: [DONE]\n\n',
         { headers: { 'content-type': 'text/event-stream' } },
       );
     },
+  };
+  const invoker = createOpenRouterFunctionStreamInvoker({
+    ...upstreamPorts,
+    credentialRef: 'secret/openrouter',
   });
+  const native = createDirectOpenAIFunctionStreamInvoker({
+    ...upstreamPorts,
+    registrations: [{ providerId: 'openai', kind: 'openai', credentialRef: 'secret/openai' }],
+  });
+  const delegated: NonNullable<
+    ChatHandlerPorts<unknown>['invokeOpenRouterFunctionStream']
+  > = async (_ref, attempt, chat, onDelta, signal) => invoker(attempt, chat, onDelta, signal);
   const ports: ChatHandlerPorts<unknown> = {
     newRequestId: () => `req-${authenticated}`,
     authenticate: async (token) => {
@@ -122,19 +148,33 @@ export function openCodeGatewayFixture(mode: OpenCodeFixtureMode = 'text') {
         ],
       };
     },
-    resolveRoute: async () => ({
-      kind: 'delegated',
-      version: 'fixture-v1',
-      credentialRef: 'secret/openrouter',
-      candidates: [
-        {
-          id: 'candidate',
-          kind: 'delegated',
-          upstreamModelId: 'openai/example',
-          providerId: 'openai',
-        },
-      ],
-    }),
+    resolveRoute: async () =>
+      routeKind === 'managed'
+        ? {
+            kind: 'managed' as const,
+            version: 'fixture-v1',
+            candidates: [
+              {
+                id: 'candidate',
+                kind: 'managed' as const,
+                upstreamModelId: 'gpt-exact',
+                providerId: 'openai',
+              },
+            ],
+          }
+        : {
+            kind: 'delegated',
+            version: 'fixture-v1',
+            credentialRef: 'secret/openrouter',
+            candidates: [
+              {
+                id: 'candidate',
+                kind: 'delegated',
+                upstreamModelId: 'openai/example',
+                providerId: 'openai',
+              },
+            ],
+          },
     resolveVerifiedProviderSlug: async () => 'OpenAI',
     checkLimit: async () => {
       limits++;
@@ -142,8 +182,9 @@ export function openCodeGatewayFixture(mode: OpenCodeFixtureMode = 'text') {
     },
     resolveSecret: async () => assert.fail('Unexpected direct credentials'),
     invokeDirect: async () => assert.fail('Unexpected direct invocation'),
-    invokeOpenRouterFunctionStream: async (_ref, attempt, chat, onDelta, signal) =>
-      invoker(attempt, chat, onDelta, signal),
+    ...(routeKind === 'managed'
+      ? { invokeDirectFunctionStream: native }
+      : { invokeOpenRouterFunctionStream: delegated }),
     writeUsage: async (record) => {
       usage.push(record);
     },

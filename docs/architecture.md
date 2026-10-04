@@ -891,3 +891,10 @@ Activate the trusted native function stream port on both chat bases and generate
 
 See [plan](plans/388-public-managed-functions.md) and [contract](../contracts/public-managed-functions.md).
 Managed OpenAI text streams remain supported. Managed OpenAI function streams are activated; broader compatibility and full #116 remain open. Pin v19 is unchanged.
+
+## OpenCode managed native streaming conformance
+
+Extend isolated OpenCode 1.18.5 probes from delegated routes to managed OpenAI text/function streams on both bases. Verify explicit custom-provider/model registration, text rendering, real fixture-only read-function execution and correlated result continuation, fresh IAM/limits, model/provider Deny and process-disconnect billed/missing accounting. Preserve fixed mocked upstream, isolated temporary Git/config/env and bounded process output/time. Default CI verifies both fixture route kinds; the installed-client gate runs 20 probes.
+
+See [plan](plans/390-opencode-managed-streams.md) and [contract](../contracts/opencode-managed-streams.md).
+Managed OpenAI text/functions remain supported. Broader named-client cases and full #116 remain open; pin v19 is unchanged.
