@@ -5,6 +5,7 @@ import {
   createClientErrorResponse,
 } from '../gateway/client-errors.ts';
 import type { DelegatedRouteAuditEvent } from '../routing/invoke-delegated-route.ts';
+import type { ManagedRouteAuditEvent } from '../routing/invoke-jev-managed-route.ts';
 import type { UsageRecord } from '../usage/record-usage.ts';
 import {
   type DelegatedFunctionStreamInput,
@@ -17,6 +18,11 @@ import {
   invokeDelegatedTextStream,
   type StreamChunkIdentity,
 } from './invoke-delegated-text-stream.ts';
+import {
+  invokeManagedTextStream,
+  type ManagedTextStreamInput,
+  type ManagedTextStreamResult,
+} from './invoke-managed-text-stream.ts';
 
 interface HttpStreamInput extends Omit<DelegatedTextStreamInput, 'onFrame' | 'ports' | 'signal'> {
   readonly signal: AbortSignal;
@@ -35,8 +41,20 @@ interface FunctionHttpStreamInput
   };
 }
 
+interface ManagedHttpStreamInput
+  extends Omit<ManagedTextStreamInput, 'onFrame' | 'ports' | 'signal'> {
+  readonly signal: AbortSignal;
+  readonly format: ClientErrorFormat;
+  readonly ports: Omit<ManagedTextStreamInput['ports'], 'writeAudit'> & {
+    readonly writeAudit: (event: GatewayAuditEvent | ManagedRouteAuditEvent) => Promise<void>;
+  };
+}
+
 function failure(
-  result: Exclude<DelegatedTextStreamResult | DelegatedFunctionStreamResult, { status: 'invoked' }>,
+  result: Exclude<
+    DelegatedTextStreamResult | DelegatedFunctionStreamResult | ManagedTextStreamResult,
+    { status: 'invoked' }
+  >,
 ): {
   status: number;
   code: ClientErrorCode;
@@ -46,12 +64,15 @@ function failure(
       return { status: 403, code: 'forbidden' };
     case 'limit':
       return { status: 429, code: 'limit_exceeded' };
+    case 'provider-failed':
     case 'upstream-failed':
       return { status: 502, code: 'upstream_failed' };
+    case 'secret-unavailable':
     case 'credential-unavailable':
       return { status: 503, code: 'credential_unavailable' };
     case 'usage-unavailable':
       return { status: 503, code: 'usage_unavailable' };
+    case 'outcome-audit-unavailable':
     case 'audit-unavailable':
       return { status: 503, code: 'audit_unavailable' };
     default:
@@ -71,13 +92,20 @@ export function createDelegatedFunctionHttpStreamResponse(
   return createControlledHttpStreamResponse(input, invokeDelegatedFunctionStream);
 }
 
-function createControlledHttpStreamResponse<T extends HttpStreamInput | FunctionHttpStreamInput>(
+/** Managed streams share bounded delivery, cancellation and safe interruption projection. */
+export function createManagedHttpStreamResponse(input: ManagedHttpStreamInput): Promise<Response> {
+  return createControlledHttpStreamResponse(input, invokeManagedTextStream);
+}
+
+function createControlledHttpStreamResponse<
+  T extends HttpStreamInput | FunctionHttpStreamInput | ManagedHttpStreamInput,
+>(
   input: T,
   invokeStream: (
     input: T & {
       readonly onFrame: (frame: string, identity: StreamChunkIdentity) => void | Promise<void>;
     },
-  ) => Promise<DelegatedTextStreamResult | DelegatedFunctionStreamResult>,
+  ) => Promise<DelegatedTextStreamResult | DelegatedFunctionStreamResult | ManagedTextStreamResult>,
 ): Promise<Response> {
   const writeUsage = input.ports.writeUsage;
   const cancellation = new AbortController();
