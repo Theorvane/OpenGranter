@@ -34,6 +34,7 @@ import {
 import { type AssistantResponse, normalizeAssistantResponse } from './assistant-response.ts';
 import { type ChatLogprobs, snapshotChatLogprobs } from './chat-logprobs.ts';
 import { type ChatUsage, normalizeChatUsage } from './chat-usage.ts';
+import { normalizeGoogleChatLogprobs } from './google-chat-logprobs.ts';
 import { normalizeGoogleChatUsage } from './google-chat-usage.ts';
 import {
   normalizeGoogleFunctionResponse,
@@ -147,6 +148,7 @@ function completion(
   stats?: ChatCompletion['usage'],
   assistant?: AssistantResponse,
   nativeReason?: string | null,
+  logprobs?: ChatLogprobs,
 ): ChatCompletion {
   const message = assistant ?? normalizeAssistantResponse({ role: 'assistant', content }, finish);
   if (!message) fail('other');
@@ -161,6 +163,7 @@ function completion(
         message,
         finish_reason: finish,
         ...(nativeReason === undefined ? {} : { native_finish_reason: nativeReason }),
+        ...(logprobs === undefined ? {} : { logprobs }),
       },
     ],
     ...(stats ? { usage: stats } : {}),
@@ -286,6 +289,7 @@ function normalize(
     return completion(value.responseId, undefined, model, null, 'content_filter', googleUsage);
   }
   if (first.finishReason !== 'MAX_TOKENS' && first.finishReason !== 'STOP') fail('other');
+  const logprobs = normalizeGoogleChatLogprobs(first.logprobsResult);
   const parts = items(record(first?.content)?.parts);
   if (parts?.some((part) => Object.hasOwn(record(part) ?? {}, 'functionCall'))) {
     const content = record(first.content);
@@ -306,6 +310,8 @@ function normalize(
       'tool_calls',
       googleUsage,
       assistant,
+      undefined,
+      logprobs,
     );
   }
   if (
@@ -326,6 +332,9 @@ function normalize(
     parts.map((part) => record(part)?.text).join(''),
     first.finishReason === 'MAX_TOKENS' ? 'length' : 'stop',
     googleUsage,
+    undefined,
+    undefined,
+    logprobs,
   );
 }
 
@@ -450,10 +459,17 @@ function prepare(
       responseFormat === undefined &&
       topK === undefined &&
       seed === undefined &&
-      reasoningEffort === undefined
+      reasoningEffort === undefined &&
+      Object.keys(logprobControls).length === 0
         ? {}
         : {
             generationConfig: {
+              ...(logprobControls.logprobs === undefined
+                ? {}
+                : { responseLogprobs: logprobControls.logprobs }),
+              ...(logprobControls.top_logprobs === undefined
+                ? {}
+                : { logprobs: logprobControls.top_logprobs }),
               ...(hasFunctions ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
               ...(reasoningEffort === undefined
                 ? {}
@@ -524,7 +540,12 @@ export function createDirectChatTransport(
     let logprobControls: ReturnType<typeof snapshotLogprobControls>;
     try {
       logprobControls = snapshotLogprobControls(request.logprobs, request.top_logprobs);
-      if (registration.kind !== 'openai' && Object.keys(logprobControls).length > 0) fail('other');
+      if (
+        registration.kind !== 'openai' &&
+        !(registration.kind === 'google' && !streaming) &&
+        Object.keys(logprobControls).length > 0
+      )
+        fail('other');
     } catch {
       fail('other');
     }
