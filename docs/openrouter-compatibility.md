@@ -496,3 +496,13 @@ A separate upstream response boundary admits only HTTP 200 SSE bodies to the sco
 See [plan](plans/352-function-stream-invoker.md) and [contract](../contracts/function-stream-invoker.md).
 Public HTTP function streams, transitive schema drift and full #116 remain open;
 pin v18 is unchanged.
+
+## Internal function stream client SSE projection
+
+- A separate encoder preserves bounded indexed function fragments and tool_calls finish reasons using safe JSON framing. Partial arguments stay literal response content with no parsing or execution.
+- Function fragments are forbidden on usage events and in the text encoder; malformed values fail with fixed errors. Missing usage emits no fabricated counts.
+- Existing metadata, text, reasoning, usage and DONE projection stays shared; the public HTTP function-stream gate remains closed.
+
+See [plan](plans/354-function-stream-sse.md) and [contract](../contracts/function-stream-sse.md).
+Public HTTP function streams, transitive schema drift and full #116 remain open;
+pin v18 is unchanged.

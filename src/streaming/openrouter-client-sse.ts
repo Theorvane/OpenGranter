@@ -1,8 +1,12 @@
 import { snapshotChatUsage } from '../providers/chat-usage.ts';
 import { snapshotReasoningDetails } from '../providers/reasoning-details.ts';
-import type { OpenRouterTextStreamPayload } from './openrouter-stream-chunks.ts';
+import {
+  type OpenRouterFunctionStreamPayload,
+  type OpenRouterTextStreamPayload,
+  snapshotFunctionCallFragments,
+} from './openrouter-stream-chunks.ts';
 
-type Chunk = Extract<OpenRouterTextStreamPayload, { kind: 'delta' | 'usage' }>;
+type Chunk = Extract<OpenRouterFunctionStreamPayload, { kind: 'delta' | 'usage' }>;
 
 function unsupported(): never {
   throw new Error('Unsupported OpenRouter text stream event');
@@ -48,6 +52,27 @@ function base(event: Chunk, serviceTier: unknown): object {
 
 /** Project a validated text event into one client SSE frame. Missing usage has no frame. */
 export function encodeOpenRouterTextSse(event: OpenRouterTextStreamPayload): string | undefined {
+  return encodeSse(event, false);
+}
+
+/** Project validated function fragments without assembly or argument parsing. */
+export function encodeOpenRouterFunctionSse(
+  event: OpenRouterFunctionStreamPayload,
+): string | undefined {
+  return encodeSse(event, true);
+}
+
+function encodeSse(event: OpenRouterFunctionStreamPayload, functions: boolean): string | undefined {
+  const hasCalls = Object.hasOwn(event, 'toolCalls');
+  if (hasCalls && (!functions || event.kind !== 'delta')) unsupported();
+  let calls: ReturnType<typeof snapshotFunctionCallFragments> | undefined;
+  if (hasCalls && event.kind === 'delta') {
+    try {
+      calls = snapshotFunctionCallFragments(event.toolCalls);
+    } catch {
+      unsupported();
+    }
+  }
   if (event.kind === 'done') return 'data: [DONE]\n\n';
   if (event.kind === 'error') unsupported();
   const content = 'content' in event ? event.content : undefined;
@@ -74,7 +99,8 @@ export function encodeOpenRouterTextSse(event: OpenRouterTextStreamPayload): str
       (event.finishReason !== null &&
         event.finishReason !== 'stop' &&
         event.finishReason !== 'length' &&
-        event.finishReason !== 'content_filter')
+        event.finishReason !== 'content_filter' &&
+        !(functions && event.finishReason === 'tool_calls'))
     )
       unsupported();
     return frame({
@@ -88,6 +114,7 @@ export function encodeOpenRouterTextSse(event: OpenRouterTextStreamPayload): str
             ...(refusal === undefined ? {} : { refusal }),
             ...(reasoning === undefined ? {} : { reasoning }),
             ...(details === undefined ? {} : { reasoning_details: details }),
+            ...(calls === undefined ? {} : { tool_calls: calls }),
           },
           finish_reason: event.finishReason,
           ...nativeChoice,
@@ -113,7 +140,8 @@ export function encodeOpenRouterTextSse(event: OpenRouterTextStreamPayload): str
       event.finishReason !== null &&
       event.finishReason !== 'stop' &&
       event.finishReason !== 'length' &&
-      event.finishReason !== 'content_filter'
+      event.finishReason !== 'content_filter' &&
+      !(functions && event.finishReason === 'tool_calls')
     )
       unsupported();
     return frame({
