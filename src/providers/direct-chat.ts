@@ -32,6 +32,11 @@ import {
 } from './anthropic-client-functions.ts';
 import { type AssistantResponse, normalizeAssistantResponse } from './assistant-response.ts';
 import { type ChatUsage, normalizeChatUsage } from './chat-usage.ts';
+import {
+  normalizeGoogleFunctionResponse,
+  prepareGoogleFunctions,
+  prepareGoogleMessages,
+} from './google-client-functions.ts';
 
 export interface DirectProviderRegistration {
   readonly providerId: string;
@@ -279,12 +284,34 @@ function normalize(
   }
   if (first.finishReason !== 'MAX_TOKENS' && first.finishReason !== 'STOP') fail('other');
   const parts = items(record(first?.content)?.parts);
+  if (parts?.some((part) => Object.hasOwn(record(part) ?? {}, 'functionCall'))) {
+    const content = record(first.content);
+    if (
+      first.finishReason !== 'STOP' ||
+      !content ||
+      (content.role !== undefined && content.role !== 'model') ||
+      Object.keys(content).some((key) => key !== 'role' && key !== 'parts')
+    )
+      fail('other');
+    const assistant = normalizeGoogleFunctionResponse(parts);
+    if (!assistant) fail('other');
+    return completion(
+      value.responseId,
+      undefined,
+      model,
+      assistant.content,
+      'tool_calls',
+      googleUsage,
+      assistant,
+    );
+  }
   if (
     !parts ||
     parts.length === 0 ||
     parts.some(
       (part) =>
         typeof record(part)?.text !== 'string' ||
+        Object.keys(record(part) ?? {}).some((key) => key !== 'text' && key !== 'thought') ||
         (record(part)?.thought !== undefined && record(part)?.thought !== false),
     )
   )
@@ -396,12 +423,19 @@ function prepare(
     };
   }
   if (!/^[A-Za-z0-9._-]+$/u.test(candidate.upstreamModelId)) fail('other');
+  const functions = prepareGoogleFunctions(tools, toolChoice, parallelToolCalls);
+  const hasFunctions =
+    Boolean(tools?.length) ||
+    messages.some((message) => message.role === 'tool' || Boolean(message.tool_calls?.length));
+  if (hasFunctions && reasoningEffort !== undefined) fail('other');
   headers['x-goog-api-key'] = key;
   return {
     url: `https://generativelanguage.googleapis.com/v1beta/models/${candidate.upstreamModelId}:${streaming ? 'streamGenerateContent?alt=sse' : 'generateContent'}`,
     headers,
     body: {
-      ...(outputLimit === undefined &&
+      ...functions,
+      ...(!hasFunctions &&
+      outputLimit === undefined &&
       stop === undefined &&
       temperature === undefined &&
       topP === undefined &&
@@ -415,6 +449,7 @@ function prepare(
         ? {}
         : {
             generationConfig: {
+              ...(hasFunctions ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
               ...(reasoningEffort === undefined
                 ? {}
                 : { thinkingConfig: { thinkingLevel: reasoningEffort } }),
@@ -444,10 +479,7 @@ function prepare(
             },
           }
         : {}),
-      contents: messages.map((message) => ({
-        role: message.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: message.content }],
-      })),
+      contents: prepareGoogleMessages(messages),
     },
   };
 }
@@ -558,11 +590,6 @@ export function createDirectChatTransport(
     } catch {
       fail('other');
     }
-    if (
-      registration.kind === 'google' &&
-      (tools !== undefined || toolChoice !== undefined || parallelToolCalls !== undefined)
-    )
-      fail('other');
     const n = request.n;
     if (!validSingleChoice(n)) fail('other');
     const topP = request.top_p ?? undefined;
@@ -584,15 +611,7 @@ export function createDirectChatTransport(
     let messages: readonly ChatMessage[];
     try {
       messages = snapshotChatMessages(request.messages);
-      if (
-        registration.kind !== 'openai' &&
-        messages.some(
-          (message) =>
-            message.name !== undefined ||
-            (registration.kind === 'google' &&
-              (message.role === 'tool' || message.tool_calls !== undefined)),
-        )
-      )
+      if (registration.kind !== 'openai' && messages.some((message) => message.name !== undefined))
         fail('other');
       if (
         messages.some(
@@ -740,7 +759,7 @@ export function createDirectChatInvoker(
     }
     try {
       const normalized = normalize(providerKind, body, clientModelAlias);
-      return providerKind === 'anthropic'
+      return providerKind === 'anthropic' || providerKind === 'google'
         ? { ...normalized, system_fingerprint: null }
         : normalized;
     } catch {
