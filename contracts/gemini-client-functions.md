@@ -24,4 +24,6 @@ Google totals remain reported-only; known components survive missing totals with
 
 Both installed OpenAI/OpenRouter SDKs exercise parallel calls, complete result continuation and fresh provider Deny on both bases. HTTP tests verify native controls, original result order, ID-less replay, immutable schemas/history, rejection before keys, signature/malformed response failure, ledger privacy and reported-only totals. Generated persisted direct/dual servers use stored registrations, enforce output caps and replace runtime overrides; usage failures and fresh Deny remain safe. Existing Google text streams and generic function dispatcher remain closed to function requests.
 
-Thinking/signature replay, strict guarantees, single-call enforcement beyond NONE, native function streams, built-in/rich tools and broader named clients remain open. Fixture tests are not live-provider certification. Full #116 and unresolved #7 stay open; OpenRouter pin v19 remains unchanged.
+Thinking/signature replay, strict guarantees, single-call enforcement beyond NONE, partial argument streams, built-in/rich tools and broader named clients remain open. Fixture tests are not live-provider certification. Full #116 and unresolved #7 stay open; OpenRouter pin v19 remains unchanged.
+
+Registered signature-free complete function SSE and result continuation are now supported separately by [Gemini function streams](gemini-function-streams.md). The historical nonstream scope above remains the initial implementation record; thinking/signature replay and partial argument streaming stay open.
