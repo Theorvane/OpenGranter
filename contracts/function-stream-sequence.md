@@ -41,3 +41,7 @@ Source for stable Chat Completions metadata and appending argument fragments:
 [OpenAI function calling](https://developers.openai.com/api/docs/guides/function-calling).
 See [plan](../docs/plans/346-function-stream-sequence.md) and
 [fragment contract](function-stream-chunks.md).
+
+External failures may explicitly discard partial assembly. Discard is idempotent,
+clears retained calls and permanently invalidates the instance. See the
+[consumer contract](function-stream-consumer.md).

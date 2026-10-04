@@ -341,3 +341,13 @@ test('function sequence rejects alias changes, duplicate usage and missing stabl
   );
   invalid(() => missing.accept(delta({}, 'tool_calls')));
 });
+
+test('explicit sequence discard clears partial assembly and permanently invalidates', () => {
+  const sequence = new OpenRouterFunctionStreamSequence();
+  sequence.accept(delta({ tool_calls: [call()] }));
+  sequence.discard();
+  sequence.discard();
+  assert.equal(JSON.stringify(sequence), '{}');
+  invalid(() => sequence.finish());
+  invalid(() => sequence.accept(delta({}, 'tool_calls')));
+});
