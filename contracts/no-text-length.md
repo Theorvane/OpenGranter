@@ -11,9 +11,8 @@ Validate role, envelope, model identity, canonical finish and optional fields as
 before. Malformed content/reasoning/details/refusal and inconsistent tool/finish
 semantics still fail safely with possibly-billed failed accounting. Metadata-only
 or empty valid details can accompany no-text length because the finish condition
-itself permits absent content, not because metadata grants authority. Unsupported
-stop/null-without-payload remains a local bounded response rule; official optional
-nullable schema does not classify that case as structurally malformed.
+itself permits absent content, not because metadata grants authority. Stop/null-without-payload is now supported by [its separate contract](no-text-stop.md);
+no-text unsupported/null finish and malformed fields remain rejected.
 
 Complete model/provider IAM with explicit Deny, limits, required audit/usage and
 safe errors remain unchanged. Record a successfully delivered length completion as
@@ -30,7 +29,7 @@ billing, including excluded reasoning. [Official OpenAPI](https://openrouter.ai/
 and SDK 1.4.18 define optional nullable assistant content independently of finish
 and reasoning; request flags/corroborating usage are not schema prerequisites.
 This bounded length-only allowance does not certify all optional-content outcomes.
-Pin v18 already selects the assistant shape and is unchanged. Empty stop/native
+Pin v18 already selects the assistant shape and is unchanged. Broader optional content/native
 thinking/direct or tool streams and full external-client certification stay #116.
 
 See [plan](../docs/plans/324-no-text-length.md),

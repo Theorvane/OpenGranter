@@ -104,6 +104,9 @@ for (const kind of ['openai', 'openrouter'] as const) {
     for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
       for (const [content, refusal, finish] of [
         [null, 'private refusal', 'stop'],
+        [null, undefined, 'stop'],
+        [null, '', 'stop'],
+        [undefined, 'private refusal', 'stop'],
         [null, undefined, 'content_filter'],
         ['private response', 'private refusal', 'stop'],
         ['private response', null, 'content_filter'],
@@ -115,7 +118,11 @@ for (const kind of ['openai', 'openrouter'] as const) {
         const body = (await response.json()) as { choices: unknown[]; usage: unknown };
         assert.deepEqual(body.choices[0], {
           index: 0,
-          message: { role: 'assistant', content, ...(refusal === undefined ? {} : { refusal }) },
+          message: {
+            role: 'assistant',
+            content: content ?? null,
+            ...(refusal === undefined ? {} : { refusal }),
+          },
           finish_reason: finish,
         });
         assert.deepEqual(body.usage, { prompt_tokens: 2, completion_tokens: 1, total_tokens: 3 });
@@ -162,11 +169,8 @@ for (const kind of ['openai', 'openrouter'] as const) {
   });
   test(`${kind}: malformed refusal responses fail safely and retain possible billing`, async () => {
     for (const [content, refusal, finish] of [
-      [null, undefined, 'stop'],
-      [null, '', 'stop'],
       ['private response', 1, 'stop'],
       [null, {}, 'content_filter'],
-      [undefined, 'private refusal', 'stop'],
     ] as const) {
       const f = fixture(kind, content, refusal, finish);
       const response = await f.handler(request('/api/v1/chat/completions'));

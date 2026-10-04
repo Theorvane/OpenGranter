@@ -220,19 +220,14 @@ for (const kind of ['managed', 'delegated'] as const) {
     }
   });
 
-  test(`${kind}: malformed or empty reasoning cannot grant reasoning-only success`, async () => {
+  test(`${kind}: malformed reasoning and content still fail safely`, async () => {
     for (const base of ['/v1', '/api/v1']) {
       for (const message of [
         ...[true, 42, [], { secret: 'private reasoning' }].map((reasoning) => ({
           content: 'private answer',
           reasoning,
         })),
-        ...[undefined, null, ''].flatMap((reasoning) => [
-          { content: null, ...(reasoning === undefined ? {} : { reasoning }) },
-          { ...(reasoning === undefined ? {} : { reasoning }) },
-        ]),
         { content: 42, reasoning: text },
-        { content: null, reasoning_details: [{ type: 'reasoning.summary', summary: '' }] },
         {
           content: null,
           reasoning: true,
@@ -343,9 +338,9 @@ test('assistant normalization rejects explicit undefined reasoning rather than r
   );
 });
 
-test('inherited reasoning cannot grant success without a projected own reasoning field', () => {
+test('inherited reasoning remains absent from valid optional-content stop output', () => {
   const value: Record<string, unknown> = Object.create({ reasoning: text });
   value.role = 'assistant';
   value.content = null;
-  assert.equal(normalizeAssistantResponse(value, 'stop'), undefined);
+  assert.deepEqual(normalizeAssistantResponse(value, 'stop'), { role: 'assistant', content: null });
 });

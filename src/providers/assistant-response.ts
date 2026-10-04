@@ -93,24 +93,11 @@ export function normalizeAssistantResponse(
       tool_calls: calls,
     };
   }
-  const reasoningOnly =
-    (content === null || content === undefined) &&
-    ((hasReasoning && typeof reasoning === 'string' && reasoning.length > 0) ||
-      details?.some((detail) => {
-        const payload =
-          detail.type === 'reasoning.summary'
-            ? detail.summary
-            : detail.type === 'reasoning.encrypted'
-              ? detail.data
-              : detail.text;
-        return typeof payload === 'string' && payload.length > 0;
-      })) &&
-    (finish === 'stop' || finish === 'length');
-  const noTextLength = (content === null || content === undefined) && finish === 'length';
+  const noTextCompletion =
+    (content === null || content === undefined) && (finish === 'stop' || finish === 'length');
   if (
     typeof content !== 'string' &&
-    !reasoningOnly &&
-    !noTextLength &&
+    !noTextCompletion &&
     !(
       content === null &&
       (finish === 'content_filter' || (typeof refusal === 'string' && refusal.length > 0))

@@ -211,7 +211,7 @@ function request(path: string, fields: Record<string, unknown> = {}) {
   });
 }
 
-function upstream(message: object, known = true, finish: string | null = 'length') {
+function upstream(message: object, known = true, finish: string | null = 'stop') {
   return {
     ...body('openrouter'),
     choices: [{ index: 0, message: { role: 'assistant', ...message }, finish_reason: finish }],
@@ -221,7 +221,7 @@ function upstream(message: object, known = true, finish: string | null = 'length
 function safe(f: ReturnType<typeof httpFixture>) {
   assert.doesNotMatch(JSON.stringify([f.audits, f.usage]), /reasoning|private|fixture-key/u);
 }
-test('length completions preserve canonical null content without requiring reasoning payload on both bases and routes', async () => {
+test('stop completions preserve canonical null content without requiring reasoning payload on both bases and routes', async () => {
   for (const kind of ['openai', 'openrouter'] as const)
     for (const path of ['/v1/chat/completions', '/api/v1/chat/completions'])
       for (const content of [undefined, null, ''])
@@ -245,7 +245,7 @@ test('length completions preserve canonical null content without requiring reaso
             choices: { message: Record<string, unknown>; finish_reason: string }[];
           };
           assert.equal(result.choices[0]?.message.content, content ?? null);
-          assert.equal(result.choices[0]?.finish_reason, 'length');
+          assert.equal(result.choices[0]?.finish_reason, 'stop');
           for (const [key, value] of Object.entries(extra))
             assert.deepEqual(result.choices[0]?.message[key], value);
           assert.equal((f.usage[0] as { outcome: string }).outcome, 'succeeded');
@@ -284,7 +284,7 @@ test('malformed fields and inconsistent tools still fail while unsupported finis
     safe(f);
   }
 });
-test('no-text length retains authentication IAM limits and required audit usage delivery gates', async () => {
+test('no-text stop retains authentication IAM limits and required audit usage delivery gates', async () => {
   for (const kind of ['openai', 'openrouter'] as const)
     for (const [options, status, dispatched] of [
       [{ auth: true }, 401, false],
@@ -309,7 +309,7 @@ test('no-text length retains authentication IAM limits and required audit usage 
         assert.equal((f.usage[0] as { possiblyBilled: boolean }).possiblyBilled, true);
     }
 });
-test('no-text length preserves known or missing usage without inferring zero output or billed cost', async () => {
+test('no-text stop preserves known or missing usage without inferring zero output or billed cost', async () => {
   for (const kind of ['openai', 'openrouter'] as const)
     for (const known of [false, true]) {
       const f = httpFixture(kind, { responses: [upstream({}, known)] });
@@ -330,7 +330,7 @@ test('no-text length preserves known or missing usage without inferring zero out
       safe(f);
     }
 });
-test('delegated exclusion budget and legacy controls coexist with no-text length without becoming required', async () => {
+test('delegated exclusion budget and legacy controls coexist with no-text stop without becoming required', async () => {
   for (const fields of [
     {},
     { reasoning: { exclude: true } },
@@ -343,7 +343,7 @@ test('delegated exclusion budget and legacy controls coexist with no-text length
     safe(f);
   }
 });
-test('actual OpenAI and OpenRouter SDK sockets retain no-text length responses on both bases and routes', async () => {
+test('actual OpenAI and OpenRouter SDK sockets retain no-text stop responses on both bases and routes', async () => {
   for (const kind of ['openai', 'openrouter'] as const)
     for (const message of [{}, { content: null }]) {
       const f = httpFixture(kind, {
@@ -368,11 +368,11 @@ test('actual OpenAI and OpenRouter SDK sockets retain no-text length responses o
           };
           const first = await sdk.chat.completions.create(request);
           assert.equal(first.choices[0]?.message.content, null);
-          assert.equal(first.choices[0]?.finish_reason, 'length');
+          assert.equal(first.choices[0]?.finish_reason, 'stop');
           const second = await router.chat.send({ chatRequest: request });
           assert.ok('choices' in second);
           assert.equal(second.choices[0]?.message.content, null);
-          assert.equal(second.choices[0]?.finishReason, 'length');
+          assert.equal(second.choices[0]?.finishReason, 'stop');
         }
         assert.equal(f.usage.length, 4);
         safe(f);
