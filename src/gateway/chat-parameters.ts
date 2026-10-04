@@ -24,9 +24,13 @@ export function snapshotLogitBias(value: unknown): Readonly<Record<string, numbe
 export function snapshotStopSequences(value: unknown): string | readonly string[] | undefined {
   if (value === undefined || value === null) return undefined;
   if (typeof value === 'string') return value;
-  if (!Array.isArray(value) || value.length > 4) throw new TypeError('Invalid stop sequences');
+  if (!Array.isArray(value)) throw new TypeError('Invalid stop sequences');
+  const length = value.length;
+  if (!Number.isSafeInteger(length) || length < 0 || length > 4)
+    throw new TypeError('Invalid stop sequences');
   const captured: string[] = [];
-  for (const item of value) {
+  for (let index = 0; index < length; index++) {
+    const item = value[index];
     if (typeof item !== 'string') throw new TypeError('Invalid stop sequences');
     captured.push(item);
   }
