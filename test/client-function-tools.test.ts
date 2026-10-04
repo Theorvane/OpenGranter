@@ -331,3 +331,102 @@ test('function parameter arrays reject accessor elements before reading them or 
   }
   assert.equal(reads, 0);
 });
+test('direct and delegated controls forward one captured declaration and choice through credential mutation', async () => {
+  for (const kind of ['openai', 'openrouter'] as const) {
+    let names = 0;
+    let choices = 0;
+    let parameters = 0;
+    const schema = { type: 'object', properties: { query: { type: 'string' } } };
+    const definition = Object.defineProperties(
+      { description: 'private description', strict: false },
+      {
+        name: {
+          enumerable: true,
+          get: () => {
+            names++;
+            return names === 1 ? 'lookup' : 42;
+          },
+        },
+        parameters: {
+          enumerable: true,
+          get: () => {
+            parameters++;
+            return parameters === 1 ? schema : null;
+          },
+        },
+      },
+    );
+    const selected = Object.defineProperty({}, 'name', {
+      enumerable: true,
+      get: () => {
+        choices++;
+        return choices === 1 ? 'lookup' : 42;
+      },
+    });
+    const f = adapter(kind, undefined, () => {
+      schema.properties.query.type = 'number';
+    });
+    await f.call(
+      input({
+        tools: [{ type: 'function', function: definition }],
+        tool_choice: { type: 'function', function: selected },
+        parallel_tool_calls: false,
+      }) as unknown as ChatRequest,
+    );
+    assert.deepEqual(f.sent[0]?.tools, [
+      {
+        type: 'function',
+        function: {
+          name: 'lookup',
+          description: 'private description',
+          strict: false,
+          parameters: { type: 'object', properties: { query: { type: 'string' } } },
+        },
+      },
+    ]);
+    assert.deepEqual(f.sent[0]?.tool_choice, { type: 'function', function: { name: 'lookup' } });
+    assert.equal(f.sent[0]?.parallel_tool_calls, false);
+    assert.deepEqual([names, choices, parameters], [1, 1, 1]);
+    assert.equal(f.secrets(), 1);
+  }
+});
+test('invalid first tool-control fields and throwing accessors fail safely before provider credentials', async () => {
+  for (const kind of kinds)
+    for (const [key, invalid] of [
+      ['name', ''],
+      ['description', 42],
+      ['strict', 'true'],
+      ['parameters', null],
+    ] as const)
+      for (const throwing of [false, true]) {
+        let reads = 0;
+        const definition = Object.defineProperty({ name: 'lookup' }, key, {
+          enumerable: true,
+          get: () => {
+            reads++;
+            if (throwing) throw new Error('private accessor fixture-key');
+            return reads === 1 ? invalid : 'lookup';
+          },
+        });
+        const f = adapter(kind);
+        await assert.rejects(
+          () =>
+            f.call(
+              input({
+                tools: [{ type: 'function', function: definition }],
+              }) as unknown as ChatRequest,
+            ),
+          (error: unknown) => {
+            assert.doesNotMatch(JSON.stringify(error), /private|fixture-key/u);
+            assert.doesNotMatch(
+              error instanceof Error ? error.message : '',
+              /private|fixture-key/u,
+            );
+            return true;
+          },
+        );
+        assert.equal(reads, 1);
+        assert.equal(f.secrets(), 0);
+        assert.equal(f.sent.length, 0);
+      }
+});

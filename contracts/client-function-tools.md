@@ -7,3 +7,7 @@ Both `/v1/chat/completions` and `/api/v1/chat/completions` accept the same non-s
 These request fields do not select the model, route, final provider, credential, principal or audit identity. Existing IAM, limit, audit and usage gates apply. Tool names, descriptions and schemas stay out of metadata audit, operational logs and errors. A post-transport failure retains possible-billing accounting. Validated non-streaming function-call responses are supported by the separate response contract; text-only tool-result history is supported by the separate history contract. Streaming, native Anthropic/Gemini mapping and source-drift pin coverage remain open under #116.
 
 Source: https://openrouter.ai/openapi.json, raw snapshot retrieved 2026-09-29.
+
+Fixed tool positions/length and declaration/choice fields are captured once under
+the [capture contract](function-tool-capture.md). Shared nested schema arrays use
+one length while retaining descriptor-only accessor rejection and deep freezing.
