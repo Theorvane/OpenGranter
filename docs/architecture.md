@@ -784,3 +784,13 @@ pin v18 is unchanged.
 See [plan](plans/360-public-function-stream.md) and [contract](../contracts/public-function-stream.md).
 Further client conformance, transitive schema drift and full #116 remain open;
 pin v18 is unchanged.
+
+## Official SDK streamed function workflow conformance
+
+- Installed OpenAI 7.23.0 and OpenRouter 1.4.18 clients are verified on real local sockets over both chat bases with interleaved indexed function fragments and a subsequent complete tool-result request.
+- Re-evaluate authentication, model/provider IAM and limits on each request; verify Deny prevents the second call and secrets. Usage/audit persistence gates final success, missing usage stays unknown, safe failures do not replay, and SDK cancellation reaches the upstream read.
+- Response arguments stay out of operational records. This test-only stage changes no production behavior, SDK versions or pin; broader external-tool certification, direct streaming and transitive schema drift remain open.
+
+See [plan](plans/362-sdk-function-stream.md) and [contract](../contracts/sdk-function-stream.md).
+Further client conformance, transitive schema drift and full #116 remain open;
+pin v18 is unchanged.
