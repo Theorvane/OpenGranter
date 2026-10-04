@@ -438,7 +438,7 @@ export function createDirectChatTransport(
 ): (
   candidate: RouteCandidate,
   request: ChatRequest,
-  streaming?: boolean,
+  streaming?: boolean | 'function',
   cancellation?: AbortSignal,
 ) => Promise<DirectChatTransportResult> {
   const registrations = snapshotDirectProviderRegistrations(ports.registrations);
@@ -595,10 +595,13 @@ export function createDirectChatTransport(
         snapshotStreamOptions(request.stream_options);
         if (
           registration.kind !== 'openai' ||
-          tools !== undefined ||
-          toolChoice !== undefined ||
-          parallelToolCalls !== undefined ||
-          messages.some((message) => message.role === 'tool' || message.tool_calls !== undefined)
+          (streaming !== 'function' &&
+            (tools !== undefined ||
+              toolChoice !== undefined ||
+              parallelToolCalls !== undefined ||
+              messages.some(
+                (message) => message.role === 'tool' || message.tool_calls !== undefined,
+              )))
         )
           fail('other');
       } catch {
@@ -626,7 +629,7 @@ export function createDirectChatTransport(
       seed,
       verbosity,
       reasoningEffort,
-      streaming,
+      streaming !== false,
     );
     const body = JSON.stringify(prepared.body);
     const timeout = AbortSignal.timeout(timeoutMs);
