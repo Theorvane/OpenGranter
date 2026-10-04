@@ -672,3 +672,10 @@ Introduce an explicit function-stream mode on captured direct request transport.
 
 See [plan](plans/384-native-function-invoker.md) and [contract](../contracts/native-function-invoker.md).
 Managed OpenAI text streams remain supported. Public managed function streaming and full #116 remain open; pin v19 is unchanged.
+
+## Managed function stream coordination and HTTP delivery
+
+Compose trusted native function streams with existing managed IAM, limits, Jev/order selection, per-attempt usage and required audit. Explicitly exclude completed tool calls from routing/accounting responses. Gate usage/DONE after required handoffs, retain safe pre-output fallback accounting and prohibit retry after output/cancellation. Add a function entry point on the shared bounded HTTP controller with safe interruption projection.
+
+See [plan](plans/386-managed-function-stream.md) and [contract](../contracts/managed-function-stream.md).
+Managed OpenAI text streams remain supported. Public managed function streaming and full #116 remain open; pin v19 is unchanged.

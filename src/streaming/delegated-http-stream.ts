@@ -19,6 +19,11 @@ import {
   type StreamChunkIdentity,
 } from './invoke-delegated-text-stream.ts';
 import {
+  invokeManagedFunctionStream,
+  type ManagedFunctionStreamInput,
+  type ManagedFunctionStreamResult,
+} from './invoke-managed-function-stream.ts';
+import {
   invokeManagedTextStream,
   type ManagedTextStreamInput,
   type ManagedTextStreamResult,
@@ -50,9 +55,21 @@ interface ManagedHttpStreamInput
   };
 }
 
+interface ManagedFunctionHttpStreamInput
+  extends Omit<ManagedFunctionStreamInput, 'onFrame' | 'ports' | 'signal'> {
+  readonly signal: AbortSignal;
+  readonly format: ClientErrorFormat;
+  readonly ports: Omit<ManagedFunctionStreamInput['ports'], 'writeAudit'> & {
+    readonly writeAudit: (event: GatewayAuditEvent | ManagedRouteAuditEvent) => Promise<void>;
+  };
+}
+
 function failure(
   result: Exclude<
-    DelegatedTextStreamResult | DelegatedFunctionStreamResult | ManagedTextStreamResult,
+    | DelegatedTextStreamResult
+    | DelegatedFunctionStreamResult
+    | ManagedTextStreamResult
+    | ManagedFunctionStreamResult,
     { status: 'invoked' }
   >,
 ): {
@@ -97,15 +114,30 @@ export function createManagedHttpStreamResponse(input: ManagedHttpStreamInput): 
   return createControlledHttpStreamResponse(input, invokeManagedTextStream);
 }
 
+export function createManagedFunctionHttpStreamResponse(
+  input: ManagedFunctionHttpStreamInput,
+): Promise<Response> {
+  return createControlledHttpStreamResponse(input, invokeManagedFunctionStream);
+}
+
 function createControlledHttpStreamResponse<
-  T extends HttpStreamInput | FunctionHttpStreamInput | ManagedHttpStreamInput,
+  T extends
+    | HttpStreamInput
+    | FunctionHttpStreamInput
+    | ManagedHttpStreamInput
+    | ManagedFunctionHttpStreamInput,
 >(
   input: T,
   invokeStream: (
     input: T & {
       readonly onFrame: (frame: string, identity: StreamChunkIdentity) => void | Promise<void>;
     },
-  ) => Promise<DelegatedTextStreamResult | DelegatedFunctionStreamResult | ManagedTextStreamResult>,
+  ) => Promise<
+    | DelegatedTextStreamResult
+    | DelegatedFunctionStreamResult
+    | ManagedTextStreamResult
+    | ManagedFunctionStreamResult
+  >,
 ): Promise<Response> {
   const writeUsage = input.ports.writeUsage;
   const cancellation = new AbortController();
