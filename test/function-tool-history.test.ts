@@ -224,42 +224,88 @@ for (const kind of kinds) {
     for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
       const f = httpFixture(kind);
       const response = await f.handler(request(path, { messages: history }));
-      const supported = kind !== 'google';
+      const supported = true;
       assert.equal(response.status, supported ? 200 : 502);
       assert.equal(f.secrets(), supported ? 1 : 0);
       assert.equal(f.sent.length, supported ? 1 : 0);
       if (supported) {
-        assert.deepEqual(
-          f.sent[0]?.messages,
-          kind === 'anthropic'
-            ? [
-                history[0],
+        if (kind === 'google') {
+          assert.deepEqual(f.sent[0]?.contents, [
+            { role: 'user', parts: [{ text: 'private prompt' }] },
+            {
+              role: 'model',
+              parts: [
                 {
-                  role: 'assistant',
-                  content: [
-                    {
-                      type: 'tool_use',
-                      id: 'call_one',
-                      name: 'lookup',
-                      input: { query: 'private value' },
-                    },
-                    { type: 'tool_use', id: 'call_two', name: 'summarize', input: {} },
-                  ],
+                  functionCall: {
+                    id: 'call_one',
+                    name: 'lookup',
+                    args: { query: 'private value' },
+                  },
                 },
-                {
-                  role: 'user',
-                  content: [
-                    { type: 'tool_result', tool_use_id: 'call_two', content: 'private result two' },
-                    { type: 'tool_result', tool_use_id: 'call_one', content: 'private result one' },
-                  ],
-                },
-              ]
-            : [
-                ...history.slice(0, 2),
-                { role: 'tool', tool_call_id: 'call_two', content: 'private result two' },
-                history[3],
+                { functionCall: { id: 'call_two', name: 'summarize', args: {} } },
               ],
-        );
+            },
+            {
+              role: 'user',
+              parts: [
+                {
+                  functionResponse: {
+                    id: 'call_one',
+                    name: 'lookup',
+                    response: { output: 'private result one' },
+                  },
+                },
+                {
+                  functionResponse: {
+                    id: 'call_two',
+                    name: 'summarize',
+                    response: { output: 'private result two' },
+                  },
+                },
+              ],
+            },
+          ]);
+        } else {
+          assert.deepEqual(
+            f.sent[0]?.messages,
+            kind === 'anthropic'
+              ? [
+                  history[0],
+                  {
+                    role: 'assistant',
+                    content: [
+                      {
+                        type: 'tool_use',
+                        id: 'call_one',
+                        name: 'lookup',
+                        input: { query: 'private value' },
+                      },
+                      { type: 'tool_use', id: 'call_two', name: 'summarize', input: {} },
+                    ],
+                  },
+                  {
+                    role: 'user',
+                    content: [
+                      {
+                        type: 'tool_result',
+                        tool_use_id: 'call_two',
+                        content: 'private result two',
+                      },
+                      {
+                        type: 'tool_result',
+                        tool_use_id: 'call_one',
+                        content: 'private result one',
+                      },
+                    ],
+                  },
+                ]
+              : [
+                  ...history.slice(0, 2),
+                  { role: 'tool', tool_call_id: 'call_two', content: 'private result two' },
+                  history[3],
+                ],
+          );
+        }
         assert.equal(f.usage.length, 1);
       }
       assert.doesNotMatch(
