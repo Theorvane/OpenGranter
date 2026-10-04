@@ -8,7 +8,7 @@ import { createNodePostgresDualRouteChatServer } from '../src/gateway/node-postg
 import { createPostgresProxyCredentialStore } from '../src/gateway/postgres-proxy-credentials.ts';
 import { createProxyTokenService } from '../src/gateway/proxy-tokens.ts';
 import { applyPostgresMigrations } from '../src/storage/postgres-migrations.ts';
-import { frames, native } from './anthropic-function-stream-fixture.ts';
+import { frames, native, start } from './anthropic-function-stream-fixture.ts';
 
 const directory = new URL('../migrations/', import.meta.url);
 const sources = await Promise.all(
@@ -86,6 +86,12 @@ for (const mode of ['direct', 'dual'] as const)
           assert.equal(body.messages[2].content[0].tool_use_id, 'prior');
           assert.equal(body.max_tokens, 50);
           const events: object[] = native();
+          events[0] = start('claude-exact', {
+            input_tokens: 2,
+            output_tokens: 0,
+            cache_creation_input_tokens: 4,
+            cache_read_input_tokens: 5,
+          });
           if (failure === 'malformed')
             events[events.length - 2] = { type: 'error', error: { message: 'private upstream' } };
           return new Response(frames(events), { headers: { 'content-type': 'text/event-stream' } });
@@ -139,15 +145,29 @@ for (const mode of ['direct', 'dual'] as const)
           const content = await result.text();
           assert.ok(content.includes('private 終'));
           assert.ok(content.includes('"model":"chat"'));
-          assert.ok(content.includes('"total_tokens":5'));
+          assert.ok(content.includes('"total_tokens":14'));
+          assert.ok(content.includes('"prompt_tokens":11'));
+          assert.ok(
+            content.includes('"prompt_tokens_details":{"cached_tokens":5,"cache_write_tokens":4}'),
+          );
           assert.ok(content.includes('tool_calls'));
         }
         assert.equal(secrets, 2);
         assert.equal(calls, 2);
-        const records = await db.query('SELECT record FROM usage_records');
+        const records = await db.query<{ record: { usage: unknown } }>(
+          'SELECT record FROM usage_records',
+        );
         assert.equal(records.rows.length, 2);
         assert.ok(JSON.stringify(records.rows).includes('anthropic'));
         assert.ok(!JSON.stringify(records.rows).includes('private'));
+        assert.doesNotMatch(JSON.stringify(records.rows), /cached_tokens|cache_write_tokens/u);
+        assert.deepEqual(
+          records.rows.map((row) => row.record.usage),
+          [
+            { status: 'reported', promptTokens: 11, completionTokens: 3, totalTokens: 14 },
+            { status: 'reported', promptTokens: 11, completionTokens: 3, totalTokens: 14 },
+          ],
+        );
         for (const reason of ['usage', 'malformed'] as const) {
           failure = reason;
           const result = await request('/v1');
@@ -173,6 +193,7 @@ for (const mode of ['direct', 'dual'] as const)
           const result = await fetch(base + path, { headers });
           assert.equal(result.status, 200);
           const content = await result.text();
+          assert.doesNotMatch(content, /cached_tokens|cache_write_tokens/u);
           for (const secret of [
             'private prompt',
             'private 終',

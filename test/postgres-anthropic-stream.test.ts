@@ -27,7 +27,12 @@ const native = () => [
       content: [],
       stop_reason: null,
       stop_sequence: null,
-      usage: { input_tokens: 2, output_tokens: 1 },
+      usage: {
+        input_tokens: 2,
+        output_tokens: 1,
+        cache_creation_input_tokens: 4,
+        cache_read_input_tokens: 5,
+      },
     },
   },
   { type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } },
@@ -147,15 +152,29 @@ for (const mode of ['direct', 'dual'] as const)
           const content = await result.text();
           assert.ok(content.includes('private answer'));
           assert.ok(content.includes('"model":"chat"'));
-          assert.ok(content.includes('"total_tokens":5'));
+          assert.ok(content.includes('"total_tokens":14'));
+          assert.ok(content.includes('"prompt_tokens":11'));
+          assert.ok(
+            content.includes('"prompt_tokens_details":{"cached_tokens":5,"cache_write_tokens":4}'),
+          );
           assert.ok(content.endsWith('data: [DONE]\n\n'));
         }
         assert.equal(secrets, 2);
         assert.equal(calls, 2);
-        const records = await db.query('SELECT record FROM usage_records');
+        const records = await db.query<{ record: { usage: unknown } }>(
+          'SELECT record FROM usage_records',
+        );
         assert.equal(records.rows.length, 2);
         assert.ok(JSON.stringify(records.rows).includes('anthropic'));
         assert.ok(!JSON.stringify(records.rows).includes('private'));
+        assert.doesNotMatch(JSON.stringify(records.rows), /cached_tokens|cache_write_tokens/u);
+        assert.deepEqual(
+          records.rows.map((row) => row.record.usage),
+          [
+            { status: 'reported', promptTokens: 11, completionTokens: 3, totalTokens: 14 },
+            { status: 'reported', promptTokens: 11, completionTokens: 3, totalTokens: 14 },
+          ],
+        );
         for (const reason of ['usage', 'mid'] as const) {
           failure = reason;
           const result = await request('/v1');
@@ -181,6 +200,7 @@ for (const mode of ['direct', 'dual'] as const)
           const result = await fetch(base + path, { headers });
           assert.equal(result.status, 200);
           const content = await result.text();
+          assert.doesNotMatch(content, /cached_tokens|cache_write_tokens/u);
           for (const secret of [
             'private prompt',
             'private answer',

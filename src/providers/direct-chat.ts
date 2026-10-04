@@ -24,7 +24,7 @@ import {
 import type { RouteCandidate } from '../routing/authorize-candidates.ts';
 import { DirectProviderFailure } from '../routing/invoke-jev-managed-route.ts';
 import { waitForStreamOperation } from '../streaming/wait-for-stream-operation.ts';
-import { normalizeProviderUsage } from '../usage/normalize-provider-tokens.ts';
+import { normalizeAnthropicChatUsage } from './anthropic-chat-usage.ts';
 import {
   normalizeAnthropicFunctionResponse,
   prepareAnthropicFunctions,
@@ -221,7 +221,7 @@ function normalize(
         model,
         assistant.content,
         'tool_calls',
-        normalizeProviderUsage(value.usage, ['input_tokens', 'output_tokens']),
+        normalizeAnthropicChatUsage(value.usage),
         assistant,
       );
     }
@@ -240,7 +240,7 @@ function normalize(
         model,
         null,
         'content_filter',
-        normalizeProviderUsage(value.usage, ['input_tokens', 'output_tokens']),
+        normalizeAnthropicChatUsage(value.usage),
         { role: 'assistant', content: null, refusal: null },
       );
     }
@@ -253,7 +253,7 @@ function normalize(
       model,
       blocks.map((block) => record(block)?.text).join(''),
       stopReason === 'max_tokens' ? 'length' : 'stop',
-      normalizeProviderUsage(value.usage, ['input_tokens', 'output_tokens']),
+      normalizeAnthropicChatUsage(value.usage),
     );
   }
   const googleUsage = normalizeGoogleChatUsage(value.usageMetadata);
