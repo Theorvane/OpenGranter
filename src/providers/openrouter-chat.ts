@@ -23,7 +23,7 @@ import {
   snapshotParallelToolCalls,
   snapshotToolChoice,
 } from '../gateway/chat-tools.ts';
-import { snapshotReasoningSummary } from '../gateway/reasoning-summary.ts';
+import { snapshotReasoningConfiguration } from '../gateway/reasoning-configuration.ts';
 import { waitForStreamOperation } from '../streaming/wait-for-stream-operation.ts';
 import { normalizeAssistantResponse } from './assistant-response.ts';
 import { normalizeChatUsage } from './chat-usage.ts';
@@ -206,10 +206,10 @@ function prepareOpenRouterChatRequest(
   const frequencyPenalty = request.frequency_penalty ?? undefined;
   const presencePenalty = request.presence_penalty ?? undefined;
   if (!validPenalty(frequencyPenalty) || !validPenalty(presencePenalty)) fail('configuration');
-  let reasoning: ReturnType<typeof snapshotReasoningSummary>;
+  let reasoning: ReturnType<typeof snapshotReasoningConfiguration>;
   let responseFormat: ReturnType<typeof snapshotResponseFormat>;
   try {
-    reasoning = snapshotReasoningSummary(request.reasoning);
+    reasoning = snapshotReasoningConfiguration(request.reasoning, reasoningEffort);
     responseFormat = snapshotResponseFormat(request.response_format);
   } catch {
     fail('configuration');
