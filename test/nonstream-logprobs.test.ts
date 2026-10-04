@@ -336,11 +336,12 @@ for (const kind of ['openai', 'openrouter', 'anthropic', 'google'] as const) {
     });
 }
 for (const kind of ['anthropic', 'google'] as const)
-  test(`${kind}: omission/null work but all supplied controls fail before secrets`, async () => {
+  test(`${kind}: omission/null and supplied controls follow native availability`, async () => {
     for (const fields of controls)
       for (const base of bases) {
         const f = probabilityFixture(kind);
-        const supplied = fields.logprobs !== undefined && fields.logprobs !== null;
+        const supplied =
+          kind === 'anthropic' && fields.logprobs !== undefined && fields.logprobs !== null;
         const response = await f.handler(f.request(base, fields));
         assert.equal(response.status, supplied ? 502 : 200);
         assert.equal(f.counts().secrets, supplied ? 0 : 1);
