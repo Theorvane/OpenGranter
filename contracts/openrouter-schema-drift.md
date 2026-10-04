@@ -95,3 +95,13 @@ Legacy inclusion normalization follows [its separate HTTP contract](client-legac
 [No-text length responses](no-text-length.md) use the already-selected optional nullable assistant content shape; v18 is unchanged and no fresh full-source comparison is claimed by this runtime slice.
 
 [Optional stop content](no-text-stop.md) uses the already-selected nullable assistant shape; v18 is unchanged, source rules are not fabricated and no fresh full-source comparison is claimed.
+
+## Streamed function fragment target (version 19)
+
+The exact stream map adds ChatStreamToolCall, including required index and optional
+id, function type, and inline function name/arguments. Unchanged parent references
+cannot hide nested structural drift. Rehashed missing/extra/malformed maps and stale
+versions reject. Annotations remain ignored; runtime caps are local restrictions.
+The cached 2026-10-04 canonical source digest remains b818343bf2417ad8abdef9ceeea45140db6e06670d7fa54356591cd3304dd3f5;
+this expands the projection without claiming a fresh retrieval. Projection digest:
+5a755dd0e25db8752dfd48b8a74ab98344e8498f9c0d925ccbb3effed689a55c. All other selections remain unchanged.
