@@ -248,14 +248,18 @@ for (const kind of ['anthropic', 'google'] as const) {
       { id: 'candidate', kind: 'managed', providerId: 'provider', upstreamModelId: 'model' },
       { ...input, max_tokens: 17 },
     );
-    assert.equal(Object.hasOwn(result, 'system_fingerprint'), false);
+    assert.equal(Object.hasOwn(result, 'system_fingerprint'), kind === 'anthropic');
+    assert.equal(result.system_fingerprint, kind === 'anthropic' ? null : undefined);
     const handler = projectionFixture(Object.freeze(result));
     const compatible = await handler(request('/api/v1/chat/completions'));
     assert.equal(compatible.status, 200);
     assert.equal(((await compatible.json()) as Record<string, unknown>).system_fingerprint, null);
     const legacy = await handler(request('/v1/chat/completions'));
-    assert.equal(Object.hasOwn((await legacy.json()) as object, 'system_fingerprint'), false);
-    assert.equal(Object.hasOwn(result, 'system_fingerprint'), false);
+    const legacyBody = (await legacy.json()) as Record<string, unknown>;
+    assert.equal(Object.hasOwn(legacyBody, 'system_fingerprint'), kind === 'anthropic');
+    assert.equal(legacyBody.system_fingerprint, kind === 'anthropic' ? null : undefined);
+    assert.equal(Object.hasOwn(result, 'system_fingerprint'), kind === 'anthropic');
+    assert.equal(result.system_fingerprint, kind === 'anthropic' ? null : undefined);
   });
 }
 

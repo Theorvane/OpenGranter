@@ -926,3 +926,9 @@ See [plan](plans/398-gemini-managed-stream.md) and [contract](../contracts/gemin
 ## Gemini reported-only aggregate totals
 
 Native Google nonstream text and supported prompt/candidate safety outcomes preserve only supplied totalTokenCount. Missing total stays partial despite known prompt/candidate counters; hidden thinking prevents deriving their sum. Both API bases, known/invalid counters, provider regressions and operational secrecy are covered. See [plan](plans/399-google-reported-totals.md) and [contract](../contracts/direct-usage-availability.md). Full #116 remains open.
+
+## Managed Anthropic nonstream client functions
+
+Registered Anthropic nonstream routes now map bounded custom function declarations, choice/parallel controls, mixed text/tool_use responses and complete correlated tool-result histories on both API bases. Adjacent parallel results form one native user turn; argument inputs are bounded JSON objects. Preserve immutable pre-secret bodies, authentication, model/final-provider IAM, limits, required aggregate usage/audit and safe failures. Tools execute only in the external client. Persisted direct/dual servers and both installed SDKs are covered by fixture tests.
+
+See [plan](plans/402-anthropic-client-functions.md) and [contract](../contracts/anthropic-client-functions.md). Anthropic function streaming, native thinking/server tools, Gemini functions and broader named-client conformance remain open. No live-provider certification or complete #116 compatibility is claimed; #7 remains unresolved and pin v19 is unchanged.

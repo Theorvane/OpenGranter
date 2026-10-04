@@ -182,14 +182,32 @@ for (const kind of kinds) {
     for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
       const f = httpFixture(kind);
       const response = await f.handler(request(path, controls));
-      const supported = kind === 'openai' || kind === 'openrouter';
+      const supported = kind !== 'google';
       assert.equal(response.status, supported ? 200 : 502);
       assert.equal(f.secrets(), supported ? 1 : 0);
       assert.equal(f.sent.length, supported ? 1 : 0);
       if (supported) {
-        assert.deepEqual(f.sent[0]?.tools, controls.tools);
-        assert.deepEqual(f.sent[0]?.tool_choice, controls.tool_choice);
-        assert.equal(f.sent[0]?.parallel_tool_calls, false);
+        if (kind === 'anthropic') {
+          assert.deepEqual(
+            f.sent[0]?.tools,
+            controls.tools.map(({ function: definition }) => ({
+              name: definition.name,
+              description: definition.description,
+              input_schema: definition.parameters,
+              strict: definition.strict,
+            })),
+          );
+          assert.deepEqual(f.sent[0]?.tool_choice, {
+            type: 'tool',
+            name: controls.tool_choice.function.name,
+            disable_parallel_tool_use: true,
+          });
+          assert.equal(f.sent[0]?.parallel_tool_calls, undefined);
+        } else {
+          assert.deepEqual(f.sent[0]?.tools, controls.tools);
+          assert.deepEqual(f.sent[0]?.tool_choice, controls.tool_choice);
+          assert.equal(f.sent[0]?.parallel_tool_calls, false);
+        }
         assert.equal(f.usage.length, 1);
       }
       assert.doesNotMatch(

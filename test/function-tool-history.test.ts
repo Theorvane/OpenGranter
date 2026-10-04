@@ -224,16 +224,42 @@ for (const kind of kinds) {
     for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
       const f = httpFixture(kind);
       const response = await f.handler(request(path, { messages: history }));
-      const supported = kind === 'openai' || kind === 'openrouter';
+      const supported = kind !== 'google';
       assert.equal(response.status, supported ? 200 : 502);
       assert.equal(f.secrets(), supported ? 1 : 0);
       assert.equal(f.sent.length, supported ? 1 : 0);
       if (supported) {
-        assert.deepEqual(f.sent[0]?.messages, [
-          ...history.slice(0, 2),
-          { role: 'tool', tool_call_id: 'call_two', content: 'private result two' },
-          history[3],
-        ]);
+        assert.deepEqual(
+          f.sent[0]?.messages,
+          kind === 'anthropic'
+            ? [
+                history[0],
+                {
+                  role: 'assistant',
+                  content: [
+                    {
+                      type: 'tool_use',
+                      id: 'call_one',
+                      name: 'lookup',
+                      input: { query: 'private value' },
+                    },
+                    { type: 'tool_use', id: 'call_two', name: 'summarize', input: {} },
+                  ],
+                },
+                {
+                  role: 'user',
+                  content: [
+                    { type: 'tool_result', tool_use_id: 'call_two', content: 'private result two' },
+                    { type: 'tool_result', tool_use_id: 'call_one', content: 'private result one' },
+                  ],
+                },
+              ]
+            : [
+                ...history.slice(0, 2),
+                { role: 'tool', tool_call_id: 'call_two', content: 'private result two' },
+                history[3],
+              ],
+        );
         assert.equal(f.usage.length, 1);
       }
       assert.doesNotMatch(
