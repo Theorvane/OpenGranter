@@ -105,3 +105,7 @@ versions reject. Annotations remain ignored; runtime caps are local restrictions
 The cached 2026-10-04 canonical source digest remains b818343bf2417ad8abdef9ceeea45140db6e06670d7fa54356591cd3304dd3f5;
 this expands the projection without claiming a fresh retrieval. Projection digest:
 5a755dd0e25db8752dfd48b8a74ab98344e8498f9c0d925ccbb3effed689a55c. All other selections remain unchanged.
+
+## Chat probability targets (version 20)
+
+Add exactly logprobs/top_logprobs and whole ChatTokenLogprobs/ChatTokenLogprob to the response map (25 fields/five response definitions); retain every previous selection. Nested token bytes and inline alternative structures cannot hide behind unchanged choice references. Stale versions and rehashed invalid exact maps reject; editorial annotations remain ignored while literal data stays structural. Do not manufacture source constraints from runtime/prose rules. Fresh canonical source/projection digests and bounded facts are recorded in [plan](../docs/plans/422-logprob-schema.md) and [contract](logprob-schema.md). Runtime support remains its separate subset.
