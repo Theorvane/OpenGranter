@@ -828,3 +828,10 @@ Expose an internal fixed-host direct OpenAI text-stream transport. Reuse existin
 
 See [plan](plans/370-direct-stream-transport.md) and [contract](../contracts/direct-stream-transport.md).
 Public managed streaming and full #116 remain open; pin v19 is unchanged.
+
+## Native direct OpenAI text-stream response boundary
+
+Consume an already-opened direct OpenAI SSE response with native text/refusal guards, usage:null ordinary chunks and exactly one empty-choice final usage event before DONE. Reuse bounded framing and validated sequence primitives while rejecting delegated reasoning/native-finish extensions and tools. Capture exact approved model scope; require stable response identity and preserve unknown final usage. Await delivery, interrupt on cancellation and classify HTTP/stream failures as response-started and possibly billed without reading failure bodies. Unsuffixed-to-snapshot identity mapping, other native modalities/providers and public managed streaming remain open.
+
+See [plan](plans/371-direct-openai-stream-response.md) and [contract](../contracts/direct-openai-stream-response.md).
+Public managed streaming and full #116 remain open; pin v19 is unchanged.
