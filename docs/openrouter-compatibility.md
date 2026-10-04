@@ -23,10 +23,10 @@ Tools with a hardcoded openrouter.ai host need a configurable endpoint or an int
 
 | Area | Current state | Remaining acceptance gate |
 | --- | --- | --- |
-| Base paths and Bearer token | /api/v1 chat/models aliases; shared proxy authorization; pinned OpenAI SDK smoke tests | Direct streaming SDK workflows and named external-tool registration tests |
+| Base paths and Bearer token | /api/v1 chat/models aliases; shared proxy authorization; pinned OpenAI SDK smoke tests | Direct streaming SDK workflows and broader named-client workflows; OpenCode 1.18.5 explicit custom-provider registration/text is verified |
 | Model discovery | IAM-filtered aliases; optional administrator-published SDK-required discovery metadata and bounded offset/limit paging on /api/v1 | Metadata provisioning/refresh, broader filter queries, broader optional fields and complete discovery workflows |
 | Non-streaming text chat | One normalized choice with portable output/sampling controls, provider-bounded verbosity/effort, and delegated min_p/top_a/repetition_penalty | Remaining request/response schema, sampling and capability metadata |
-| Streaming | Delegated HTTP text/refusal/scalar/detail reasoning and indexed function streams with bounded validation, awaited delivery, cancellation, final usage metadata and interruption audit; both installed SDKs exercise function workflows on both bases | Direct-provider/multimodal and other tool variants, transitive fragment-schema drift, additional stream option fields and full named external-client conformance |
+| Streaming | Delegated HTTP text/refusal/scalar/detail reasoning and indexed function streams with bounded validation, awaited delivery, cancellation, final usage metadata and interruption audit; both installed SDKs exercise function workflows on both bases | Direct-provider/multimodal and other tool variants, unselected schema targets, additional stream option fields and full named external-client conformance |
 | Tool calling | Validated function-tool requests and complete text-only result histories; delegated OpenRouter nonstream/stream assistant calls and direct OpenAI nonstream calls; SDK socket tests cover two-function streamed continuations and fresh IAM | Server tools, rich content, native mappings, direct streaming and complete named external-tool workflows |
 | Rich inputs and outputs | Text-only parts normalize to strings; validated refusal, scalar reasoning (including bounded reasoning-only stop/length) and summary/text/encrypted detail responses; service tier/fingerprint/native finish metadata on supported routes | Multimodal/cached content, native thinking/block semantics, broader structured reasoning request controls and native detail history, local JSON-schema output enforcement and server-tool details |
 | Client routing controls | Rejected today | Client preferences narrow approved model/provider scope; no arbitrary destinations or authority widening |
@@ -569,4 +569,12 @@ exception behavior. No production or SDK version changes are made here.
 
 See [plan](plans/364-stream-fragment-drift.md) and [contract](../contracts/stream-fragment-drift.md).
 Further client conformance, transitive schema drift and full #116 remain open;
-pin v18 is unchanged.
+pin v19 tracks five selected stream definitions.
+
+## Isolated OpenCode text conformance
+
+Register a custom @ai-sdk/openai-compatible provider with an explicit proxy-token environment reference and chosen model. Verify installed OpenCode 1.18.5 with an opt-in local socket runner over both bases, fresh temporary config/data/cache/work directories, bounded lifetime and cleanup. Do not write real user configuration or call a real upstream. Named-client model registration is explicit and does not claim automatic GET models discovery. This first test subject is reversible; broader clients and #116 remain open.
+
+See [plan](plans/366-opencode-text-conformance.md) and [contract](../contracts/opencode-text-conformance.md).
+Further client conformance, transitive schema drift and full #116 remain open;
+pin v19 tracks five selected stream definitions.

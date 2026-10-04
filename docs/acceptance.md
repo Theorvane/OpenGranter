@@ -985,4 +985,12 @@ pin v18 is unchanged.
 
 See [plan](plans/364-stream-fragment-drift.md) and [contract](../contracts/stream-fragment-drift.md).
 Further client conformance, transitive schema drift and full #116 remain open;
-pin v18 is unchanged.
+pin v19 tracks five selected stream definitions.
+
+## Isolated OpenCode text conformance
+
+Register a custom @ai-sdk/openai-compatible provider with an explicit proxy-token environment reference and chosen model. Verify installed OpenCode 1.18.5 with an opt-in local socket runner over both bases, fresh temporary config/data/cache/work directories, bounded lifetime and cleanup. Do not write real user configuration or call a real upstream. Named-client model registration is explicit and does not claim automatic GET models discovery. This first test subject is reversible; broader clients and #116 remain open.
+
+See [plan](plans/366-opencode-text-conformance.md) and [contract](../contracts/opencode-text-conformance.md).
+Further client conformance, transitive schema drift and full #116 remain open;
+pin v19 tracks five selected stream definitions.
