@@ -870,3 +870,10 @@ Consume native OpenAI indexed function deltas through bounded framing and the ex
 
 See [plan](plans/382-native-function-response.md) and [contract](../contracts/native-function-response.md).
 Managed OpenAI text streams remain supported. Public managed function streaming and full #116 remain open; pin v19 is unchanged.
+
+## Registered OpenAI function stream invoker
+
+Introduce an explicit function-stream mode on captured direct request transport. Reuse validated OpenAI tools/choice/parallel controls and correlated result history, fixed registered host, output caps, immutable pre-secret scope/body, timeout and cancellation. Compose native function response validation. Preserve text-only rejection and fail unsupported kinds/invalid controls before keys. No inference retry in the adapter.
+
+See [plan](plans/384-native-function-invoker.md) and [contract](../contracts/native-function-invoker.md).
+Managed OpenAI text streams remain supported. Public managed function streaming and full #116 remain open; pin v19 is unchanged.
