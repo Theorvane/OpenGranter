@@ -256,7 +256,7 @@ test('malformed summary and unsupported structured controls reject before routin
     { summary: 1 },
     { summary: {} },
     { summary: 'auto', enabled: 'private' },
-    { max_tokens: 100 },
+    { max_tokens: 0 },
     { summary: 'auto', provider: 'private' },
   ];
   for (const path of ['/v1/chat/completions', '/api/v1/chat/completions'])

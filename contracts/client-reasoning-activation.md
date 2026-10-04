@@ -36,9 +36,13 @@ locally. Raw-chat effort interactions, null and summary/exclusion precedence are
 not settled here. Current [official OpenAPI](https://openrouter.ai/openapi.json)
 and pinned OpenRouter SDK 1.4.18 omit enabled. Actual SDK sockets confirm stripping,
 while the OpenAI-compatible SDK forwards the raw extension through both bases and
-modes. Unchanged pin v18 cannot certify an absent field. Budgets, native mappings,
+modes. Unchanged pin v18 cannot certify an absent field. Broader budget controls, native mappings,
 tool streams and complete external-client certification stay open under #116.
 
 See [plan](../docs/plans/318-reasoning-activation.md),
 [exclusion](client-reasoning-exclusion.md), [summary](client-reasoning-summary.md)
 and [effort](nested-reasoning-effort.md).
+
+Optional positive-safe-integer budget is covered by [its separate contract](client-reasoning-budget.md).
+Budget with any nested effort, forwarded named shorthand or supplied enabled stays
+outside that local subset pending source clarification; outer output caps stay unchanged.

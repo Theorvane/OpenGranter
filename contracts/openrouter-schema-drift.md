@@ -87,3 +87,5 @@ Runtime #314 now supports the bounded delegated nested effort subset; structural
 Documented boolean exclusion is implemented by [its separate HTTP contract](client-reasoning-exclusion.md). Current official reasoning structure and SDK omit exclude; unchanged v18 selects the official object but cannot certify the absent extension. No invented source field or fresh full-source comparison is asserted by this runtime change.
 
 Documented boolean activation follows [its separate HTTP contract](client-reasoning-activation.md). Current official reasoning shape and SDK omit enabled; unchanged v18 cannot certify this absent extension and no source shape is invented.
+
+Documented reasoning budget follows [its separate HTTP contract](client-reasoning-budget.md). Current official reasoning shape and SDK omit max_tokens; unchanged v18 cannot certify the absent child field and no source/default/bounds are invented.

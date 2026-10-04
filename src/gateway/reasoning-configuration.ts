@@ -5,6 +5,7 @@ export interface ReasoningConfiguration {
   readonly summary?: 'auto' | 'concise' | 'detailed' | null;
   readonly exclude?: boolean;
   readonly enabled?: boolean;
+  readonly max_tokens?: number;
 }
 
 /** Capture supported preferences and compare only already-captured effort aliases. */
@@ -20,7 +21,12 @@ export function snapshotReasoningConfiguration(
     throw new TypeError('Invalid reasoning configuration');
   if (
     Object.keys(value).some(
-      (key) => key !== 'summary' && key !== 'effort' && key !== 'exclude' && key !== 'enabled',
+      (key) =>
+        key !== 'summary' &&
+        key !== 'effort' &&
+        key !== 'exclude' &&
+        key !== 'enabled' &&
+        key !== 'max_tokens',
     )
   )
     throw new TypeError('Invalid reasoning configuration');
@@ -59,10 +65,25 @@ export function snapshotReasoningConfiguration(
       throw new TypeError('Invalid reasoning configuration');
     enabled = captured;
   }
+  let maxTokens: number | undefined;
+  if (Object.hasOwn(source, 'max_tokens')) {
+    const captured = source.max_tokens;
+    if (
+      typeof captured !== 'number' ||
+      !Number.isSafeInteger(captured) ||
+      captured <= 0 ||
+      effort !== undefined ||
+      shorthand !== undefined ||
+      enabled !== undefined
+    )
+      throw new TypeError('Invalid reasoning configuration');
+    maxTokens = captured;
+  }
   return Object.freeze({
     ...(effort === undefined ? {} : { effort }),
     ...(summary === undefined ? {} : { summary }),
     ...(exclude === undefined ? {} : { exclude }),
     ...(enabled === undefined ? {} : { enabled }),
+    ...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
   });
 }
