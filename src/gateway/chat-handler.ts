@@ -45,6 +45,7 @@ import { type ChatMessage, snapshotChatMessages } from './chat-messages.ts';
 import {
   type CacheControl,
   type Prediction,
+  type PromptCacheOptions,
   type ReasoningEffort,
   type ResponseFormat,
   resolveOutputTokenLimit,
@@ -56,10 +57,12 @@ import {
   snapshotLogprobControls,
   snapshotPrediction,
   snapshotPromptCacheKey,
+  snapshotPromptCacheOptions,
   snapshotResponseFormat,
   snapshotStopSequences,
   snapshotStreamOptions,
   type Verbosity,
+  validateCacheOptionsControls,
   validatePredictionControls,
   validMinP,
   validPenalty,
@@ -102,6 +105,7 @@ const MAX_BODY_BYTES = 1024 * 1024;
 export type { ChatMessage } from './chat-messages.ts';
 
 export interface ChatRequest {
+  readonly prompt_cache_options?: PromptCacheOptions;
   readonly prediction?: Prediction;
   readonly cache_control?: CacheControl;
   readonly metadata?: Readonly<Record<string, string>>;
@@ -424,6 +428,7 @@ function validateChat(
         ![
           'model',
           'prediction',
+          'prompt_cache_options',
           'cache_control',
           'metadata',
           'user',
@@ -486,6 +491,7 @@ function validateChat(
   if (!validTopK(topK)) return undefined;
   let reasoning: ReasoningConfiguration | undefined;
   let prediction: ReturnType<typeof snapshotPrediction>;
+  let cacheOptions: ReturnType<typeof snapshotPromptCacheOptions>;
   let cacheControl: ReturnType<typeof snapshotCacheControl>;
   let metadata: ReturnType<typeof snapshotClientMetadata>;
   let user: ReturnType<typeof snapshotClientUser>;
@@ -498,7 +504,9 @@ function validateChat(
   let parallelToolCalls: ReturnType<typeof snapshotParallelToolCalls>;
   try {
     prediction = snapshotPrediction(value.prediction);
+    cacheOptions = snapshotPromptCacheOptions(value.prompt_cache_options);
     cacheControl = snapshotCacheControl(value.cache_control);
+    validateCacheOptionsControls(cacheOptions, cacheControl);
     metadata = snapshotClientMetadata(value.metadata);
     user = snapshotClientUser(value.user);
     promptCacheKey = snapshotPromptCacheKey(value.prompt_cache_key);
@@ -569,6 +577,7 @@ function validateChat(
   return {
     model: value.model,
     ...(prediction === undefined ? {} : { prediction }),
+    ...(cacheOptions === undefined ? {} : { prompt_cache_options: cacheOptions }),
     ...(cacheControl === undefined ? {} : { cache_control: cacheControl }),
     ...(metadata === undefined ? {} : { metadata }),
     ...(user === undefined ? {} : { user }),

@@ -361,6 +361,14 @@ function source(): Record<string, unknown> {
     },
     components: {
       schemas: {
+        PromptCacheOptions: {
+          type: ['object', 'null'],
+          required: ['mode'],
+          properties: {
+            mode: { type: 'string', enum: ['explicit'] },
+            ttl: { type: ['string', 'null'] },
+          },
+        },
         Prediction: {
           description:
             'Static predicted output content. Supported models can use this to reduce latency when much of the response is known in advance.',
@@ -417,6 +425,7 @@ function source(): Record<string, unknown> {
             metadata: { type: 'object', additionalProperties: { type: 'string' } },
             cache_control: { $ref: '#/components/schemas/AnthropicCacheControlDirective' },
             prediction: { $ref: '#/components/schemas/Prediction' },
+            prompt_cache_options: { $ref: '#/components/schemas/PromptCacheOptions' },
             max_tokens: { type: ['integer', 'null'] },
             max_completion_tokens: { type: ['integer', 'null'] },
             stop: {
@@ -571,6 +580,7 @@ test('official projection and reviewed pin agree; key order is immaterial', () =
     'prediction',
     'presence_penalty',
     'prompt_cache_key',
+    'prompt_cache_options',
     'reasoning',
     'reasoning_effort',
     'repetition_penalty',
@@ -877,8 +887,8 @@ for (const name of ['ChatFormatTextConfig', 'ChatFormatJsonObjectConfig']) {
     }
   });
 }
-test('version-25 pin retains exact selected definitions', () => {
-  assert.equal(pinned.version, 25);
+test('version-26 pin retains exact selected definitions', () => {
+  assert.equal(pinned.version, 26);
   const definitions = (
     projectOfficialSchema(source()) as unknown as { definitions: Record<string, unknown> }
   ).definitions;
@@ -901,6 +911,7 @@ test('version-25 pin retains exact selected definitions', () => {
     'ChatUserMessage',
     'Prediction',
     'PredictionContentText',
+    'PromptCacheOptions',
   ]);
 });
 
@@ -1054,7 +1065,7 @@ test('message selections ignore editorial annotations but detect content and req
   for (const value of Object.values(projected.messageNames))
     assert.deepEqual(value, { schema: { type: 'string' }, required: false });
 });
-test('version-25 message maps reject stale and rehashed malformed pins', () => {
+test('version-26 message maps reject stale and rehashed malformed pins', () => {
   for (const version of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21])
     assert.throws(() => validateSchemaPin({ ...pinned, version }), /Invalid schema pin/);
   for (const messageNames of [
@@ -1525,13 +1536,13 @@ test('min_p selection preserves the official nullable number structure', () => {
   });
 });
 
-test('client user source selection preserves exact non-nullable shape and version 25', () => {
-  assert.equal(pinned.version, 25);
+test('client user source selection preserves exact non-nullable shape and version 26', () => {
+  assert.equal(pinned.version, 26);
   const projection = projectOfficialSchema(source()) as unknown as {
     fields: Record<string, unknown>;
   };
   assert.deepEqual(projection.fields.user, { type: 'string' });
-  assert.equal(Object.keys(projection.fields).length, 30);
+  assert.equal(Object.keys(projection.fields).length, 31);
 });
 for (const [index, schema] of [
   { type: ['string', 'null'] },
@@ -1589,11 +1600,11 @@ test('client user exact pin map rejects stale versions and rehashed missing or e
   }
 });
 
-test('cache key source selection preserves nullable string and exact version-25 map', () => {
-  assert.equal(pinned.version, 25);
+test('cache key source selection preserves nullable string and exact version-26 map', () => {
+  assert.equal(pinned.version, 26);
   const projection = projectOfficialSchema(source());
   assert.deepEqual(projection.fields.prompt_cache_key, { type: ['string', 'null'] });
-  assert.equal(Object.keys(projection.fields).length, 30);
+  assert.equal(Object.keys(projection.fields).length, 31);
 });
 for (const [index, schema] of [
   { type: 'string' },
@@ -2454,9 +2465,9 @@ test('function fragment annotations are ignored but malformed missing targets re
 
 const metadataShape = { type: 'object', additionalProperties: { type: 'string' } };
 test('metadata source selection preserves exact dictionary without inventing prose bounds', () => {
-  assert.equal(pinned.version, 25);
+  assert.equal(pinned.version, 26);
   assert.deepEqual(projectOfficialSchema(source()).fields.metadata, metadataShape);
-  assert.equal(Object.keys(projectOfficialSchema(source()).fields).length, 30);
+  assert.equal(Object.keys(projectOfficialSchema(source()).fields).length, 31);
 });
 for (const [index, schema] of [
   { type: ['object', 'null'], additionalProperties: { type: 'string' } },
@@ -2516,16 +2527,16 @@ const cacheDirectiveShape = {
   },
 };
 const cacheTtlShape = { type: 'string', enum: ['5m', '1h'], 'x-speakeasy-unknown-values': 'allow' };
-test('cache control selection traverses directive and TTL with exact version-25 maps', () => {
-  assert.equal(pinned.version, 25);
+test('cache control selection traverses directive and TTL with exact version-26 maps', () => {
+  assert.equal(pinned.version, 26);
   const p = projectOfficialSchema(source());
   assert.deepEqual(p.fields.cache_control, {
     $ref: '#/components/schemas/AnthropicCacheControlDirective',
   });
   assert.deepEqual(p.definitions.AnthropicCacheControlDirective, cacheDirectiveShape);
   assert.deepEqual(p.definitions.AnthropicCacheControlTtl, cacheTtlShape);
-  assert.equal(Object.keys(p.fields).length, 30);
-  assert.equal(Object.keys(p.definitions).length, 18);
+  assert.equal(Object.keys(p.fields).length, 31);
+  assert.equal(Object.keys(p.definitions).length, 19);
 });
 for (const [index, alter] of [
   (data: Record<string, unknown>) => {
@@ -2653,14 +2664,14 @@ const predictionShape = {
     },
   },
 };
-test('prediction selection traverses nullable content/text parts with exact version-25 maps', () => {
+test('prediction selection traverses nullable content/text parts with exact version-26 maps', () => {
   const p = projectOfficialSchema(source());
-  assert.equal(pinned.version, 25);
+  assert.equal(pinned.version, 26);
   assert.deepEqual(p.fields.prediction, { $ref: '#/components/schemas/Prediction' });
   assert.deepEqual(p.definitions.Prediction, predictionShape);
   assert.deepEqual(p.definitions.PredictionContentText, predictedPartShape);
-  assert.equal(Object.keys(p.fields).length, 30);
-  assert.equal(Object.keys(p.definitions).length, 18);
+  assert.equal(Object.keys(p.fields).length, 31);
+  assert.equal(Object.keys(p.definitions).length, 19);
 });
 for (const [index, alter] of [
   (data: Record<string, unknown>) => {
@@ -2763,6 +2774,106 @@ test('prediction/part targets and stale or rehashed invalid exact pin maps rejec
     ['fields', 'prediction'],
     ['definitions', 'Prediction'],
     ['definitions', 'PredictionContentText'],
+  ] as const)
+    for (const op of ['missing', 'malformed', 'extra']) {
+      const projection = structuredClone(pinned.projection),
+        selection = projection[map] as Record<string, unknown>;
+      if (op === 'missing') delete selection[key];
+      else if (op === 'malformed') selection[key] = null;
+      else selection.private = { type: 'string' };
+      const projectionSha256 = createHash('sha256')
+        .update(canonicalSchema(projection))
+        .digest('hex');
+      assert.throws(
+        () => validateSchemaPin({ ...pinned, projection, projectionSha256 }),
+        /Invalid schema pin/,
+      );
+    }
+});
+
+const cacheOptionsShape = {
+  type: ['object', 'null'],
+  required: ['mode'],
+  properties: { mode: { type: 'string', enum: ['explicit'] }, ttl: { type: ['string', 'null'] } },
+};
+test('explicit cache options selects exact source shape without invented TTL enum or defaults', () => {
+  const p = projectOfficialSchema(source());
+  assert.deepEqual(p.fields.prompt_cache_options, {
+    $ref: '#/components/schemas/PromptCacheOptions',
+  });
+  assert.deepEqual(p.definitions.PromptCacheOptions, cacheOptionsShape);
+  assert.equal(Object.keys(p.fields).length, 31);
+  assert.equal(Object.keys(p.definitions).length, 19);
+  assert.equal(pinned.version, 26);
+});
+for (const [index, alter] of [
+  { type: 'object' },
+  { required: [] },
+  { default: null },
+  { additionalProperties: false },
+  { 'x-cache-options': true },
+  {
+    properties: {
+      ...cacheOptionsShape.properties,
+      mode: { type: 'string', enum: ['implicit', 'explicit'] },
+    },
+  },
+  { properties: { ...cacheOptionsShape.properties, ttl: { type: 'string' } } },
+  {
+    properties: {
+      ...cacheOptionsShape.properties,
+      ttl: { type: ['string', 'null'], enum: ['30m', null] },
+    },
+  },
+  {
+    properties: {
+      ...cacheOptionsShape.properties,
+      ttl: { type: ['string', 'null'], maxLength: 256 },
+    },
+  },
+  {
+    properties: {
+      ...cacheOptionsShape.properties,
+      ttl: { type: ['string', 'null'], default: '30m' },
+    },
+  },
+].entries())
+  test(`cache options transitive structural drift ${index} is detected`, () => {
+    const d = source();
+    schemasOf(d).PromptCacheOptions = { ...cacheOptionsShape, ...alter };
+    assert.equal(compareOfficialSchema(d, pinned), false);
+  });
+test('cache options annotations are ignored but request required status is structural', () => {
+  const d = source();
+  schemasOf(d).PromptCacheOptions = {
+    ...cacheOptionsShape,
+    description: 'changed',
+    example: { mode: 'explicit' },
+  };
+  chatRequestProperties(d).prompt_cache_options = {
+    $ref: '#/components/schemas/PromptCacheOptions',
+    description: 'changed',
+  };
+  assert.equal(compareOfficialSchema(d, pinned), true);
+  (schemasOf(d).ChatRequest as Record<string, unknown>).required = [
+    'messages',
+    'prompt_cache_options',
+  ];
+  assert.equal(compareOfficialSchema(d, pinned), false);
+});
+test('cache options missing malformed targets and stale rehashed exact pin maps reject', () => {
+  for (const key of ['prompt_cache_options', 'PromptCacheOptions'])
+    for (const value of [undefined, null, [], 42, 'private']) {
+      const d = source(),
+        m = key === 'prompt_cache_options' ? chatRequestProperties(d) : schemasOf(d);
+      if (value === undefined) delete m[key];
+      else m[key] = value;
+      assert.throws(() => projectOfficialSchema(d), /Invalid official schema/);
+    }
+  assert.throws(() => validateSchemaPin({ ...pinned, version: 25 }), /Invalid schema pin/);
+  for (const [map, key] of [
+    ['fields', 'prompt_cache_options'],
+    ['definitions', 'PromptCacheOptions'],
   ] as const)
     for (const op of ['missing', 'malformed', 'extra']) {
       const projection = structuredClone(pinned.projection),
