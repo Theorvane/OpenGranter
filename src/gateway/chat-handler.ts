@@ -44,6 +44,7 @@ import type { UsageRecord } from '../usage/record-usage.ts';
 import { type ChatMessage, snapshotChatMessages } from './chat-messages.ts';
 import {
   type CacheControl,
+  type Prediction,
   type ReasoningEffort,
   type ResponseFormat,
   resolveOutputTokenLimit,
@@ -53,11 +54,13 @@ import {
   snapshotClientUser,
   snapshotLogitBias,
   snapshotLogprobControls,
+  snapshotPrediction,
   snapshotPromptCacheKey,
   snapshotResponseFormat,
   snapshotStopSequences,
   snapshotStreamOptions,
   type Verbosity,
+  validatePredictionControls,
   validMinP,
   validPenalty,
   validReasoningEffort,
@@ -99,6 +102,7 @@ const MAX_BODY_BYTES = 1024 * 1024;
 export type { ChatMessage } from './chat-messages.ts';
 
 export interface ChatRequest {
+  readonly prediction?: Prediction;
   readonly cache_control?: CacheControl;
   readonly metadata?: Readonly<Record<string, string>>;
   readonly user?: string;
@@ -419,6 +423,7 @@ function validateChat(
       (key) =>
         ![
           'model',
+          'prediction',
           'cache_control',
           'metadata',
           'user',
@@ -480,6 +485,7 @@ function validateChat(
   const topK = value.top_k ?? undefined;
   if (!validTopK(topK)) return undefined;
   let reasoning: ReasoningConfiguration | undefined;
+  let prediction: ReturnType<typeof snapshotPrediction>;
   let cacheControl: ReturnType<typeof snapshotCacheControl>;
   let metadata: ReturnType<typeof snapshotClientMetadata>;
   let user: ReturnType<typeof snapshotClientUser>;
@@ -491,6 +497,7 @@ function validateChat(
   let toolChoice: ReturnType<typeof snapshotToolChoice>;
   let parallelToolCalls: ReturnType<typeof snapshotParallelToolCalls>;
   try {
+    prediction = snapshotPrediction(value.prediction);
     cacheControl = snapshotCacheControl(value.cache_control);
     metadata = snapshotClientMetadata(value.metadata);
     user = snapshotClientUser(value.user);
@@ -519,10 +526,12 @@ function validateChat(
   const topP = value.top_p ?? undefined;
   if (!validTopP(topP)) return undefined;
   let maxTokens: number | undefined;
+  let maxCompletionTokens: unknown;
   let responseFormat: ResponseFormat | undefined;
   try {
     responseFormat = snapshotResponseFormat(value.response_format);
-    maxTokens = resolveOutputTokenLimit(value.max_tokens, value.max_completion_tokens);
+    maxCompletionTokens = value.max_completion_tokens;
+    maxTokens = resolveOutputTokenLimit(value.max_tokens, maxCompletionTokens);
   } catch {
     return undefined;
   }
@@ -536,6 +545,18 @@ function validateChat(
   let messages: readonly ChatMessage[];
   try {
     messages = snapshotChatMessages(normalizeClientTextMessages(value.messages));
+    validatePredictionControls(prediction, {
+      tools,
+      toolChoice,
+      parallelToolCalls,
+      logprobControls,
+      frequencyPenalty,
+      presencePenalty,
+      maxCompletionTokens,
+      hasFunctionHistory: messages.some(
+        (message) => message.role === 'tool' || message.tool_calls !== undefined,
+      ),
+    });
   } catch {
     return undefined;
   }
@@ -547,6 +568,7 @@ function validateChat(
     return undefined;
   return {
     model: value.model,
+    ...(prediction === undefined ? {} : { prediction }),
     ...(cacheControl === undefined ? {} : { cache_control: cacheControl }),
     ...(metadata === undefined ? {} : { metadata }),
     ...(user === undefined ? {} : { user }),

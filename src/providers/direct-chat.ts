@@ -8,10 +8,12 @@ import {
   snapshotClientUser,
   snapshotLogitBias,
   snapshotLogprobControls,
+  snapshotPrediction,
   snapshotPromptCacheKey,
   snapshotResponseFormat,
   snapshotStopSequences,
   snapshotStreamOptions,
+  validatePredictionControls,
   validPenalty,
   validReasoningEffort,
   validSeed,
@@ -369,6 +371,7 @@ function prepare(
   promptCacheKey: string | undefined,
   metadata: ReturnType<typeof snapshotClientMetadata>,
   cacheControl: ReturnType<typeof snapshotCacheControl>,
+  prediction: ReturnType<typeof snapshotPrediction>,
   streaming = false,
 ): { url: string; headers: Record<string, string>; body: object } {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
@@ -383,6 +386,7 @@ function prepare(
       headers,
       body: {
         model: candidate.upstreamModelId,
+        ...(prediction === undefined ? {} : { prediction }),
         ...(metadata === undefined ? {} : { metadata }),
         ...(user === undefined ? {} : { user }),
         ...(promptCacheKey === undefined ? {} : { prompt_cache_key: promptCacheKey }),
@@ -550,11 +554,14 @@ export function createDirectChatTransport(
     const registration = registrations.find((item) => item.providerId === candidate.providerId);
     if (!registration || candidate.kind !== 'managed') fail('other');
     let logprobControls: ReturnType<typeof snapshotLogprobControls>;
+    let prediction: ReturnType<typeof snapshotPrediction>;
     let cacheControl: ReturnType<typeof snapshotCacheControl>;
     let metadata: ReturnType<typeof snapshotClientMetadata>;
     let user: ReturnType<typeof snapshotClientUser>;
     let promptCacheKey: ReturnType<typeof snapshotPromptCacheKey>;
     try {
+      prediction = snapshotPrediction(request.prediction);
+      if (prediction !== undefined && registration.kind !== 'openai') fail('other');
       cacheControl = snapshotCacheControl(request.cache_control);
       if (cacheControl !== undefined && registration.kind !== 'anthropic') fail('other');
       metadata = snapshotClientMetadata(request.metadata);
@@ -660,8 +667,10 @@ export function createDirectChatTransport(
     const temperature = request.temperature ?? undefined;
     if (!validTemperature(temperature, registration.kind === 'anthropic' ? 1 : 2)) fail('other');
     let maxTokens: number | undefined;
+    let maxCompletionTokens: unknown;
     try {
-      maxTokens = resolveOutputTokenLimit(request.max_tokens, request.max_completion_tokens);
+      maxCompletionTokens = request.max_completion_tokens;
+      maxTokens = resolveOutputTokenLimit(request.max_tokens, maxCompletionTokens);
     } catch {
       fail('other');
     }
@@ -674,6 +683,18 @@ export function createDirectChatTransport(
     let messages: readonly ChatMessage[];
     try {
       messages = snapshotChatMessages(request.messages);
+      validatePredictionControls(prediction, {
+        tools,
+        toolChoice,
+        parallelToolCalls,
+        logprobControls,
+        frequencyPenalty,
+        presencePenalty,
+        maxCompletionTokens,
+        hasFunctionHistory: messages.some(
+          (message) => message.role === 'tool' || message.tool_calls !== undefined,
+        ),
+      });
       if (
         (registration.kind !== 'google' ||
           (streaming !== false && streaming !== 'google-function')) &&
@@ -751,6 +772,7 @@ export function createDirectChatTransport(
       promptCacheKey,
       metadata,
       cacheControl,
+      prediction,
       streaming !== false,
     );
     const body = JSON.stringify(prepared.body);

@@ -7,10 +7,12 @@ import {
   snapshotClientUser,
   snapshotLogitBias,
   snapshotLogprobControls,
+  snapshotPrediction,
   snapshotPromptCacheKey,
   snapshotResponseFormat,
   snapshotStopSequences,
   snapshotStreamOptions,
+  validatePredictionControls,
   validMinP,
   validPenalty,
   validReasoningEffort,
@@ -216,12 +218,14 @@ function prepareOpenRouterChatRequest(
   const presencePenalty = request.presence_penalty ?? undefined;
   if (!validPenalty(frequencyPenalty) || !validPenalty(presencePenalty)) fail('configuration');
   let reasoning: ReturnType<typeof snapshotReasoningConfiguration>;
+  let prediction: ReturnType<typeof snapshotPrediction>;
   let cacheControl: ReturnType<typeof snapshotCacheControl>;
   let metadata: ReturnType<typeof snapshotClientMetadata>;
   let user: ReturnType<typeof snapshotClientUser>;
   let promptCacheKey: ReturnType<typeof snapshotPromptCacheKey>;
   let responseFormat: ReturnType<typeof snapshotResponseFormat>;
   try {
+    prediction = snapshotPrediction(request.prediction);
     cacheControl = snapshotCacheControl(request.cache_control);
     metadata = snapshotClientMetadata(request.metadata);
     user = snapshotClientUser(request.user);
@@ -273,8 +277,10 @@ function prepareOpenRouterChatRequest(
   const temperature = request.temperature ?? undefined;
   if (!validTemperature(temperature)) fail('configuration');
   let maxTokens: number | undefined;
+  let maxCompletionTokens: unknown;
   try {
-    maxTokens = resolveOutputTokenLimit(request.max_tokens, request.max_completion_tokens);
+    maxCompletionTokens = request.max_completion_tokens;
+    maxTokens = resolveOutputTokenLimit(request.max_tokens, maxCompletionTokens);
   } catch {
     fail('configuration');
   }
@@ -296,6 +302,18 @@ function prepareOpenRouterChatRequest(
   let messages: readonly ChatMessage[];
   try {
     messages = snapshotChatMessages(request.messages);
+    validatePredictionControls(prediction, {
+      tools,
+      toolChoice,
+      parallelToolCalls,
+      logprobControls,
+      frequencyPenalty,
+      presencePenalty,
+      maxCompletionTokens,
+      hasFunctionHistory: messages.some(
+        (message) => message.role === 'tool' || message.tool_calls !== undefined,
+      ),
+    });
     if (
       messages.some((message) =>
         message.tool_calls?.some((call) => call.extra_content !== undefined),
@@ -312,6 +330,7 @@ function prepareOpenRouterChatRequest(
     timeoutMs,
     body: Object.freeze({
       model: fixedAttempt.upstreamModelId,
+      ...(prediction === undefined ? {} : { prediction }),
       ...(cacheControl === undefined ? {} : { cache_control: cacheControl }),
       ...(metadata === undefined ? {} : { metadata }),
       ...(user === undefined ? {} : { user }),

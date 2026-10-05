@@ -300,3 +300,78 @@ export function snapshotCacheControl(value: unknown): CacheControl | undefined {
     throw new TypeError('Invalid cache control');
   return Object.freeze({ type, ...(ttl === undefined ? {} : { ttl }) });
 }
+
+export interface PredictionTextPart {
+  readonly type: 'text';
+  readonly text: string;
+}
+export interface Prediction {
+  readonly type: 'content';
+  readonly content: string | readonly PredictionTextPart[];
+}
+
+/** Capture expected output as private content without inserting it into message history. */
+export function snapshotPrediction(value: unknown): Prediction | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (!predictionObject(value, ['type', 'content'])) throw new TypeError('Invalid prediction');
+  const type = value.type;
+  const content = value.content;
+  if (type !== 'content') throw new TypeError('Invalid prediction');
+  if (typeof content === 'string') return Object.freeze({ type, content });
+  if (!Array.isArray(content)) throw new TypeError('Invalid prediction');
+  const length = content.length;
+  if (!Number.isSafeInteger(length) || length < 0 || length > 128)
+    throw new TypeError('Invalid prediction');
+  const source: readonly unknown[] = content;
+  const parts: PredictionTextPart[] = [];
+  for (let index = 0; index < length; index++) {
+    if (!Object.hasOwn(source, index)) throw new TypeError('Invalid prediction');
+    const part = source[index];
+    if (!predictionObject(part, ['type', 'text'])) throw new TypeError('Invalid prediction');
+    const partType = part.type;
+    const text = part.text;
+    if (partType !== 'text' || typeof text !== 'string') throw new TypeError('Invalid prediction');
+    parts.push(Object.freeze({ type: partType, text }));
+  }
+  return Object.freeze({ type, content: Object.freeze(parts) });
+}
+function predictionObject(
+  value: unknown,
+  fields: readonly string[],
+): value is Record<string, unknown> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+  const prototype = Object.getPrototypeOf(value);
+  return (
+    (prototype === Object.prototype || prototype === null) &&
+    fields.every((field) => Object.hasOwn(value, field)) &&
+    Object.keys(value).every((field) => fields.includes(field))
+  );
+}
+interface PredictionControls {
+  readonly tools: unknown;
+  readonly toolChoice: unknown;
+  readonly parallelToolCalls: unknown;
+  readonly logprobControls: Readonly<{ logprobs?: boolean; top_logprobs?: number }>;
+  readonly frequencyPenalty: number | undefined;
+  readonly presencePenalty: number | undefined;
+  readonly maxCompletionTokens: unknown;
+  readonly hasFunctionHistory: boolean;
+}
+/** This portable subset excludes unsupported or unverified prediction combinations. */
+export function validatePredictionControls(
+  prediction: Prediction | undefined,
+  controls: PredictionControls,
+): void {
+  if (prediction === undefined) return;
+  if (
+    controls.tools !== undefined ||
+    controls.toolChoice !== undefined ||
+    controls.parallelToolCalls !== undefined ||
+    Object.keys(controls.logprobControls).length > 0 ||
+    (controls.frequencyPenalty ?? 0) > 0 ||
+    (controls.presencePenalty ?? 0) > 0 ||
+    controls.maxCompletionTokens != null ||
+    controls.hasFunctionHistory
+  )
+    throw new TypeError('Unsupported prediction controls');
+}

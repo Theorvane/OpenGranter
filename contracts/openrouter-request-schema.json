@@ -1,9 +1,9 @@
 {
-  "version": 24,
+  "version": 25,
   "source": "https://openrouter.ai/openapi.json",
   "retrievedAt": "2026-10-05",
   "sourceSha256": "0f220980d0c335ca4b4efd5684e1055f88eb84e73d4e34b0b9a859c9d2cf0458",
-  "projectionSha256": "740eb23ab1f0aba16debd3644680a8fa415cb396989f42737fbc571e43cad53a",
+  "projectionSha256": "97a20d69c42f3885237fde3851a268eed07dc797ac914b07567bae64675af114",
   "projection": {
     "openapi": "3.1.0",
     "documentVersion": "1.0.0",
@@ -614,6 +614,9 @@
       "cache_control": {
         "$ref": "#/components/schemas/AnthropicCacheControlDirective"
       },
+      "prediction": {
+        "$ref": "#/components/schemas/Prediction"
+      },
       "stream": {
         "default": false,
         "type": "boolean"
@@ -821,6 +824,55 @@
       }
     },
     "definitions": {
+      "Prediction": {
+        "properties": {
+          "content": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "items": {
+                  "$ref": "#/components/schemas/PredictionContentText"
+                },
+                "type": "array"
+              }
+            ]
+          },
+          "type": {
+            "enum": [
+              "content"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "content"
+        ],
+        "type": [
+          "object",
+          "null"
+        ]
+      },
+      "PredictionContentText": {
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "text"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "text"
+        ],
+        "type": "object"
+      },
       "AnthropicCacheControlDirective": {
         "properties": {
           "ttl": {
