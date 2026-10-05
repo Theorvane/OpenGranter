@@ -71,6 +71,7 @@ export function prepareAnthropicMessages(messages: readonly ChatMessage[]): read
   const native: { role: string; content: string | null | object[] }[] = [];
   let results: object[] | undefined;
   for (const message of messages) {
+    if (typeof message.content !== 'string' && message.content !== null) invalid();
     if (message.role === 'tool') {
       if (!results) {
         results = [];

@@ -31,6 +31,10 @@ import {
   snapshotParallelToolCalls,
   snapshotToolChoice,
 } from '../gateway/chat-tools.ts';
+import {
+  hasPromptCacheBreakpoints,
+  validatePromptCacheHistory,
+} from '../gateway/prompt-cache-parts.ts';
 import type { RouteCandidate } from '../routing/authorize-candidates.ts';
 import { DirectProviderFailure } from '../routing/invoke-jev-managed-route.ts';
 import { waitForStreamOperation } from '../streaming/wait-for-stream-operation.ts';
@@ -697,6 +701,8 @@ export function createDirectChatTransport(
     let messages: readonly ChatMessage[];
     try {
       messages = snapshotChatMessages(request.messages);
+      validatePromptCacheHistory(cacheControl, messages);
+      if (registration.kind !== 'openai' && hasPromptCacheBreakpoints(messages)) fail('other');
       validatePredictionControls(prediction, {
         tools,
         toolChoice,

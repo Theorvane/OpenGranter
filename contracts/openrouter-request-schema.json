@@ -1,9 +1,9 @@
 {
-  "version": 27,
+  "version": 28,
   "source": "https://openrouter.ai/openapi.json",
   "retrievedAt": "2026-10-05",
   "sourceSha256": "0f220980d0c335ca4b4efd5684e1055f88eb84e73d4e34b0b9a859c9d2cf0458",
-  "projectionSha256": "9a05828adb4babe323c3476b790b92aa56b3b3d09cc16a36c39915544a004150",
+  "projectionSha256": "58e9a0a83abf7e1863d552979158684fe72dec43df1318e8d8ddcb7a81ef22b7",
   "projection": {
     "openapi": "3.1.0",
     "documentVersion": "1.0.0",
@@ -839,6 +839,58 @@
       }
     },
     "definitions": {
+      "ChatContentText": {
+        "properties": {
+          "cache_control": {
+            "$ref": "#/components/schemas/ChatContentCacheControl"
+          },
+          "prompt_cache_breakpoint": {
+            "$ref": "#/components/schemas/PromptCacheBreakpoint"
+          },
+          "text": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "text"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "text"
+        ],
+        "type": "object"
+      },
+      "PromptCacheBreakpoint": {
+        "properties": {
+          "mode": {
+            "enum": [
+              "explicit"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode"
+        ],
+        "type": [
+          "object",
+          "null"
+        ]
+      },
+      "ChatContentCacheControl": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/AnthropicCacheControlDirective"
+          },
+          {
+            "properties": {},
+            "type": "object"
+          }
+        ]
+      },
       "PromptCacheOptions": {
         "properties": {
           "mode": {
