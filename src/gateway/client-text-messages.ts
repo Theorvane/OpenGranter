@@ -1,5 +1,6 @@
 import { snapshotCacheControl } from './chat-parameters.ts';
-import { type PromptCacheTextPart, snapshotPromptCacheBreakpoint } from './prompt-cache-parts.ts';
+import { MAX_INLINE_IMAGE_HISTORY_UNITS, snapshotInlineImagePart } from './inline-image-parts.ts';
+import { type ChatContentPart, snapshotPromptCacheBreakpoint } from './prompt-cache-parts.ts';
 
 function record(value: unknown): Record<string, unknown> | undefined {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -7,10 +8,11 @@ function record(value: unknown): Record<string, unknown> | undefined {
     : undefined;
 }
 
-/** Normalize external text/refusal parts; retain keys for the protocol validator. */
+/** Normalize external text/refusal/inline-image parts; retain keys for protocol validation. */
 export function normalizeClientTextMessages(value: unknown): readonly Record<string, unknown>[] {
   if (!Array.isArray(value) || value.length === 0) throw new TypeError('Invalid client messages');
   const messages: Record<string, unknown>[] = [];
+  let imageUnits = 0;
   for (const item of value) {
     const message = record(item);
     if (!message) throw new TypeError('Invalid client messages');
@@ -25,13 +27,23 @@ export function normalizeClientTextMessages(value: unknown): readonly Record<str
       const inputParts: readonly unknown[] = content;
       const parts = Array.from({ length: inputParts.length }, (_, index) => inputParts[index]);
       let text = '';
-      const captured: PromptCacheTextPart[] = [];
+      const captured: ChatContentPart[] = [];
       let marked = false;
+      let images = false;
       let refusal: string | undefined;
       for (const raw of parts) {
         const part = record(raw);
         if (!part) throw new TypeError('Invalid client messages');
         const type = part.type;
+        if (type === 'image_url' && fields.role === 'user') {
+          const image = snapshotInlineImagePart(part, type);
+          imageUnits += image.image_url.url.length;
+          if (imageUnits > MAX_INLINE_IMAGE_HISTORY_UNITS)
+            throw new TypeError('Invalid client messages');
+          captured.push(image);
+          images = true;
+          continue;
+        }
         if (type === 'refusal' && fields.role === 'assistant' && parts.length === 1) {
           const payload = part.refusal;
           if (
@@ -75,7 +87,8 @@ export function normalizeClientTextMessages(value: unknown): readonly Record<str
         messages.push({ ...fields, content: null, refusal });
         continue;
       }
-      content = marked ? Object.freeze(captured) : text;
+      if (images && marked) throw new TypeError('Invalid client messages');
+      content = marked || images ? Object.freeze(captured) : text;
     }
     messages.push({ ...fields, content: content === undefined ? null : content });
   }
