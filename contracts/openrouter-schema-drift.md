@@ -131,3 +131,7 @@ Version 28 adds whole ChatContentText, PromptCacheBreakpoint and ChatContentCach
 Issue #444 implements the bounded text-block directive subset using the existing version-28 selections; the pin/projector and their digests remain unchanged. Fresh fixed-host structural equality is verified. Runtime count/TTL-order/empty-text/mixed-control restrictions are local contract rules rather than invented source constraints. See [contract](text-block-cache-control.md).
 
 Issue #446 implements portable function-wrapper cache_control using the existing version-28 whole ChatFunctionTool and cache/directive/TTL selections. Pin/projector/digests remain unchanged, with fresh official fixed-host structural equality. Local complete-prompt count/order/mixed-format restrictions are runtime contract rules. See [contract](function-tool-cache-control.md).
+
+## Separate discovery-query guard (#458)
+
+The existing offline/live commands also validate a separate version-1 [model-query pin contract](model-query-schema.md). Validate both before one shared fixed-host bounded retrieval and report each subset separately. Preserve this version-30 chat pin byte-for-byte; no chat selections or normalization semantics change. Invalid/unavailable data exposes the existing safe diagnostic without pin writes. Neither subset certifies complete compatibility.

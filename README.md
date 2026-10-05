@@ -33,7 +33,7 @@ npm ci
 npm run check
 ```
 
-The command checks TypeScript types, formatting, linting, policy and route-authorization contract tests, document links, contract structure, and common credential patterns in fixtures. The gate also validates the pinned OpenRouter request-schema projection offline. More service tests will be added as implementation proceeds.
+The command checks TypeScript types, formatting, linting, policy and route-authorization contract tests, document links, contract structure, and common credential patterns in fixtures. The gate also validates the pinned OpenRouter chat and supported model-query structural projections offline. More service tests will be added as implementation proceeds.
 
 
 ## PostgreSQL integration checks
@@ -51,6 +51,6 @@ Use only a disposable database; the integration test creates a uniquely named sc
 
 ## OpenRouter schema drift
 
-`npm run compatibility:check` validates the reviewed request-schema pin without network access and is included in `npm run check`. Run `npm run compatibility:drift` explicitly to compare selected structural fields against the official public schema; it performs no inference, sends no credentials, and does not update the pin. Review differences through an issue and pull request before updating provenance and contract expectations.
+`npm run compatibility:check` validates the reviewed chat and supported model-query pins without network access and is included in `npm run check`. Run `npm run compatibility:drift` explicitly to compare both selected structural projections against one bounded retrieval of the official public schema; it performs no inference, sends no credentials, and does not update either pin. Review differences through an issue and pull request before updating provenance and contract expectations.
 
-This covers selected request definitions, not full schema validation, referenced definitions, streaming, tools or named external-client certification. See [coverage and limitations](contracts/openrouter-schema-drift.md).
+This covers selected chat definitions and five model query objects, not full instance validation, all referenced targets or complete external-client certification. See [chat coverage and limitations](contracts/openrouter-schema-drift.md) and [model-query coverage and limitations](contracts/model-query-schema.md).
