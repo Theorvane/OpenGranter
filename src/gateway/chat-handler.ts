@@ -58,6 +58,7 @@ import {
   snapshotPrediction,
   snapshotPromptCacheKey,
   snapshotPromptCacheOptions,
+  snapshotRequestServiceTier,
   snapshotResponseFormat,
   snapshotSessionId,
   snapshotStopSequences,
@@ -116,6 +117,7 @@ export interface ChatRequest {
   readonly metadata?: Readonly<Record<string, string>>;
   readonly user?: string;
   readonly session_id?: string;
+  readonly service_tier?: ReturnType<typeof snapshotRequestServiceTier> | null;
   readonly prompt_cache_key?: string;
   readonly stream_options?: StreamOptions;
   readonly model: string;
@@ -441,6 +443,7 @@ function validateChat(
           'metadata',
           'user',
           'session_id',
+          'service_tier',
           'prompt_cache_key',
           'messages',
           'stream',
@@ -506,6 +509,7 @@ function validateChat(
   let metadata: ReturnType<typeof snapshotClientMetadata>;
   let user: ReturnType<typeof snapshotClientUser>;
   let sessionId: ReturnType<typeof snapshotSessionId>;
+  let serviceTier: ReturnType<typeof snapshotRequestServiceTier>;
   let promptCacheKey: ReturnType<typeof snapshotPromptCacheKey>;
   let logitBias: ReturnType<typeof snapshotLogitBias>;
   let logprobControls: ReturnType<typeof snapshotLogprobControls>;
@@ -520,6 +524,7 @@ function validateChat(
     cacheControl = snapshotCacheControl(value.cache_control);
     validateCacheOptionsControls(cacheOptions, cacheControl);
     metadata = snapshotClientMetadata(value.metadata);
+    serviceTier = snapshotRequestServiceTier(value.service_tier);
     user = snapshotClientUser(value.user);
     sessionId = snapshotSessionId(
       Object.hasOwn(value, 'session_id') ? value.session_id : (sessionHeader ?? undefined),
@@ -599,6 +604,7 @@ function validateChat(
     ...(metadata === undefined ? {} : { metadata }),
     ...(user === undefined ? {} : { user }),
     ...(sessionId === undefined ? {} : { session_id: sessionId }),
+    ...(serviceTier === undefined ? {} : { service_tier: serviceTier }),
     ...(promptCacheKey === undefined ? {} : { prompt_cache_key: promptCacheKey }),
     messages,
     ...(value.stream === true ? { stream: true } : {}),
