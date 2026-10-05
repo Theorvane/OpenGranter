@@ -106,10 +106,10 @@ test('probability projection selects exact nullable controls and full token/grou
     assert.deepEqual(p.fields[name], shape);
   for (const [name, shape] of Object.entries(probabilityShapes))
     assert.equal(canonicalSchema(p.responseDefinitions[name]), canonicalSchema(shape));
-  assert.equal(Object.keys(p.fields).length, 26);
+  assert.equal(Object.keys(p.fields).length, 27);
   assert.deepEqual(p.fields.user, { type: 'string' });
   assert.equal(Object.keys(p.responseDefinitions).length, 5);
-  assert.equal(pinned.version, 21);
+  assert.equal(pinned.version, 22);
   assert.equal(compareOfficialSchema(source(), pinned), true);
 });
 
@@ -230,7 +230,7 @@ for (const name of ['logprobs', 'top_logprobs'])
     }
   });
 test('probability selection rejects stale versions and rehashed invalid exact maps', () => {
-  for (let version = 1; version < 21; version++)
+  for (let version = 1; version < 22; version++)
     assert.throws(() => validateSchemaPin({ ...pinned, version }), {
       message: 'Invalid schema pin',
     });

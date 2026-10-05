@@ -185,6 +185,13 @@ export function snapshotClientUser(value: unknown): string | undefined {
   return value;
 }
 
+/** Optional cache preferences remain independent of identity and reported token usage. */
+export function snapshotPromptCacheKey(value: unknown): string | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== 'string') throw new TypeError('Invalid prompt cache key');
+  return value;
+}
+
 export type ReasoningEffort = 'max' | 'xhigh' | 'high' | 'medium' | 'low' | 'minimal' | 'none';
 
 /** Optional delegated reasoning shorthand; omission preserves upstream defaults. */

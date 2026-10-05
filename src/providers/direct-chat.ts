@@ -6,6 +6,7 @@ import {
   snapshotClientUser,
   snapshotLogitBias,
   snapshotLogprobControls,
+  snapshotPromptCacheKey,
   snapshotResponseFormat,
   snapshotStopSequences,
   snapshotStreamOptions,
@@ -363,6 +364,7 @@ function prepare(
   reasoningEffort: ReasoningEffort | undefined,
   logprobControls: ReturnType<typeof snapshotLogprobControls>,
   user: string | undefined,
+  promptCacheKey: string | undefined,
   streaming = false,
 ): { url: string; headers: Record<string, string>; body: object } {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
@@ -378,6 +380,7 @@ function prepare(
       body: {
         model: candidate.upstreamModelId,
         ...(user === undefined ? {} : { user }),
+        ...(promptCacheKey === undefined ? {} : { prompt_cache_key: promptCacheKey }),
         messages: inputMessages,
         stream: streaming,
         ...(streaming ? { stream_options: { include_usage: true } } : {}),
@@ -542,8 +545,11 @@ export function createDirectChatTransport(
     if (!registration || candidate.kind !== 'managed') fail('other');
     let logprobControls: ReturnType<typeof snapshotLogprobControls>;
     let user: ReturnType<typeof snapshotClientUser>;
+    let promptCacheKey: ReturnType<typeof snapshotPromptCacheKey>;
     try {
       user = snapshotClientUser(request.user);
+      promptCacheKey = snapshotPromptCacheKey(request.prompt_cache_key);
+      if (promptCacheKey !== undefined && registration.kind !== 'openai') fail('other');
       if (user !== undefined && registration.kind !== 'openai') fail('other');
       logprobControls = snapshotLogprobControls(request.logprobs, request.top_logprobs);
       if (
@@ -730,6 +736,7 @@ export function createDirectChatTransport(
       reasoningEffort,
       logprobControls,
       user,
+      promptCacheKey,
       streaming !== false,
     );
     const body = JSON.stringify(prepared.body);
