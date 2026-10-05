@@ -1,4 +1,8 @@
-import type { CacheControl } from './chat-parameters.ts';
+import {
+  type CacheControl,
+  type PromptCacheOptions,
+  snapshotCacheControl,
+} from './chat-parameters.ts';
 
 export interface PromptCacheBreakpoint {
   readonly mode: 'explicit';
@@ -7,6 +11,7 @@ export interface PromptCacheTextPart {
   readonly type: 'text';
   readonly text: string;
   readonly prompt_cache_breakpoint?: PromptCacheBreakpoint;
+  readonly cache_control?: CacheControl;
 }
 /** Nullable source markers normalize locally to omission, without native null claims. */
 export function snapshotPromptCacheBreakpoint(value: unknown): PromptCacheBreakpoint | undefined {
@@ -48,7 +53,9 @@ export function snapshotPromptCacheTextParts(value: unknown): readonly PromptCac
       (prototype !== Object.prototype && prototype !== null) ||
       !Object.hasOwn(raw, 'type') ||
       !Object.hasOwn(raw, 'text') ||
-      Object.keys(raw).some((key) => !['type', 'text', 'prompt_cache_breakpoint'].includes(key))
+      Object.keys(raw).some(
+        (key) => !['type', 'text', 'prompt_cache_breakpoint', 'cache_control'].includes(key),
+      )
     )
       throw new TypeError('Invalid chat messages');
     const type: unknown = Reflect.get(raw, 'type'),
@@ -58,13 +65,18 @@ export function snapshotPromptCacheTextParts(value: unknown): readonly PromptCac
         ? Reflect.get(raw, 'prompt_cache_breakpoint')
         : undefined,
     );
+    const directive = Object.hasOwn(raw, 'cache_control')
+      ? snapshotCacheControl(Reflect.get(raw, 'cache_control'))
+      : undefined;
     if (type !== 'text' || typeof text !== 'string') throw new TypeError('Invalid chat messages');
-    if (marker !== undefined) marked = true;
+    if (directive !== undefined && text.length === 0) throw new TypeError('Invalid chat messages');
+    if (marker !== undefined || directive !== undefined) marked = true;
     parts.push(
       Object.freeze({
         type,
         text,
         ...(marker === undefined ? {} : { prompt_cache_breakpoint: marker }),
+        ...(directive === undefined ? {} : { cache_control: directive }),
       }),
     );
   }
@@ -72,17 +84,49 @@ export function snapshotPromptCacheTextParts(value: unknown): readonly PromptCac
   return Object.freeze(parts);
 }
 export function hasPromptCacheBreakpoints(
-  messages: readonly { readonly content: unknown }[],
+  messages: readonly { readonly content: string | null | readonly PromptCacheTextPart[] }[],
 ): boolean {
-  return messages.some((message) => Array.isArray(message.content));
+  return messages.some(
+    ({ content }) =>
+      typeof content !== 'string' &&
+      content !== null &&
+      content.some((part) => part.prompt_cache_breakpoint !== undefined),
+  );
+}
+export function hasBlockCacheControls(
+  messages: readonly { readonly content: string | null | readonly PromptCacheTextPart[] }[],
+): boolean {
+  return messages.some(
+    ({ content }) =>
+      typeof content !== 'string' &&
+      content !== null &&
+      content.some((part) => part.cache_control !== undefined),
+  );
 }
 /** Keep request-level mixed-format precedence outside this bounded subset. */
 export function validatePromptCacheHistory(
   cacheControl: CacheControl | undefined,
-  messages: readonly { readonly content: unknown }[],
+  messages: readonly { readonly content: string | null | readonly PromptCacheTextPart[] }[],
+  options?: PromptCacheOptions,
 ): void {
-  if (cacheControl !== undefined && hasPromptCacheBreakpoints(messages))
+  const breakpoints = hasPromptCacheBreakpoints(messages),
+    blocks = hasBlockCacheControls(messages);
+  if (
+    (cacheControl !== undefined && (breakpoints || blocks)) ||
+    (blocks && (breakpoints || options !== undefined))
+  )
     throw new TypeError('Unsupported cache controls');
+  let count = 0,
+    shortSeen = false;
+  for (const { content } of messages) {
+    if (typeof content === 'string' || content === null) continue;
+    for (const { cache_control: directive } of content) {
+      if (directive === undefined) continue;
+      if (++count > 4 || (directive.ttl === '1h' && shortSeen))
+        throw new TypeError('Unsupported cache controls');
+      if (directive.ttl !== '1h') shortSeen = true;
+    }
+  }
 }
 /** Preserve the existing opt-in selector text view, including literal nullable content. */
 export function chatContentText(content: string | null | readonly PromptCacheTextPart[]): string {

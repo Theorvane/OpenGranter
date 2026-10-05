@@ -13,3 +13,5 @@ Version 28 retains 32 fields and selects 22 request-history definitions, adding 
 Installed OpenAI 7.23.0 and OpenRouter 1.4.18 socket fixtures exercise both bases/routes and all supported delivery modes, not live caching. Source guide and SDK lookup-window prose differ; neither window nor documented write limits constrain this local marker count. Native conversions, block cache directives, mixed formats, richer parts, live model/cache guarantees, full #116 and unresolved #7 remain open.
 
 Sources: [OpenRouter schema](https://openrouter.ai/openapi.json), [OpenRouter caching](https://openrouter.ai/docs/guides/best-practices/prompt-caching), [OpenAI caching](https://developers.openai.com/api/docs/guides/prompt-caching), [OpenAI Chat reference](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create).
+
+The #442 source selection alone did not enable block directives; #444 now supports the separately bounded [text block cache control](text-block-cache-control.md) subset. Both marker families together remain rejected.
