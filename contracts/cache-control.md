@@ -12,4 +12,4 @@ Version 24 selects 29 request fields and 16 request/history definitions, adding 
 
 Sources: [OpenRouter OpenAPI](https://openrouter.ai/openapi.json), [OpenRouter caching](https://openrouter.ai/docs/guides/best-practices/prompt-caching), [Anthropic Messages](https://platform.claude.com/docs/en/api/messages/create), [Anthropic caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching).
 
-The #434 request-level slice excluded explicit blocks; #444 now supports the separate [text block cache control](text-block-cache-control.md) subset. Combining automatic and explicit controls remains rejected locally.
+The #434 request-level slice excluded explicit blocks; #444 now supports the separate [text block cache control](text-block-cache-control.md) subset. The #448 [automatic/explicit contract](automatic-explicit-cache-control.md) now permits the documented bounded same-format coexistence subset. Other mixtures remain rejected locally.

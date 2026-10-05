@@ -248,10 +248,10 @@ for (const kind of ['anthropic', 'openrouter'] as const)
       kind +
         ' stream=' +
         stream +
-        ': mixed root/OpenAI cache formats reject before routing/credentials',
+        ': invalid root combinations and mixed OpenAI formats reject before routing/credentials',
       async () => {
         for (const extra of [
-          { cache_control: { type: 'ephemeral' } },
+          { cache_control: { type: 'ephemeral' }, messages: blockHistory },
           { prompt_cache_options: { mode: 'explicit' } },
           {
             messages: [

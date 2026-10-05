@@ -261,10 +261,10 @@ for (const kind of ['anthropic', 'openrouter'] as const)
       kind +
         ' stream=' +
         stream +
-        ': unverified cache format combinations reject before routes/secrets',
+        ': invalid final TTL and unverified format combinations reject before routes/secrets',
       async () => {
         for (const fields of [
-          { cache_control: { type: 'ephemeral' } },
+          { cache_control: { type: 'ephemeral' }, messages: messages([blockParts[0]]) },
           { prompt_cache_options: { mode: 'explicit' } },
           {
             messages: [
