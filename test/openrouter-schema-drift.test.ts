@@ -883,7 +883,7 @@ test('offline CLI validates the pin without requiring network access', () => {
   assert.equal(result.status, 0);
   assert.equal(
     result.stdout.trim(),
-    'PASS pinned OpenRouter request schema integrity\nPASS pinned OpenRouter model-query schema integrity',
+    'PASS pinned OpenRouter request schema integrity\nPASS pinned OpenRouter model-query schema integrity\nPASS pinned OpenRouter model-response schema integrity',
   );
 });
 
