@@ -1,0 +1,15 @@
+# Delegated session identifiers contract
+
+Issue #452. Plan: [452-session-identifiers](../docs/plans/452-session-identifiers.md).
+
+Both /v1 and /api/v1 accept optional non-null session_id for delegated OpenRouter nonstream/text/refusal/function streams. HTTP selects a present body field before x-session-id, including empty body strings. Invalid/null body values reject rather than falling back; valid body values ignore invalid/overlong unselected headers. Missing body uses the platform-parsed header value; empty header remains present through the Node bridge. Omission adds no identifier/default. Header parsing may normalize HTTP whitespace or combine duplicates; exactness refers to the parsed value rather than raw bytes.
+
+Capture a primitive string once before asynchronous route/credential work. At most256 Unicode code points, following JSON Schema maxLength: astral characters count once, combining marks count individually. Preserve exact text/case/whitespace/Unicode and empty strings, without hashing, trimming or concatenating identifiers. Null/nonstrings/boxed values and overlong selected strings reject before routes/credentials. Throwing getters fail safely; later mutation cannot alter prepared values.
+
+Delegated requests contain only the selected session_id body field; no caller header is proxied wholesale. Existing fixed approved model/provider.only and selected final-provider enforcement remain unchanged. Native OpenAI/Anthropic/Gemini supplied identifiers reject before secrets without user/cache key/metadata/cachedContent substitution. Independent user, prompt_cache_key, metadata, cache controls and correlated function history remain independent. The identifier never supplies principalId, credentialId, requestId, route/model/provider identity or accounting keys.
+
+Auth/IAM/Deny/limits/hosts, private operational records/errors, required audit/usage before terminal delivery, reported/missing usage and safe possibly-billed failure/cancellation remain shared. Do not echo/log the identifier or infer stickiness, cache hits, retained context, usage, savings or provider-billed cost. No gateway session state or new Jev disclosure is created.
+
+Version 29 selects 33 fields and the unchanged 22 request-history definitions, adding only the exact non-null string/maxLength256 session_id schema. No minimum/pattern/enum/default is invented. Canonical removal reproduces version 28; offline integrity, fresh fixed-host comparison, structural drift and stale/rehashed map guards apply. Actual OpenAI 7.23.0/OpenRouter 1.4.18 sockets certify captured bounded requests, not live provider stickiness. Trace/broadcast integration, native equivalents, route overrides, full #116 and unresolved #7 remain open.
+
+Sources: [OpenRouter chat schema](https://openrouter.ai/openapi.json), [OpenRouter session identifiers](https://openrouter.ai/docs/guides/best-practices/prompt-caching#using-session-id-for-sticky-sessions), [JSON Schema string model](https://json-schema.org/draft/2020-12/json-schema-core#section-4.2.1), [maxLength](https://json-schema.org/draft/2020-12/json-schema-validation#section-6.3.1).

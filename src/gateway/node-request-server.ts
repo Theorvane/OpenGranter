@@ -23,7 +23,7 @@ export function createNodeRequestServer(handle: (request: Request) => Promise<Re
       for (let index = 0; index < incoming.rawHeaders.length; index += 2) {
         const name = incoming.rawHeaders[index];
         const value = incoming.rawHeaders[index + 1];
-        if (name && value) headers.append(name, value);
+        if (name && value !== undefined) headers.append(name, value);
       }
       const path = incoming.url?.startsWith('/') ? incoming.url : '/';
       const method = incoming.method ?? 'GET';
