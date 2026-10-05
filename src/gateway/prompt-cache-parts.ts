@@ -105,6 +105,24 @@ export function hasBlockCacheControls(
       content.some((part) => part.cache_control !== undefined),
   );
 }
+/** Anthropic promotes only the last nested result marker; earlier boundaries cannot move. */
+export function finalToolResultCacheControl(
+  content: string | readonly PromptCacheTextPart[],
+): CacheControl | undefined {
+  if (typeof content === 'string') return undefined;
+  const last = content.at(-1)?.cache_control;
+  if (
+    last === undefined ||
+    !content.at(-1)?.text.length ||
+    content.some(
+      (part, index) =>
+        part.prompt_cache_breakpoint !== undefined ||
+        (index < content.length - 1 && part.cache_control !== undefined),
+    )
+  )
+    throw new TypeError('Unsupported cache controls');
+  return last;
+}
 /** Identify the last eligible block in the supported tools/system/messages projection. */
 function automaticTarget(
   messages: readonly ChatMessage[],
@@ -130,7 +148,8 @@ function automaticTarget(
     if (message.role === 'system' || message.role === 'developer') continue;
     const content = message.content;
     if (message.role === 'tool') {
-      target = undefined; // The outer tool_result is eligible even when its string is empty.
+      // The outer result is eligible even when its string is empty; final nested markers promote.
+      target = finalToolResultCacheControl(message.content);
     } else {
       if (typeof content === 'string') {
         if (content.length) target = undefined;
@@ -173,9 +192,6 @@ export function validatePromptCacheHistory(
     if (directive.ttl !== '1h') shortSeen = true;
   }
   if (cacheControl !== undefined && blocks) {
-    // Nested result markers need their own boundary-preserving mapping before coexistence.
-    if (messages.some((m) => m.role === 'tool' && typeof m.content !== 'string'))
-      throw new TypeError('Unsupported cache controls');
     const target = automaticTarget(messages, tools);
     if (
       (target !== undefined && (target.ttl ?? '5m') !== (cacheControl.ttl ?? '5m')) ||
