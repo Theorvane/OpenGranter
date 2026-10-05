@@ -506,14 +506,14 @@ test('native Anthropic and Gemini do not translate unrelated service tier fields
   }
 });
 
-test('response tier support does not accept client tier routing controls', async () => {
+test('response tier metadata does not permit unrecognized request tier controls', async () => {
   for (const kind of ['openai', 'openrouter'] as const)
     for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
       const f = fixture(kind, 'response', undefined, 'stop', '', undefined, 'private-tier');
       const incoming = new Request(`http://localhost${path}`, {
         method: 'POST',
         headers: { authorization: 'Bearer fixture', 'content-type': 'application/json' },
-        body: JSON.stringify({ ...input, service_tier: 'auto' }),
+        body: JSON.stringify({ ...input, service_tier: 'private-unrecognized-tier' }),
       });
       const response = await f.handler(incoming);
       assert.equal(response.status, 400);

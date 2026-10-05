@@ -10,6 +10,7 @@ import {
   snapshotPrediction,
   snapshotPromptCacheKey,
   snapshotPromptCacheOptions,
+  snapshotRequestServiceTier,
   snapshotResponseFormat,
   snapshotSessionId,
   snapshotStopSequences,
@@ -230,6 +231,7 @@ function prepareOpenRouterChatRequest(
   let metadata: ReturnType<typeof snapshotClientMetadata>;
   let user: ReturnType<typeof snapshotClientUser>;
   let sessionId: ReturnType<typeof snapshotSessionId>;
+  let serviceTier: ReturnType<typeof snapshotRequestServiceTier>;
   let promptCacheKey: ReturnType<typeof snapshotPromptCacheKey>;
   let responseFormat: ReturnType<typeof snapshotResponseFormat>;
   try {
@@ -239,6 +241,9 @@ function prepareOpenRouterChatRequest(
     cacheControl = snapshotCacheControl(request.cache_control);
     validateCacheOptionsControls(cacheOptions, cacheControl);
     metadata = snapshotClientMetadata(request.metadata);
+    serviceTier = snapshotRequestServiceTier(request.service_tier);
+    // Expanded or unverified tier routing is outside the reviewed provider-slug scope.
+    if (serviceTier !== undefined && serviceTier !== 'default') fail('configuration');
     user = snapshotClientUser(request.user);
     sessionId = snapshotSessionId(request.session_id);
     promptCacheKey = snapshotPromptCacheKey(request.prompt_cache_key);
@@ -350,6 +355,7 @@ function prepareOpenRouterChatRequest(
       ...(metadata === undefined ? {} : { metadata }),
       ...(user === undefined ? {} : { user }),
       ...(sessionId === undefined ? {} : { session_id: sessionId }),
+      ...(serviceTier === undefined ? {} : { service_tier: serviceTier }),
       ...(promptCacheKey === undefined ? {} : { prompt_cache_key: promptCacheKey }),
       messages,
       stream,

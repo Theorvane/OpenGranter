@@ -11,6 +11,7 @@ import {
   snapshotPrediction,
   snapshotPromptCacheKey,
   snapshotPromptCacheOptions,
+  snapshotRequestServiceTier,
   snapshotResponseFormat,
   snapshotSessionId,
   snapshotStopSequences,
@@ -397,6 +398,7 @@ function prepare(
   prediction: ReturnType<typeof snapshotPrediction>,
   cacheOptions: ReturnType<typeof snapshotPromptCacheOptions>,
   modalities: ReturnType<typeof snapshotTextModalities>,
+  serviceTier: ReturnType<typeof snapshotRequestServiceTier>,
   streaming = false,
 ): { url: string; headers: Record<string, string>; body: object } {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
@@ -412,6 +414,7 @@ function prepare(
       body: {
         model: candidate.upstreamModelId,
         ...(modalities === undefined ? {} : { modalities }),
+        ...(serviceTier === undefined ? {} : { service_tier: serviceTier }),
         ...(cacheOptions === undefined ? {} : { prompt_cache_options: cacheOptions }),
         ...(prediction === undefined ? {} : { prediction }),
         ...(metadata === undefined ? {} : { metadata }),
@@ -587,9 +590,16 @@ export function createDirectChatTransport(
     let cacheControl: ReturnType<typeof snapshotCacheControl>;
     let metadata: ReturnType<typeof snapshotClientMetadata>;
     let user: ReturnType<typeof snapshotClientUser>;
+    let serviceTier: ReturnType<typeof snapshotRequestServiceTier>;
     let promptCacheKey: ReturnType<typeof snapshotPromptCacheKey>;
     try {
       if (snapshotSessionId(request.session_id) !== undefined) fail('other');
+      serviceTier = snapshotRequestServiceTier(request.service_tier);
+      if (
+        serviceTier !== undefined &&
+        (registration.kind !== 'openai' || serviceTier === 'ultrafast')
+      )
+        fail('other');
       prediction = snapshotPrediction(request.prediction);
       if (prediction !== undefined && registration.kind !== 'openai') fail('other');
       modalities = snapshotTextModalities(request.modalities);
@@ -818,6 +828,7 @@ export function createDirectChatTransport(
       prediction,
       cacheOptions,
       modalities,
+      serviceTier,
       streaming !== false,
     );
     const body = JSON.stringify(prepared.body);

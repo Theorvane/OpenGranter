@@ -1,5 +1,31 @@
 import { snapshotBoundedJsonObject } from './chat-tools.ts';
 
+export type RequestServiceTier =
+  | 'auto'
+  | 'default'
+  | 'fast'
+  | 'flex'
+  | 'priority'
+  | 'scale'
+  | 'ultrafast';
+/** Recognized request subset; preserve the literal and leave nullable defaults upstream. */
+export function snapshotRequestServiceTier(value: unknown): RequestServiceTier | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== 'string') throw new TypeError('Invalid service tier');
+  switch (value) {
+    case 'auto':
+    case 'default':
+    case 'fast':
+    case 'flex':
+    case 'priority':
+    case 'scale':
+    case 'ultrafast':
+      return value;
+    default:
+      throw new TypeError('Invalid service tier');
+  }
+}
+
 /** JSON Schema maxLength counts Unicode code points, including astral characters once. */
 export function snapshotSessionId(value: unknown): string | undefined {
   if (value === undefined) return undefined;
