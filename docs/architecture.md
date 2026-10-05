@@ -1129,6 +1129,6 @@ Actual OpenRouter 1.4.18/OpenAI 7.23.0 sockets test scalar filters and OpenRoute
 
 ## Supported model-query source guard (#458)
 
-A separate version-1 projector captures GET /models/getModels and exactly offset, limit, output_modalities, supported_parameters and context inline operation parameter objects. Reuse existing canonical annotation handling; preserve structural schemas, explicit optionality, serialization and extensions. Exact maps/provenance/digests reject malformed/stale/rehashed invalid pins. Supported inherited parameter shapes/references require review; unselected structures and referenced schema targets remain outside detection.
+A separate version-1 projector captures GET /models (operationId getModels) and exactly offset, limit, output_modalities, supported_parameters and context inline operation parameter objects. Reuse existing canonical annotation handling; preserve structural schemas, explicit optionality, serialization and extensions. Exact maps/provenance/digests reject malformed/stale/rehashed invalid pins. Supported inherited parameter shapes/references require review; unselected structures and referenced schema targets remain outside detection.
 
 The CLI validates both pins before one credential-free fixed-host bounded fetch, compares both selected subsets with safe fixed diagnostics and never writes pins. The chat version-30 pin stays byte-identical. Gateway/runtime/IAM/accounting behavior is unchanged. See [plan](plans/458-model-query-schema.md) and [contract](../contracts/model-query-schema.md).

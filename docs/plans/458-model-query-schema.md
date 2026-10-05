@@ -3,7 +3,7 @@
 ## Issue and problem
 
 - Issue #458; release gate #116 remains open. The supported discovery queries have public HTTP/installed SDK cases but no source-pinned structural drift guard. The chat version-30 pin does not cover GET /models.
-- Fresh official OpenAPI has GET /models/getModels, five supported inline optional query parameters, and unrelated unsupported queries. The supported output modality token/default prose is not a structural enum/default.
+- Fresh official OpenAPI has GET /models (operationId getModels), five supported inline optional query parameters, and unrelated unsupported queries. The supported output modality token/default prose is not a structural enum/default.
 
 ## Scope and expected behavior
 
@@ -37,7 +37,7 @@ The discovery normalizer preserves complete x-* extension literal data, includin
 
 ## Verification evidence
 
-The compatibility harness now detects official structural changes in the five implemented model discovery query objects (offset, limit, output_modalities, supported_parameters, context) using a separate version-1 GET /models/getModels pin. It captures actual optionality/nullability/bounds/defaults and parameter serialization/extensions without inventing prose-only modality defaults/enums or local runtime limits. Runtime discovery, authorization, provider calls, limits, secrets, audit and accounting remain unchanged; the chat version-30 pin is byte-identical.
+The compatibility harness now detects official structural changes in the five implemented model discovery query objects (offset, limit, output_modalities, supported_parameters, context) using a separate version-1 GET /models (operationId getModels) pin. It captures actual optionality/nullability/bounds/defaults and parameter serialization/extensions without inventing prose-only modality defaults/enums or local runtime limits. Runtime discovery, authorization, provider calls, limits, secrets, audit and accounting remain unchanged; the chat version-30 pin is byte-identical.
 
 Both offline and explicit live commands validate the exact pins before one credential-free fixed-host bounded retrieval, report each selected subset separately and never write pins. Missing/duplicate/malformed selected source parameters, unsupported inherited/reference shapes and stale/rehashed invalid envelopes/maps reject safely. Editorial changes and parameter order are ignored; literal defaults, annotation-named properties and complete x-* extension data remain structural. Shared chat normalization retains its legacy behavior.
 

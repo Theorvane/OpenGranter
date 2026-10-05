@@ -932,7 +932,7 @@ Actual OpenRouter 1.4.18/OpenAI 7.23.0 sockets test scalar filters and OpenRoute
 
 ## Supported model-query structural drift (#458)
 
-A separate version-1 pin selects GET /models/getModels and the entire five supported query parameter objects: offset, limit, output_modalities, supported_parameters and context. Preserve query location, explicit/omitted optionality, actual nullability/defaults/bounds, serialization and structural extensions. The source represents both filters as plain strings: modality vocabulary/text default/comma semantics and local syntax limits are not invented as schema constraints.
+A separate version-1 pin selects GET /models (operationId getModels) and the entire five supported query parameter objects: offset, limit, output_modalities, supported_parameters and context. Preserve query location, explicit/omitted optionality, actual nullability/defaults/bounds, serialization and structural extensions. The source represents both filters as plain strings: modality vocabulary/text default/comma semantics and local syntax limits are not invented as schema constraints.
 
 Offline integrity and explicit live compatibility commands now check both pins. Exact envelope/maps and canonical provenance/projection digests reject stale/malformed/rehashed invalid selections; one fixed-host credential-free bounded fetch serves both comparisons. Drift and availability failures are content-free, nonzero and never mutate pins. Parameter order/editorial changes stay ignored while literal defaults and annotation-named properties stay structural. Chat pin version30 is byte-identical.
 
