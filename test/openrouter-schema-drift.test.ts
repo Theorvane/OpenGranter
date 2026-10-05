@@ -372,6 +372,7 @@ function source(): Record<string, unknown> {
               items: { $ref: '#/components/schemas/ChatMessages' },
             },
             stream: { type: 'boolean', default: false },
+            user: { type: 'string' },
             max_tokens: { type: ['integer', 'null'] },
             max_completion_tokens: { type: ['integer', 'null'] },
             stop: {
@@ -537,6 +538,7 @@ test('official projection and reviewed pin agree; key order is immaterial', () =
     'top_k',
     'top_logprobs',
     'top_p',
+    'user',
   ]);
 });
 
@@ -827,8 +829,8 @@ for (const name of ['ChatFormatTextConfig', 'ChatFormatJsonObjectConfig']) {
     }
   });
 }
-test('version-20 pin retains exact selected definitions', () => {
-  assert.equal(pinned.version, 20);
+test('version-21 pin retains exact selected definitions', () => {
+  assert.equal(pinned.version, 21);
   const definitions = (
     projectOfficialSchema(source()) as unknown as { definitions: Record<string, unknown> }
   ).definitions;
@@ -1000,8 +1002,8 @@ test('message selections ignore editorial annotations but detect content and req
   for (const value of Object.values(projected.messageNames))
     assert.deepEqual(value, { schema: { type: 'string' }, required: false });
 });
-test('version-20 message maps reject stale and rehashed malformed pins', () => {
-  for (const version of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19])
+test('version-21 message maps reject stale and rehashed malformed pins', () => {
+  for (const version of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20])
     assert.throws(() => validateSchemaPin({ ...pinned, version }), /Invalid schema pin/);
   for (const messageNames of [
     undefined,
@@ -1469,6 +1471,70 @@ test('min_p selection preserves the official nullable number structure', () => {
     type: ['number', 'null'],
     format: 'double',
   });
+});
+
+test('client user source selection preserves exact non-nullable shape and version 21', () => {
+  assert.equal(pinned.version, 21);
+  const projection = projectOfficialSchema(source()) as unknown as {
+    fields: Record<string, unknown>;
+  };
+  assert.deepEqual(projection.fields.user, { type: 'string' });
+  assert.equal(Object.keys(projection.fields).length, 26);
+});
+for (const [index, schema] of [
+  { type: ['string', 'null'] },
+  { type: 'integer' },
+  { type: 'string', minLength: 1 },
+  { type: 'string', maxLength: 512 },
+  { type: 'string', pattern: 'opaque' },
+  { type: 'string', default: 'private' },
+  { type: 'string', deprecated: true },
+  { type: 'string', 'x-client-identity': true },
+].entries())
+  test(`client user structural drift ${index} cannot be hidden by unchanged request references`, () => {
+    const data = source();
+    chatRequestProperties(data).user = schema;
+    assert.equal(compareOfficialSchema(data, pinned), false);
+  });
+test('client user required status drift is detected', () => {
+  const data = source();
+  const request = schemasOf(data).ChatRequest as Record<string, unknown>;
+  assert.ok(request);
+  request.required = ['messages', 'user'];
+  assert.equal(compareOfficialSchema(data, pinned), false);
+});
+test('client user editorial descriptions stay outside the structural projection', () => {
+  const data = source();
+  chatRequestProperties(data).user = {
+    type: 'string',
+    description: 'private changed prose',
+    example: 'private example',
+  };
+  assert.equal(compareOfficialSchema(data, pinned), true);
+});
+test('client user missing and malformed selected source fields fail safely', () => {
+  for (const user of [undefined, null, [], 'private']) {
+    const data = source();
+    const fields = chatRequestProperties(data);
+    if (user === undefined) delete fields.user;
+    else fields.user = user;
+    assert.throws(() => projectOfficialSchema(data), /Invalid official schema/);
+  }
+});
+test('client user exact pin map rejects stale versions and rehashed missing or extra fields', () => {
+  assert.throws(() => validateSchemaPin({ ...pinned, version: 20 }), /Invalid schema pin/);
+  for (const change of ['missing', 'extra', 'malformed'] as const) {
+    const projection = structuredClone(pinned.projection);
+    const fields = projection.fields as Record<string, unknown>;
+    if (change === 'missing') delete fields.user;
+    else if (change === 'extra') fields.private = { type: 'string' };
+    else fields.user = null;
+    const projectionSha256 = createHash('sha256').update(canonicalSchema(projection)).digest('hex');
+    assert.throws(
+      () => validateSchemaPin({ ...pinned, projection, projectionSha256 }),
+      /Invalid schema pin/,
+    );
+  }
 });
 
 function chatRequestProperties(data: Record<string, unknown>) {

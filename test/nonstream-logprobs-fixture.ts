@@ -23,11 +23,14 @@ export const probabilityGroups = { content: [probabilityToken], refusal: null };
 export const probabilityTools = [
   { type: 'function' as const, function: { name: 'lookup', parameters: { type: 'object' } } },
 ];
-export const probabilityInput = (fields: Record<string, unknown> = {}) => ({
-  model: 'chat',
-  messages: [{ role: 'user' as const, content: 'private prompt' }],
-  ...fields,
-});
+export const probabilityInput = (fields: Record<string, unknown> = {}) =>
+  Object.defineProperties(
+    {
+      model: 'chat',
+      messages: [{ role: 'user' as const, content: 'private prompt' }],
+    },
+    Object.getOwnPropertyDescriptors(fields),
+  );
 export function probabilityFixture(
   kind: ProbabilityKind,
   probability: unknown = probabilityGroups,

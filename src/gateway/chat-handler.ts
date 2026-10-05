@@ -47,6 +47,7 @@ import {
   type ResponseFormat,
   resolveOutputTokenLimit,
   type StreamOptions,
+  snapshotClientUser,
   snapshotLogitBias,
   snapshotLogprobControls,
   snapshotResponseFormat,
@@ -94,6 +95,7 @@ const MAX_BODY_BYTES = 1024 * 1024;
 export type { ChatMessage } from './chat-messages.ts';
 
 export interface ChatRequest {
+  readonly user?: string;
   readonly stream_options?: StreamOptions;
   readonly model: string;
   readonly messages: readonly ChatMessage[];
@@ -410,6 +412,7 @@ function validateChat(
       (key) =>
         ![
           'model',
+          'user',
           'messages',
           'stream',
           'stream_options',
@@ -467,6 +470,7 @@ function validateChat(
   const topK = value.top_k ?? undefined;
   if (!validTopK(topK)) return undefined;
   let reasoning: ReasoningConfiguration | undefined;
+  let user: ReturnType<typeof snapshotClientUser>;
   let logitBias: ReturnType<typeof snapshotLogitBias>;
   let logprobControls: ReturnType<typeof snapshotLogprobControls>;
   let streamOptions: ReturnType<typeof snapshotStreamOptions>;
@@ -474,6 +478,7 @@ function validateChat(
   let toolChoice: ReturnType<typeof snapshotToolChoice>;
   let parallelToolCalls: ReturnType<typeof snapshotParallelToolCalls>;
   try {
+    user = snapshotClientUser(value.user);
     logprobControls = snapshotLogprobControls(value.logprobs, value.top_logprobs);
     reasoning = snapshotReasoningConfiguration(
       value.reasoning,
@@ -526,6 +531,7 @@ function validateChat(
     return undefined;
   return {
     model: value.model,
+    ...(user === undefined ? {} : { user }),
     messages,
     ...(value.stream === true ? { stream: true } : {}),
     ...(streamOptions === undefined ? {} : { stream_options: streamOptions }),
