@@ -9,9 +9,11 @@ import {
   snapshotLogprobControls,
   snapshotPrediction,
   snapshotPromptCacheKey,
+  snapshotPromptCacheOptions,
   snapshotResponseFormat,
   snapshotStopSequences,
   snapshotStreamOptions,
+  validateCacheOptionsControls,
   validatePredictionControls,
   validMinP,
   validPenalty,
@@ -219,6 +221,7 @@ function prepareOpenRouterChatRequest(
   if (!validPenalty(frequencyPenalty) || !validPenalty(presencePenalty)) fail('configuration');
   let reasoning: ReturnType<typeof snapshotReasoningConfiguration>;
   let prediction: ReturnType<typeof snapshotPrediction>;
+  let cacheOptions: ReturnType<typeof snapshotPromptCacheOptions>;
   let cacheControl: ReturnType<typeof snapshotCacheControl>;
   let metadata: ReturnType<typeof snapshotClientMetadata>;
   let user: ReturnType<typeof snapshotClientUser>;
@@ -226,7 +229,9 @@ function prepareOpenRouterChatRequest(
   let responseFormat: ReturnType<typeof snapshotResponseFormat>;
   try {
     prediction = snapshotPrediction(request.prediction);
+    cacheOptions = snapshotPromptCacheOptions(request.prompt_cache_options);
     cacheControl = snapshotCacheControl(request.cache_control);
+    validateCacheOptionsControls(cacheOptions, cacheControl);
     metadata = snapshotClientMetadata(request.metadata);
     user = snapshotClientUser(request.user);
     promptCacheKey = snapshotPromptCacheKey(request.prompt_cache_key);
@@ -331,6 +336,7 @@ function prepareOpenRouterChatRequest(
     body: Object.freeze({
       model: fixedAttempt.upstreamModelId,
       ...(prediction === undefined ? {} : { prediction }),
+      ...(cacheOptions === undefined ? {} : { prompt_cache_options: cacheOptions }),
       ...(cacheControl === undefined ? {} : { cache_control: cacheControl }),
       ...(metadata === undefined ? {} : { metadata }),
       ...(user === undefined ? {} : { user }),

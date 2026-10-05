@@ -26,6 +26,7 @@ const FIELD_NAMES = [
   'messages',
   'user',
   'prompt_cache_key',
+  'prompt_cache_options',
   'metadata',
   'cache_control',
   'prediction',
@@ -54,6 +55,7 @@ const FIELD_NAMES = [
   'parallel_tool_calls',
 ] as const;
 const DEFINITION_NAMES = [
+  'PromptCacheOptions',
   'Prediction',
   'PredictionContentText',
   'AnthropicCacheControlDirective',
@@ -319,7 +321,7 @@ export function validateSchemaPin(value: unknown): { projection: SchemaProjectio
   try {
     const data = record(value);
     if (
-      data?.version !== 25 ||
+      data?.version !== 26 ||
       data.source !== OFFICIAL_SCHEMA_URL ||
       typeof data.retrievedAt !== 'string' ||
       !/^\d{4}-\d{2}-\d{2}$/.test(data.retrievedAt) ||

@@ -1,9 +1,9 @@
 {
-  "version": 25,
+  "version": 26,
   "source": "https://openrouter.ai/openapi.json",
   "retrievedAt": "2026-10-05",
   "sourceSha256": "0f220980d0c335ca4b4efd5684e1055f88eb84e73d4e34b0b9a859c9d2cf0458",
-  "projectionSha256": "97a20d69c42f3885237fde3851a268eed07dc797ac914b07567bae64675af114",
+  "projectionSha256": "c0003968e46150ee776341a9c2bb7b3a2565e491e48956c9ed83adb24ebceef0",
   "projection": {
     "openapi": "3.1.0",
     "documentVersion": "1.0.0",
@@ -605,6 +605,9 @@
           "null"
         ]
       },
+      "prompt_cache_options": {
+        "$ref": "#/components/schemas/PromptCacheOptions"
+      },
       "metadata": {
         "additionalProperties": {
           "type": "string"
@@ -824,6 +827,29 @@
       }
     },
     "definitions": {
+      "PromptCacheOptions": {
+        "properties": {
+          "mode": {
+            "enum": [
+              "explicit"
+            ],
+            "type": "string"
+          },
+          "ttl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "mode"
+        ],
+        "type": [
+          "object",
+          "null"
+        ]
+      },
       "Prediction": {
         "properties": {
           "content": {

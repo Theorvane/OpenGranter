@@ -375,3 +375,34 @@ export function validatePredictionControls(
   )
     throw new TypeError('Unsupported prediction controls');
 }
+
+export interface PromptCacheOptions {
+  readonly mode: 'explicit';
+  readonly ttl?: '30m';
+}
+/** Capture a bounded explicit-only preference; nullable controls normalize to omission. */
+export function snapshotPromptCacheOptions(value: unknown): PromptCacheOptions | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== 'object' || Array.isArray(value))
+    throw new TypeError('Invalid cache options');
+  const prototype = Object.getPrototypeOf(value);
+  if (
+    (prototype !== Object.prototype && prototype !== null) ||
+    !Object.hasOwn(value, 'mode') ||
+    Object.keys(value).some((key) => key !== 'mode' && key !== 'ttl')
+  )
+    throw new TypeError('Invalid cache options');
+  const mode: unknown = Reflect.get(value, 'mode');
+  const ttl: unknown = Object.hasOwn(value, 'ttl') ? Reflect.get(value, 'ttl') : undefined;
+  if (mode !== 'explicit' || (ttl != null && ttl !== '30m'))
+    throw new TypeError('Invalid cache options');
+  return Object.freeze({ mode, ...(ttl == null ? {} : { ttl }) });
+}
+/** Cross-format request-level precedence is unverified in this portable subset. */
+export function validateCacheOptionsControls(
+  options: PromptCacheOptions | undefined,
+  automatic: CacheControl | undefined,
+): void {
+  if (options !== undefined && automatic !== undefined)
+    throw new TypeError('Unsupported cache controls');
+}
