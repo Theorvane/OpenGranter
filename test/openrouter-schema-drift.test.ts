@@ -335,6 +335,49 @@ const historyShapes = {
   },
 };
 
+const imageContentShapes = {
+  ChatContentImage: {
+    properties: {
+      image_url: {
+        properties: {
+          detail: {
+            enum: ['auto', 'low', 'high', 'original'],
+            type: 'string',
+            'x-speakeasy-unknown-values': 'allow',
+          },
+          url: { type: 'string' },
+        },
+        required: ['url'],
+        type: 'object',
+      },
+      type: { enum: ['image_url'], type: 'string' },
+    },
+    required: ['type', 'image_url'],
+    type: 'object',
+  },
+  ChatContentItems: {
+    discriminator: {
+      mapping: {
+        file: '#/components/schemas/ChatContentFile',
+        image_url: '#/components/schemas/ChatContentImage',
+        input_audio: '#/components/schemas/ChatContentAudio',
+        input_video: '#/components/schemas/Legacy_ChatContentVideo',
+        text: '#/components/schemas/ChatContentText',
+        video_url: '#/components/schemas/ChatContentVideo',
+      },
+      propertyName: 'type',
+    },
+    oneOf: [
+      { $ref: '#/components/schemas/ChatContentText' },
+      { $ref: '#/components/schemas/ChatContentImage' },
+      { $ref: '#/components/schemas/ChatContentAudio' },
+      { $ref: '#/components/schemas/Legacy_ChatContentVideo' },
+      { $ref: '#/components/schemas/ChatContentVideo' },
+      { $ref: '#/components/schemas/ChatContentFile' },
+    ],
+  },
+};
+
 function source(): Record<string, unknown> {
   const data = {
     openapi: '3.1.0',
@@ -593,11 +636,28 @@ function source(): Record<string, unknown> {
   });
   Object.assign(data.components.schemas, structuredClone(pinned.projection.usageDefinitions));
   Object.assign(data.components.schemas, structuredClone(reasoningShapes));
+  Object.assign(data.components.schemas, structuredClone(imageContentShapes));
   return data;
 }
 const pinned = JSON.parse(
   await readFile(new URL('../contracts/openrouter-request-schema.json', import.meta.url), 'utf8'),
 );
+
+test('image URL structural constraint drift is detected', () => {
+  const data = source();
+  const shape = structuredClone(imageContentShapes.ChatContentImage);
+  schemasOf(data).ChatContentImage = {
+    ...shape,
+    properties: {
+      ...shape.properties,
+      image_url: {
+        ...shape.properties.image_url,
+        properties: { ...shape.properties.image_url.properties, url: { type: 'integer' } },
+      },
+    },
+  };
+  assert.equal(compareOfficialSchema(data, pinned), false);
+});
 
 test('official projection and reviewed pin agree; key order is immaterial', () => {
   assert.equal(compareOfficialSchema(source(), pinned), true);
@@ -930,8 +990,8 @@ for (const name of ['ChatFormatTextConfig', 'ChatFormatJsonObjectConfig']) {
     }
   });
 }
-test('version-30 pin retains exact selected definitions', () => {
-  assert.equal(pinned.version, 30);
+test('version-31 pin retains exact selected definitions', () => {
+  assert.equal(pinned.version, 31);
   const definitions = (
     projectOfficialSchema(source()) as unknown as { definitions: Record<string, unknown> }
   ).definitions;
@@ -939,6 +999,8 @@ test('version-30 pin retains exact selected definitions', () => {
     'AnthropicCacheControlDirective',
     'AnthropicCacheControlTtl',
     'ChatContentCacheControl',
+    'ChatContentImage',
+    'ChatContentItems',
     'ChatContentText',
     'ChatDeveloperMessage',
     'ChatFinishReasonEnum',
@@ -1111,7 +1173,7 @@ test('message selections ignore editorial annotations but detect content and req
   for (const value of Object.values(projected.messageNames))
     assert.deepEqual(value, { schema: { type: 'string' }, required: false });
 });
-test('version-30 message maps reject stale and rehashed malformed pins', () => {
+test('version-31 message maps reject stale and rehashed malformed pins', () => {
   for (const version of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21])
     assert.throws(() => validateSchemaPin({ ...pinned, version }), /Invalid schema pin/);
   for (const messageNames of [
@@ -1582,8 +1644,8 @@ test('min_p selection preserves the official nullable number structure', () => {
   });
 });
 
-test('client user source selection preserves exact non-nullable shape and version 30', () => {
-  assert.equal(pinned.version, 30);
+test('client user source selection preserves exact non-nullable shape and version 31', () => {
+  assert.equal(pinned.version, 31);
   const projection = projectOfficialSchema(source()) as unknown as {
     fields: Record<string, unknown>;
   };
@@ -1646,8 +1708,8 @@ test('client user exact pin map rejects stale versions and rehashed missing or e
   }
 });
 
-test('cache key source selection preserves nullable string and exact version-30 map', () => {
-  assert.equal(pinned.version, 30);
+test('cache key source selection preserves nullable string and exact version-31 map', () => {
+  assert.equal(pinned.version, 31);
   const projection = projectOfficialSchema(source());
   assert.deepEqual(projection.fields.prompt_cache_key, { type: ['string', 'null'] });
   assert.equal(Object.keys(projection.fields).length, 34);
@@ -2276,7 +2338,7 @@ test('history annotations are ignored but literal defaults and annotation-named 
       examples: [{ private: 'editorial' }],
       title: 'editorial',
     };
-  schemasOf(data).ChatContentItems = { type: 'boolean' };
+  schemasOf(data).ChatContentAudio = { type: 'boolean' };
   schemasOf(data).ConfigurationUpdateReasoning = { type: 'string' };
   assert.equal(compareOfficialSchema(data, pinned), true);
   const literal = { description: 'private literal', example: 'literal', title: 'literal' };
@@ -2511,7 +2573,7 @@ test('function fragment annotations are ignored but malformed missing targets re
 
 const metadataShape = { type: 'object', additionalProperties: { type: 'string' } };
 test('metadata source selection preserves exact dictionary without inventing prose bounds', () => {
-  assert.equal(pinned.version, 30);
+  assert.equal(pinned.version, 31);
   assert.deepEqual(projectOfficialSchema(source()).fields.metadata, metadataShape);
   assert.equal(Object.keys(projectOfficialSchema(source()).fields).length, 34);
 });
@@ -2573,8 +2635,8 @@ const cacheDirectiveShape = {
   },
 };
 const cacheTtlShape = { type: 'string', enum: ['5m', '1h'], 'x-speakeasy-unknown-values': 'allow' };
-test('cache control selection traverses directive and TTL with exact version-30 maps', () => {
-  assert.equal(pinned.version, 30);
+test('cache control selection traverses directive and TTL with exact version-31 maps', () => {
+  assert.equal(pinned.version, 31);
   const p = projectOfficialSchema(source());
   assert.deepEqual(p.fields.cache_control, {
     $ref: '#/components/schemas/AnthropicCacheControlDirective',
@@ -2582,7 +2644,7 @@ test('cache control selection traverses directive and TTL with exact version-30 
   assert.deepEqual(p.definitions.AnthropicCacheControlDirective, cacheDirectiveShape);
   assert.deepEqual(p.definitions.AnthropicCacheControlTtl, cacheTtlShape);
   assert.equal(Object.keys(p.fields).length, 34);
-  assert.equal(Object.keys(p.definitions).length, 22);
+  assert.equal(Object.keys(p.definitions).length, 24);
 });
 for (const [index, alter] of [
   (data: Record<string, unknown>) => {
@@ -2710,14 +2772,14 @@ const predictionShape = {
     },
   },
 };
-test('prediction selection traverses nullable content/text parts with exact version-30 maps', () => {
+test('prediction selection traverses nullable content/text parts with exact version-31 maps', () => {
   const p = projectOfficialSchema(source());
-  assert.equal(pinned.version, 30);
+  assert.equal(pinned.version, 31);
   assert.deepEqual(p.fields.prediction, { $ref: '#/components/schemas/Prediction' });
   assert.deepEqual(p.definitions.Prediction, predictionShape);
   assert.deepEqual(p.definitions.PredictionContentText, predictedPartShape);
   assert.equal(Object.keys(p.fields).length, 34);
-  assert.equal(Object.keys(p.definitions).length, 22);
+  assert.equal(Object.keys(p.definitions).length, 24);
 });
 for (const [index, alter] of [
   (data: Record<string, unknown>) => {
@@ -2849,8 +2911,8 @@ test('explicit cache options selects exact source shape without invented TTL enu
   });
   assert.deepEqual(p.definitions.PromptCacheOptions, cacheOptionsShape);
   assert.equal(Object.keys(p.fields).length, 34);
-  assert.equal(Object.keys(p.definitions).length, 22);
-  assert.equal(pinned.version, 30);
+  assert.equal(Object.keys(p.definitions).length, 24);
+  assert.equal(pinned.version, 31);
 });
 for (const [index, alter] of [
   { type: 'object' },
@@ -2949,8 +3011,8 @@ test('text modality selection retains broad source enum without invented singlet
   const p = projectOfficialSchema(source());
   assert.deepEqual(p.fields.modalities, modalitiesShape);
   assert.equal(Object.keys(p.fields).length, 34);
-  assert.equal(Object.keys(p.definitions).length, 22);
-  assert.equal(pinned.version, 30);
+  assert.equal(Object.keys(p.definitions).length, 24);
+  assert.equal(pinned.version, 31);
 });
 for (const [index, alter] of [
   { type: ['array', 'null'] },
@@ -3047,8 +3109,8 @@ test('explicit cache text selects all referenced source shapes without local bou
   assert.deepEqual(p.definitions.PromptCacheBreakpoint, breakpointShape);
   assert.deepEqual(p.definitions.ChatContentCacheControl, blockCacheShape);
   assert.equal(Object.keys(p.fields).length, 34);
-  assert.equal(Object.keys(p.definitions).length, 22);
-  assert.equal(pinned.version, 30);
+  assert.equal(Object.keys(p.definitions).length, 24);
+  assert.equal(pinned.version, 31);
 });
 for (const [index, [key, change]] of (
   [
@@ -3122,9 +3184,9 @@ test('cache text absent malformed source targets and stale rehashed exact maps r
     }
 });
 
-test('session identifier source preserves non-nullable string and code-point maximum in version30', () => {
+test('session identifier source preserves non-nullable string and code-point maximum in version31', () => {
   const p = projectOfficialSchema(source());
-  assert.equal(pinned.version, 30);
+  assert.equal(pinned.version, 31);
   assert.equal(Object.keys(p.fields).length, 34);
   assert.deepEqual(p.fields.session_id, { type: 'string', maxLength: 256 });
   assert.equal(p.required.includes('session_id'), false);
@@ -3179,6 +3241,8 @@ test('session identifier missing/malformed/stale and rehashed map changes reject
 });
 test('removing session and later tier selection reproduces the reviewed version28 projection digest', () => {
   const projection = structuredClone(pinned.projection);
+  delete projection.definitions.ChatContentImage;
+  delete projection.definitions.ChatContentItems;
   delete projection.fields.session_id;
   delete projection.fields.service_tier;
   assert.equal(
@@ -3194,7 +3258,7 @@ const requestTierShape = {
 };
 test('service tier request source selects the exact nullable enum and open-enum extension', () => {
   const p = projectOfficialSchema(source());
-  assert.equal(pinned.version, 30);
+  assert.equal(pinned.version, 31);
   assert.equal(Object.keys(p.fields).length, 34);
   assert.deepEqual(p.fields.service_tier, requestTierShape);
   assert.equal(p.required.includes('service_tier'), false);
@@ -3247,9 +3311,190 @@ test('service tier request missing malformed stale and rehashed map changes reje
 });
 test('service tier request removal reproduces the reviewed version29 projection digest', () => {
   const projection = structuredClone(pinned.projection);
+  delete projection.definitions.ChatContentImage;
+  delete projection.definitions.ChatContentItems;
   delete projection.fields.service_tier;
   assert.equal(
     createHash('sha256').update(canonicalSchema(projection)).digest('hex'),
     'b7c53ad02fc7fd222e659c3ea6ae76367f39c985a3cf4c063875c686629da71f',
+  );
+});
+
+test('image source selects complete independent shapes without enabling richer runtime variants', () => {
+  const projected = projectOfficialSchema(source());
+  assert.equal(pinned.version, 31);
+  assert.equal(Object.keys(projected.definitions).length, 24);
+  assert.equal(Object.keys(projected.fields).length, 34);
+  for (const [name, shape] of Object.entries(imageContentShapes))
+    assert.deepEqual(projected.definitions[name], shape);
+  for (const name of [
+    'ChatContentAudio',
+    'Legacy_ChatContentVideo',
+    'ChatContentVideo',
+    'ChatContentFile',
+  ])
+    assert.equal(Object.hasOwn(projected.definitions, name), false);
+});
+
+function imageWithUrlObject(schema: unknown): unknown {
+  return {
+    ...imageContentShapes.ChatContentImage,
+    properties: { ...imageContentShapes.ChatContentImage.properties, image_url: schema },
+  };
+}
+const imageUrlShape = imageContentShapes.ChatContentImage.properties.image_url;
+for (const [index, url] of [
+  { type: ['string', 'null'] },
+  { type: 'string', format: 'uri' },
+  { type: 'string', maxLength: 1024 },
+  { type: 'string', minLength: 1 },
+  { type: 'string', pattern: '^https:' },
+  { type: 'string', default: 'data:' },
+].entries())
+  test(`image URL schema drift ${index} is detected`, () => {
+    const data = source();
+    schemasOf(data).ChatContentImage = imageWithUrlObject({
+      ...imageUrlShape,
+      properties: { ...imageUrlShape.properties, url },
+    });
+    assert.equal(compareOfficialSchema(data, pinned), false);
+  });
+
+for (const [index, detail] of [
+  { ...imageUrlShape.properties.detail, enum: ['auto', 'low', 'high'] },
+  { ...imageUrlShape.properties.detail, enum: ['auto', 'low', 'high', 'original', 'new'] },
+  { ...imageUrlShape.properties.detail, type: ['string', 'null'] },
+  { ...imageUrlShape.properties.detail, 'x-speakeasy-unknown-values': 'deny' },
+  { type: 'string', enum: imageUrlShape.properties.detail.enum },
+  { ...imageUrlShape.properties.detail, default: 'auto' },
+].entries())
+  test(`image detail schema drift ${index} is detected`, () => {
+    const data = source();
+    schemasOf(data).ChatContentImage = imageWithUrlObject({
+      ...imageUrlShape,
+      properties: { ...imageUrlShape.properties, detail },
+    });
+    assert.equal(compareOfficialSchema(data, pinned), false);
+  });
+
+for (const [index, shape] of [
+  { ...imageContentShapes.ChatContentImage, required: ['type'] },
+  { ...imageContentShapes.ChatContentImage, additionalProperties: false },
+  {
+    ...imageContentShapes.ChatContentImage,
+    properties: {
+      ...imageContentShapes.ChatContentImage.properties,
+      type: { type: 'string', enum: ['image'] },
+    },
+  },
+  imageWithUrlObject({ ...imageUrlShape, required: [] }),
+  imageWithUrlObject({ ...imageUrlShape, required: ['url', 'detail'] }),
+  imageWithUrlObject({ ...imageUrlShape, additionalProperties: false }),
+  imageWithUrlObject({ ...imageUrlShape, type: ['object', 'null'] }),
+  imageWithUrlObject({ ...imageUrlShape, properties: { url: { type: 'string' } } }),
+].entries())
+  test(`image container structure drift ${index} is detected`, () => {
+    const data = source();
+    schemasOf(data).ChatContentImage = shape;
+    assert.equal(compareOfficialSchema(data, pinned), false);
+  });
+
+const contentUnion = imageContentShapes.ChatContentItems;
+for (const [index, shape] of [
+  { ...contentUnion, oneOf: contentUnion.oneOf.filter((_, i) => i !== 1) },
+  { ...contentUnion, oneOf: [...contentUnion.oneOf, { $ref: '#/components/schemas/NewContent' }] },
+  { ...contentUnion, oneOf: [...contentUnion.oneOf].reverse() },
+  {
+    ...contentUnion,
+    oneOf: contentUnion.oneOf.map((value, i) =>
+      i === 1 ? { $ref: '#/components/schemas/ChangedImage' } : value,
+    ),
+  },
+  { ...contentUnion, discriminator: { ...contentUnion.discriminator, propertyName: 'kind' } },
+  {
+    ...contentUnion,
+    discriminator: {
+      ...contentUnion.discriminator,
+      mapping: {
+        ...contentUnion.discriminator.mapping,
+        image_url: '#/components/schemas/NewImage',
+      },
+    },
+  },
+  { ...contentUnion, discriminator: { propertyName: 'type' } },
+].entries())
+  test(`content union drift ${index} is detected`, () => {
+    const data = source();
+    schemasOf(data).ChatContentItems = shape;
+    assert.equal(compareOfficialSchema(data, pinned), false);
+  });
+
+test('image annotations and unselected rich target bodies are ignored; literals and property names remain structural', () => {
+  const data = source();
+  for (const [name, shape] of Object.entries(imageContentShapes))
+    schemasOf(data)[name] = { ...shape, description: 'editorial', examples: ['editorial'] };
+  schemasOf(data).ChatContentImage = imageWithUrlObject({
+    ...imageUrlShape,
+    title: 'editorial',
+    properties: {
+      url: { type: 'string', description: 'editorial', example: 'private URL' },
+      detail: { ...imageUrlShape.properties.detail, description: 'editorial' },
+    },
+  });
+  for (const name of [
+    'ChatContentAudio',
+    'Legacy_ChatContentVideo',
+    'ChatContentVideo',
+    'ChatContentFile',
+  ])
+    schemasOf(data)[name] = { type: 'boolean', 'x-private': 'unselected' };
+  assert.equal(compareOfficialSchema(data, pinned), true);
+  const literal = { description: 'literal', title: 'literal', example: 'literal' };
+  schemasOf(data).ChatContentImage = { ...imageContentShapes.ChatContentImage, default: literal };
+  assert.deepEqual(
+    (projectOfficialSchema(data).definitions.ChatContentImage as { default: unknown }).default,
+    literal,
+  );
+  assert.equal(compareOfficialSchema(data, pinned), false);
+  const named = source();
+  schemasOf(named).ChatContentImage = imageWithUrlObject({
+    ...imageUrlShape,
+    properties: { ...imageUrlShape.properties, description: { type: 'string' } },
+  });
+  assert.equal(compareOfficialSchema(named, pinned), false);
+});
+
+test('image source targets and exact rehashed pin maps fail safely; version 30 is stale', () => {
+  assert.throws(() => validateSchemaPin({ ...pinned, version: 30 }), /Invalid schema pin/);
+  for (const name of Object.keys(imageContentShapes)) {
+    for (const value of [undefined, null, [], 'private malformed', 42]) {
+      const data = source();
+      if (value === undefined) delete schemasOf(data)[name];
+      else schemasOf(data)[name] = value;
+      assert.throws(() => projectOfficialSchema(data), /^TypeError: Invalid official schema$/);
+    }
+    for (const operation of ['missing', 'malformed', 'extra']) {
+      const projection = structuredClone(pinned.projection);
+      if (operation === 'missing') delete projection.definitions[name];
+      else if (operation === 'malformed') projection.definitions[name] = null;
+      else projection.definitions.NewImage = { type: 'object' };
+      const projectionSha256 = createHash('sha256')
+        .update(canonicalSchema(projection))
+        .digest('hex');
+      assert.throws(
+        () => validateSchemaPin({ ...pinned, projection, projectionSha256 }),
+        /^TypeError: Invalid schema pin$/,
+      );
+    }
+  }
+});
+
+test('removing both image selections reproduces the reviewed version30 projection digest', () => {
+  const projection = structuredClone(pinned.projection);
+  delete projection.definitions.ChatContentImage;
+  delete projection.definitions.ChatContentItems;
+  assert.equal(
+    createHash('sha256').update(canonicalSchema(projection)).digest('hex'),
+    'eb64c90de18df1e11f194f05293bcec6bf60c07f35ded16abdd1b632797a6705',
   );
 });

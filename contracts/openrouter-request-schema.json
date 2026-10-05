@@ -1,9 +1,9 @@
 {
-  "version": 30,
+  "version": 31,
   "source": "https://openrouter.ai/openapi.json",
-  "retrievedAt": "2026-10-05",
+  "retrievedAt": "2026-10-06",
   "sourceSha256": "0f220980d0c335ca4b4efd5684e1055f88eb84e73d4e34b0b9a859c9d2cf0458",
-  "projectionSha256": "eb64c90de18df1e11f194f05293bcec6bf60c07f35ded16abdd1b632797a6705",
+  "projectionSha256": "0bf32d91e86d7c0cbb41042133f781ce3b6bb299bef2396a41a8a9d920a069e2",
   "projection": {
     "openapi": "3.1.0",
     "documentVersion": "1.0.0",
@@ -881,6 +881,75 @@
         "required": [
           "type",
           "text"
+        ],
+        "type": "object"
+      },
+      "ChatContentItems": {
+        "discriminator": {
+          "mapping": {
+            "file": "#/components/schemas/ChatContentFile",
+            "image_url": "#/components/schemas/ChatContentImage",
+            "input_audio": "#/components/schemas/ChatContentAudio",
+            "input_video": "#/components/schemas/Legacy_ChatContentVideo",
+            "text": "#/components/schemas/ChatContentText",
+            "video_url": "#/components/schemas/ChatContentVideo"
+          },
+          "propertyName": "type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ChatContentText"
+          },
+          {
+            "$ref": "#/components/schemas/ChatContentImage"
+          },
+          {
+            "$ref": "#/components/schemas/ChatContentAudio"
+          },
+          {
+            "$ref": "#/components/schemas/Legacy_ChatContentVideo"
+          },
+          {
+            "$ref": "#/components/schemas/ChatContentVideo"
+          },
+          {
+            "$ref": "#/components/schemas/ChatContentFile"
+          }
+        ]
+      },
+      "ChatContentImage": {
+        "properties": {
+          "image_url": {
+            "properties": {
+              "detail": {
+                "enum": [
+                  "auto",
+                  "low",
+                  "high",
+                  "original"
+                ],
+                "type": "string",
+                "x-speakeasy-unknown-values": "allow"
+              },
+              "url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "url"
+            ],
+            "type": "object"
+          },
+          "type": {
+            "enum": [
+              "image_url"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "image_url"
         ],
         "type": "object"
       },
