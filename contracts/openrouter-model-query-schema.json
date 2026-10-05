@@ -1,9 +1,9 @@
 {
-  "version": 1,
+  "version": 2,
   "source": "https://openrouter.ai/openapi.json",
-  "retrievedAt": "2026-10-05",
+  "retrievedAt": "2026-10-06",
   "sourceSha256": "0f220980d0c335ca4b4efd5684e1055f88eb84e73d4e34b0b9a859c9d2cf0458",
-  "projectionSha256": "daa5d309dfc66e8b404f50fb06a64ab4d7e244de8a7f68f78f943a9f94ee4c7a",
+  "projectionSha256": "f1a927b999855356c0507a31a3236deea64a6a7f3e1ca77b433cb5bf89e542d9",
   "projection": {
     "openapi": "3.1.0",
     "documentVersion": "1.0.0",
@@ -58,6 +58,45 @@
         "schema": {
           "minimum": 1,
           "type": "integer"
+        }
+      },
+      "input_modalities": {
+        "in": "query",
+        "name": "input_modalities",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "q": {
+        "in": "query",
+        "name": "q",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "sort": {
+        "in": "query",
+        "name": "sort",
+        "required": false,
+        "schema": {
+          "enum": [
+            "most-popular",
+            "newest",
+            "top-weekly",
+            "pricing-low-to-high",
+            "pricing-high-to-low",
+            "context-high-to-low",
+            "throughput-high-to-low",
+            "latency-low-to-high",
+            "intelligence-high-to-low",
+            "coding-high-to-low",
+            "agentic-high-to-low",
+            "design-arena-elo-high-to-low"
+          ],
+          "type": "string",
+          "x-speakeasy-unknown-values": "allow"
         }
       }
     }

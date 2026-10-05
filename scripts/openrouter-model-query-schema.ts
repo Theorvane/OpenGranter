@@ -7,6 +7,9 @@ const PARAMETER_NAMES = [
   'output_modalities',
   'supported_parameters',
   'context',
+  'input_modalities',
+  'q',
+  'sort',
 ] as const;
 
 export interface ModelQuerySchemaProjection {
@@ -136,7 +139,7 @@ export function validateModelQuerySchemaPin(value: unknown): {
         'projectionSha256',
         'projection',
       ]) ||
-      data.version !== 1 ||
+      data.version !== 2 ||
       data.source !== OFFICIAL_SCHEMA_URL ||
       typeof data.retrievedAt !== 'string' ||
       !/^\d{4}-\d{2}-\d{2}$/.test(data.retrievedAt) ||
