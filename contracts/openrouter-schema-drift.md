@@ -1,6 +1,6 @@
 # Official schema drift contract
 
-The pin records source URL, retrieval date, canonical source SHA-256 and a canonical structural projection SHA-256. Source: [official OpenRouter OpenAPI](https://openrouter.ai/openapi.json), retrieved 2026-10-05 for version 22. The snapshot contains selected schema constraints, with examples/descriptions and other annotations removed.
+The pin records source URL, retrieval date, canonical source SHA-256 and a canonical structural projection SHA-256. Source: [official OpenRouter OpenAPI](https://openrouter.ai/openapi.json), retrieved 2026-10-05 for version 23. The snapshot contains selected schema constraints, with examples/descriptions and other annotations removed.
 
 The offline gate validates provenance shape and projection integrity. `npm run compatibility:drift` explicitly fetches only the official HTTPS URL, rejects redirects, bounds time/body size and compares selected chat request and response definitions. It neither changes the pin nor sends credentials or inference calls. Failures expose fixed messages, not downloaded content or transport errors.
 
@@ -113,3 +113,5 @@ Add exactly logprobs/top_logprobs and whole ChatTokenLogprobs/ChatTokenLogprob t
 Issue #428 extends the pin to version 21 with exactly 26 request fields, adding the optional non-nullable user schema. Every earlier selected definition/map remains unchanged. User structural changes and required-status drift are guarded without inventing runtime limits or authenticating the identifier. See [client-user](client-user.md) and [plan](../docs/plans/428-client-user.md).
 
 Issue #430 extends the pin to version 22 with exactly 27 request fields, adding nullable string prompt_cache_key while retaining all prior definitions/maps. Detect structural and required-status drift without inventing cache guarantees, counters or bounds. See [prompt-cache-key](prompt-cache-key.md) and [plan](../docs/plans/430-prompt-cache-key.md).
+
+Version 23 adds only metadata as the twenty-eighth selected request field. Preserve exact object/string additionalProperties; 16/64/512 prose bounds are not schema constraints. Nullable/type/nested-value/required/default/bounds/extension drift is detected; missing/malformed targets and stale/rehashed invalid exact maps reject. Removing metadata reproduces version 22 canonically, including every prior field/definition/map. Official source SHA-256 remains 0f220980d0c335ca4b4efd5684e1055f88eb84e73d4e34b0b9a859c9d2cf0458; projection SHA-256 is 02b10bb1c040cd9141a520c0622122f70c684cfd8d9c92f4433c4675f4a14499. See [plan](../docs/plans/432-client-metadata.md).

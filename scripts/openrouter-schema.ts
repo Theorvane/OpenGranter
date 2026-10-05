@@ -26,6 +26,7 @@ const FIELD_NAMES = [
   'messages',
   'user',
   'prompt_cache_key',
+  'metadata',
   'stream',
   'stream_options',
   'max_tokens',
@@ -312,7 +313,7 @@ export function validateSchemaPin(value: unknown): { projection: SchemaProjectio
   try {
     const data = record(value);
     if (
-      data?.version !== 22 ||
+      data?.version !== 23 ||
       data.source !== OFFICIAL_SCHEMA_URL ||
       typeof data.retrievedAt !== 'string' ||
       !/^\d{4}-\d{2}-\d{2}$/.test(data.retrievedAt) ||
