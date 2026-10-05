@@ -1,0 +1,15 @@
+# Automatic and explicit cache control contract
+
+Issue #448. Plan: [448-automatic-explicit-cache-control](../docs/plans/448-automatic-explicit-cache-control.md).
+
+Both /v1 and /api/v1 accept the existing root cache_control alongside explicit function-tool and instruction/user/assistant text directives for managed Anthropic and delegated OpenRouter. Nonstream/text/refusal/function streams retain captured root, tools, whole marked arrays, exact text, order and correlated function results. No marker/default TTL is injected and no marker is moved.
+
+Automatic caching reserves one of four slots even when the eligible final block already has the same effective TTL. Accept up to three explicit tool/text directives; four explicit directives plus root reject before routes/credentials. Evaluate tools→system→messages TTL order, with 1h before effective5m; omitted TTL means5m only for validation. Last eligible target selection skips empty text. Nonempty text, function definitions, native tool_use and outer tool_result blocks are eligible. An empty result string does not make its outer tool_result ineligible. Automatic caching at an explicitly marked final block with the same effective TTL is a provider no-op; differing TTL rejects. A root1h targeting an unmarked later block after an explicit5m also rejects.
+
+Native instruction strings retain joined newlines, while marked instruction arrays retain separate newline separator blocks. Those nonempty separators can be the last eligible block when trailing instruction text is empty. Public HTTP and adapter boundaries share these admission guards. Combined marked tool-result arrays remain unsupported because their nested marker boundaries require separate mapping work; unmarked string results remain supported. Root-only and explicit-only behavior remains unchanged.
+
+OpenAI prompt_cache_breakpoint or root prompt_cache_options mixtures still reject before route/credential work. Native OpenAI/Gemini reject supplied Anthropic controls before secrets. Reuse bounded immutable capture; never re-read original accessors after asynchronous work. Shared IAM/Deny/limits/approved hosts, private operational audit projection, required audit/usage before terminal delivery, reported-only usage, missing usage and possibly-billed failure/cancellation remain enforced. No cache hit, retention, model eligibility, savings or provider-billed cost is inferred.
+
+Version28 already tracks the root/text/tool directive definitions; pin/projector remain unchanged with offline integrity and fresh fixed-host equality. Actual OpenAI7.23.0/OpenRouter1.4.18 sockets test controlled requests. These local restrictions do not certify complete OpenRouter compatibility or live provider behavior. Rich/native thinking targets, mixed-format conversion, nested tool-result mapping, full #116 and unresolved #7 remain open.
+
+Sources: [Anthropic automatic/explicit edge cases and eligible blocks](https://platform.claude.com/docs/en/build-with-claude/prompt-caching), [OpenRouter prompt caching](https://openrouter.ai/docs/guides/best-practices/prompt-caching), [OpenRouter schema](https://openrouter.ai/openapi.json).

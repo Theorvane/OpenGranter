@@ -1,3 +1,4 @@
+import type { ChatMessage } from './chat-messages.ts';
 import {
   type CacheControl,
   type PromptCacheOptions,
@@ -104,10 +105,48 @@ export function hasBlockCacheControls(
       content.some((part) => part.cache_control !== undefined),
   );
 }
-/** Keep request-level mixed-format precedence outside this bounded subset. */
+/** Identify the last eligible block in the supported tools/system/messages projection. */
+function automaticTarget(
+  messages: readonly ChatMessage[],
+  tools: readonly FunctionTool[] | undefined,
+): CacheControl | undefined {
+  let target = tools?.at(-1)?.cache_control;
+  const instructions = messages.filter((m) => m.role === 'system' || m.role === 'developer');
+  if (instructions.every((m) => typeof m.content === 'string')) {
+    // All-string instructions become one joined block, including nonempty newline separators.
+    if (instructions.length > 1 || instructions.some((m) => m.content?.length)) target = undefined;
+  } else {
+    for (const [index, message] of instructions.entries()) {
+      if (index > 0) target = undefined; // Native newline separator is eligible text.
+      const content = message.content;
+      if (typeof content === 'string') {
+        if (content.length) target = undefined;
+      } else if (content !== null) {
+        for (const part of content) if (part.text.length) target = part.cache_control;
+      }
+    }
+  }
+  for (const message of messages) {
+    if (message.role === 'system' || message.role === 'developer') continue;
+    const content = message.content;
+    if (message.role === 'tool') {
+      target = undefined; // The outer tool_result is eligible even when its string is empty.
+    } else {
+      if (typeof content === 'string') {
+        if (content.length) target = undefined;
+      } else if (content !== null) {
+        for (const part of content) if (part.text.length) target = part.cache_control;
+      }
+      // Native tool_use blocks follow assistant text rather than sharing its marker.
+      if (message.tool_calls?.length) target = undefined;
+    }
+  }
+  return target;
+}
+/** Keep mixed formats unsupported; admit documented same-format automatic/explicit controls. */
 export function validatePromptCacheHistory(
   cacheControl: CacheControl | undefined,
-  messages: readonly { readonly content: string | null | readonly PromptCacheTextPart[] }[],
+  messages: readonly ChatMessage[],
   options?: PromptCacheOptions,
   tools?: readonly FunctionTool[],
 ): void {
@@ -116,7 +155,7 @@ export function validatePromptCacheHistory(
       hasBlockCacheControls(messages) ||
       (tools?.some((tool) => tool.cache_control !== undefined) ?? false);
   if (
-    (cacheControl !== undefined && (breakpoints || blocks)) ||
+    (cacheControl !== undefined && breakpoints) ||
     (blocks && (breakpoints || options !== undefined))
   )
     throw new TypeError('Unsupported cache controls');
@@ -129,9 +168,20 @@ export function validatePromptCacheHistory(
   }
   for (const directive of directives) {
     if (directive === undefined) continue;
-    if (++count > 4 || (directive.ttl === '1h' && shortSeen))
+    if (++count > (cacheControl === undefined ? 4 : 3) || (directive.ttl === '1h' && shortSeen))
       throw new TypeError('Unsupported cache controls');
     if (directive.ttl !== '1h') shortSeen = true;
+  }
+  if (cacheControl !== undefined && blocks) {
+    // Nested result markers need their own boundary-preserving mapping before coexistence.
+    if (messages.some((m) => m.role === 'tool' && typeof m.content !== 'string'))
+      throw new TypeError('Unsupported cache controls');
+    const target = automaticTarget(messages, tools);
+    if (
+      (target !== undefined && (target.ttl ?? '5m') !== (cacheControl.ttl ?? '5m')) ||
+      (cacheControl.ttl === '1h' && shortSeen)
+    )
+      throw new TypeError('Unsupported cache controls');
   }
 }
 /** Preserve the existing opt-in selector text view, including literal nullable content. */
