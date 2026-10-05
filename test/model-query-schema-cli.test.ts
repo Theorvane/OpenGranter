@@ -95,19 +95,25 @@ async function controlledLive(mode: string) {
       modelPin.projection.parameters.context.schema.minimum = 2;
     if (mode === 'chat-drift' || mode === 'both-drift' || mode === 'all-drift')
       schemas.ChatRequest.properties.user = { type: 'integer' };
+    if (mode === 'image-drift')
+      schemas.ChatContentImage.properties.image_url.properties.url = { type: 'integer' };
+    if (mode === 'content-union-drift')
+      schemas.ChatContentItems.discriminator.mapping.image_url = '#/components/schemas/NewImage';
     if (mode === 'response-drift' || mode === 'all-drift')
       schemas.Model.properties.context_length = { type: 'string' };
     if (mode === 'invalid-model-pin') modelPin.version = 0;
     if (mode === 'invalid-chat-pin') chatPin.version = 0;
+    if (mode === 'stale-chat-pin') chatPin.version = 30;
     if (mode === 'invalid-response-pin') responsePin.version = 0;
     if (mode === 'invalid-model-source') source.paths['/models'].get.parameters = [];
     if (mode === 'invalid-response-source') delete schemas.Model;
+    if (mode === 'invalid-image-source') delete schemas.ChatContentImage;
     // The downloaded source was constructed before drift mutations, and shares the selected objects.
     await writeFile(join(directory, 'source.json'), JSON.stringify(source));
     const pins =
       mode === 'invalid-model-pin'
         ? [chatRaw, JSON.stringify(modelPin), responseRaw]
-        : mode === 'invalid-chat-pin'
+        : mode === 'invalid-chat-pin' || mode === 'stale-chat-pin'
           ? [JSON.stringify(chatPin), modelRaw, responseRaw]
           : mode === 'invalid-response-pin'
             ? [chatRaw, modelRaw, JSON.stringify(responsePin)]
@@ -166,12 +172,26 @@ test('live compatibility validates all three pins against one bounded credential
   );
   assert.equal(result.stderr, '');
 });
-for (const mode of ['model-drift', 'chat-drift', 'both-drift', 'response-drift', 'all-drift'])
+for (const mode of [
+  'model-drift',
+  'chat-drift',
+  'both-drift',
+  'response-drift',
+  'all-drift',
+  'image-drift',
+  'content-union-drift',
+])
   test(`live ${mode} reports the selected subset and preserves all pins`, async () => {
     const { result, calls } = await controlledLive(mode);
     assert.equal(result.status, 1);
     assert.equal(calls.count, 1);
-    const chatDrift = ['chat-drift', 'both-drift', 'all-drift'].includes(mode);
+    const chatDrift = [
+      'chat-drift',
+      'both-drift',
+      'all-drift',
+      'image-drift',
+      'content-union-drift',
+    ].includes(mode);
     const modelDrift = ['model-drift', 'both-drift', 'all-drift'].includes(mode);
     const responseDrift = ['response-drift', 'all-drift'].includes(mode);
     assert.equal(
@@ -189,7 +209,12 @@ test('live transport failures expose only the safe fixed diagnostic and do not w
   assert.equal(result.stdout, '');
   assert.equal(result.stderr, safeFailure);
 });
-for (const mode of ['invalid-model-pin', 'invalid-chat-pin', 'invalid-response-pin'])
+for (const mode of [
+  'invalid-model-pin',
+  'invalid-chat-pin',
+  'invalid-response-pin',
+  'stale-chat-pin',
+])
   test(`live ${mode} rejects before fetching or reporting success`, async () => {
     const { result, calls } = await controlledLive(mode);
     assert.equal(result.status, 1);
@@ -197,7 +222,7 @@ for (const mode of ['invalid-model-pin', 'invalid-chat-pin', 'invalid-response-p
     assert.equal(result.stdout, '');
     assert.equal(result.stderr, safeFailure);
   });
-for (const mode of ['invalid-model-source', 'invalid-response-source'])
+for (const mode of ['invalid-model-source', 'invalid-response-source', 'invalid-image-source'])
   test(`malformed selected ${mode} withholds all success output and preserves pins`, async () => {
     const { result, calls } = await controlledLive(mode);
     assert.equal(result.status, 1);

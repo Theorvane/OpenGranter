@@ -59,6 +59,8 @@ const FIELD_NAMES = [
 ] as const;
 const DEFINITION_NAMES = [
   'ChatContentText',
+  'ChatContentItems',
+  'ChatContentImage',
   'PromptCacheBreakpoint',
   'ChatContentCacheControl',
   'PromptCacheOptions',
@@ -341,7 +343,7 @@ export function validateSchemaPin(value: unknown): { projection: SchemaProjectio
   try {
     const data = record(value);
     if (
-      data?.version !== 30 ||
+      data?.version !== 31 ||
       data.source !== OFFICIAL_SCHEMA_URL ||
       typeof data.retrievedAt !== 'string' ||
       !/^\d{4}-\d{2}-\d{2}$/.test(data.retrievedAt) ||
