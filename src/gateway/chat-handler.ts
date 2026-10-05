@@ -47,6 +47,7 @@ import {
   type ResponseFormat,
   resolveOutputTokenLimit,
   type StreamOptions,
+  snapshotClientMetadata,
   snapshotClientUser,
   snapshotLogitBias,
   snapshotLogprobControls,
@@ -96,6 +97,7 @@ const MAX_BODY_BYTES = 1024 * 1024;
 export type { ChatMessage } from './chat-messages.ts';
 
 export interface ChatRequest {
+  readonly metadata?: Readonly<Record<string, string>>;
   readonly user?: string;
   readonly prompt_cache_key?: string;
   readonly stream_options?: StreamOptions;
@@ -414,6 +416,7 @@ function validateChat(
       (key) =>
         ![
           'model',
+          'metadata',
           'user',
           'prompt_cache_key',
           'messages',
@@ -473,6 +476,7 @@ function validateChat(
   const topK = value.top_k ?? undefined;
   if (!validTopK(topK)) return undefined;
   let reasoning: ReasoningConfiguration | undefined;
+  let metadata: ReturnType<typeof snapshotClientMetadata>;
   let user: ReturnType<typeof snapshotClientUser>;
   let promptCacheKey: ReturnType<typeof snapshotPromptCacheKey>;
   let logitBias: ReturnType<typeof snapshotLogitBias>;
@@ -482,6 +486,7 @@ function validateChat(
   let toolChoice: ReturnType<typeof snapshotToolChoice>;
   let parallelToolCalls: ReturnType<typeof snapshotParallelToolCalls>;
   try {
+    metadata = snapshotClientMetadata(value.metadata);
     user = snapshotClientUser(value.user);
     promptCacheKey = snapshotPromptCacheKey(value.prompt_cache_key);
     logprobControls = snapshotLogprobControls(value.logprobs, value.top_logprobs);
@@ -536,6 +541,7 @@ function validateChat(
     return undefined;
   return {
     model: value.model,
+    ...(metadata === undefined ? {} : { metadata }),
     ...(user === undefined ? {} : { user }),
     ...(promptCacheKey === undefined ? {} : { prompt_cache_key: promptCacheKey }),
     messages,

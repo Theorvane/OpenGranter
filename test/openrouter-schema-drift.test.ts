@@ -374,6 +374,7 @@ function source(): Record<string, unknown> {
             stream: { type: 'boolean', default: false },
             user: { type: 'string' },
             prompt_cache_key: { type: ['string', 'null'] },
+            metadata: { type: 'object', additionalProperties: { type: 'string' } },
             max_tokens: { type: ['integer', 'null'] },
             max_completion_tokens: { type: ['integer', 'null'] },
             stop: {
@@ -520,6 +521,7 @@ test('official projection and reviewed pin agree; key order is immaterial', () =
     'max_completion_tokens',
     'max_tokens',
     'messages',
+    'metadata',
     'min_p',
     'model',
     'parallel_tool_calls',
@@ -831,8 +833,8 @@ for (const name of ['ChatFormatTextConfig', 'ChatFormatJsonObjectConfig']) {
     }
   });
 }
-test('version-22 pin retains exact selected definitions', () => {
-  assert.equal(pinned.version, 22);
+test('version-23 pin retains exact selected definitions', () => {
+  assert.equal(pinned.version, 23);
   const definitions = (
     projectOfficialSchema(source()) as unknown as { definitions: Record<string, unknown> }
   ).definitions;
@@ -1004,7 +1006,7 @@ test('message selections ignore editorial annotations but detect content and req
   for (const value of Object.values(projected.messageNames))
     assert.deepEqual(value, { schema: { type: 'string' }, required: false });
 });
-test('version-22 message maps reject stale and rehashed malformed pins', () => {
+test('version-23 message maps reject stale and rehashed malformed pins', () => {
   for (const version of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21])
     assert.throws(() => validateSchemaPin({ ...pinned, version }), /Invalid schema pin/);
   for (const messageNames of [
@@ -1475,13 +1477,13 @@ test('min_p selection preserves the official nullable number structure', () => {
   });
 });
 
-test('client user source selection preserves exact non-nullable shape and version 22', () => {
-  assert.equal(pinned.version, 22);
+test('client user source selection preserves exact non-nullable shape and version 23', () => {
+  assert.equal(pinned.version, 23);
   const projection = projectOfficialSchema(source()) as unknown as {
     fields: Record<string, unknown>;
   };
   assert.deepEqual(projection.fields.user, { type: 'string' });
-  assert.equal(Object.keys(projection.fields).length, 27);
+  assert.equal(Object.keys(projection.fields).length, 28);
 });
 for (const [index, schema] of [
   { type: ['string', 'null'] },
@@ -1539,11 +1541,11 @@ test('client user exact pin map rejects stale versions and rehashed missing or e
   }
 });
 
-test('cache key source selection preserves nullable string and exact version-22 map', () => {
-  assert.equal(pinned.version, 22);
+test('cache key source selection preserves nullable string and exact version-23 map', () => {
+  assert.equal(pinned.version, 23);
   const projection = projectOfficialSchema(source());
   assert.deepEqual(projection.fields.prompt_cache_key, { type: ['string', 'null'] });
-  assert.equal(Object.keys(projection.fields).length, 27);
+  assert.equal(Object.keys(projection.fields).length, 28);
 });
 for (const [index, schema] of [
   { type: 'string' },
@@ -2399,5 +2401,60 @@ test('function fragment annotations are ignored but malformed missing targets re
     const data = fragmentSource();
     (data.components as { schemas: Record<string, unknown> }).schemas.ChatStreamToolCall = value;
     assert.throws(() => projectOfficialSchema(data), /Invalid official schema/);
+  }
+});
+
+const metadataShape = { type: 'object', additionalProperties: { type: 'string' } };
+test('metadata source selection preserves exact dictionary without inventing prose bounds', () => {
+  assert.equal(pinned.version, 23);
+  assert.deepEqual(projectOfficialSchema(source()).fields.metadata, metadataShape);
+  assert.equal(Object.keys(projectOfficialSchema(source()).fields).length, 28);
+});
+for (const [index, schema] of [
+  { type: ['object', 'null'], additionalProperties: { type: 'string' } },
+  { type: 'object', additionalProperties: { type: 'integer' } },
+  { ...metadataShape, maxProperties: 16 },
+  { ...metadataShape, propertyNames: { maxLength: 64 } },
+  { type: 'object', additionalProperties: { type: 'string', maxLength: 512 } },
+  { ...metadataShape, default: { private: 'tag' } },
+  { ...metadataShape, 'x-metadata': true },
+].entries())
+  test(`metadata structural drift ${index} cannot hide behind unchanged request references`, () => {
+    const data = source();
+    chatRequestProperties(data).metadata = schema;
+    assert.equal(compareOfficialSchema(data, pinned), false);
+  });
+test('metadata annotations stay equivalent while required changes cause drift', () => {
+  const data = source();
+  chatRequestProperties(data).metadata = {
+    ...metadataShape,
+    description: 'new prose',
+    examples: [{ private: 'example' }],
+  };
+  assert.equal(compareOfficialSchema(data, pinned), true);
+  const request = schemasOf(data).ChatRequest as Record<string, unknown>;
+  request.required = ['messages', 'metadata'];
+  assert.equal(compareOfficialSchema(data, pinned), false);
+});
+test('metadata missing/malformed targets and rehashed invalid maps or stale versions reject', () => {
+  for (const value of [undefined, null, [], 42, 'private']) {
+    const data = source(),
+      fields = chatRequestProperties(data);
+    if (value === undefined) delete fields.metadata;
+    else fields.metadata = value;
+    assert.throws(() => projectOfficialSchema(data), /Invalid official schema/);
+  }
+  assert.throws(() => validateSchemaPin({ ...pinned, version: 22 }), /Invalid schema pin/);
+  for (const op of ['missing', 'malformed', 'extra']) {
+    const projection = structuredClone(pinned.projection),
+      fields = projection.fields as Record<string, unknown>;
+    if (op === 'missing') delete fields.metadata;
+    else if (op === 'malformed') fields.metadata = null;
+    else fields.private = { type: 'string' };
+    const projectionSha256 = createHash('sha256').update(canonicalSchema(projection)).digest('hex');
+    assert.throws(
+      () => validateSchemaPin({ ...pinned, projection, projectionSha256 }),
+      /Invalid schema pin/,
+    );
   }
 });

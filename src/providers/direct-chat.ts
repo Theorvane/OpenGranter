@@ -3,6 +3,7 @@ import { type ChatMessage, snapshotChatMessages } from '../gateway/chat-messages
 import {
   type ReasoningEffort,
   resolveOutputTokenLimit,
+  snapshotClientMetadata,
   snapshotClientUser,
   snapshotLogitBias,
   snapshotLogprobControls,
@@ -365,6 +366,7 @@ function prepare(
   logprobControls: ReturnType<typeof snapshotLogprobControls>,
   user: string | undefined,
   promptCacheKey: string | undefined,
+  metadata: ReturnType<typeof snapshotClientMetadata>,
   streaming = false,
 ): { url: string; headers: Record<string, string>; body: object } {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
@@ -379,6 +381,7 @@ function prepare(
       headers,
       body: {
         model: candidate.upstreamModelId,
+        ...(metadata === undefined ? {} : { metadata }),
         ...(user === undefined ? {} : { user }),
         ...(promptCacheKey === undefined ? {} : { prompt_cache_key: promptCacheKey }),
         messages: inputMessages,
@@ -544,9 +547,12 @@ export function createDirectChatTransport(
     const registration = registrations.find((item) => item.providerId === candidate.providerId);
     if (!registration || candidate.kind !== 'managed') fail('other');
     let logprobControls: ReturnType<typeof snapshotLogprobControls>;
+    let metadata: ReturnType<typeof snapshotClientMetadata>;
     let user: ReturnType<typeof snapshotClientUser>;
     let promptCacheKey: ReturnType<typeof snapshotPromptCacheKey>;
     try {
+      metadata = snapshotClientMetadata(request.metadata);
+      if (metadata !== undefined && registration.kind !== 'openai') fail('other');
       user = snapshotClientUser(request.user);
       promptCacheKey = snapshotPromptCacheKey(request.prompt_cache_key);
       if (promptCacheKey !== undefined && registration.kind !== 'openai') fail('other');
@@ -737,6 +743,7 @@ export function createDirectChatTransport(
       logprobControls,
       user,
       promptCacheKey,
+      metadata,
       streaming !== false,
     );
     const body = JSON.stringify(prepared.body);

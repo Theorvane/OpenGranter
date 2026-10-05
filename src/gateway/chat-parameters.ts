@@ -245,3 +245,34 @@ export function snapshotLogprobControls(
     ...(alternatives === undefined ? {} : { top_logprobs: alternatives }),
   });
 }
+
+/** Capture bounded caller tags without retaining accessors or mutating prototypes. */
+export function snapshotClientMetadata(
+  value: unknown,
+): Readonly<Record<string, string>> | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== 'object' || value === null || Array.isArray(value))
+    throw new TypeError('Invalid client metadata');
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null)
+    throw new TypeError('Invalid client metadata');
+  const keys = Object.keys(value);
+  if (keys.length > 16) throw new TypeError('Invalid client metadata');
+  const entries: [string, string][] = [];
+  for (const key of keys) {
+    if (!withinMetadataLength(key, 64)) throw new TypeError('Invalid client metadata');
+    const item: unknown = Reflect.get(value, key);
+    if (typeof item !== 'string' || !withinMetadataLength(item, 512))
+      throw new TypeError('Invalid client metadata');
+    entries.push([key, item]);
+  }
+  return Object.freeze(Object.fromEntries(entries));
+}
+
+function withinMetadataLength(value: string, maximum: number): boolean {
+  let count = 0;
+  for (const _character of value) {
+    if (++count > maximum) return false;
+  }
+  return true;
+}
