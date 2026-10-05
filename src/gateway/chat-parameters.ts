@@ -276,3 +276,27 @@ function withinMetadataLength(value: string, maximum: number): boolean {
   }
   return true;
 }
+
+export interface CacheControl {
+  readonly type: 'ephemeral';
+  readonly ttl?: '5m' | '1h';
+}
+
+/** Capture the known automatic cache directive without deriving defaults or usage. */
+export function snapshotCacheControl(value: unknown): CacheControl | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== 'object' || value === null || Array.isArray(value))
+    throw new TypeError('Invalid cache control');
+  const prototype = Object.getPrototypeOf(value);
+  if (
+    (prototype !== Object.prototype && prototype !== null) ||
+    !Object.hasOwn(value, 'type') ||
+    Object.keys(value).some((key) => key !== 'type' && key !== 'ttl')
+  )
+    throw new TypeError('Invalid cache control');
+  const type: unknown = Reflect.get(value, 'type');
+  const ttl: unknown = Object.hasOwn(value, 'ttl') ? Reflect.get(value, 'ttl') : undefined;
+  if (type !== 'ephemeral' || (ttl !== undefined && ttl !== '5m' && ttl !== '1h'))
+    throw new TypeError('Invalid cache control');
+  return Object.freeze({ type, ...(ttl === undefined ? {} : { ttl }) });
+}
