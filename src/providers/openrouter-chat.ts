@@ -33,6 +33,7 @@ import {
   snapshotParallelToolCalls,
   snapshotToolChoice,
 } from '../gateway/chat-tools.ts';
+import { validatePromptCacheHistory } from '../gateway/prompt-cache-parts.ts';
 import { snapshotReasoningConfiguration } from '../gateway/reasoning-configuration.ts';
 import { waitForStreamOperation } from '../streaming/wait-for-stream-operation.ts';
 import { normalizeAssistantResponse } from './assistant-response.ts';
@@ -310,6 +311,7 @@ function prepareOpenRouterChatRequest(
   let messages: readonly ChatMessage[];
   try {
     messages = snapshotChatMessages(request.messages);
+    validatePromptCacheHistory(cacheControl, messages);
     validatePredictionControls(prediction, {
       tools,
       toolChoice,

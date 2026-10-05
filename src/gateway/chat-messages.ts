@@ -4,6 +4,7 @@ import {
   snapshotGoogleThoughtSignature,
 } from '../providers/google-thought-signature.ts';
 import { type ReasoningDetail, snapshotReasoningDetails } from '../providers/reasoning-details.ts';
+import { type PromptCacheTextPart, snapshotPromptCacheTextParts } from './prompt-cache-parts.ts';
 
 export interface ChatFunctionCall {
   readonly extra_content?: GoogleThoughtSignatureContent;
@@ -15,7 +16,7 @@ export interface ChatFunctionCall {
 export type ChatMessage =
   | {
       readonly role: 'system' | 'developer' | 'user';
-      readonly content: string;
+      readonly content: string | readonly PromptCacheTextPart[];
       readonly name?: string;
       readonly tool_calls?: never;
       readonly tool_call_id?: never;
@@ -25,7 +26,7 @@ export type ChatMessage =
     }
   | {
       readonly role: 'assistant';
-      readonly content: string | null;
+      readonly content: string | null | readonly PromptCacheTextPart[];
       readonly name?: string;
       readonly tool_calls?: readonly ChatFunctionCall[];
       readonly tool_call_id?: never;
@@ -35,7 +36,7 @@ export type ChatMessage =
     }
   | {
       readonly role: 'tool';
-      readonly content: string;
+      readonly content: string | readonly PromptCacheTextPart[];
       readonly tool_call_id: string;
       readonly name?: never;
       readonly tool_calls?: never;
@@ -116,12 +117,14 @@ export function snapshotChatMessages(value: unknown): readonly ChatMessage[] {
     if (!item) throw new TypeError('Invalid chat messages');
     const role = item.role;
     if (typeof role !== 'string') throw new TypeError('Invalid chat messages');
-    const { content, name } = item;
+    const content = snapshotMessageContent(item.content);
+    const name = item.name;
     if (role === 'tool') {
       const toolCallId = item.tool_call_id;
       if (
         !exact(item, ['role', 'content', 'tool_call_id']) ||
-        typeof content !== 'string' ||
+        content === null ||
+        content === undefined ||
         typeof toolCallId !== 'string' ||
         !pending.delete(toolCallId)
       )
@@ -170,8 +173,6 @@ export function snapshotChatMessages(value: unknown): readonly ChatMessage[] {
       )
         throw new TypeError('Invalid chat messages');
       const calls = snapshotCalls(toolCalls);
-      if (content !== null && content !== undefined && typeof content !== 'string')
-        throw new TypeError('Invalid chat messages');
       for (const call of calls) pending.add(call.id);
       messages.push(
         Object.freeze({
@@ -194,14 +195,14 @@ export function snapshotChatMessages(value: unknown): readonly ChatMessage[] {
         'name',
         ...(role === 'assistant' ? ['reasoning', 'reasoning_details', 'refusal'] : []),
       ]) ||
-      (typeof content !== 'string' && !noTextAssistant)
+      ((content === null || content === undefined) && !noTextAssistant)
     )
       throw new TypeError('Invalid chat messages');
     if (role === 'assistant') {
       messages.push(
         Object.freeze({
           role,
-          content: content === undefined ? null : (content as string | null),
+          content: content ?? null,
           ...(name === undefined ? {} : { name }),
           ...refusalContent,
           ...reasoningContent,
@@ -209,10 +210,11 @@ export function snapshotChatMessages(value: unknown): readonly ChatMessage[] {
         }),
       );
     } else {
+      if (content === null || content === undefined) throw new TypeError('Invalid chat messages');
       messages.push(
         Object.freeze({
           role,
-          content: content as string,
+          content,
           ...(name === undefined ? {} : { name }),
         }),
       );
@@ -220,4 +222,11 @@ export function snapshotChatMessages(value: unknown): readonly ChatMessage[] {
   }
   if (pending.size > 0) throw new TypeError('Invalid chat messages');
   return Object.freeze(messages);
+}
+
+function snapshotMessageContent(
+  value: unknown,
+): string | null | undefined | readonly PromptCacheTextPart[] {
+  if (value === undefined || value === null || typeof value === 'string') return value;
+  return snapshotPromptCacheTextParts(value);
 }

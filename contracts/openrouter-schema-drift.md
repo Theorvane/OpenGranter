@@ -1,6 +1,6 @@
 # Official schema drift contract
 
-The pin records source URL, retrieval date, canonical source SHA-256 and a canonical structural projection SHA-256. Source: [official OpenRouter OpenAPI](https://openrouter.ai/openapi.json), retrieved 2026-10-05 for version 27. The snapshot contains selected schema constraints, with examples/descriptions and other annotations removed.
+The pin records source URL, retrieval date, canonical source SHA-256 and a canonical structural projection SHA-256. Source: [official OpenRouter OpenAPI](https://openrouter.ai/openapi.json), retrieved 2026-10-05 for version 28. The snapshot contains selected schema constraints, with examples/descriptions and other annotations removed.
 
 The offline gate validates provenance shape and projection integrity. `npm run compatibility:drift` explicitly fetches only the official HTTPS URL, rejects redirects, bounds time/body size and compares selected chat request and response definitions. It neither changes the pin nor sends credentials or inference calls. Failures expose fixed messages, not downloaded content or transport errors.
 
@@ -123,3 +123,7 @@ Version 25 adds only prediction and whole Prediction/PredictionContentText (30 r
 Version 26 adds only prompt_cache_options and whole PromptCacheOptions (31 fields/19 request-history definitions). Removing both selections reproduces version 25 canonically. Retain nullable root/string TTL, required explicit mode and absent TTL enum/default/bounds/extra-field constraints. Fresh canonical source SHA-256 is 0f220980d0c335ca4b4efd5684e1055f88eb84e73d4e34b0b9a859c9d2cf0458; projection SHA-256 is c0003968e46150ee776341a9c2bb7b3a2565e491e48956c9ed83adb24ebceef0. See [plan](../docs/plans/438-prompt-cache-options.md).
 
 Version 27 adds only modalities (32 fields/19 request-history definitions). Removing it reproduces version 26 canonically. Preserve the source nonnullable array, full item enum/unknown-values extension and absent cardinality/uniqueness/default. Fresh source SHA-256: 0f220980d0c335ca4b4efd5684e1055f88eb84e73d4e34b0b9a859c9d2cf0458; projection: 9a05828adb4babe323c3476b790b92aa56b3b3d09cc16a36c39915544a004150. See [plan](../docs/plans/440-text-modality.md).
+
+## Explicit text cache breakpoint source drift
+
+Version 28 adds whole ChatContentText, PromptCacheBreakpoint and ChatContentCacheControl to 32 fields/22 request-history definitions. Removing these three definitions reproduces version 27 canonically. Track all text/marker/cache-control references, nullable object/required explicit mode, absent defaults/bounds and inherited directive/TTL shapes. Structural mutations of the selected targets, missing/malformed definitions and stale/rehashed maps fail; editorial annotations remain ignored. Source SHA-256 remains 0f220980d0c335ca4b4efd5684e1055f88eb84e73d4e34b0b9a859c9d2cf0458; projection SHA-256 is 58e9a0a83abf7e1863d552979158684fe72dec43df1318e8d8ddcb7a81ef22b7. The pin does not enable block cache_control, native conversion, live caching or full instance validation. See [plan](../docs/plans/442-prompt-cache-breakpoints.md) and [contract](prompt-cache-breakpoints.md).

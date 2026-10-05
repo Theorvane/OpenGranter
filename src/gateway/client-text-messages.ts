@@ -1,3 +1,5 @@
+import { type PromptCacheTextPart, snapshotPromptCacheBreakpoint } from './prompt-cache-parts.ts';
+
 function record(value: unknown): Record<string, unknown> | undefined {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -22,6 +24,8 @@ export function normalizeClientTextMessages(value: unknown): readonly Record<str
       const inputParts: readonly unknown[] = content;
       const parts = Array.from({ length: inputParts.length }, (_, index) => inputParts[index]);
       let text = '';
+      const captured: PromptCacheTextPart[] = [];
+      let marked = false;
       let refusal: string | undefined;
       for (const raw of parts) {
         const part = record(raw);
@@ -44,16 +48,29 @@ export function normalizeClientTextMessages(value: unknown): readonly Record<str
         const payload = part.text;
         if (
           typeof payload !== 'string' ||
-          Object.keys(part).some((key) => key !== 'type' && key !== 'text')
+          Object.keys(part).some(
+            (key) => key !== 'type' && key !== 'text' && key !== 'prompt_cache_breakpoint',
+          )
         )
           throw new TypeError('Invalid client messages');
+        const marker = snapshotPromptCacheBreakpoint(
+          Object.hasOwn(part, 'prompt_cache_breakpoint') ? part.prompt_cache_breakpoint : undefined,
+        );
+        if (marker !== undefined) marked = true;
+        captured.push(
+          Object.freeze({
+            type: 'text',
+            text: payload,
+            ...(marker === undefined ? {} : { prompt_cache_breakpoint: marker }),
+          }),
+        );
         text += payload;
       }
       if (refusal !== undefined) {
         messages.push({ ...fields, content: null, refusal });
         continue;
       }
-      content = text;
+      content = marked ? Object.freeze(captured) : text;
     }
     messages.push({ ...fields, content: content === undefined ? null : content });
   }

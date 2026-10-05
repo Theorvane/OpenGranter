@@ -97,6 +97,7 @@ import {
   snapshotOpenRouterMetadata,
 } from './model-discovery-metadata.ts';
 import { parseModelListQuery } from './model-list-query.ts';
+import { chatContentText, validatePromptCacheHistory } from './prompt-cache-parts.ts';
 import {
   type ReasoningConfiguration,
   snapshotReasoningConfiguration,
@@ -559,6 +560,7 @@ function validateChat(
   let messages: readonly ChatMessage[];
   try {
     messages = snapshotChatMessages(normalizeClientTextMessages(value.messages));
+    validatePromptCacheHistory(cacheControl, messages);
     validatePredictionControls(prediction, {
       tools,
       toolChoice,
@@ -1246,7 +1248,7 @@ export function createChatHandler<T>(
         ...(route.jev?.sendPrompt
           ? {
               promptText: chat.messages
-                .map((message) => `${message.role}: ${message.content}`)
+                .map((message) => `${message.role}: ${chatContentText(message.content)}`)
                 .join('\n'),
             }
           : {}),

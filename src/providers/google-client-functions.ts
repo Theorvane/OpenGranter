@@ -89,6 +89,7 @@ export function prepareGoogleMessages(messages: readonly ChatMessage[]): readonl
   let calls: readonly { id: string; function: { name: string } }[] = [],
     results = new Map<string, string>();
   for (const message of messages) {
+    if (typeof message.content !== 'string' && message.content !== null) invalid();
     if (message.role === 'tool') {
       if (
         !calls.some((call) => call.id === message.tool_call_id) ||
