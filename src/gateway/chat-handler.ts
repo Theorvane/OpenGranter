@@ -98,7 +98,7 @@ import {
   type OpenRouterModelMetadata,
   snapshotOpenRouterMetadata,
 } from './model-discovery-metadata.ts';
-import { parseModelListQuery } from './model-list-query.ts';
+import { modelListContinuation, parseModelListQuery } from './model-list-query.ts';
 import { chatContentText, validatePromptCacheHistory } from './prompt-cache-parts.ts';
 import {
   type ReasoningConfiguration,
@@ -994,7 +994,7 @@ export function createChatHandler<T>(
         }
         return errorResponse(503, 'catalog_unavailable', requestId);
       }
-      const visible = catalog.filter(
+      const authorized = catalog.filter(
         (model) =>
           model.enabled &&
           model.routes.some(
@@ -1008,6 +1008,20 @@ export function createChatHandler<T>(
               }).candidates.length > 0,
           ),
       );
+      const visible = authorized.filter((model) => {
+        const published = metadata.get(model);
+        return (
+          (query.outputModality === undefined ||
+            query.outputModality === 'all' ||
+            published?.architecture.output_modalities.includes(query.outputModality) === true) &&
+          (query.supportedParameter === undefined ||
+            published?.supported_parameters.includes(query.supportedParameter) === true) &&
+          (query.minimumContextLength === undefined ||
+            (published?.context_length !== undefined &&
+              published.context_length !== null &&
+              published.context_length >= query.minimumContextLength))
+        );
+      });
       const selected =
         query.limit === undefined
           ? visible
@@ -1022,7 +1036,7 @@ export function createChatHandler<T>(
       const nextOffset = query.offset + data.length;
       const next =
         query.limit !== undefined && nextOffset < visible.length
-          ? `/api/v1/models?offset=${nextOffset}&limit=${query.limit}`
+          ? modelListContinuation(query, nextOffset)
           : null;
       try {
         await ports.writeAudit({
