@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "source": "https://openrouter.ai/openapi.json",
+  "retrievedAt": "2026-10-05",
+  "sourceSha256": "0f220980d0c335ca4b4efd5684e1055f88eb84e73d4e34b0b9a859c9d2cf0458",
+  "projectionSha256": "daa5d309dfc66e8b404f50fb06a64ab4d7e244de8a7f68f78f943a9f94ee4c7a",
+  "projection": {
+    "openapi": "3.1.0",
+    "documentVersion": "1.0.0",
+    "path": "/models",
+    "method": "get",
+    "operationId": "getModels",
+    "parameters": {
+      "offset": {
+        "in": "query",
+        "name": "offset",
+        "required": false,
+        "schema": {
+          "default": 0,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "limit": {
+        "in": "query",
+        "name": "limit",
+        "required": false,
+        "schema": {
+          "default": 500,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "output_modalities": {
+        "in": "query",
+        "name": "output_modalities",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "supported_parameters": {
+        "in": "query",
+        "name": "supported_parameters",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "context": {
+        "in": "query",
+        "name": "context",
+        "required": false,
+        "schema": {
+          "minimum": 1,
+          "type": "integer"
+        }
+      }
+    }
+  }
+}

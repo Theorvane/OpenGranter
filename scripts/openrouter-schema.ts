@@ -123,11 +123,18 @@ function record(value: unknown): Record<string, unknown> | undefined {
     ? (value as Record<string, unknown>)
     : undefined;
 }
-function ordered(value: unknown, strip: boolean, depth = 0, names = false): unknown {
+function ordered(
+  value: unknown,
+  strip: boolean,
+  depth = 0,
+  names = false,
+  literalExtensions = false,
+): unknown {
   if (depth > 64) throw new TypeError('Invalid official schema');
   if (value === null || typeof value === 'string' || typeof value === 'boolean') return value;
   if (typeof value === 'number' && Number.isFinite(value)) return value;
-  if (Array.isArray(value)) return value.map((item) => ordered(item, strip, depth + 1));
+  if (Array.isArray(value))
+    return value.map((item) => ordered(item, strip, depth + 1, false, literalExtensions));
   const object = record(value);
   if (!object) throw new TypeError('Invalid official schema');
   return Object.fromEntries(
@@ -138,7 +145,10 @@ function ordered(value: unknown, strip: boolean, depth = 0, names = false): unkn
         key,
         ordered(
           object[key],
-          strip && (names || !['default', 'const', 'enum'].includes(key)),
+          strip &&
+            (names ||
+              (!['default', 'const', 'enum'].includes(key) &&
+                !(literalExtensions && key.startsWith('x-')))),
           depth + 1,
           strip &&
             !names &&
@@ -149,12 +159,16 @@ function ordered(value: unknown, strip: boolean, depth = 0, names = false): unkn
               'definitions',
               'dependentSchemas',
             ].includes(key),
+          literalExtensions,
         ),
       ]),
   );
 }
 export function canonicalSchema(value: unknown): string {
   return JSON.stringify(ordered(value, false));
+}
+export function structuralSchema(value: unknown): unknown {
+  return ordered(value, true, 0, false, true);
 }
 function digest(value: string): string {
   return createHash('sha256').update(value).digest('hex');
