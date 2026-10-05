@@ -50,6 +50,7 @@ import {
   snapshotClientUser,
   snapshotLogitBias,
   snapshotLogprobControls,
+  snapshotPromptCacheKey,
   snapshotResponseFormat,
   snapshotStopSequences,
   snapshotStreamOptions,
@@ -96,6 +97,7 @@ export type { ChatMessage } from './chat-messages.ts';
 
 export interface ChatRequest {
   readonly user?: string;
+  readonly prompt_cache_key?: string;
   readonly stream_options?: StreamOptions;
   readonly model: string;
   readonly messages: readonly ChatMessage[];
@@ -413,6 +415,7 @@ function validateChat(
         ![
           'model',
           'user',
+          'prompt_cache_key',
           'messages',
           'stream',
           'stream_options',
@@ -471,6 +474,7 @@ function validateChat(
   if (!validTopK(topK)) return undefined;
   let reasoning: ReasoningConfiguration | undefined;
   let user: ReturnType<typeof snapshotClientUser>;
+  let promptCacheKey: ReturnType<typeof snapshotPromptCacheKey>;
   let logitBias: ReturnType<typeof snapshotLogitBias>;
   let logprobControls: ReturnType<typeof snapshotLogprobControls>;
   let streamOptions: ReturnType<typeof snapshotStreamOptions>;
@@ -479,6 +483,7 @@ function validateChat(
   let parallelToolCalls: ReturnType<typeof snapshotParallelToolCalls>;
   try {
     user = snapshotClientUser(value.user);
+    promptCacheKey = snapshotPromptCacheKey(value.prompt_cache_key);
     logprobControls = snapshotLogprobControls(value.logprobs, value.top_logprobs);
     reasoning = snapshotReasoningConfiguration(
       value.reasoning,
@@ -532,6 +537,7 @@ function validateChat(
   return {
     model: value.model,
     ...(user === undefined ? {} : { user }),
+    ...(promptCacheKey === undefined ? {} : { prompt_cache_key: promptCacheKey }),
     messages,
     ...(value.stream === true ? { stream: true } : {}),
     ...(streamOptions === undefined ? {} : { stream_options: streamOptions }),

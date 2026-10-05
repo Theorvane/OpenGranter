@@ -5,6 +5,7 @@ import {
   snapshotClientUser,
   snapshotLogitBias,
   snapshotLogprobControls,
+  snapshotPromptCacheKey,
   snapshotResponseFormat,
   snapshotStopSequences,
   snapshotStreamOptions,
@@ -214,9 +215,11 @@ function prepareOpenRouterChatRequest(
   if (!validPenalty(frequencyPenalty) || !validPenalty(presencePenalty)) fail('configuration');
   let reasoning: ReturnType<typeof snapshotReasoningConfiguration>;
   let user: ReturnType<typeof snapshotClientUser>;
+  let promptCacheKey: ReturnType<typeof snapshotPromptCacheKey>;
   let responseFormat: ReturnType<typeof snapshotResponseFormat>;
   try {
     user = snapshotClientUser(request.user);
+    promptCacheKey = snapshotPromptCacheKey(request.prompt_cache_key);
     reasoning = snapshotReasoningConfiguration(
       request.reasoning,
       reasoningEffort,
@@ -304,6 +307,7 @@ function prepareOpenRouterChatRequest(
     body: Object.freeze({
       model: fixedAttempt.upstreamModelId,
       ...(user === undefined ? {} : { user }),
+      ...(promptCacheKey === undefined ? {} : { prompt_cache_key: promptCacheKey }),
       messages,
       stream,
       ...(streamOptions === undefined ? {} : { stream_options: streamOptions }),

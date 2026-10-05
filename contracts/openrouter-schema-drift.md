@@ -1,6 +1,6 @@
 # Official schema drift contract
 
-The pin records source URL, retrieval date, canonical source SHA-256 and a canonical structural projection SHA-256. Source: [official OpenRouter OpenAPI](https://openrouter.ai/openapi.json), retrieved 2026-10-05 for version 21. The snapshot contains selected schema constraints, with examples/descriptions and other annotations removed.
+The pin records source URL, retrieval date, canonical source SHA-256 and a canonical structural projection SHA-256. Source: [official OpenRouter OpenAPI](https://openrouter.ai/openapi.json), retrieved 2026-10-05 for version 22. The snapshot contains selected schema constraints, with examples/descriptions and other annotations removed.
 
 The offline gate validates provenance shape and projection integrity. `npm run compatibility:drift` explicitly fetches only the official HTTPS URL, rejects redirects, bounds time/body size and compares selected chat request and response definitions. It neither changes the pin nor sends credentials or inference calls. Failures expose fixed messages, not downloaded content or transport errors.
 
@@ -111,3 +111,5 @@ this expands the projection without claiming a fresh retrieval. Projection diges
 Add exactly logprobs/top_logprobs and whole ChatTokenLogprobs/ChatTokenLogprob to the response map (25 fields/five response definitions); retain every previous selection. Nested token bytes and inline alternative structures cannot hide behind unchanged choice references. Stale versions and rehashed invalid exact maps reject; editorial annotations remain ignored while literal data stays structural. Do not manufacture source constraints from runtime/prose rules. Fresh canonical source/projection digests and bounded facts are recorded in [plan](../docs/plans/422-logprob-schema.md) and [contract](logprob-schema.md). Runtime support remains its separate subset.
 
 Issue #428 extends the pin to version 21 with exactly 26 request fields, adding the optional non-nullable user schema. Every earlier selected definition/map remains unchanged. User structural changes and required-status drift are guarded without inventing runtime limits or authenticating the identifier. See [client-user](client-user.md) and [plan](../docs/plans/428-client-user.md).
+
+Issue #430 extends the pin to version 22 with exactly 27 request fields, adding nullable string prompt_cache_key while retaining all prior definitions/maps. Detect structural and required-status drift without inventing cache guarantees, counters or bounds. See [prompt-cache-key](prompt-cache-key.md) and [plan](../docs/plans/430-prompt-cache-key.md).

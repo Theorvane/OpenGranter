@@ -1,0 +1,9 @@
+# Prompt cache request key contract
+
+Issue #430. Plan: [430-prompt-cache-key](../docs/plans/430-prompt-cache-key.md).
+
+Both /v1 and /api/v1 accept nullable optional string prompt_cache_key on managed OpenAI/delegated OpenRouter nonstream/stream text/refusal/function requests. Null/omission leaves the native field unset; empty/Unicode/whitespace/case-sensitive strings retain exact values. Capture once before credentials; malformed types fail safely before route work. Existing complete HTTP body bounds apply. Do not trim/hash/generate defaults or echo keys into responses, errors or operational records.
+
+Native Anthropic/Gemini supplied strings reject before secrets. Their cache_control and cachedContent semantics are not a substitute for this field. Null/omission preserves native defaults, context and routing. Authenticated principal/credential/policy attribution, IAM/Deny, limits, fixed hosts and provider/model scope remain enforced. Required ledger/audit handoffs and safe failure/cancellation behavior remain shared. A key does not prove cache hits, produce usage counters, derive savings/costs or replace provider-reported usage.
+
+Version 22 adds exactly prompt_cache_key to 27 selected fields without changing earlier definitions/maps. Preserve its nullable string schema without fabricated machine bounds/defaults; type/nullable/required/default/bounds/extension drift is detected. Missing/malformed source targets, stale versions and rehashed invalid exact maps reject. Fresh source/projection digests and canonical previous-selection equality must be reviewed. Native caching/retention/resource ownership, live/provider/model guarantees, full #116 and unresolved #7 remain open. Sources: [OpenRouter OpenAPI](https://openrouter.ai/openapi.json), [OpenAI create](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create), [prompt caching](https://developers.openai.com/api/docs/guides/prompt-caching).
