@@ -3,6 +3,7 @@ import { type ChatMessage, snapshotChatMessages } from '../gateway/chat-messages
 import {
   type ReasoningEffort,
   resolveOutputTokenLimit,
+  snapshotClientUser,
   snapshotLogitBias,
   snapshotLogprobControls,
   snapshotResponseFormat,
@@ -361,6 +362,7 @@ function prepare(
   verbosity: ChatRequest['verbosity'],
   reasoningEffort: ReasoningEffort | undefined,
   logprobControls: ReturnType<typeof snapshotLogprobControls>,
+  user: string | undefined,
   streaming = false,
 ): { url: string; headers: Record<string, string>; body: object } {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
@@ -375,6 +377,7 @@ function prepare(
       headers,
       body: {
         model: candidate.upstreamModelId,
+        ...(user === undefined ? {} : { user }),
         messages: inputMessages,
         stream: streaming,
         ...(streaming ? { stream_options: { include_usage: true } } : {}),
@@ -538,7 +541,10 @@ export function createDirectChatTransport(
     const registration = registrations.find((item) => item.providerId === candidate.providerId);
     if (!registration || candidate.kind !== 'managed') fail('other');
     let logprobControls: ReturnType<typeof snapshotLogprobControls>;
+    let user: ReturnType<typeof snapshotClientUser>;
     try {
+      user = snapshotClientUser(request.user);
+      if (user !== undefined && registration.kind !== 'openai') fail('other');
       logprobControls = snapshotLogprobControls(request.logprobs, request.top_logprobs);
       if (
         registration.kind !== 'openai' &&
@@ -723,6 +729,7 @@ export function createDirectChatTransport(
       verbosity,
       reasoningEffort,
       logprobControls,
+      user,
       streaming !== false,
     );
     const body = JSON.stringify(prepared.body);

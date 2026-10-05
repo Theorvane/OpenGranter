@@ -178,6 +178,13 @@ export function validVerbosity(value: unknown): value is Verbosity | undefined {
   );
 }
 
+/** Capture opaque caller metadata without using it as authenticated principal identity. */
+export function snapshotClientUser(value: unknown): string | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== 'string') throw new TypeError('Invalid client user');
+  return value;
+}
+
 export type ReasoningEffort = 'max' | 'xhigh' | 'high' | 'medium' | 'low' | 'minimal' | 'none';
 
 /** Optional delegated reasoning shorthand; omission preserves upstream defaults. */

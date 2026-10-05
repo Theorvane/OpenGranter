@@ -2,6 +2,7 @@ import type { ChatRequest } from '../gateway/chat-handler.ts';
 import { type ChatMessage, snapshotChatMessages } from '../gateway/chat-messages.ts';
 import {
   resolveOutputTokenLimit,
+  snapshotClientUser,
   snapshotLogitBias,
   snapshotLogprobControls,
   snapshotResponseFormat,
@@ -212,8 +213,10 @@ function prepareOpenRouterChatRequest(
   const presencePenalty = request.presence_penalty ?? undefined;
   if (!validPenalty(frequencyPenalty) || !validPenalty(presencePenalty)) fail('configuration');
   let reasoning: ReturnType<typeof snapshotReasoningConfiguration>;
+  let user: ReturnType<typeof snapshotClientUser>;
   let responseFormat: ReturnType<typeof snapshotResponseFormat>;
   try {
+    user = snapshotClientUser(request.user);
     reasoning = snapshotReasoningConfiguration(
       request.reasoning,
       reasoningEffort,
@@ -300,6 +303,7 @@ function prepareOpenRouterChatRequest(
     timeoutMs,
     body: Object.freeze({
       model: fixedAttempt.upstreamModelId,
+      ...(user === undefined ? {} : { user }),
       messages,
       stream,
       ...(streamOptions === undefined ? {} : { stream_options: streamOptions }),
