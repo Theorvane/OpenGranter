@@ -12,6 +12,7 @@ import {
   snapshotPromptCacheKey,
   snapshotPromptCacheOptions,
   snapshotResponseFormat,
+  snapshotSessionId,
   snapshotStopSequences,
   snapshotStreamOptions,
   snapshotTextModalities,
@@ -588,6 +589,7 @@ export function createDirectChatTransport(
     let user: ReturnType<typeof snapshotClientUser>;
     let promptCacheKey: ReturnType<typeof snapshotPromptCacheKey>;
     try {
+      if (snapshotSessionId(request.session_id) !== undefined) fail('other');
       prediction = snapshotPrediction(request.prediction);
       if (prediction !== undefined && registration.kind !== 'openai') fail('other');
       modalities = snapshotTextModalities(request.modalities);

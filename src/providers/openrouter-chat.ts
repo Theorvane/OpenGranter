@@ -11,6 +11,7 @@ import {
   snapshotPromptCacheKey,
   snapshotPromptCacheOptions,
   snapshotResponseFormat,
+  snapshotSessionId,
   snapshotStopSequences,
   snapshotStreamOptions,
   snapshotTextModalities,
@@ -228,6 +229,7 @@ function prepareOpenRouterChatRequest(
   let cacheControl: ReturnType<typeof snapshotCacheControl>;
   let metadata: ReturnType<typeof snapshotClientMetadata>;
   let user: ReturnType<typeof snapshotClientUser>;
+  let sessionId: ReturnType<typeof snapshotSessionId>;
   let promptCacheKey: ReturnType<typeof snapshotPromptCacheKey>;
   let responseFormat: ReturnType<typeof snapshotResponseFormat>;
   try {
@@ -238,6 +240,7 @@ function prepareOpenRouterChatRequest(
     validateCacheOptionsControls(cacheOptions, cacheControl);
     metadata = snapshotClientMetadata(request.metadata);
     user = snapshotClientUser(request.user);
+    sessionId = snapshotSessionId(request.session_id);
     promptCacheKey = snapshotPromptCacheKey(request.prompt_cache_key);
     reasoning = snapshotReasoningConfiguration(
       request.reasoning,
@@ -346,6 +349,7 @@ function prepareOpenRouterChatRequest(
       ...(cacheControl === undefined ? {} : { cache_control: cacheControl }),
       ...(metadata === undefined ? {} : { metadata }),
       ...(user === undefined ? {} : { user }),
+      ...(sessionId === undefined ? {} : { session_id: sessionId }),
       ...(promptCacheKey === undefined ? {} : { prompt_cache_key: promptCacheKey }),
       messages,
       stream,

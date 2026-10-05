@@ -25,6 +25,7 @@ const FIELD_NAMES = [
   'model',
   'messages',
   'user',
+  'session_id',
   'prompt_cache_key',
   'prompt_cache_options',
   'metadata',
@@ -325,7 +326,7 @@ export function validateSchemaPin(value: unknown): { projection: SchemaProjectio
   try {
     const data = record(value);
     if (
-      data?.version !== 28 ||
+      data?.version !== 29 ||
       data.source !== OFFICIAL_SCHEMA_URL ||
       typeof data.retrievedAt !== 'string' ||
       !/^\d{4}-\d{2}-\d{2}$/.test(data.retrievedAt) ||

@@ -59,6 +59,7 @@ import {
   snapshotPromptCacheKey,
   snapshotPromptCacheOptions,
   snapshotResponseFormat,
+  snapshotSessionId,
   snapshotStopSequences,
   snapshotStreamOptions,
   snapshotTextModalities,
@@ -114,6 +115,7 @@ export interface ChatRequest {
   readonly cache_control?: CacheControl;
   readonly metadata?: Readonly<Record<string, string>>;
   readonly user?: string;
+  readonly session_id?: string;
   readonly prompt_cache_key?: string;
   readonly stream_options?: StreamOptions;
   readonly model: string;
@@ -424,6 +426,7 @@ function validateChat(
   value: unknown,
   streaming = false,
   functionStreaming = false,
+  sessionHeader?: string | null,
 ): ValidatedChatRequest | undefined {
   if (!isRecord(value)) return undefined;
   if (
@@ -437,6 +440,7 @@ function validateChat(
           'cache_control',
           'metadata',
           'user',
+          'session_id',
           'prompt_cache_key',
           'messages',
           'stream',
@@ -501,6 +505,7 @@ function validateChat(
   let cacheControl: ReturnType<typeof snapshotCacheControl>;
   let metadata: ReturnType<typeof snapshotClientMetadata>;
   let user: ReturnType<typeof snapshotClientUser>;
+  let sessionId: ReturnType<typeof snapshotSessionId>;
   let promptCacheKey: ReturnType<typeof snapshotPromptCacheKey>;
   let logitBias: ReturnType<typeof snapshotLogitBias>;
   let logprobControls: ReturnType<typeof snapshotLogprobControls>;
@@ -516,6 +521,9 @@ function validateChat(
     validateCacheOptionsControls(cacheOptions, cacheControl);
     metadata = snapshotClientMetadata(value.metadata);
     user = snapshotClientUser(value.user);
+    sessionId = snapshotSessionId(
+      Object.hasOwn(value, 'session_id') ? value.session_id : (sessionHeader ?? undefined),
+    );
     promptCacheKey = snapshotPromptCacheKey(value.prompt_cache_key);
     logprobControls = snapshotLogprobControls(value.logprobs, value.top_logprobs);
     reasoning = snapshotReasoningConfiguration(
@@ -590,6 +598,7 @@ function validateChat(
     ...(cacheControl === undefined ? {} : { cache_control: cacheControl }),
     ...(metadata === undefined ? {} : { metadata }),
     ...(user === undefined ? {} : { user }),
+    ...(sessionId === undefined ? {} : { session_id: sessionId }),
     ...(promptCacheKey === undefined ? {} : { prompt_cache_key: promptCacheKey }),
     messages,
     ...(value.stream === true ? { stream: true } : {}),
@@ -1037,6 +1046,7 @@ export function createChatHandler<T>(
         typeof ports.invokeOpenRouterFunctionStream === 'function',
       typeof ports.invokeDirectFunctionStream === 'function' ||
         typeof ports.invokeOpenRouterFunctionStream === 'function',
+      request.headers.get('x-session-id'),
     );
     if (!chat) {
       try {

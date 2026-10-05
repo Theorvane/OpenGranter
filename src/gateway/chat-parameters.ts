@@ -1,5 +1,14 @@
 import { snapshotBoundedJsonObject } from './chat-tools.ts';
 
+/** JSON Schema maxLength counts Unicode code points, including astral characters once. */
+export function snapshotSessionId(value: unknown): string | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== 'string') throw new TypeError('Invalid session identifier');
+  let length = 0;
+  for (const _point of value) if (++length > 256) throw new TypeError('Invalid session identifier');
+  return value;
+}
+
 /** Optional client output maximum; supplied values must be positive safe integers. */
 export function validOutputTokenLimit(value: unknown): value is number | undefined {
   return (
