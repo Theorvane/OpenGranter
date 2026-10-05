@@ -723,14 +723,7 @@ export function createDirectChatTransport(
       )
         fail('other');
       if (registration.kind !== 'openai' && hasPromptCacheBreakpoints(messages)) fail('other');
-      if (
-        hasBlockCacheControls(messages) &&
-        (registration.kind !== 'anthropic' ||
-          messages.some(
-            (message) => message.role === 'tool' && typeof message.content !== 'string',
-          ))
-      )
-        fail('other');
+      if (hasBlockCacheControls(messages) && registration.kind !== 'anthropic') fail('other');
       validatePredictionControls(prediction, {
         tools,
         toolChoice,

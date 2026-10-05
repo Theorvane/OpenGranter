@@ -255,7 +255,7 @@ const cases: { name: string; fields: Record<string, unknown>; status: number }[]
     status: 200,
   },
   {
-    name: 'combined marked nested tool result remains unsupported',
+    name: 'combined partial nested tool result remains unsupported',
     fields: {
       tools,
       messages: [
@@ -266,7 +266,14 @@ const cases: { name: string; fields: Record<string, unknown>; status: number }[]
             { id: 'previous', type: 'function', function: { name: 'lookup', arguments: '{}' } },
           ],
         },
-        { role: 'tool', tool_call_id: 'previous', content: [{ ...part(), cache_control: root }] },
+        {
+          role: 'tool',
+          tool_call_id: 'previous',
+          content: [
+            { ...part(), cache_control: root },
+            { type: 'text', text: 'private suffix' },
+          ],
+        },
       ],
     },
     status: 400,

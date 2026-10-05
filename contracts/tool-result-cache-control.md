@@ -1,0 +1,15 @@
+# Final tool-result cache control contract
+
+Issue #450. Plan: [450-tool-result-cache-control](../docs/plans/450-tool-result-cache-control.md).
+
+Both /v1 and /api/v1 support final-only Anthropic-style cache_control on correlated tool-result text arrays for managed Anthropic and delegated OpenRouter, including nonstream/text/refusal/function streams. Managed Anthropic emits outer tool_result.cache_control with exact inner text blocks and no nested directives, following documented last-nested-block backward compatibility. Preserve every text/type/order/empty-unmarked block and tool_use_id, grouping adjacent parallel results into one native user turn. Delegated OpenRouter keeps original compatible arrays/directives.
+
+A native result array must contain exactly one directive on its last part. Earlier or multiple directives, missing final directive, empty marked text, richer result blocks and OpenAI cache markers reject safely before secrets. The exported converter uses the same final-only rule. Existing immutable snapshot/type/TTL/prototype/extra-field/128-part bounds remain shared. No getter is read again after credentials and mutation cannot change the prepared boundary. String result defaults remain unchanged.
+
+The bounded automatic/explicit subset in #448 also permits final-only result directives. The final eligible native tool_result carries that directive even if later messages are empty; compare its effective TTL against root automatic TTL. Combined requests with earlier nested directives reject before routes/credentials on both route kinds. Respect the automatic reserved slot, tools→system→messages ordering and 1h-before-effective5m rule. Explicit-only delegated earlier-marker arrays retain prior forwarding; their native mapping remains unsupported. Do not remove trailing blocks or promote an earlier boundary.
+
+Shared authenticated approved IAM/Deny/limits/hosts, private operational projection/errors, required audit/usage before terminal delivery, reported-only cache accounting, missing usage and safe possibly-billed opened failure/cancellation remain enforced. No model eligibility, live caching, hits, retention, savings, inferred usage or billed cost is claimed. Native OpenAI/Gemini and mixed-format controls remain unsupported.
+
+Version28 source projection remains unchanged because tool-role/text/cache definitions are already selected; fresh fixed-host drift and offline integrity remain gates. Installed OpenAI7.23.0/OpenRouter1.4.18 sockets exercise controlled workflows. This supersedes prior blanket native result-array and combined marked-result exclusions only for final-only directives. Richer/partial/mixed mappings, live certification, full #116 and unresolved #7 remain open.
+
+Sources: [Anthropic May1,2025 release note](https://platform.claude.com/docs/en/release-notes/overview#may-1-2025), [native tool-result/text schemas](https://raw.githubusercontent.com/anthropics/anthropic-sdk-typescript/main/src/resources/messages/messages.ts), [Anthropic caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching), [OpenRouter schema](https://openrouter.ai/openapi.json).

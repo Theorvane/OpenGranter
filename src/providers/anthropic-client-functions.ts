@@ -4,7 +4,10 @@ import {
   snapshotBoundedJsonObject,
   type ToolChoice,
 } from '../gateway/chat-tools.ts';
-import { hasPromptCacheBreakpoints } from '../gateway/prompt-cache-parts.ts';
+import {
+  finalToolResultCacheControl,
+  hasPromptCacheBreakpoints,
+} from '../gateway/prompt-cache-parts.ts';
 import { DirectProviderFailure } from '../routing/invoke-jev-managed-route.ts';
 import { type AssistantResponse, normalizeAssistantResponse } from './assistant-response.ts';
 
@@ -75,7 +78,12 @@ export function prepareAnthropicMessages(messages: readonly ChatMessage[]): read
   for (const message of messages) {
     if (hasPromptCacheBreakpoints([message])) invalid();
     if (message.role === 'tool') {
-      if (typeof message.content !== 'string') invalid();
+      let cacheControl: ReturnType<typeof finalToolResultCacheControl>;
+      try {
+        cacheControl = finalToolResultCacheControl(message.content);
+      } catch {
+        invalid();
+      }
       if (!results) {
         results = [];
         native.push({ role: 'user', content: results });
@@ -83,7 +91,11 @@ export function prepareAnthropicMessages(messages: readonly ChatMessage[]): read
       results.push({
         type: 'tool_result',
         tool_use_id: message.tool_call_id,
-        content: message.content,
+        content:
+          typeof message.content === 'string'
+            ? message.content
+            : message.content.map(({ type, text }) => ({ type, text })),
+        ...(cacheControl === undefined ? {} : { cache_control: cacheControl }),
       });
       continue;
     }
