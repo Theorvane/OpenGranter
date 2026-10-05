@@ -61,6 +61,8 @@ import {
   snapshotResponseFormat,
   snapshotStopSequences,
   snapshotStreamOptions,
+  snapshotTextModalities,
+  type TextModalities,
   type Verbosity,
   validateCacheOptionsControls,
   validatePredictionControls,
@@ -105,6 +107,7 @@ const MAX_BODY_BYTES = 1024 * 1024;
 export type { ChatMessage } from './chat-messages.ts';
 
 export interface ChatRequest {
+  readonly modalities?: TextModalities;
   readonly prompt_cache_options?: PromptCacheOptions;
   readonly prediction?: Prediction;
   readonly cache_control?: CacheControl;
@@ -428,6 +431,7 @@ function validateChat(
         ![
           'model',
           'prediction',
+          'modalities',
           'prompt_cache_options',
           'cache_control',
           'metadata',
@@ -491,6 +495,7 @@ function validateChat(
   if (!validTopK(topK)) return undefined;
   let reasoning: ReasoningConfiguration | undefined;
   let prediction: ReturnType<typeof snapshotPrediction>;
+  let modalities: ReturnType<typeof snapshotTextModalities>;
   let cacheOptions: ReturnType<typeof snapshotPromptCacheOptions>;
   let cacheControl: ReturnType<typeof snapshotCacheControl>;
   let metadata: ReturnType<typeof snapshotClientMetadata>;
@@ -504,6 +509,7 @@ function validateChat(
   let parallelToolCalls: ReturnType<typeof snapshotParallelToolCalls>;
   try {
     prediction = snapshotPrediction(value.prediction);
+    modalities = snapshotTextModalities(value.modalities);
     cacheOptions = snapshotPromptCacheOptions(value.prompt_cache_options);
     cacheControl = snapshotCacheControl(value.cache_control);
     validateCacheOptionsControls(cacheOptions, cacheControl);
@@ -577,6 +583,7 @@ function validateChat(
   return {
     model: value.model,
     ...(prediction === undefined ? {} : { prediction }),
+    ...(modalities === undefined ? {} : { modalities }),
     ...(cacheOptions === undefined ? {} : { prompt_cache_options: cacheOptions }),
     ...(cacheControl === undefined ? {} : { cache_control: cacheControl }),
     ...(metadata === undefined ? {} : { metadata }),

@@ -30,6 +30,7 @@ const FIELD_NAMES = [
   'metadata',
   'cache_control',
   'prediction',
+  'modalities',
   'stream',
   'stream_options',
   'max_tokens',
@@ -321,7 +322,7 @@ export function validateSchemaPin(value: unknown): { projection: SchemaProjectio
   try {
     const data = record(value);
     if (
-      data?.version !== 26 ||
+      data?.version !== 27 ||
       data.source !== OFFICIAL_SCHEMA_URL ||
       typeof data.retrievedAt !== 'string' ||
       !/^\d{4}-\d{2}-\d{2}$/.test(data.retrievedAt) ||

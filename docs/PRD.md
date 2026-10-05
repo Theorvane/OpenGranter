@@ -845,3 +845,15 @@ Independent user/key/metadata/prediction, function history and existing controls
 Version 26 selects 31 request fields and 19 request/history definitions, adding only prompt_cache_options and its whole PromptCacheOptions target. Removing these two selections reproduces version 25 canonically; source shape retains nullable object, required explicit mode, nullable string TTL and absence of defaults/bounds. Transitive structural drift and missing/malformed/stale/rehashed exact-map cases are guarded. Installed SDK socket fixtures exercise control paths, not live model/caching certification. Block boundaries, implicit/arbitrary-TTL extensions, native translations/cross-control precedence, broader endpoints, full #116 and unresolved #7 remain open.
 
 See [plan](plans/438-prompt-cache-options.md) and [contract](../contracts/prompt-cache-options.md).
+
+## Explicit text output modality (#440)
+
+Both /v1 and /api/v1 accept exact modalities=["text"] for managed OpenAI/delegated OpenRouter nonstream and text/refusal/function streams. Null/omission omits the field without a default; null normalization is an explicit native OpenAI-compatible local extension because the official OpenRouter field/SDK is nonnullable. Capture root, length and own index zero once and freeze a fresh tuple before credentials. Reject non-array, empty, sparse, duplicate/multi-item, audio/image/unknown entries and extra enumerable array members before routes. Singleton/cardinality/extra-member restrictions are local; the source declares no minimum, maximum, uniqueness or default.
+
+Native Anthropic/Gemini supplied selectors reject before secrets without implicit native responseModalities/default translation; null/omission preserves current behavior. Text selection enables no richer output and changes no model eligibility. Existing prediction/tool/control validators, exact independent cache/user/key/metadata fields and correlated function-result history remain shared. Accepting the selector does not certify every model/control combination.
+
+Approved model/final-provider/host scope, authentication/IAM/Deny/limits, secret references, private operational projection/errors, required audit/ledger before final frames, missing usage and possibly-billed failure/cancellation stay shared. Never derive usage or synthesize request-field echoes; actual provider text/probability output remains valid client content. Installed OpenAI 7.23.0 and OpenRouter 1.4.18 socket fixtures exercise controlled requests through both bases/routes and all supported modes/streams, not live model certification.
+
+Version 27 selects 32 fields/19 request-history definitions, adding only the raw modalities field. Removing it reproduces version 26 canonically. Preserve the source nonnullable array, text/image/audio item enum and unknown-values extension, with absent cardinality/uniqueness/default. Structural drift and missing/malformed/stale/rehashed maps reject. Audio/image/rich workflows, broader array semantics, native mappings, model/live guarantees, full #116 and unresolved #7 remain open.
+
+See [plan](plans/440-text-modality.md) and [contract](../contracts/text-modality.md).

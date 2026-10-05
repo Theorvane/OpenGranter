@@ -14,6 +14,7 @@ import {
   snapshotResponseFormat,
   snapshotStopSequences,
   snapshotStreamOptions,
+  snapshotTextModalities,
   validateCacheOptionsControls,
   validatePredictionControls,
   validPenalty,
@@ -375,6 +376,7 @@ function prepare(
   cacheControl: ReturnType<typeof snapshotCacheControl>,
   prediction: ReturnType<typeof snapshotPrediction>,
   cacheOptions: ReturnType<typeof snapshotPromptCacheOptions>,
+  modalities: ReturnType<typeof snapshotTextModalities>,
   streaming = false,
 ): { url: string; headers: Record<string, string>; body: object } {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
@@ -389,6 +391,7 @@ function prepare(
       headers,
       body: {
         model: candidate.upstreamModelId,
+        ...(modalities === undefined ? {} : { modalities }),
         ...(cacheOptions === undefined ? {} : { prompt_cache_options: cacheOptions }),
         ...(prediction === undefined ? {} : { prediction }),
         ...(metadata === undefined ? {} : { metadata }),
@@ -559,6 +562,7 @@ export function createDirectChatTransport(
     if (!registration || candidate.kind !== 'managed') fail('other');
     let logprobControls: ReturnType<typeof snapshotLogprobControls>;
     let prediction: ReturnType<typeof snapshotPrediction>;
+    let modalities: ReturnType<typeof snapshotTextModalities>;
     let cacheOptions: ReturnType<typeof snapshotPromptCacheOptions>;
     let cacheControl: ReturnType<typeof snapshotCacheControl>;
     let metadata: ReturnType<typeof snapshotClientMetadata>;
@@ -567,6 +571,8 @@ export function createDirectChatTransport(
     try {
       prediction = snapshotPrediction(request.prediction);
       if (prediction !== undefined && registration.kind !== 'openai') fail('other');
+      modalities = snapshotTextModalities(request.modalities);
+      if (modalities !== undefined && registration.kind !== 'openai') fail('other');
       cacheOptions = snapshotPromptCacheOptions(request.prompt_cache_options);
       if (cacheOptions !== undefined && registration.kind !== 'openai') fail('other');
       cacheControl = snapshotCacheControl(request.cache_control);
@@ -782,6 +788,7 @@ export function createDirectChatTransport(
       cacheControl,
       prediction,
       cacheOptions,
+      modalities,
       streaming !== false,
     );
     const body = JSON.stringify(prepared.body);

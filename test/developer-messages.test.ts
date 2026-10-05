@@ -149,9 +149,9 @@ function httpFixture(
   });
   return { ...f, handler, audits, usage, routes: () => routes };
 }
-function developerRequest(): ChatRequest {
+function developerRequest(): ChatRequest & OpenAI.ChatCompletionCreateParamsNonStreaming {
   return {
-    ...request(),
+    model: 'chat',
     messages: [
       { role: 'system', content: 'private system text' },
       { role: 'developer', content: 'private developer text' },
@@ -165,7 +165,7 @@ function developerRequest(): ChatRequest {
     top_p: 0.7,
     stop: ['marker'],
     n: 1,
-  } as unknown as ChatRequest;
+  };
 }
 function assertMessages(kind: Kind, sent: Record<string, unknown> | undefined) {
   assert.ok(sent);
@@ -247,9 +247,7 @@ for (const kind of kinds) {
           baseURL: `http://127.0.0.1:${address.port}${base}`,
           maxRetries: 0,
         });
-        const response = await sdk.chat.completions.create(
-          developerRequest() as OpenAI.ChatCompletionCreateParamsNonStreaming,
-        );
+        const response = await sdk.chat.completions.create(developerRequest());
         assert.equal(response.choices[0]?.message.content, 'reply');
         assertMessages(kind, f.sent.at(-1));
       }
