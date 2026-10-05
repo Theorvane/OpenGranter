@@ -1,9 +1,9 @@
 {
-  "version": 26,
+  "version": 27,
   "source": "https://openrouter.ai/openapi.json",
   "retrievedAt": "2026-10-05",
   "sourceSha256": "0f220980d0c335ca4b4efd5684e1055f88eb84e73d4e34b0b9a859c9d2cf0458",
-  "projectionSha256": "c0003968e46150ee776341a9c2bb7b3a2565e491e48956c9ed83adb24ebceef0",
+  "projectionSha256": "9a05828adb4babe323c3476b790b92aa56b3b3d09cc16a36c39915544a004150",
   "projection": {
     "openapi": "3.1.0",
     "documentVersion": "1.0.0",
@@ -619,6 +619,18 @@
       },
       "prediction": {
         "$ref": "#/components/schemas/Prediction"
+      },
+      "modalities": {
+        "items": {
+          "enum": [
+            "text",
+            "image",
+            "audio"
+          ],
+          "type": "string",
+          "x-speakeasy-unknown-values": "allow"
+        },
+        "type": "array"
       },
       "stream": {
         "default": false,

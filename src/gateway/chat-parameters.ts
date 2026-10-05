@@ -406,3 +406,17 @@ export function validateCacheOptionsControls(
   if (options !== undefined && automatic !== undefined)
     throw new TypeError('Unsupported cache controls');
 }
+
+export type TextModalities = readonly ['text'];
+/** Capture the explicit text-only subset without accepting richer output or defaults. */
+export function snapshotTextModalities(value: unknown): TextModalities | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (!Array.isArray(value)) throw new TypeError('Invalid modalities');
+  const source: readonly unknown[] = value;
+  const length = source.length;
+  if (length !== 1 || !Object.hasOwn(source, '0') || Object.keys(source).some((key) => key !== '0'))
+    throw new TypeError('Invalid modalities');
+  const modality = source[0];
+  if (modality !== 'text') throw new TypeError('Invalid modalities');
+  return Object.freeze([modality] as const);
+}
