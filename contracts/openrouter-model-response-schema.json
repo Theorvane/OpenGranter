@@ -1,0 +1,676 @@
+{
+  "version": 1,
+  "source": "https://openrouter.ai/openapi.json",
+  "retrievedAt": "2026-10-06",
+  "sourceSha256": "0f220980d0c335ca4b4efd5684e1055f88eb84e73d4e34b0b9a859c9d2cf0458",
+  "projectionSha256": "825714729401e81ab4a6196b7a8ed6b76d89a32c09869d02a18e812276ced87b",
+  "projection": {
+    "openapi": "3.1.0",
+    "documentVersion": "1.0.0",
+    "path": "/models",
+    "method": "get",
+    "operationId": "getModels",
+    "status": "200",
+    "mediaType": "application/json",
+    "schema": {
+      "$ref": "#/components/schemas/ModelsListResponse"
+    },
+    "definitions": {
+      "ModelsListResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ModelsListResponseData"
+          },
+          "links": {
+            "properties": {
+              "next": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "next"
+            ],
+            "type": "object"
+          },
+          "total_count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "data",
+          "total_count",
+          "links"
+        ],
+        "type": "object"
+      },
+      "ModelsListResponseData": {
+        "items": {
+          "$ref": "#/components/schemas/Model"
+        },
+        "type": "array"
+      },
+      "Model": {
+        "properties": {
+          "alias_target": {
+            "$ref": "#/components/schemas/ModelAliasTarget"
+          },
+          "architecture": {
+            "$ref": "#/components/schemas/ModelArchitecture"
+          },
+          "benchmarks": {
+            "$ref": "#/components/schemas/ModelBenchmarks"
+          },
+          "canonical_slug": {
+            "type": "string"
+          },
+          "context_length": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "created": {
+            "type": "integer"
+          },
+          "default_parameters": {
+            "$ref": "#/components/schemas/DefaultParameters"
+          },
+          "description": {
+            "type": "string"
+          },
+          "expiration_date": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "hugging_face_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "knowledge_cutoff": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "links": {
+            "$ref": "#/components/schemas/ModelLinks"
+          },
+          "name": {
+            "type": "string"
+          },
+          "per_request_limits": {
+            "$ref": "#/components/schemas/PerRequestLimits"
+          },
+          "pricing": {
+            "$ref": "#/components/schemas/PublicPricing"
+          },
+          "reasoning": {
+            "$ref": "#/components/schemas/ModelReasoning"
+          },
+          "supported_parameters": {
+            "items": {
+              "$ref": "#/components/schemas/Parameter"
+            },
+            "type": "array"
+          },
+          "supported_voices": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "top_provider": {
+            "$ref": "#/components/schemas/TopProviderInfo"
+          }
+        },
+        "required": [
+          "id",
+          "canonical_slug",
+          "name",
+          "created",
+          "pricing",
+          "context_length",
+          "architecture",
+          "top_provider",
+          "per_request_limits",
+          "supported_parameters",
+          "default_parameters",
+          "supported_voices",
+          "links"
+        ],
+        "type": "object"
+      },
+      "ModelAliasTarget": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "name"
+        ],
+        "type": "object"
+      },
+      "ModelArchitecture": {
+        "properties": {
+          "input_modalities": {
+            "items": {
+              "$ref": "#/components/schemas/InputModality"
+            },
+            "type": "array"
+          },
+          "instruct_type": {
+            "$ref": "#/components/schemas/InstructType"
+          },
+          "modality": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "output_modalities": {
+            "items": {
+              "$ref": "#/components/schemas/OutputModality"
+            },
+            "type": "array"
+          },
+          "tokenizer": {
+            "$ref": "#/components/schemas/ModelGroup"
+          }
+        },
+        "required": [
+          "modality",
+          "input_modalities",
+          "output_modalities"
+        ],
+        "type": "object"
+      },
+      "InputModality": {
+        "enum": [
+          "text",
+          "image",
+          "file",
+          "audio",
+          "video"
+        ],
+        "type": "string",
+        "x-speakeasy-unknown-values": "allow"
+      },
+      "InstructType": {
+        "enum": [
+          "none",
+          "airoboros",
+          "alpaca",
+          "alpaca-modif",
+          "chatml",
+          "claude",
+          "code-llama",
+          "gemma",
+          "llama2",
+          "llama3",
+          "mistral",
+          "nemotron",
+          "neural",
+          "openchat",
+          "phi3",
+          "rwkv",
+          "vicuna",
+          "zephyr",
+          "deepseek-r1",
+          "deepseek-v3.1",
+          "qwq",
+          "qwen3",
+          null
+        ],
+        "type": [
+          "string",
+          "null"
+        ],
+        "x-speakeasy-unknown-values": "allow"
+      },
+      "OutputModality": {
+        "enum": [
+          "text",
+          "image",
+          "embeddings",
+          "audio",
+          "video",
+          "rerank",
+          "decisions",
+          "speech",
+          "transcription"
+        ],
+        "type": "string",
+        "x-speakeasy-unknown-values": "allow"
+      },
+      "ModelGroup": {
+        "enum": [
+          "Router",
+          "Media",
+          "Other",
+          "GPT",
+          "Claude",
+          "Gemini",
+          "Gemma",
+          "Grok",
+          "Cohere",
+          "Nova",
+          "Qwen",
+          "Yi",
+          "DeepSeek",
+          "Mistral",
+          "Llama2",
+          "Llama3",
+          "Llama4",
+          "PaLM",
+          "RWKV",
+          "Qwen3"
+        ],
+        "type": "string",
+        "x-speakeasy-unknown-values": "allow"
+      },
+      "ModelBenchmarks": {
+        "properties": {
+          "artificial_analysis": {
+            "$ref": "#/components/schemas/AABenchmarkEntry"
+          },
+          "design_arena": {
+            "items": {
+              "$ref": "#/components/schemas/DABenchmarkEntry"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "design_arena"
+        ],
+        "type": "object"
+      },
+      "AABenchmarkEntry": {
+        "properties": {
+          "agentic_index": {
+            "format": "double",
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "coding_index": {
+            "format": "double",
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "intelligence_index": {
+            "format": "double",
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "intelligence_index",
+          "coding_index",
+          "agentic_index"
+        ],
+        "type": "object"
+      },
+      "DABenchmarkEntry": {
+        "properties": {
+          "arena": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "elo": {
+            "format": "double",
+            "type": "number"
+          },
+          "rank": {
+            "type": "integer"
+          },
+          "win_rate": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "arena",
+          "category",
+          "elo",
+          "win_rate",
+          "rank"
+        ],
+        "type": "object"
+      },
+      "DefaultParameters": {
+        "additionalProperties": false,
+        "properties": {
+          "frequency_penalty": {
+            "format": "double",
+            "nullable": true,
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "presence_penalty": {
+            "format": "double",
+            "nullable": true,
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "repetition_penalty": {
+            "format": "double",
+            "nullable": true,
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "temperature": {
+            "format": "double",
+            "nullable": true,
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "top_k": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "top_p": {
+            "format": "double",
+            "nullable": true,
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "type": [
+          "object",
+          "null"
+        ]
+      },
+      "ModelLinks": {
+        "properties": {
+          "details": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "details"
+        ],
+        "type": "object"
+      },
+      "PerRequestLimits": {
+        "properties": {
+          "completion_tokens": {
+            "type": "number"
+          },
+          "prompt_tokens": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "prompt_tokens",
+          "completion_tokens"
+        ],
+        "type": [
+          "object",
+          "null"
+        ]
+      },
+      "PublicPricing": {
+        "properties": {
+          "audio": {
+            "type": "string"
+          },
+          "audio_output": {
+            "type": "string"
+          },
+          "completion": {
+            "type": "string"
+          },
+          "discount": {
+            "format": "double",
+            "type": "number"
+          },
+          "image": {
+            "type": "string"
+          },
+          "image_output": {
+            "type": "string"
+          },
+          "image_token": {
+            "type": "string"
+          },
+          "input_audio_cache": {
+            "type": "string"
+          },
+          "input_cache_read": {
+            "type": "string"
+          },
+          "input_cache_write": {
+            "type": "string"
+          },
+          "input_cache_write_1h": {
+            "type": "string"
+          },
+          "internal_reasoning": {
+            "type": "string"
+          },
+          "overrides": {
+            "items": {
+              "$ref": "#/components/schemas/PricingOverride"
+            },
+            "type": "array"
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "request": {
+            "type": "string"
+          },
+          "web_search": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "prompt",
+          "completion"
+        ],
+        "type": "object"
+      },
+      "PricingOverride": {
+        "properties": {
+          "audio": {
+            "type": "string"
+          },
+          "completion": {
+            "type": "string"
+          },
+          "input_audio_cache": {
+            "type": "string"
+          },
+          "input_cache_read": {
+            "type": "string"
+          },
+          "input_cache_write": {
+            "type": "string"
+          },
+          "input_cache_write_1h": {
+            "type": "string"
+          },
+          "min_prompt_tokens": {
+            "format": "double",
+            "type": "number"
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "utc_days": {
+            "items": {
+              "enum": [
+                "monday",
+                "tuesday",
+                "wednesday",
+                "thursday",
+                "friday",
+                "saturday",
+                "sunday"
+              ],
+              "type": "string",
+              "x-speakeasy-unknown-values": "allow"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "utc_end": {
+            "format": "double",
+            "type": "number"
+          },
+          "utc_start": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "ModelReasoning": {
+        "properties": {
+          "default_effort": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReasoningEffort"
+              },
+              {}
+            ]
+          },
+          "default_enabled": {
+            "type": "boolean"
+          },
+          "mandatory": {
+            "type": "boolean"
+          },
+          "supported_efforts": {
+            "items": {
+              "$ref": "#/components/schemas/ReasoningEffort"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "supports_max_tokens": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "mandatory"
+        ],
+        "type": "object"
+      },
+      "ReasoningEffort": {
+        "enum": [
+          "max",
+          "xhigh",
+          "high",
+          "medium",
+          "low",
+          "minimal",
+          "none",
+          null
+        ],
+        "type": [
+          "string",
+          "null"
+        ],
+        "x-speakeasy-unknown-values": "allow"
+      },
+      "Parameter": {
+        "enum": [
+          "temperature",
+          "top_p",
+          "top_k",
+          "min_p",
+          "top_a",
+          "frequency_penalty",
+          "presence_penalty",
+          "repetition_penalty",
+          "max_tokens",
+          "max_completion_tokens",
+          "logit_bias",
+          "logprobs",
+          "top_logprobs",
+          "prediction",
+          "seed",
+          "response_format",
+          "structured_outputs",
+          "stop",
+          "tools",
+          "tool_choice",
+          "parallel_tool_calls",
+          "include_reasoning",
+          "reasoning",
+          "reasoning_effort",
+          "web_search_options",
+          "verbosity"
+        ],
+        "type": "string",
+        "x-speakeasy-unknown-values": "allow"
+      },
+      "TopProviderInfo": {
+        "properties": {
+          "context_length": {
+            "nullable": true,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "is_moderated": {
+            "type": "boolean"
+          },
+          "max_completion_tokens": {
+            "nullable": true,
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "is_moderated"
+        ],
+        "type": "object"
+      }
+    }
+  }
+}
