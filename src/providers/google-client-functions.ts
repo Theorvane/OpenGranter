@@ -53,6 +53,7 @@ export function prepareGoogleFunctions(
   choice: ToolChoice | undefined,
   parallel: boolean | undefined,
 ): object {
+  if (tools?.some((tool) => tool.cache_control !== undefined)) invalid();
   if (parallel === false && choice !== 'none') invalid();
   const declarations = tools?.map(({ function: definition }) => {
     if (

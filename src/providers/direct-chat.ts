@@ -716,7 +716,12 @@ export function createDirectChatTransport(
     let messages: readonly ChatMessage[];
     try {
       messages = snapshotChatMessages(request.messages);
-      validatePromptCacheHistory(cacheControl, messages, cacheOptions);
+      validatePromptCacheHistory(cacheControl, messages, cacheOptions, tools);
+      if (
+        registration.kind !== 'anthropic' &&
+        tools?.some((tool) => tool.cache_control !== undefined)
+      )
+        fail('other');
       if (registration.kind !== 'openai' && hasPromptCacheBreakpoints(messages)) fail('other');
       if (
         hasBlockCacheControls(messages) &&
