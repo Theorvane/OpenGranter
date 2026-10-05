@@ -560,7 +560,7 @@ function validateChat(
   let messages: readonly ChatMessage[];
   try {
     messages = snapshotChatMessages(normalizeClientTextMessages(value.messages));
-    validatePromptCacheHistory(cacheControl, messages, cacheOptions);
+    validatePromptCacheHistory(cacheControl, messages, cacheOptions, tools);
     validatePredictionControls(prediction, {
       tools,
       toolChoice,

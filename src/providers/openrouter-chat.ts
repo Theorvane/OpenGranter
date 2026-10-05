@@ -311,7 +311,7 @@ function prepareOpenRouterChatRequest(
   let messages: readonly ChatMessage[];
   try {
     messages = snapshotChatMessages(request.messages);
-    validatePromptCacheHistory(cacheControl, messages, cacheOptions);
+    validatePromptCacheHistory(cacheControl, messages, cacheOptions, tools);
     validatePredictionControls(prediction, {
       tools,
       toolChoice,

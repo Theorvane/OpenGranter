@@ -1,5 +1,8 @@
+import { type CacheControl, snapshotCacheControl } from './chat-parameters.ts';
+
 export interface FunctionTool {
   readonly type: 'function';
+  readonly cache_control?: CacheControl;
   readonly function: {
     readonly name: string;
     readonly description?: string;
@@ -83,11 +86,14 @@ export function snapshotFunctionTools(value: unknown): readonly FunctionTool[] |
       const tool = record(entry);
       if (!tool) throw new TypeError('Invalid function tools');
       const { type, function: rawDefinition } = tool;
+      const cacheControl = Object.hasOwn(tool, 'cache_control')
+        ? snapshotCacheControl(tool.cache_control)
+        : undefined;
       const definition = record(rawDefinition);
       if (!definition) throw new TypeError('Invalid function tools');
       const { name, description, parameters: rawParameters, strict } = definition;
       if (
-        !keys(tool, ['type', 'function']) ||
+        !keys(tool, ['type', 'function', 'cache_control']) ||
         type !== 'function' ||
         !keys(definition, ['name', 'description', 'parameters', 'strict']) ||
         typeof name !== 'string' ||
@@ -104,6 +110,7 @@ export function snapshotFunctionTools(value: unknown): readonly FunctionTool[] |
           : (json(rawParameters, 0, new Set(), budget) as Readonly<Record<string, unknown>>);
       return Object.freeze({
         type: 'function' as const,
+        ...(cacheControl === undefined ? {} : { cache_control: cacheControl }),
         function: Object.freeze({
           name,
           ...(description === undefined ? {} : { description }),

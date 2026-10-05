@@ -40,13 +40,14 @@ export function prepareAnthropicFunctions(
   choice: ToolChoice | undefined,
   parallel: boolean | undefined,
 ): object {
-  const nativeTools = tools?.map(({ function: definition }) => {
+  const nativeTools = tools?.map(({ function: definition, cache_control }) => {
     if (!name(definition.name)) invalid();
     const schema = definition.parameters ?? { type: 'object' };
     if (schema.type !== 'object') invalid();
     return {
       name: definition.name,
       input_schema: schema,
+      ...(cache_control === undefined ? {} : { cache_control }),
       ...(definition.description === undefined ? {} : { description: definition.description }),
       ...(definition.strict == null ? {} : { strict: definition.strict }),
     };

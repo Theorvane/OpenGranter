@@ -3,6 +3,7 @@ import {
   type PromptCacheOptions,
   snapshotCacheControl,
 } from './chat-parameters.ts';
+import type { FunctionTool } from './chat-tools.ts';
 
 export interface PromptCacheBreakpoint {
   readonly mode: 'explicit';
@@ -108,9 +109,12 @@ export function validatePromptCacheHistory(
   cacheControl: CacheControl | undefined,
   messages: readonly { readonly content: string | null | readonly PromptCacheTextPart[] }[],
   options?: PromptCacheOptions,
+  tools?: readonly FunctionTool[],
 ): void {
   const breakpoints = hasPromptCacheBreakpoints(messages),
-    blocks = hasBlockCacheControls(messages);
+    blocks =
+      hasBlockCacheControls(messages) ||
+      (tools?.some((tool) => tool.cache_control !== undefined) ?? false);
   if (
     (cacheControl !== undefined && (breakpoints || blocks)) ||
     (blocks && (breakpoints || options !== undefined))
@@ -118,14 +122,16 @@ export function validatePromptCacheHistory(
     throw new TypeError('Unsupported cache controls');
   let count = 0,
     shortSeen = false;
+  const directives = [...(tools ?? []).map((tool) => tool.cache_control)];
   for (const { content } of messages) {
     if (typeof content === 'string' || content === null) continue;
-    for (const { cache_control: directive } of content) {
-      if (directive === undefined) continue;
-      if (++count > 4 || (directive.ttl === '1h' && shortSeen))
-        throw new TypeError('Unsupported cache controls');
-      if (directive.ttl !== '1h') shortSeen = true;
-    }
+    for (const part of content) directives.push(part.cache_control);
+  }
+  for (const directive of directives) {
+    if (directive === undefined) continue;
+    if (++count > 4 || (directive.ttl === '1h' && shortSeen))
+      throw new TypeError('Unsupported cache controls');
+    if (directive.ttl !== '1h') shortSeen = true;
   }
 }
 /** Preserve the existing opt-in selector text view, including literal nullable content. */
