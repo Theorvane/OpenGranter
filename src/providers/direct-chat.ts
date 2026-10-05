@@ -3,6 +3,7 @@ import { type ChatMessage, snapshotChatMessages } from '../gateway/chat-messages
 import {
   type ReasoningEffort,
   resolveOutputTokenLimit,
+  snapshotCacheControl,
   snapshotClientMetadata,
   snapshotClientUser,
   snapshotLogitBias,
@@ -367,6 +368,7 @@ function prepare(
   user: string | undefined,
   promptCacheKey: string | undefined,
   metadata: ReturnType<typeof snapshotClientMetadata>,
+  cacheControl: ReturnType<typeof snapshotCacheControl>,
   streaming = false,
 ): { url: string; headers: Record<string, string>; body: object } {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
@@ -434,6 +436,7 @@ function prepare(
         model: candidate.upstreamModelId,
         max_tokens: outputLimit ?? registration.maxOutputTokens,
         ...(streaming ? { stream: true } : {}),
+        ...(cacheControl === undefined ? {} : { cache_control: cacheControl }),
         ...(verbosity === undefined ? {} : { output_config: { effort: verbosity } }),
         ...(temperature === undefined ? {} : { temperature }),
         ...(topP === undefined ? {} : { top_p: topP }),
@@ -547,10 +550,13 @@ export function createDirectChatTransport(
     const registration = registrations.find((item) => item.providerId === candidate.providerId);
     if (!registration || candidate.kind !== 'managed') fail('other');
     let logprobControls: ReturnType<typeof snapshotLogprobControls>;
+    let cacheControl: ReturnType<typeof snapshotCacheControl>;
     let metadata: ReturnType<typeof snapshotClientMetadata>;
     let user: ReturnType<typeof snapshotClientUser>;
     let promptCacheKey: ReturnType<typeof snapshotPromptCacheKey>;
     try {
+      cacheControl = snapshotCacheControl(request.cache_control);
+      if (cacheControl !== undefined && registration.kind !== 'anthropic') fail('other');
       metadata = snapshotClientMetadata(request.metadata);
       if (metadata !== undefined && registration.kind !== 'openai') fail('other');
       user = snapshotClientUser(request.user);
@@ -744,6 +750,7 @@ export function createDirectChatTransport(
       user,
       promptCacheKey,
       metadata,
+      cacheControl,
       streaming !== false,
     );
     const body = JSON.stringify(prepared.body);

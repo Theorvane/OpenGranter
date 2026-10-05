@@ -2,6 +2,7 @@ import type { ChatRequest } from '../gateway/chat-handler.ts';
 import { type ChatMessage, snapshotChatMessages } from '../gateway/chat-messages.ts';
 import {
   resolveOutputTokenLimit,
+  snapshotCacheControl,
   snapshotClientMetadata,
   snapshotClientUser,
   snapshotLogitBias,
@@ -215,11 +216,13 @@ function prepareOpenRouterChatRequest(
   const presencePenalty = request.presence_penalty ?? undefined;
   if (!validPenalty(frequencyPenalty) || !validPenalty(presencePenalty)) fail('configuration');
   let reasoning: ReturnType<typeof snapshotReasoningConfiguration>;
+  let cacheControl: ReturnType<typeof snapshotCacheControl>;
   let metadata: ReturnType<typeof snapshotClientMetadata>;
   let user: ReturnType<typeof snapshotClientUser>;
   let promptCacheKey: ReturnType<typeof snapshotPromptCacheKey>;
   let responseFormat: ReturnType<typeof snapshotResponseFormat>;
   try {
+    cacheControl = snapshotCacheControl(request.cache_control);
     metadata = snapshotClientMetadata(request.metadata);
     user = snapshotClientUser(request.user);
     promptCacheKey = snapshotPromptCacheKey(request.prompt_cache_key);
@@ -309,6 +312,7 @@ function prepareOpenRouterChatRequest(
     timeoutMs,
     body: Object.freeze({
       model: fixedAttempt.upstreamModelId,
+      ...(cacheControl === undefined ? {} : { cache_control: cacheControl }),
       ...(metadata === undefined ? {} : { metadata }),
       ...(user === undefined ? {} : { user }),
       ...(promptCacheKey === undefined ? {} : { prompt_cache_key: promptCacheKey }),

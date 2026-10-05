@@ -43,10 +43,12 @@ import {
 import type { UsageRecord } from '../usage/record-usage.ts';
 import { type ChatMessage, snapshotChatMessages } from './chat-messages.ts';
 import {
+  type CacheControl,
   type ReasoningEffort,
   type ResponseFormat,
   resolveOutputTokenLimit,
   type StreamOptions,
+  snapshotCacheControl,
   snapshotClientMetadata,
   snapshotClientUser,
   snapshotLogitBias,
@@ -97,6 +99,7 @@ const MAX_BODY_BYTES = 1024 * 1024;
 export type { ChatMessage } from './chat-messages.ts';
 
 export interface ChatRequest {
+  readonly cache_control?: CacheControl;
   readonly metadata?: Readonly<Record<string, string>>;
   readonly user?: string;
   readonly prompt_cache_key?: string;
@@ -416,6 +419,7 @@ function validateChat(
       (key) =>
         ![
           'model',
+          'cache_control',
           'metadata',
           'user',
           'prompt_cache_key',
@@ -476,6 +480,7 @@ function validateChat(
   const topK = value.top_k ?? undefined;
   if (!validTopK(topK)) return undefined;
   let reasoning: ReasoningConfiguration | undefined;
+  let cacheControl: ReturnType<typeof snapshotCacheControl>;
   let metadata: ReturnType<typeof snapshotClientMetadata>;
   let user: ReturnType<typeof snapshotClientUser>;
   let promptCacheKey: ReturnType<typeof snapshotPromptCacheKey>;
@@ -486,6 +491,7 @@ function validateChat(
   let toolChoice: ReturnType<typeof snapshotToolChoice>;
   let parallelToolCalls: ReturnType<typeof snapshotParallelToolCalls>;
   try {
+    cacheControl = snapshotCacheControl(value.cache_control);
     metadata = snapshotClientMetadata(value.metadata);
     user = snapshotClientUser(value.user);
     promptCacheKey = snapshotPromptCacheKey(value.prompt_cache_key);
@@ -541,6 +547,7 @@ function validateChat(
     return undefined;
   return {
     model: value.model,
+    ...(cacheControl === undefined ? {} : { cache_control: cacheControl }),
     ...(metadata === undefined ? {} : { metadata }),
     ...(user === undefined ? {} : { user }),
     ...(promptCacheKey === undefined ? {} : { prompt_cache_key: promptCacheKey }),
