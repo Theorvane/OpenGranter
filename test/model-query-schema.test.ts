@@ -21,6 +21,26 @@ const shapes: Record<string, Record<string, unknown>> = {
   output_modalities: { type: 'string' },
   supported_parameters: { type: 'string' },
   context: { minimum: 1, type: 'integer' },
+  input_modalities: { type: 'string' },
+  q: { type: 'string' },
+  sort: {
+    type: 'string',
+    enum: [
+      'most-popular',
+      'newest',
+      'top-weekly',
+      'pricing-low-to-high',
+      'pricing-high-to-low',
+      'context-high-to-low',
+      'throughput-high-to-low',
+      'latency-low-to-high',
+      'intelligence-high-to-low',
+      'coding-high-to-low',
+      'agentic-high-to-low',
+      'design-arena-elo-high-to-low',
+    ],
+    'x-speakeasy-unknown-values': 'allow',
+  },
 };
 function source() {
   const parameters: {
@@ -81,7 +101,7 @@ test('model-query pin reflects independent official inline shapes without prose 
       ]),
     ),
   });
-  assert.equal(pin.version, 1);
+  assert.equal(pin.version, 2);
   assert.deepEqual(validateModelQuerySchemaPin(pin).projection, p);
   assert.equal(compareOfficialModelQuerySchema(source(), pin), true);
 });
@@ -104,6 +124,12 @@ const changes: [string, string, string, unknown][] = [
   ['context maximum', 'context', 'maximum', 100000],
   ['context default', 'context', 'default', 8192],
   ['context reference', 'context', '$ref', '#/components/schemas/ModelContext'],
+  ['input nullable', 'input_modalities', 'type', ['string', 'null']],
+  ['input enum', 'input_modalities', 'enum', ['text', 'image']],
+  ['query length', 'q', 'maxLength', 256],
+  ['query default', 'q', 'default', 'text'],
+  ['sort enum', 'sort', 'enum', ['newest']],
+  ['sort extension', 'sort', 'x-speakeasy-unknown-values', 'deny'],
 ];
 for (const [name, field, key, value] of changes)
   test(`selected ${name} detects model-query structural drift`, () => {
@@ -232,7 +258,7 @@ test('missing/malformed model-query source containers fail with fixed content-fr
 test('model-query pin rejects invalid envelope provenance/digests/version without private errors', () => {
   for (const patch of [
     { version: 0 },
-    { version: 2 },
+    { version: 1 },
     { source: 'https://example.invalid/private' },
     { retrievedAt: '2026-02-30' },
     { sourceSha256: 'private source' },
@@ -299,5 +325,14 @@ test('model-query vendor extension objects keep annotation-named literal data st
       'x-client-extension'
     ],
     { description: 'changed literal', examples: { title: 'literal' } },
+  );
+});
+
+test('discovery query version2 removal reproduces the reviewed version1 projection digest', () => {
+  const p = structuredClone(pin.projection);
+  for (const name of ['input_modalities', 'q', 'sort']) delete p.parameters[name];
+  assert.equal(
+    createHash('sha256').update(canonicalSchema(p)).digest('hex'),
+    'daa5d309dfc66e8b404f50fb06a64ab4d7e244de8a7f68f78f943a9f94ee4c7a',
   );
 });

@@ -4,6 +4,9 @@ export interface ModelListQuery {
   readonly outputModality?: string;
   readonly supportedParameter?: string;
   readonly minimumContextLength?: number;
+  readonly inputModality?: string;
+  readonly searchText?: string;
+  readonly sortOrder?: 'newest' | 'context-high-to-low';
 }
 
 const outputModalities = [
@@ -29,6 +32,21 @@ export function parseModelListQuery(url: URL, compatible: boolean): ModelListQue
     if (params.getAll(key).length !== 1) return undefined;
     if (key === 'output_modalities') {
       if (!outputModalities.includes(value)) return undefined;
+    } else if (key === 'input_modalities') {
+      if (!['text', 'image', 'audio', 'file'].includes(value)) return undefined;
+    } else if (key === 'q') {
+      if (!value || value !== value.trim() || value.length > 512) return undefined;
+      const characters = Array.from(value);
+      if (
+        characters.length > 256 ||
+        characters.some((character) => {
+          const code = character.charCodeAt(0);
+          return code < 32 || (code >= 127 && code <= 159);
+        })
+      )
+        return undefined;
+    } else if (key === 'sort') {
+      if (value !== 'newest' && value !== 'context-high-to-low') return undefined;
     } else if (key === 'supported_parameters') {
       if (!/^[a-z][a-z0-9_]{0,127}$/u.test(value)) return undefined;
     } else if (key === 'offset' || key === 'limit' || key === 'context') {
@@ -43,12 +61,18 @@ export function parseModelListQuery(url: URL, compatible: boolean): ModelListQue
   const outputModality = params.get('output_modalities');
   const supportedParameter = params.get('supported_parameters');
   const context = params.get('context');
+  const inputModality = params.get('input_modalities');
+  const searchText = params.get('q');
+  const sortOrder = params.get('sort');
   return {
     offset,
     ...(params.has('offset') || params.has('limit') ? { limit } : {}),
     ...(outputModality === null ? {} : { outputModality }),
     ...(supportedParameter === null ? {} : { supportedParameter }),
     ...(context === null ? {} : { minimumContextLength: Number(context) }),
+    ...(inputModality === null ? {} : { inputModality }),
+    ...(searchText === null ? {} : { searchText }),
+    ...(sortOrder === 'newest' || sortOrder === 'context-high-to-low' ? { sortOrder } : {}),
   };
 }
 
@@ -61,5 +85,8 @@ export function modelListContinuation(query: ModelListQuery, offset: number): st
     params.set('supported_parameters', query.supportedParameter);
   if (query.minimumContextLength !== undefined)
     params.set('context', String(query.minimumContextLength));
+  if (query.inputModality !== undefined) params.set('input_modalities', query.inputModality);
+  if (query.searchText !== undefined) params.set('q', query.searchText);
+  if (query.sortOrder !== undefined) params.set('sort', query.sortOrder);
   return `/api/v1/models?${params}`;
 }

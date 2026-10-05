@@ -7,6 +7,10 @@ export function discoveryModel(
   options: {
     context?: number | null;
     outputs?: string[];
+    inputs?: string[];
+    name?: string;
+    slug?: string;
+    created?: number;
     parameters?: string[];
     basic?: boolean;
     enabled?: boolean;
@@ -17,7 +21,7 @@ export function discoveryModel(
   const kind = options.kind ?? 'managed';
   return {
     alias,
-    created: 42,
+    created: options.created ?? 42,
     enabled: options.enabled ?? true,
     routes: [
       {
@@ -36,12 +40,12 @@ export function discoveryModel(
       ? {}
       : {
           openRouterMetadata: {
-            canonical_slug: 'private/canonical',
-            name: 'private published name',
+            canonical_slug: options.slug ?? 'private/canonical',
+            name: options.name ?? 'private published name',
             context_length: options.context === undefined ? 8192 : options.context,
             architecture: {
               modality: 'unrelated-private-label',
-              input_modalities: ['text'],
+              input_modalities: options.inputs ?? ['text'],
               output_modalities: options.outputs ?? ['text'],
             },
             pricing: { prompt: '0.000001', completion: '0.000002' },
@@ -121,6 +125,6 @@ export function discoveryFixture(
 export function discoveryPrivacy(f: ReturnType<typeof discoveryFixture>) {
   assert.doesNotMatch(
     JSON.stringify(f.events),
-    /private-|private\/|catalog\.example|supported_parameters|output_modalities|context_length|0\.000001/u,
+    /private-|private\/|catalog\.example|supported_parameters|input_modalities|output_modalities|context_length|0\.000001|Atlas|ATLAS|"q"|"sort"|searchText|sortOrder/u,
   );
 }

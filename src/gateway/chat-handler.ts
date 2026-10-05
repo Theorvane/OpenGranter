@@ -1008,9 +1008,16 @@ export function createChatHandler<T>(
               }).candidates.length > 0,
           ),
       );
+      const search = query.searchText?.toLowerCase();
       const visible = authorized.filter((model) => {
         const published = metadata.get(model);
         return (
+          (query.inputModality === undefined ||
+            published?.architecture.input_modalities.includes(query.inputModality) === true) &&
+          (search === undefined ||
+            [model.alias, published?.name, published?.canonical_slug].some(
+              (text) => text?.toLowerCase().includes(search) === true,
+            )) &&
           (query.outputModality === undefined ||
             query.outputModality === 'all' ||
             published?.architecture.output_modalities.includes(query.outputModality) === true) &&
@@ -1022,6 +1029,13 @@ export function createChatHandler<T>(
               published.context_length >= query.minimumContextLength))
         );
       });
+      if (query.sortOrder === 'newest') visible.sort((left, right) => right.created - left.created);
+      else if (query.sortOrder === 'context-high-to-low')
+        visible.sort(
+          (left, right) =>
+            (metadata.get(right)?.context_length ?? -1) -
+            (metadata.get(left)?.context_length ?? -1),
+        );
       const selected =
         query.limit === undefined
           ? visible
