@@ -32,6 +32,7 @@ import {
   snapshotToolChoice,
 } from '../gateway/chat-tools.ts';
 import {
+  hasBlockCacheControls,
   hasPromptCacheBreakpoints,
   validatePromptCacheHistory,
 } from '../gateway/prompt-cache-parts.ts';
@@ -351,6 +352,20 @@ function normalize(
   );
 }
 
+/** Keep instruction text separators without moving or annotating an explicit caller block. */
+function prepareAnthropicSystem(messages: readonly ChatMessage[]): string | readonly object[] {
+  if (messages.every((message) => typeof message.content === 'string'))
+    return messages.map((message) => message.content).join('\n');
+  return messages.flatMap((message, index) => {
+    if (message.content === null) fail('other');
+    const parts =
+      typeof message.content === 'string'
+        ? [{ type: 'text', text: message.content }]
+        : message.content;
+    return [...(index ? [{ type: 'text', text: '\n' }] : []), ...parts];
+  });
+}
+
 function prepare(
   registration: DirectProviderRegistration,
   candidate: RouteCandidate,
@@ -457,7 +472,7 @@ function prepare(
         ...(topP === undefined ? {} : { top_p: topP }),
         ...(topK === undefined ? {} : { top_k: topK }),
         ...(stop === undefined ? {} : { stop_sequences: typeof stop === 'string' ? [stop] : stop }),
-        ...(system.length ? { system: system.map((message) => message.content).join('\n') } : {}),
+        ...(system.length ? { system: prepareAnthropicSystem(system) } : {}),
         ...prepareAnthropicFunctions(tools, toolChoice, parallelToolCalls),
         messages: prepareAnthropicMessages(messages),
       },
@@ -701,8 +716,16 @@ export function createDirectChatTransport(
     let messages: readonly ChatMessage[];
     try {
       messages = snapshotChatMessages(request.messages);
-      validatePromptCacheHistory(cacheControl, messages);
+      validatePromptCacheHistory(cacheControl, messages, cacheOptions);
       if (registration.kind !== 'openai' && hasPromptCacheBreakpoints(messages)) fail('other');
+      if (
+        hasBlockCacheControls(messages) &&
+        (registration.kind !== 'anthropic' ||
+          messages.some(
+            (message) => message.role === 'tool' && typeof message.content !== 'string',
+          ))
+      )
+        fail('other');
       validatePredictionControls(prediction, {
         tools,
         toolChoice,

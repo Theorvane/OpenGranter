@@ -1,3 +1,4 @@
+import { snapshotCacheControl } from './chat-parameters.ts';
 import { type PromptCacheTextPart, snapshotPromptCacheBreakpoint } from './prompt-cache-parts.ts';
 
 function record(value: unknown): Record<string, unknown> | undefined {
@@ -49,19 +50,23 @@ export function normalizeClientTextMessages(value: unknown): readonly Record<str
         if (
           typeof payload !== 'string' ||
           Object.keys(part).some(
-            (key) => key !== 'type' && key !== 'text' && key !== 'prompt_cache_breakpoint',
+            (key) => !['type', 'text', 'prompt_cache_breakpoint', 'cache_control'].includes(key),
           )
         )
           throw new TypeError('Invalid client messages');
         const marker = snapshotPromptCacheBreakpoint(
           Object.hasOwn(part, 'prompt_cache_breakpoint') ? part.prompt_cache_breakpoint : undefined,
         );
-        if (marker !== undefined) marked = true;
+        const directive = Object.hasOwn(part, 'cache_control')
+          ? snapshotCacheControl(part.cache_control)
+          : undefined;
+        if (marker !== undefined || directive !== undefined) marked = true;
         captured.push(
           Object.freeze({
             type: 'text',
             text: payload,
             ...(marker === undefined ? {} : { prompt_cache_breakpoint: marker }),
+            ...(directive === undefined ? {} : { cache_control: directive }),
           }),
         );
         text += payload;
