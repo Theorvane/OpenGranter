@@ -4,6 +4,7 @@ import {
   snapshotBoundedJsonObject,
   type ToolChoice,
 } from '../gateway/chat-tools.ts';
+import { hasInlineImages } from '../gateway/inline-image-parts.ts';
 import {
   finalToolResultCacheControl,
   hasPromptCacheBreakpoints,
@@ -73,6 +74,7 @@ export function prepareAnthropicFunctions(
 
 /** Complete adjacent tool results form one native user turn, following the matching assistant. */
 export function prepareAnthropicMessages(messages: readonly ChatMessage[]): readonly object[] {
+  if (hasInlineImages(messages)) invalid();
   const native: { role: string; content: string | null | readonly object[] }[] = [];
   let results: object[] | undefined;
   for (const message of messages) {

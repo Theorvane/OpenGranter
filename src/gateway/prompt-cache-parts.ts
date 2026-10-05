@@ -5,6 +5,12 @@ import {
   snapshotCacheControl,
 } from './chat-parameters.ts';
 import type { FunctionTool } from './chat-tools.ts';
+import {
+  hasInlineImages,
+  type InlineImagePart,
+  MAX_INLINE_IMAGE_HISTORY_UNITS,
+  snapshotInlineImagePart,
+} from './inline-image-parts.ts';
 
 export interface PromptCacheBreakpoint {
   readonly mode: 'explicit';
@@ -15,6 +21,7 @@ export interface PromptCacheTextPart {
   readonly prompt_cache_breakpoint?: PromptCacheBreakpoint;
   readonly cache_control?: CacheControl;
 }
+export type ChatContentPart = PromptCacheTextPart | InlineImagePart;
 /** Nullable source markers normalize locally to omission, without native null claims. */
 export function snapshotPromptCacheBreakpoint(value: unknown): PromptCacheBreakpoint | undefined {
   if (value === undefined || value === null) return undefined;
@@ -32,7 +39,15 @@ export function snapshotPromptCacheBreakpoint(value: unknown): PromptCacheBreakp
   return Object.freeze({ mode });
 }
 /** Snapshot a marked text history; plain internal arrays retain their prior rejection. */
-export function snapshotPromptCacheTextParts(value: unknown): readonly PromptCacheTextPart[] {
+export function snapshotPromptCacheTextParts(value: unknown): readonly PromptCacheTextPart[];
+export function snapshotPromptCacheTextParts(
+  value: unknown,
+  allowImages: true,
+): readonly ChatContentPart[];
+export function snapshotPromptCacheTextParts(
+  value: unknown,
+  allowImages = false,
+): readonly ChatContentPart[] {
   if (!Array.isArray(value)) throw new TypeError('Invalid chat messages');
   const source: readonly unknown[] = value,
     length = source.length;
@@ -43,25 +58,35 @@ export function snapshotPromptCacheTextParts(value: unknown): readonly PromptCac
     Object.keys(source).some((key) => !/^(0|[1-9]\d*)$/u.test(key) || Number(key) >= length)
   )
     throw new TypeError('Invalid chat messages');
-  const parts: PromptCacheTextPart[] = [];
+  const parts: ChatContentPart[] = [];
   let marked = false;
+  let images = false;
+  let imageUnits = 0;
   for (let index = 0; index < length; index++) {
     if (!Object.hasOwn(source, index)) throw new TypeError('Invalid chat messages');
     const raw = source[index];
     if (typeof raw !== 'object' || raw === null || Array.isArray(raw))
       throw new TypeError('Invalid chat messages');
     const prototype = Object.getPrototypeOf(raw);
+    if ((prototype !== Object.prototype && prototype !== null) || !Object.hasOwn(raw, 'type'))
+      throw new TypeError('Invalid chat messages');
+    const type: unknown = Reflect.get(raw, 'type');
+    if (type === 'image_url' && allowImages) {
+      const captured = snapshotInlineImagePart(raw, type);
+      imageUnits += captured.image_url.url.length;
+      if (imageUnits > MAX_INLINE_IMAGE_HISTORY_UNITS) throw new TypeError('Invalid chat messages');
+      parts.push(captured);
+      images = true;
+      continue;
+    }
     if (
-      (prototype !== Object.prototype && prototype !== null) ||
-      !Object.hasOwn(raw, 'type') ||
       !Object.hasOwn(raw, 'text') ||
       Object.keys(raw).some(
         (key) => !['type', 'text', 'prompt_cache_breakpoint', 'cache_control'].includes(key),
       )
     )
       throw new TypeError('Invalid chat messages');
-    const type: unknown = Reflect.get(raw, 'type'),
-      text: unknown = Reflect.get(raw, 'text');
+    const text: unknown = Reflect.get(raw, 'text');
     const marker = snapshotPromptCacheBreakpoint(
       Object.hasOwn(raw, 'prompt_cache_breakpoint')
         ? Reflect.get(raw, 'prompt_cache_breakpoint')
@@ -82,11 +107,11 @@ export function snapshotPromptCacheTextParts(value: unknown): readonly PromptCac
       }),
     );
   }
-  if (!marked) throw new TypeError('Invalid chat messages');
+  if ((!marked && !images) || (images && marked)) throw new TypeError('Invalid chat messages');
   return Object.freeze(parts);
 }
 export function hasPromptCacheBreakpoints(
-  messages: readonly { readonly content: string | null | readonly PromptCacheTextPart[] }[],
+  messages: readonly { readonly content: string | null | readonly ChatContentPart[] }[],
 ): boolean {
   return messages.some(
     ({ content }) =>
@@ -96,7 +121,7 @@ export function hasPromptCacheBreakpoints(
   );
 }
 export function hasBlockCacheControls(
-  messages: readonly { readonly content: string | null | readonly PromptCacheTextPart[] }[],
+  messages: readonly { readonly content: string | null | readonly ChatContentPart[] }[],
 ): boolean {
   return messages.some(
     ({ content }) =>
@@ -107,13 +132,15 @@ export function hasBlockCacheControls(
 }
 /** Anthropic promotes only the last nested result marker; earlier boundaries cannot move. */
 export function finalToolResultCacheControl(
-  content: string | readonly PromptCacheTextPart[],
+  content: string | readonly ChatContentPart[],
 ): CacheControl | undefined {
   if (typeof content === 'string') return undefined;
+  if (content.some((part) => part.type !== 'text'))
+    throw new TypeError('Unsupported cache controls');
   const last = content.at(-1)?.cache_control;
   if (
     last === undefined ||
-    !content.at(-1)?.text.length ||
+    !content.at(-1)?.text?.length ||
     content.some(
       (part, index) =>
         part.prompt_cache_breakpoint !== undefined ||
@@ -140,7 +167,8 @@ function automaticTarget(
       if (typeof content === 'string') {
         if (content.length) target = undefined;
       } else if (content !== null) {
-        for (const part of content) if (part.text.length) target = part.cache_control;
+        for (const part of content)
+          if (part.type === 'text' && part.text.length) target = part.cache_control;
       }
     }
   }
@@ -154,7 +182,8 @@ function automaticTarget(
       if (typeof content === 'string') {
         if (content.length) target = undefined;
       } else if (content !== null) {
-        for (const part of content) if (part.text.length) target = part.cache_control;
+        for (const part of content)
+          if (part.type === 'text' && part.text.length) target = part.cache_control;
       }
       // Native tool_use blocks follow assistant text rather than sharing its marker.
       if (message.tool_calls?.length) target = undefined;
@@ -173,6 +202,11 @@ export function validatePromptCacheHistory(
     blocks =
       hasBlockCacheControls(messages) ||
       (tools?.some((tool) => tool.cache_control !== undefined) ?? false);
+  if (
+    hasInlineImages(messages) &&
+    (cacheControl !== undefined || options !== undefined || breakpoints || blocks)
+  )
+    throw new TypeError('Unsupported cache controls');
   if (
     (cacheControl !== undefined && breakpoints) ||
     (blocks && (breakpoints || options !== undefined))
@@ -201,7 +235,9 @@ export function validatePromptCacheHistory(
   }
 }
 /** Preserve the existing opt-in selector text view, including literal nullable content. */
-export function chatContentText(content: string | null | readonly PromptCacheTextPart[]): string {
+export function chatContentText(content: string | null | readonly ChatContentPart[]): string {
   if (content === null) return 'null';
+  if (Array.isArray(content) && content.some((part) => part.type !== 'text'))
+    throw new TypeError('Unsupported selector content');
   return typeof content === 'string' ? content : content.map((part) => part.text).join('');
 }

@@ -4,7 +4,8 @@ import {
   snapshotGoogleThoughtSignature,
 } from '../providers/google-thought-signature.ts';
 import { type ReasoningDetail, snapshotReasoningDetails } from '../providers/reasoning-details.ts';
-import { type PromptCacheTextPart, snapshotPromptCacheTextParts } from './prompt-cache-parts.ts';
+import { MAX_INLINE_IMAGE_HISTORY_UNITS } from './inline-image-parts.ts';
+import { type ChatContentPart, snapshotPromptCacheTextParts } from './prompt-cache-parts.ts';
 
 export interface ChatFunctionCall {
   readonly extra_content?: GoogleThoughtSignatureContent;
@@ -16,7 +17,7 @@ export interface ChatFunctionCall {
 export type ChatMessage =
   | {
       readonly role: 'system' | 'developer' | 'user';
-      readonly content: string | readonly PromptCacheTextPart[];
+      readonly content: string | readonly ChatContentPart[];
       readonly name?: string;
       readonly tool_calls?: never;
       readonly tool_call_id?: never;
@@ -26,7 +27,7 @@ export type ChatMessage =
     }
   | {
       readonly role: 'assistant';
-      readonly content: string | null | readonly PromptCacheTextPart[];
+      readonly content: string | null | readonly ChatContentPart[];
       readonly name?: string;
       readonly tool_calls?: readonly ChatFunctionCall[];
       readonly tool_call_id?: never;
@@ -36,7 +37,7 @@ export type ChatMessage =
     }
   | {
       readonly role: 'tool';
-      readonly content: string | readonly PromptCacheTextPart[];
+      readonly content: string | readonly ChatContentPart[];
       readonly tool_call_id: string;
       readonly name?: never;
       readonly tool_calls?: never;
@@ -102,13 +103,14 @@ function snapshotCalls(value: unknown): readonly ChatFunctionCall[] {
   return Object.freeze(calls);
 }
 
-/** Capture a complete portable text/function history before asynchronous routing. */
+/** Capture a complete bounded text/image/function history before asynchronous routing. */
 export function snapshotChatMessages(value: unknown): readonly ChatMessage[] {
   if (!Array.isArray(value)) throw new TypeError('Invalid chat messages');
   const length = value.length;
   if (!Number.isSafeInteger(length) || length < 1) throw new TypeError('Invalid chat messages');
   const messages: ChatMessage[] = [];
   let conversationSeen = false;
+  let imageUnits = 0;
   const pending = new Set<string>();
   const source: readonly unknown[] = value;
   const entries = Array.from({ length }, (_, index) => source[index]);
@@ -117,7 +119,12 @@ export function snapshotChatMessages(value: unknown): readonly ChatMessage[] {
     if (!item) throw new TypeError('Invalid chat messages');
     const role = item.role;
     if (typeof role !== 'string') throw new TypeError('Invalid chat messages');
-    const content = snapshotMessageContent(item.content);
+    const content = snapshotMessageContent(item.content, role === 'user');
+    if (Array.isArray(content))
+      for (const part of content) {
+        if (part.type === 'image_url') imageUnits += part.image_url.url.length;
+      }
+    if (imageUnits > MAX_INLINE_IMAGE_HISTORY_UNITS) throw new TypeError('Invalid chat messages');
     const name = item.name;
     if (role === 'tool') {
       const toolCallId = item.tool_call_id;
@@ -226,7 +233,10 @@ export function snapshotChatMessages(value: unknown): readonly ChatMessage[] {
 
 function snapshotMessageContent(
   value: unknown,
-): string | null | undefined | readonly PromptCacheTextPart[] {
+  allowImages: boolean,
+): string | null | undefined | readonly ChatContentPart[] {
   if (value === undefined || value === null || typeof value === 'string') return value;
-  return snapshotPromptCacheTextParts(value);
+  return allowImages
+    ? snapshotPromptCacheTextParts(value, true)
+    : snapshotPromptCacheTextParts(value);
 }
