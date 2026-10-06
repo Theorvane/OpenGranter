@@ -5,6 +5,7 @@ import { OpenRouter } from '@openrouter/sdk';
 import { unrecognized } from '@openrouter/sdk/types';
 import OpenAI from 'openai';
 import { createNodeRequestServer } from '../src/gateway/node-request-server.ts';
+import { capabilityCatalog, capabilityFields } from './model-capability-lists-fixture.ts';
 import { explorationCatalog } from './model-discovery-exploration-fixture.ts';
 import { discoveryFixture, discoveryPrivacy } from './model-discovery-filters-fixture.ts';
 
@@ -140,7 +141,7 @@ test('installed OpenRouter exploration next page rechecks current provider and m
   });
 });
 for (const [fields, query] of [
-  [{ inputModalities: 'text,image' }, { input_modalities: 'text,image' }],
+  [{ inputModalities: 'text,unknown' }, { input_modalities: 'text,unknown' }],
   [{ inputModalities: 'all' }, { input_modalities: 'all' }],
   [{ q: ' Atlas' }, { q: ' Atlas' }],
   [{ q: 'x'.repeat(257) }, { q: 'x'.repeat(257) }],
@@ -163,3 +164,92 @@ for (const [fields, query] of [
       discoveryPrivacy(f);
     });
   });
+for (const [fields, query, expected] of [
+  [
+    { inputModalities: 'image,text' },
+    { input_modalities: 'image,text' },
+    ['first', 'partial-parameter', 'second', 'third', 'small'],
+  ],
+  [
+    { supportedParameters: 'temperature,tools' },
+    { supported_parameters: 'temperature,tools' },
+    ['first', 'partial-input', 'second', 'third', 'small'],
+  ],
+  [
+    {
+      inputModalities: 'text,image',
+      supportedParameters: 'tools,temperature',
+      outputModalities: 'image,text',
+    },
+    {
+      input_modalities: 'text,image',
+      supported_parameters: 'tools,temperature',
+      output_modalities: 'image,text',
+    },
+    ['first', 'second', 'small'],
+  ],
+] as const)
+  test(`installed SDK capability-list intersection: ${JSON.stringify(fields)}`, async () => {
+    const f = discoveryFixture(capabilityCatalog());
+    await socket(f, async (sdk, openai, queries) => {
+      const router = await sdk.models.list(fields);
+      const ai = await openai.models.list({ query });
+      assert.deepEqual(
+        router.result.data.map((m) => m.id),
+        expected,
+      );
+      assert.equal(router.result.totalCount, expected.length);
+      assert.deepEqual(
+        ai.data.map((m) => m.id),
+        expected,
+      );
+      assert.equal(queries.length, 2);
+      for (const params of queries)
+        for (const [key, value] of Object.entries(query))
+          assert.deepEqual(params.getAll(key), [value]);
+      discoveryPrivacy(f);
+    });
+  });
+test('installed OpenRouter capability-list iteration preserves every scalar through exact terminal pages', async () => {
+  const f = discoveryFixture(capabilityCatalog());
+  await socket(f, async (sdk, _openai, queries) => {
+    const ids: string[] = [];
+    for await (const page of await sdk.models.list(capabilityFields)) {
+      ids.push(...page.result.data.map((m) => m.id));
+      assert.equal(page.result.totalCount, 2);
+    }
+    assert.deepEqual(ids, ['first', 'second']);
+    assert.equal(queries.length, 3);
+    for (const [i, params] of queries.entries())
+      assert.deepEqual(Object.fromEntries(params), {
+        offset: String(i),
+        limit: '1',
+        input_modalities: 'image,text',
+        output_modalities: 'image,text',
+        supported_parameters: 'temperature,tools',
+        context: '8192',
+        q: 'ATLAS',
+        sort: 'newest',
+      });
+    discoveryPrivacy(f);
+  });
+});
+test('installed OpenRouter capability-list continuation rechecks current provider Deny', async () => {
+  const f = discoveryFixture(capabilityCatalog());
+  await socket(f, async (sdk, _openai, queries) => {
+    const first = await sdk.models.list(capabilityFields);
+    assert.deepEqual(
+      first.result.data.map((m) => m.id),
+      ['first'],
+    );
+    f.statements.push({ effect: 'Deny', actions: ['*'], resources: ['provider:provider'] });
+    const next = await first.next();
+    assert.ok(next);
+    assert.deepEqual(next.result.data, []);
+    assert.equal(next.result.totalCount, 0);
+    assert.equal(next.result.links.next, null);
+    assert.deepEqual(queries[1]?.getAll('input_modalities'), ['image,text']);
+    assert.deepEqual(queries[1]?.getAll('supported_parameters'), ['temperature,tools']);
+    discoveryPrivacy(f);
+  });
+});

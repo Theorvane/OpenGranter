@@ -170,7 +170,7 @@ for (const query of [
   '?output_modalities=text&output_modalities=text',
   '?supported_parameters=',
   '?supported_parameters=Tools',
-  '?supported_parameters=tools,temperature',
+  '?supported_parameters=tools,Temperature',
   '?supported_parameters=%20tools',
   '?supported_parameters=tools&supported_parameters=tools',
   '?supported_parameters=1tools',

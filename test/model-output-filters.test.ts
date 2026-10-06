@@ -144,8 +144,8 @@ for (const value of [
   });
 for (const query of [
   '?output_modalities=text,image&output_modalities=text,image',
-  '?output_modalities=text,image&input_modalities=text,image',
-  '?output_modalities=text,image&supported_parameters=tools,temperature',
+  '?output_modalities=text,image&input_modalities=text,unknown',
+  '?output_modalities=text,image&supported_parameters=tools,Temperature',
   '?output_modalities=text,image&provider=private-filter',
 ])
   test(`output lists do not broaden other query acceptance: ${query}`, async () => {

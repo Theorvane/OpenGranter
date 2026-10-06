@@ -1012,8 +1012,10 @@ export function createChatHandler<T>(
       const visible = authorized.filter((model) => {
         const published = metadata.get(model);
         return (
-          (query.inputModality === undefined ||
-            published?.architecture.input_modalities.includes(query.inputModality) === true) &&
+          (query.inputModalities === undefined ||
+            query.inputModalities.every(
+              (modality) => published?.architecture.input_modalities.includes(modality) === true,
+            )) &&
           (search === undefined ||
             [model.alias, published?.name, published?.canonical_slug].some(
               (text) => text?.toLowerCase().includes(search) === true,
@@ -1023,8 +1025,10 @@ export function createChatHandler<T>(
             query.outputModalities.some(
               (modality) => published?.architecture.output_modalities.includes(modality) === true,
             )) &&
-          (query.supportedParameter === undefined ||
-            published?.supported_parameters.includes(query.supportedParameter) === true) &&
+          (query.supportedParameters === undefined ||
+            query.supportedParameters.every(
+              (parameter) => published?.supported_parameters.includes(parameter) === true,
+            )) &&
           (query.minimumContextLength === undefined ||
             (published?.context_length !== undefined &&
               published.context_length !== null &&

@@ -132,7 +132,7 @@ test('installed OpenRouter SDK next page reevaluates current IAM under the same 
 for (const [fields, query] of [
   [{ context: 0 }, { context: 0 }],
   [{ outputModalities: 'text,unknown' }, { output_modalities: 'text,unknown' }],
-  [{ supportedParameters: 'tools,temperature' }, { supported_parameters: 'tools,temperature' }],
+  [{ supportedParameters: 'tools,Temperature' }, { supported_parameters: 'tools,Temperature' }],
 ] as const)
   test(`installed SDK invalid bounded filters reject at the gateway: ${JSON.stringify(fields)}`, async () => {
     const f = discoveryFixture();
