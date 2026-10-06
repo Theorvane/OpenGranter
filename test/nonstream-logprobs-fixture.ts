@@ -40,6 +40,7 @@ export function probabilityFixture(
     missingUsage?: boolean;
     absent?: boolean;
     raw?: boolean;
+    stream?: boolean;
     transportFails?: boolean;
     mutate?: () => void;
     gate?: 'auth' | 'implicit' | 'model' | 'provider' | 'limit' | 'selection' | 'audit' | 'usage';
@@ -72,7 +73,7 @@ export function probabilityFixture(
             ? 'https://api.openai.com/v1/chat/completions'
             : kind === 'anthropic'
               ? 'https://api.anthropic.com/v1/messages'
-              : 'https://generativelanguage.googleapis.com/v1beta/models/upstream-model:generateContent',
+              : `https://generativelanguage.googleapis.com/v1beta/models/upstream-model:${options.stream ? 'streamGenerateContent?alt=sse' : 'generateContent'}`,
       );
       sent.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
       if (options.transportFails) return new Response('private upstream error', { status: 500 });
