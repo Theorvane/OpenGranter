@@ -4,13 +4,13 @@ import {
   snapshotBoundedJsonObject,
   type ToolChoice,
 } from '../gateway/chat-tools.ts';
-import { hasInlineImages } from '../gateway/inline-image-parts.ts';
 import {
   finalToolResultCacheControl,
   hasPromptCacheBreakpoints,
 } from '../gateway/prompt-cache-parts.ts';
 import { DirectProviderFailure } from '../routing/invoke-jev-managed-route.ts';
 import { type AssistantResponse, normalizeAssistantResponse } from './assistant-response.ts';
+import { prepareNativeImages } from './native-image-parts.ts';
 
 function invalid(): never {
   throw new DirectProviderFailure('other', false, false);
@@ -74,7 +74,7 @@ export function prepareAnthropicFunctions(
 
 /** Complete adjacent tool results form one native user turn, following the matching assistant. */
 export function prepareAnthropicMessages(messages: readonly ChatMessage[]): readonly object[] {
-  if (hasInlineImages(messages)) invalid();
+  const images = prepareNativeImages(messages, 'anthropic');
   const native: { role: string; content: string | null | readonly object[] }[] = [];
   let results: object[] | undefined;
   for (const message of messages) {
@@ -122,7 +122,22 @@ export function prepareAnthropicMessages(messages: readonly ChatMessage[]): read
           }),
         ],
       });
-    } else native.push({ role: message.role, content: message.content });
+    } else
+      native.push({
+        role: message.role,
+        content:
+          typeof message.content === 'string' || message.content === null
+            ? message.content
+            : message.content.map((part) => {
+                if (part.type !== 'image_url') return part;
+                const image = images.get(part);
+                if (!image) invalid();
+                return {
+                  type: 'image',
+                  source: { type: 'base64', media_type: image.mimeType, data: image.data },
+                };
+              }),
+      });
   }
   return native;
 }

@@ -33,7 +33,6 @@ import {
   snapshotParallelToolCalls,
   snapshotToolChoice,
 } from '../gateway/chat-tools.ts';
-import { hasInlineImages } from '../gateway/inline-image-parts.ts';
 import {
   hasBlockCacheControls,
   hasPromptCacheBreakpoints,
@@ -729,7 +728,6 @@ export function createDirectChatTransport(
     let messages: readonly ChatMessage[];
     try {
       messages = snapshotChatMessages(request.messages);
-      if (registration.kind !== 'openai' && hasInlineImages(messages)) fail('other');
       validatePromptCacheHistory(cacheControl, messages, cacheOptions, tools);
       if (
         registration.kind !== 'anthropic' &&

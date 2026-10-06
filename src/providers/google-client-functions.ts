@@ -14,6 +14,7 @@ import {
   MAX_GOOGLE_SIGNATURE_UNITS,
   snapshotGoogleThoughtSignature,
 } from './google-thought-signature.ts';
+import { prepareNativeImages } from './native-image-parts.ts';
 
 const LOCAL_PREFIX = 'og_google_missing_id_';
 const LOCAL_ID =
@@ -86,11 +87,29 @@ export function prepareGoogleFunctions(
 
 /** Preserve exact result strings, correlation and original call order without inventing native IDs. */
 export function prepareGoogleMessages(messages: readonly ChatMessage[]): readonly object[] {
+  const images = prepareNativeImages(messages, 'google');
   const native: object[] = [];
   let calls: readonly { id: string; function: { name: string } }[] = [],
     results = new Map<string, string>();
   for (const message of messages) {
-    if (typeof message.content !== 'string' && message.content !== null) invalid();
+    if (typeof message.content !== 'string' && message.content !== null) {
+      if (
+        message.role !== 'user' ||
+        !message.content.some((part) => part.type === 'image_url') ||
+        calls.length
+      )
+        invalid();
+      native.push({
+        role: 'user',
+        parts: message.content.map((part) => {
+          if (part.type === 'text') return { text: part.text };
+          const image = images.get(part);
+          if (!image) invalid();
+          return { inlineData: image };
+        }),
+      });
+      continue;
+    }
     if (message.role === 'tool') {
       if (
         !calls.some((call) => call.id === message.tool_call_id) ||
