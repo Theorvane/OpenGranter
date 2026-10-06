@@ -1072,8 +1072,10 @@ export function createChatHandler<T>(
       );
     }
 
-    const chat = validateChat(
-      await readJsonBody(request).catch(() => undefined),
+    const body = await readJsonBody(request).catch(() => undefined);
+    const bodyHasSessionId = isRecord(body) && Object.hasOwn(body, 'session_id');
+    let chat = validateChat(
+      body,
       typeof ports.invokeDirectTextStream === 'function' ||
         typeof ports.invokeDirectFunctionStream === 'function' ||
         typeof ports.invokeOpenRouterTextStream === 'function' ||
@@ -1139,6 +1141,13 @@ export function createChatHandler<T>(
         return errorResponse(503, 'audit_unavailable', requestId);
       }
       return errorResponse(404, 'unknown_model', requestId);
+    }
+
+    // The OpenRouter header fallback has no native session equivalent. Explicit body fields
+    // retain native rejection; an advisory client header must not invent that body field.
+    if (route.kind === 'managed' && !bodyHasSessionId && chat.session_id !== undefined) {
+      const { session_id: _headerSessionId, ...nativeChat } = chat;
+      chat = nativeChat;
     }
 
     const functionRequest =

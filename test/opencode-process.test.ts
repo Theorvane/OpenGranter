@@ -106,3 +106,17 @@ test('read fixture configuration allows one project-relative file and denies eve
     read: { '*': 'deny', 'fixture.txt': 'allow' },
   });
 });
+
+test('image attachment configuration explicitly registers image input without changing authority', () => {
+  const ordinary = openCodeConfig('http://127.0.0.1:1234/api/v1', true);
+  const images = openCodeConfig('http://127.0.0.1:1234/api/v1', true, false, true);
+  assert.deepEqual(images.provider.opengranter.models.chat.modalities, {
+    input: ['text', 'image'],
+    output: ['text'],
+  });
+  assert.equal(Object.hasOwn(ordinary.provider.opengranter.models.chat, 'modalities'), false);
+  assert.deepEqual(images.provider.opengranter.options, ordinary.provider.opengranter.options);
+  assert.deepEqual(images.permission, ordinary.permission);
+  assert.equal(images.model, ordinary.model);
+  assert.deepEqual(images.enabled_providers, ordinary.enabled_providers);
+});

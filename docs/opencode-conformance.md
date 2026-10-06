@@ -62,12 +62,12 @@ loopback server are removed on success or failure. Child failure messages omit
 stderr, paths and request content.
 
 The real gateway authenticates a fixture proxy token, evaluates the approved
-model/provider route and limits, invokes a fixed-host mocked delegated OpenRouter or registered direct OpenAI transport,
+model/provider route and limits, invokes fixed-host mocked delegated OpenRouter or registered direct OpenAI/Anthropic/Gemini transports,
 and records usage/audit before successful completion. No real provider, real
 secret or external model is involved. The command verifies registered model
 selection, rendered text, actual streamed read-function assembly and execution,
 correlated tool-result continuation, fresh IAM/limit checks and completed usage on
-both bases and both route kinds (20 probes: two kinds × two bases × five modes). It also verifies explicit model/provider Deny and upstream cancellation
+both bases and both route kinds. The current default command runs 98 probes; the image subset and native/signature subsets are described below. It also verifies explicit model/provider Deny and upstream cancellation
 with failed possibly-billed/missing-usage accounting after child termination.
 OpenCode emits an APIError event with status 403 and exit code 1 on these Deny
 responses; the probe checks both rather than inferring success from iterator/exit
@@ -76,7 +76,7 @@ operational gateway metadata. Default CI tests the
 process/config helper and both route-kind socket fixtures without requiring a globally installed client; this explicit
 client command is a separate recorded conformance gate.
 
-Interactive cancellation actions, retry/error variants, richer/custom tools, other direct providers,
+Interactive cancellation actions, retry/error variants, richer/custom tools, broader native capabilities,
 other application versions/configurations and complete #116 certification remain open.
 
 The runner also requires Git and initializes an empty temporary project for exact
@@ -95,3 +95,27 @@ equivalence, live provider conformance or other named-client versions.
 
 See [plan](plans/390-opencode-managed-streams.md) and
 [contract](../contracts/opencode-managed-streams.md).
+
+## Local PNG attachment conformance
+
+The default command now runs 98 isolated probes: the existing fifty text/tool/security/signature cases and 48 image cases (four route/provider registrations × two bases × six modes). Image cases explicitly add this fixture model metadata:
+
+```json
+{ "modalities": { "input": ["text", "image"], "output": ["text"] } }
+```
+
+Only enable image input for an administrator-approved image-capable alias. These local settings are fixture capabilities, not automatic catalog discovery or proof that a live model accepts images. OpenCode defaults custom-model image input to false; attachment metadata alone does not enable it.
+
+Reproduce only the image subset with:
+
+```sh
+npm run compatibility:opencode -- /absolute/path/to/opencode --images-only
+```
+
+The runner uses run --pure --format json --model opengranter/chat followed by the positional prompt and then --file with the absolute temporary fixture.png path. Put the prompt before --file because the file option accepts multiple values. The client decodes the valid one-pixel PNG locally and sends a data:image/png;base64 URL with detail omitted; no remote media is fetched. OpenAI/delegated bodies retain that URL, Anthropic receives a base64 PNG source and Gemini receives inlineData. Image probes supply --title with a fixed fixture title, suppress automatic title generation, and require exactly one image on every captured request and tool-result continuation; an auxiliary call cannot satisfy image evidence.
+
+Image text/function probes render the fixed response and execute only the separately allowed fixture.txt read. Explicit attachment preprocessing is performed by the client independently of model tool permissions; it does not allow model-invoked reads of fixture.png. Initial model/provider and fresh follow-up Deny plus five-second process-disconnect accounting retain the existing controls. Image bytes, file paths and request content remain outside operational records. The two configured/default signed-Google measurements remain separate; signed-image combinations are not covered.
+
+The exact image payload/MIME is measured through mocked transports, not live vision inference. Other image formats/sizes/versions, remote input, supplied native detail, image caching/output and complete #116 remain open. See [plan](plans/470-opencode-inline-images.md) and [contract](../contracts/opencode-inline-images.md). Versioned behavior sources: [CLI](https://github.com/anomalyco/opencode/blob/v1.18.5/packages/opencode/src/cli/cmd/run.ts), [model modalities](https://github.com/anomalyco/opencode/blob/v1.18.5/packages/opencode/src/provider/provider.ts) and [image decoder](https://github.com/anomalyco/opencode/blob/v1.18.5/packages/opencode/src/image/image.ts).
+
+OpenCode 1.18.5 automatically sends X-Session-Id for this custom provider; there is no supported JSON setting to remove it under --pure. OpenGranter validates the selected identifier early but applies header-only fallback exclusively to delegated OpenRouter. Managed native bodies omit header-derived session_id, while supplied body values remain unsupported. The actual client configuration is unchanged; no plugin or provider-ID workaround is needed. See [versioned request headers](https://github.com/anomalyco/opencode/blob/v1.18.5/packages/opencode/src/session/llm/request.ts#L173).
