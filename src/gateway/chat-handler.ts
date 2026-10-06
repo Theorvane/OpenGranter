@@ -1018,9 +1018,11 @@ export function createChatHandler<T>(
             [model.alias, published?.name, published?.canonical_slug].some(
               (text) => text?.toLowerCase().includes(search) === true,
             )) &&
-          (query.outputModality === undefined ||
-            query.outputModality === 'all' ||
-            published?.architecture.output_modalities.includes(query.outputModality) === true) &&
+          (query.outputModalities === undefined ||
+            query.outputModalities.includes('all') ||
+            query.outputModalities.some(
+              (modality) => published?.architecture.output_modalities.includes(modality) === true,
+            )) &&
           (query.supportedParameter === undefined ||
             published?.supported_parameters.includes(query.supportedParameter) === true) &&
           (query.minimumContextLength === undefined ||

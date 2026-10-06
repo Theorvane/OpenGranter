@@ -131,7 +131,7 @@ test('installed OpenRouter SDK next page reevaluates current IAM under the same 
 });
 for (const [fields, query] of [
   [{ context: 0 }, { context: 0 }],
-  [{ outputModalities: 'text,image' }, { output_modalities: 'text,image' }],
+  [{ outputModalities: 'text,unknown' }, { output_modalities: 'text,unknown' }],
   [{ supportedParameters: 'tools,temperature' }, { supported_parameters: 'tools,temperature' }],
 ] as const)
   test(`installed SDK invalid bounded filters reject at the gateway: ${JSON.stringify(fields)}`, async () => {
@@ -151,3 +151,79 @@ for (const [fields, query] of [
       discoveryPrivacy(f);
     });
   });
+for (const value of ['text,image', 'image,text'])
+  test(`installed SDKs consume any-member output lists as one scalar: ${value}`, async () => {
+    const f = discoveryFixture();
+    await socket(f, async (sdk, openai, queries) => {
+      const router = await sdk.models.list({ outputModalities: value });
+      const ai = await openai.models.list({ query: { output_modalities: value } });
+      const expected = ['small', 'multi', 'unknown', 'large', 'image'];
+      assert.deepEqual(
+        router.result.data.map((m) => m.id),
+        expected,
+      );
+      assert.equal(router.result.totalCount, 5);
+      assert.equal(router.result.links.next, null);
+      assert.deepEqual(
+        ai.data.map((m) => m.id),
+        expected,
+      );
+      assert.equal(queries.length, 2);
+      for (const [index, query] of queries.entries()) {
+        assert.deepEqual(query.getAll('output_modalities'), [value]);
+        // OpenRouter injects its paging defaults; OpenAI retains a filter-only URL.
+        assert.equal(query.size, index === 0 ? 3 : 1);
+        if (index === 0) {
+          assert.equal(query.get('offset'), '0');
+          assert.equal(query.get('limit'), '500');
+        }
+      }
+      discoveryPrivacy(f);
+    });
+  });
+test('installed OpenRouter output-list iteration retains conjunction and list order through terminal pages', async () => {
+  const f = discoveryFixture();
+  await socket(f, async (sdk, _openai, queries) => {
+    const ids: string[] = [];
+    for await (const page of await sdk.models.list({
+      outputModalities: 'image,text',
+      supportedParameters: 'tools',
+      context: 8192,
+      limit: 1,
+    })) {
+      ids.push(...page.result.data.map((m) => m.id));
+      assert.equal(page.result.totalCount, 3);
+    }
+    assert.deepEqual(ids, ['multi', 'large', 'image']);
+    assert.equal(queries.length, 4);
+    for (const [index, query] of queries.entries()) {
+      assert.deepEqual(query.getAll('output_modalities'), ['image,text']);
+      assert.equal(query.get('supported_parameters'), 'tools');
+      assert.equal(query.get('context'), '8192');
+      assert.equal(query.get('offset'), String(index));
+    }
+    discoveryPrivacy(f);
+  });
+});
+test('installed OpenRouter output-list continuation reevaluates current explicit Deny', async () => {
+  const f = discoveryFixture();
+  await socket(f, async (sdk, _openai, queries) => {
+    const first = await sdk.models.list({ outputModalities: 'text,image', limit: 1 });
+    assert.deepEqual(
+      first.result.data.map((m) => m.id),
+      ['small'],
+    );
+    f.statements.splice(0, f.statements.length, {
+      effect: 'Deny',
+      actions: ['*'],
+      resources: ['*'],
+    });
+    const next = await first.next();
+    assert.ok(next);
+    assert.deepEqual(next.result.data, []);
+    assert.equal(next.result.totalCount, 0);
+    assert.equal(next.result.links.next, null);
+    assert.deepEqual(queries[1]?.getAll('output_modalities'), ['text,image']);
+    discoveryPrivacy(f);
+  });
+});

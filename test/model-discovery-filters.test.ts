@@ -164,7 +164,7 @@ for (const query of [
   '?output_modalities=null',
   '?output_modalities=TEXT',
   '?output_modalities=unknown',
-  '?output_modalities=text,image',
+  '?output_modalities=text,unknown',
   '?output_modalities=all,text',
   '?output_modalities=%20text',
   '?output_modalities=text&output_modalities=text',
