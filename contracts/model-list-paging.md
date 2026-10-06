@@ -12,6 +12,6 @@ Every page reevaluates current authentication/IAM/catalog. Catalog or policy cha
 
 ## Filter extension (#456)
 
-The [discovery filter contract](model-discovery-filters.md) now adds bounded singleton output_modalities/supported_parameters/context queries. Apply captured metadata predicates after IAM and before paging; matching authorized totals/continuations preserve accepted filters. Unknown and broader filters remain rejected. Filter-only requests retain full-list behavior.
+The [discovery filter contract](model-discovery-filters.md) now adds output_modalities/supported_parameters/context queries (output union and all-member input/parameter lists extend this under #472/#474). Apply captured metadata predicates after IAM and before paging; matching authorized totals/continuations preserve accepted filters. Unknown and broader filters remain rejected. Filter-only requests retain full-list behavior.
 
 Issue #460 adds bounded input/search/order fields before paging. Next links retain those fields and SDK continuation reevaluates current IAM; see [exploration contract](model-discovery-exploration.md).

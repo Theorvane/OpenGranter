@@ -137,7 +137,7 @@ const invalid = [
   '?input_modalities=all',
   '?input_modalities=TEXT',
   '?input_modalities=video',
-  '?input_modalities=text,image',
+  '?input_modalities=text,unknown',
   '?input_modalities=%20text',
   '?input_modalities=text%20',
   '?input_modalities=image&input_modalities=image',

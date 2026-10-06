@@ -2,9 +2,9 @@ export interface ModelListQuery {
   readonly offset: number;
   readonly limit?: number;
   readonly outputModalities?: readonly string[];
-  readonly supportedParameter?: string;
+  readonly supportedParameters?: readonly string[];
   readonly minimumContextLength?: number;
-  readonly inputModality?: string;
+  readonly inputModalities?: readonly string[];
   readonly searchText?: string;
   readonly sortOrder?: 'newest' | 'context-high-to-low';
 }
@@ -40,7 +40,14 @@ export function parseModelListQuery(url: URL, compatible: boolean): ModelListQue
       )
         return undefined;
     } else if (key === 'input_modalities') {
-      if (!['text', 'image', 'audio', 'file'].includes(value)) return undefined;
+      if (value.length > 21) return undefined;
+      const selected = value.split(',');
+      if (
+        selected.length > 4 ||
+        new Set(selected).size !== selected.length ||
+        selected.some((item) => !['text', 'image', 'audio', 'file'].includes(item))
+      )
+        return undefined;
     } else if (key === 'q') {
       if (!value || value !== value.trim() || value.length > 512) return undefined;
       const characters = Array.from(value);
@@ -55,7 +62,14 @@ export function parseModelListQuery(url: URL, compatible: boolean): ModelListQue
     } else if (key === 'sort') {
       if (value !== 'newest' && value !== 'context-high-to-low') return undefined;
     } else if (key === 'supported_parameters') {
-      if (!/^[a-z][a-z0-9_]{0,127}$/u.test(value)) return undefined;
+      if (value.length > 64 * 128 + 63) return undefined;
+      const selected = value.split(',');
+      if (
+        selected.length > 64 ||
+        new Set(selected).size !== selected.length ||
+        selected.some((item) => !/^[a-z][a-z0-9_]{0,127}$/u.test(item))
+      )
+        return undefined;
     } else if (key === 'offset' || key === 'limit' || key === 'context') {
       if (!/^(?:0|[1-9][0-9]*)$/u.test(value) || !Number.isSafeInteger(Number(value)))
         return undefined;
@@ -77,9 +91,11 @@ export function parseModelListQuery(url: URL, compatible: boolean): ModelListQue
     ...(outputModality === null
       ? {}
       : { outputModalities: Object.freeze(outputModality.split(',')) }),
-    ...(supportedParameter === null ? {} : { supportedParameter }),
+    ...(supportedParameter === null
+      ? {}
+      : { supportedParameters: Object.freeze(supportedParameter.split(',')) }),
     ...(context === null ? {} : { minimumContextLength: Number(context) }),
-    ...(inputModality === null ? {} : { inputModality }),
+    ...(inputModality === null ? {} : { inputModalities: Object.freeze(inputModality.split(',')) }),
     ...(searchText === null ? {} : { searchText }),
     ...(sortOrder === 'newest' || sortOrder === 'context-high-to-low' ? { sortOrder } : {}),
   };
@@ -91,11 +107,12 @@ export function modelListContinuation(query: ModelListQuery, offset: number): st
   const params = new URLSearchParams({ offset: String(offset), limit: String(query.limit) });
   if (query.outputModalities !== undefined)
     params.set('output_modalities', query.outputModalities.join(','));
-  if (query.supportedParameter !== undefined)
-    params.set('supported_parameters', query.supportedParameter);
+  if (query.supportedParameters !== undefined)
+    params.set('supported_parameters', query.supportedParameters.join(','));
   if (query.minimumContextLength !== undefined)
     params.set('context', String(query.minimumContextLength));
-  if (query.inputModality !== undefined) params.set('input_modalities', query.inputModality);
+  if (query.inputModalities !== undefined)
+    params.set('input_modalities', query.inputModalities.join(','));
   if (query.searchText !== undefined) params.set('q', query.searchText);
   if (query.sortOrder !== undefined) params.set('sort', query.sortOrder);
   return `/api/v1/models?${params}`;
