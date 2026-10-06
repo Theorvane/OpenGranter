@@ -3,7 +3,12 @@ import { join } from 'node:path';
 import { StringDecoder } from 'node:string_decoder';
 
 export const OPENCODE_VERSION = '1.18.5';
-export function openCodeConfig(baseURL: string, readFixture = false, googleSignatures = false) {
+export function openCodeConfig(
+  baseURL: string,
+  readFixture = false,
+  googleSignatures = false,
+  images = false,
+) {
   // The explicit SDK metadata namespace preserves Google signatures without changing the gateway alias.
   return {
     $schema: 'https://opencode.ai/config.json',
@@ -19,7 +24,13 @@ export function openCodeConfig(baseURL: string, readFixture = false, googleSigna
           apiKey: '{env:OPENGRANTER_PROXY_TOKEN}',
           ...(googleSignatures ? { name: 'google' } : {}),
         },
-        models: { chat: { name: 'Conformance fixture', limit: { context: 32000, output: 1000 } } },
+        models: {
+          chat: {
+            name: 'Conformance fixture',
+            limit: { context: 32000, output: 1000 },
+            ...(images ? { modalities: { input: ['text', 'image'], output: ['text'] } } : {}),
+          },
+        },
       },
     },
     permission: readFixture

@@ -282,3 +282,127 @@ test('session function stream cancellation persists interruption without prefere
   assert.equal(f.records[0]?.outcome, 'failed');
   sessionPrivacy(f);
 });
+
+for (const kind of ['openai', 'anthropic', 'google'] as const) {
+  test(`${kind}: bounded advisory session headers are not native body preferences`, async () => {
+    for (const base of bases)
+      for (const header of ['', 'private client session', 'é'.repeat(256)]) {
+        const f = sessionFixture(kind);
+        const r = await f.handler(sessionRequest(f, base, {}, header));
+        assert.equal(r.status, 200);
+        await r.text();
+        assert.equal(f.sent.length, 1);
+        assert.equal(Object.hasOwn(f.sent[0] ?? {}, 'session_id'), false);
+        assert.equal(f.records[0]?.outcome, 'succeeded');
+        assert.equal(f.records[0]?.usage.promptTokens, 2);
+        assert.equal(f.records[0]?.usage.completionTokens, 1);
+        sessionPrivacy(f);
+      }
+    for (const base of bases)
+      for (const session_id of ['', 'private supplied session']) {
+        const f = sessionFixture(kind);
+        const r = await f.handler(sessionRequest(f, base, { session_id }, 'x'.repeat(257)));
+        assert.equal(r.status, 502);
+        assert.doesNotMatch(await r.text(), /private|session_id/u);
+        assert.equal(f.counts().secrets, 0);
+        assert.equal(f.sent.length, 0);
+        assert.equal(f.records.length, 0);
+        sessionPrivacy(f);
+      }
+  });
+  test(`${kind}: header-only calls retain denial and persistence gates`, async () => {
+    for (const base of bases)
+      for (const [gate, status] of [
+        ['auth', 401],
+        ['implicit', 403],
+        ['model', 403],
+        ['provider', 403],
+        ['limit', 429],
+        ['selection', 503],
+        ['audit', 503],
+        ['usage', 503],
+      ] as const) {
+        const f = sessionFixture(kind, { gate });
+        const r = await f.handler(sessionRequest(f, base, {}, 'private client session'));
+        assert.equal(r.status, status);
+        assert.doesNotMatch(await r.text(), /private|session_id/u);
+        assert.equal(f.counts().secrets, gate === 'audit' || gate === 'usage' ? 1 : 0);
+        assert.ok(f.sent.every((body) => !Object.hasOwn(body, 'session_id')));
+        sessionPrivacy(f);
+      }
+    for (const options of [{ transportFails: true }, { missingUsage: true }]) {
+      const f = sessionFixture(kind, {
+        ...options,
+        ...(!options.transportFails
+          ? {
+              reply: () =>
+                Response.json(
+                  kind === 'anthropic'
+                    ? {
+                        id: 'completion',
+                        stop_reason: 'end_turn',
+                        content: [{ type: 'text', text: 'reply' }],
+                      }
+                    : kind === 'google'
+                      ? {
+                          responseId: 'completion',
+                          candidates: [
+                            { content: { parts: [{ text: 'reply' }] }, finishReason: 'STOP' },
+                          ],
+                        }
+                      : {
+                          id: 'completion',
+                          created: 42,
+                          model: 'upstream-model',
+                          choices: [
+                            {
+                              index: 0,
+                              message: { role: 'assistant', content: 'reply' },
+                              finish_reason: 'stop',
+                            },
+                          ],
+                        },
+                ),
+            }
+          : {}),
+      });
+      const r = await f.handler(sessionRequest(f, '/api/v1', {}, 'private client session'));
+      assert.equal(r.status, options.transportFails ? 502 : 200);
+      await r.text();
+      assert.equal(f.records[0]?.outcome, options.transportFails ? 'failed' : 'succeeded');
+      assert.equal(f.records[0]?.usage.status, 'missing');
+      if (options.transportFails) assert.equal(f.records[0]?.possiblyBilled, true);
+      sessionPrivacy(f);
+    }
+  });
+  test(`${kind}: selected malformed session header still rejects before route lookup`, async () => {
+    for (const base of bases) {
+      const f = sessionFixture(kind);
+      const r = await f.handler(sessionRequest(f, base, {}, 'x'.repeat(257)));
+      assert.equal(r.status, 400);
+      await r.text();
+      assert.deepEqual(f.counts(), { routes: 0, secrets: 0 });
+      sessionPrivacy(f);
+    }
+  });
+}
+for (const kind of ['openai', 'anthropic', 'google', 'openrouter'] as const)
+  test(`${kind}: header source is captured before asynchronous route mutation`, async () => {
+    const f = sessionFixture(kind);
+    const request = sessionRequest(f, '/api/v1', {}, 'private supplied session');
+    const handler = createChatHandler({
+      ...f.ports,
+      resolveRoute: async (alias) => {
+        request.headers.set('x-session-id', 'private changed session');
+        return f.ports.resolveRoute(alias);
+      },
+    });
+    const response = await handler(request);
+    assert.equal(response.status, 200);
+    await response.text();
+    assert.equal(
+      f.sent[0]?.session_id,
+      kind === 'openrouter' ? 'private supplied session' : undefined,
+    );
+    sessionPrivacy(f);
+  });

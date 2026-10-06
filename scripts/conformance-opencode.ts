@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createNodeChatServer } from '../src/gateway/node-chat-server.ts';
 import { type OpenCodeFixtureMode, openCodeGatewayFixture } from './opencode-gateway-fixture.ts';
+import { OPENCODE_IMAGE_BASE64, openCodeImageCount } from './opencode-image-fixture.ts';
 import {
   type OpenCodeNativeProvider,
   openCodeNativeHasResult,
@@ -31,11 +32,14 @@ type Event = {
 };
 const executable = process.argv[2];
 if (!executable) throw new Error('Pass the installed OpenCode executable path');
+const imagesOnly = process.argv[3] === '--images-only';
+if (process.argv.length > (imagesOnly ? 4 : 3)) throw new Error('Unsupported conformance option');
 const probes: {
   routeKind: 'delegated' | 'managed';
   provider: OpenCodeNativeProvider;
   mode: OpenCodeFixtureMode;
   googleSignatures: boolean;
+  images: boolean;
 }[] = [];
 for (const routeKind of ['delegated', 'managed'] as const)
   for (const provider of routeKind === 'managed'
@@ -49,10 +53,31 @@ for (const routeKind of ['delegated', 'managed'] as const)
       'cancel',
       ...(routeKind === 'managed' ? (['followup-deny'] as const) : []),
     ] as const)
-      probes.push({ routeKind, provider, mode, googleSignatures: false });
+      probes.push({ routeKind, provider, mode, googleSignatures: false, images: false });
 for (const googleSignatures of [false, true])
-  probes.push({ routeKind: 'managed', provider: 'google', mode: 'signed-tools', googleSignatures });
-for (const { routeKind, provider, mode, googleSignatures } of probes)
+  probes.push({
+    routeKind: 'managed',
+    provider: 'google',
+    mode: 'signed-tools',
+    googleSignatures,
+    images: false,
+  });
+for (const routeKind of ['delegated', 'managed'] as const)
+  for (const provider of routeKind === 'managed'
+    ? (['openai', 'anthropic', 'google'] as const)
+    : (['openai'] as const))
+    for (const mode of [
+      'text',
+      'tools',
+      'model-deny',
+      'provider-deny',
+      'cancel',
+      'followup-deny',
+    ] as const)
+      probes.push({ routeKind, provider, mode, googleSignatures: false, images: true });
+for (const { routeKind, provider, mode, googleSignatures, images } of probes.filter(
+  (probe) => !imagesOnly || probe.images,
+))
   for (const base of ['/v1', '/api/v1']) {
     const toolMode = ['tools', 'followup-deny', 'signed-tools'].includes(mode);
     const signatureLoss = mode === 'signed-tools' && !googleSignatures;
@@ -73,9 +98,11 @@ for (const { routeKind, provider, mode, googleSignatures } of probes)
       await runBoundedProcess('git', ['init', '--quiet'], root, env);
       await writeFile(
         join(root, 'opencode.json'),
-        JSON.stringify(openCodeConfig(url, toolMode, googleSignatures)),
+        JSON.stringify(openCodeConfig(url, toolMode, googleSignatures, images)),
       );
       await writeFile(join(root, 'fixture.txt'), 'fixture-tool-result');
+      if (images)
+        await writeFile(join(root, 'fixture.png'), Buffer.from(OPENCODE_IMAGE_BASE64, 'base64'));
       const models = await runBoundedProcess(executable, ['models', 'opengranter'], root, env);
       assert.ok(models.includes('opengranter/chat'));
       const args = [
@@ -85,7 +112,9 @@ for (const { routeKind, provider, mode, googleSignatures } of probes)
         'json',
         '--model',
         'opengranter/chat',
+        ...(images ? ['--title', 'Image conformance fixture'] : []),
         'Read the fixture if available and reply',
+        ...(images ? ['--file', join(root, 'fixture.png')] : []),
       ];
       if (signatureLoss) {
         // OpenCode's outer session policy keeps retrying 5xx; bound this compatibility observation.
@@ -208,6 +237,15 @@ for (const { routeKind, provider, mode, googleSignatures } of probes)
           }
         }
       }
+      if (images) {
+        const imageCounts = fixture.sent.map((body) => openCodeImageCount(body, provider));
+        if (mode !== 'model-deny' && mode !== 'provider-deny')
+          assert.ok(imageCounts.some((count) => count === 1));
+        assert.ok(imageCounts.every((count) => count === 1));
+        for (const body of fixture.sent)
+          if (openCodeNativeHasResult(body, provider))
+            assert.equal(openCodeImageCount(body, provider), 1);
+      }
       assert.ok(fixture.usage.every((record) => record.routeKind === routeKind));
       if (routeKind === 'managed')
         assert.ok(fixture.usage.every((record) => record.actualInferenceProviderId === provider));
@@ -221,10 +259,12 @@ for (const { routeKind, provider, mode, googleSignatures } of probes)
         'fixture-partial',
         'fixture-signature+/==',
         'Read the fixture if available and reply',
+        'fixture.png',
+        OPENCODE_IMAGE_BASE64,
       ])
         assert.ok(!metadata.includes(value));
       console.log(
-        `PASS OpenCode ${OPENCODE_VERSION} ${routeKind}/${provider} ${base}: ${mode}${mode === 'signed-tools' ? (googleSignatures ? ' configured namespace' : ' default namespace') : ''}`,
+        `PASS OpenCode ${OPENCODE_VERSION} ${routeKind}/${provider} ${base}: ${mode}${images ? ' inline image' : ''}${mode === 'signed-tools' ? (googleSignatures ? ' configured namespace' : ' default namespace') : ''}`,
       );
     } finally {
       server.closeAllConnections();
