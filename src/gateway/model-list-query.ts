@@ -1,7 +1,7 @@
 export interface ModelListQuery {
   readonly offset: number;
   readonly limit?: number;
-  readonly outputModality?: string;
+  readonly outputModalities?: readonly string[];
   readonly supportedParameter?: string;
   readonly minimumContextLength?: number;
   readonly inputModality?: string;
@@ -31,7 +31,14 @@ export function parseModelListQuery(url: URL, compatible: boolean): ModelListQue
   for (const [key, value] of params) {
     if (params.getAll(key).length !== 1) return undefined;
     if (key === 'output_modalities') {
-      if (!outputModalities.includes(value)) return undefined;
+      const selected = value.split(',');
+      if (
+        selected.length > 9 ||
+        new Set(selected).size !== selected.length ||
+        selected.some((item) => !outputModalities.includes(item)) ||
+        (selected.includes('all') && selected.length !== 1)
+      )
+        return undefined;
     } else if (key === 'input_modalities') {
       if (!['text', 'image', 'audio', 'file'].includes(value)) return undefined;
     } else if (key === 'q') {
@@ -67,7 +74,9 @@ export function parseModelListQuery(url: URL, compatible: boolean): ModelListQue
   return {
     offset,
     ...(params.has('offset') || params.has('limit') ? { limit } : {}),
-    ...(outputModality === null ? {} : { outputModality }),
+    ...(outputModality === null
+      ? {}
+      : { outputModalities: Object.freeze(outputModality.split(',')) }),
     ...(supportedParameter === null ? {} : { supportedParameter }),
     ...(context === null ? {} : { minimumContextLength: Number(context) }),
     ...(inputModality === null ? {} : { inputModality }),
@@ -80,7 +89,8 @@ export function parseModelListQuery(url: URL, compatible: boolean): ModelListQue
 export function modelListContinuation(query: ModelListQuery, offset: number): string | null {
   if (query.limit === undefined) return null;
   const params = new URLSearchParams({ offset: String(offset), limit: String(query.limit) });
-  if (query.outputModality !== undefined) params.set('output_modalities', query.outputModality);
+  if (query.outputModalities !== undefined)
+    params.set('output_modalities', query.outputModalities.join(','));
   if (query.supportedParameter !== undefined)
     params.set('supported_parameters', query.supportedParameter);
   if (query.minimumContextLength !== undefined)
