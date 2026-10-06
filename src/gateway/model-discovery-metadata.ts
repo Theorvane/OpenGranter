@@ -2,6 +2,9 @@
 export interface OpenRouterModelMetadata {
   readonly canonical_slug: string;
   readonly name: string;
+  readonly description?: string;
+  readonly expiration_date?: string | null;
+  readonly knowledge_cutoff?: string | null;
   readonly context_length: number | null;
   readonly architecture: {
     readonly modality: string | null;
@@ -26,6 +29,9 @@ export interface OpenRouterModelMetadata {
 const fields = [
   'canonical_slug',
   'name',
+  'description',
+  'expiration_date',
+  'knowledge_cutoff',
   'context_length',
   'architecture',
   'pricing',
@@ -76,6 +82,13 @@ function object(value: unknown, allowed: readonly string[]): Record<string, unkn
 function text(value: unknown, max = 256): string {
   if (typeof value !== 'string' || value.trim().length === 0 || value.length > max) invalid();
   return value;
+}
+function descriptiveText(value: unknown, max: number): string {
+  if (typeof value !== 'string' || value.length > max) invalid();
+  return value;
+}
+function descriptiveDate(value: unknown): string | null {
+  return value === null ? null : descriptiveText(value, 256);
 }
 function strings(value: unknown): readonly string[] {
   if (!Array.isArray(value) || value.length > 64) invalid();
@@ -154,6 +167,15 @@ export function snapshotOpenRouterMetadata(value: unknown): OpenRouterModelMetad
     return Object.freeze({
       canonical_slug: text(source.canonical_slug),
       name: text(source.name),
+      ...(Object.hasOwn(source, 'description')
+        ? { description: descriptiveText(source.description, 8192) }
+        : {}),
+      ...(Object.hasOwn(source, 'expiration_date')
+        ? { expiration_date: descriptiveDate(source.expiration_date) }
+        : {}),
+      ...(Object.hasOwn(source, 'knowledge_cutoff')
+        ? { knowledge_cutoff: descriptiveDate(source.knowledge_cutoff) }
+        : {}),
       context_length: nullableTokens(source.context_length),
       architecture: Object.freeze({
         modality: modality === null ? null : text(modality, 128),
