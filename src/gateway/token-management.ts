@@ -39,6 +39,13 @@ export class InvalidTokenManagementInput extends Error {
   }
 }
 
+export class InvalidTokenManagementLifetime extends Error {
+  constructor() {
+    super('Invalid token management lifetime');
+    this.name = 'InvalidTokenManagementLifetime';
+  }
+}
+
 function validId(value: unknown): value is string {
   return typeof value === 'string' && value.length > 0 && value.length <= 256;
 }
@@ -177,7 +184,10 @@ export function createTokenManagementCoordinator(ports: {
           requestId,
           expiresAt,
         });
-      } catch {
+      } catch (error) {
+        if (error instanceof InvalidTokenManagementLifetime) {
+          throw new InvalidTokenManagementLifetime();
+        }
         throw new TokenManagementUnavailable();
       }
     },

@@ -218,3 +218,52 @@ test('credential mutation failures expose no underlying storage detail', async (
   );
   assert.deepEqual(revoke.calls, ['lookup:credential-1', 'audit', 'revoke:credential-1:admin-1']);
 });
+
+test('only a typed issuance lifetime rejection survives as a fresh safe error after audit', async () => {
+  const { InvalidTokenManagementLifetime } = await import('../src/gateway/token-management.ts');
+  for (const typed of [true, false]) {
+    const original = typed ? new InvalidTokenManagementLifetime() : new Error();
+    Object.assign(original, {
+      name: 'InvalidTokenManagementLifetime',
+      message: 'private-store-error',
+      cause: 'private-cause',
+      token: 'private-token',
+    });
+    const calls: string[] = [];
+    const coordinator = createTokenManagementCoordinator({
+      findOwner: async () => 'service-1',
+      revokeToken: async () => true,
+      writeAudit: async () => {
+        calls.push('audit');
+      },
+      issueToken: async () => {
+        calls.push('issue');
+        throw original;
+      },
+    });
+    await assert.rejects(
+      coordinator.issue({
+        actor,
+        requestId: 'lifetime',
+        principalId: 'service-1',
+        expiresAt: 10000,
+      }),
+      (error: unknown) => {
+        assert.ok(error instanceof Error);
+        assert.notEqual(error, original);
+        assert.equal(
+          error.name,
+          typed ? 'InvalidTokenManagementLifetime' : 'TokenManagementUnavailable',
+        );
+        assert.equal(
+          error.message,
+          typed ? 'Invalid token management lifetime' : 'Token management unavailable',
+        );
+        assert.equal(error.cause, undefined);
+        assert.deepEqual(Object.keys(error), ['name']);
+        return true;
+      },
+    );
+    assert.deepEqual(calls, ['audit', 'issue']);
+  }
+});

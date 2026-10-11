@@ -8,7 +8,10 @@ import {
 } from './client-errors.ts';
 
 /** Adapt an already-composed Fetch-style request boundary to a Node HTTP socket server. */
-export function createNodeRequestServer(handle: (request: Request) => Promise<Response>): Server {
+export function createNodeRequestServer(
+  handle: (request: Request) => Promise<Response>,
+  errorResponse?: () => Response,
+): Server {
   return createServer(async (incoming, outgoing) => {
     const cancellation = new AbortController();
     const abort = () => cancellation.abort();
@@ -57,11 +60,14 @@ export function createNodeRequestServer(handle: (request: Request) => Promise<Re
       if (outgoing.headersSent) {
         outgoing.destroy();
       } else {
-        outgoing.statusCode = 500;
-        outgoing.setHeader('content-type', 'application/json');
-        outgoing.end(
-          await createClientErrorResponse(500, 'internal_error', undefined, errorFormat).text(),
-        );
+        const response =
+          errorResponse?.() ??
+          createClientErrorResponse(500, 'internal_error', undefined, errorFormat);
+        outgoing.statusCode = response.status;
+        response.headers.forEach((value, name) => {
+          outgoing.setHeader(name, value);
+        });
+        outgoing.end(await response.text());
       }
     } finally {
       incoming.removeListener('aborted', abort);

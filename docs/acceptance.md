@@ -275,18 +275,18 @@ The PostgreSQL migration runner applies versions `001` through `008` in order, r
 - Normal, uppercase, parameterized, and whitespace-trimmed application/json requests remain accepted.
 - Authentication still precedes media validation; denial-audit failure retains audit_unavailable without exposing input.
 
-## SSO management foundation (SSO pending; internal lifetime caps implemented)
+## SSO management foundation (separate public factories implemented)
 
 - OIDC-authenticated human management callers still pass existing iam:Manage policy checks; authentication does not grant management authority. Service-account management authentication is excluded from the first slice.
 - New human-owner proxy tokens cannot exceed 30 days; new service-owner tokens cannot exceed 90 days. Expiry remains mandatory.
-- Administrator-pre-registered issuer/subject bindings and API-specific SSO JWT access tokens are confirmed. Binding reader scenarios are implemented under #486; JWT verification/public HTTP authentication remain pending. Internal lifetime caps are covered separately below.
+- Administrator-pre-registered issuer/subject bindings and API-specific SSO JWT access tokens are confirmed. Binding reader scenarios are implemented under #486; JWT verification is implemented under #488 and public HTTP authentication under #492. Internal lifetime caps are covered separately below.
 
 ## Internal proxy-token lifetime caps
 
 - For both persisted owner kinds, exact maximum future expiry succeeds and one millisecond beyond fails without credential or lifecycle writes; caller kind/cap fields cannot widen it.
 - Policy Deny and decision-audit failure stop before target-kind lookup. Missing/malformed/duplicate/unavailable owner data fails safely after authorized decision persistence.
 - Cap validation and credential creation use one issuance timestamp. Previously issued long-lived credentials remain revocable.
-- These scenarios concern the trusted internal service; the SSO binding reader is delivered under #486, while JWT verification and public management authentication remain pending.
+- These scenarios concern the trusted internal service; the SSO binding reader is delivered under #486, while JWT verification and public management HTTP are implemented separately under #488/#492.
 
 ## Token-management operation snapshots
 
@@ -1430,3 +1430,17 @@ Verified bound active humans can issue/revoke through persisted current IAM and 
 ## Reusable SSO human authentication cases (#490)
 
 Runtime-signed valid tokens resolve only to current exact pre-registered active human principals. Invalid token syntax/size/Unicode stops before verification/SQL; verifier rejection, binding absence and inactive/service state deny privately. Verifier throws/malformed identities and failed/malformed/ambiguous binding results expose fixed availability errors without claims or causes. Capture ports/getters once and preserve immutable reader parameters across awaits; next-call binding changes take effect. Authentication performs only binding SQL and no policy/mutation/audit/usage work. Existing gateway error imports and all SSO issue/revoke behavior remain compatible. See [plan](plans/490-sso-human-authentication.md) and [contract](../contracts/sso-human-authentication.md).
+
+## Public SSO proxy-token management HTTP (#492)
+
+POST /management/v1/proxy-tokens accepts exact {principalId, expiresAt} and returns 201 {credentialId, token}; POST /management/v1/proxy-tokens/revoke accepts exact {credentialId} and returns 200 {revoked}. Separate configured/injected Fetch and unbound Node factories authenticate an API-specific RFC 9068 Bearer against the current pre-registered active-human binding before bounded UTF-8 JSON/body/query validation. Derive actor IDs internally and reload current direct/role IAM afterward. No administrator bypass, caller actor/cap fields or authentication cache is added.
+
+All responses, including routing and Node fallback, use no-store and fixed safe errors. Authentication denial/failure must append anonymous management-auth-denied/management-auth-unavailable metadata to gateway_audit_events with only server ID, timestamp and issue/revoke operation; failure returns 503. Preserve current IAM/Deny, required decision audit and atomic credential lifecycle events. After Allow/audit, past/equal-now or over human30/service90-day expiry has a safe typed lifetime error mapped to 400; broken clock/owner/database remain 503. Unknown revoke denies; already-revoked tokens still require current owner IAM before revoked:false.
+
+No schema, proxy client API, provider/route, limits, usage or source-pin changes occur. Factories do not activate owned runtimes. Concurrent changes between reads are not revalidated. Request IDs only correlate; lost issuance responses can leave valid unseen tokens, so no automatic retries/deduplication are provided. Audited binding provisioning, deployment activation, key refresh/replay/introspection, full #116 and unresolved #7 remain open. See [plan](plans/492-sso-management-http.md) and [contract](../contracts/sso-management-http.md).
+
+- Given missing/rejected SSO and an unread malformed body, record one anonymous operation event and return 401 before body or current IAM; verification/binding failure records unavailable and returns 503. Required anonymous audit failure takes precedence. No token, claims/body or false identity is reflected.
+- Given valid SSO and forged actor/cap/request ID fields, invalid UTF-8, a body over 16 KiB or failed body stream, reject 400 without IAM/mutation. Server IDs replace caller correlation headers; invalid server IDs fail safely. Pre-dispatch cancellation prevents mutation.
+- Given a current allowed actor, exact human/service expiry caps succeed; one millisecond over, past or equal-now fail 400 after persisted Allow with no lifecycle mutation. Explicit/default Deny and audit failures retain precedence. Missing/malformed owner and broken issuance clock remain 503.
+- Given successful issuance/revocation, persist one atomic lifecycle event and return only selected success fields. A second revoke returns false after fresh IAM/audit; unknown owners and later Deny return 403. Failed credential/audit writes never claim success and preserve transaction rollback.
+- Given real signed tokens and migrated DB through Fetch/Node sockets, observe next-request binding/activity/kind and policy changes. Node pre-handler failures also return fixed 503/no-store, while proxy bridge defaults remain unchanged.

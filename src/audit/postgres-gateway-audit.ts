@@ -1,9 +1,11 @@
 import type { GatewayAuditEvent } from '../gateway/chat-handler.ts';
+import type { ManagementAuthenticationAuditEvent } from '../gateway/sso-management-http.ts';
 import type { DelegatedRouteAuditEvent } from '../routing/invoke-delegated-route.ts';
 import type { ManagedRouteAuditEvent } from '../routing/invoke-jev-managed-route.ts';
 
 export type GatewayAuditInput =
   | GatewayAuditEvent
+  | ManagementAuthenticationAuditEvent
   | ManagedRouteAuditEvent
   | DelegatedRouteAuditEvent;
 
@@ -137,6 +139,9 @@ function decision(value: unknown): RecordValue {
 
 function details(event: RecordValue): RecordValue {
   switch (event.kind) {
+    case 'management-auth-denied':
+    case 'management-auth-unavailable':
+      return { operation: oneOf(event.operation, ['issue', 'revoke'] as const) };
     case 'stream-interrupted':
       return {
         routeVersion: identifier(event.routeVersion),
@@ -283,7 +288,11 @@ export function projectGatewayAuditEvent(value: unknown, now: number) {
   const kind = identifier(event.kind);
   const requestId = identifier(event.requestId);
   const projectedDetails = details(event);
-  const anonymous = kind === 'auth-denied' || kind === 'auth-unavailable';
+  const anonymous =
+    kind === 'auth-denied' ||
+    kind === 'auth-unavailable' ||
+    kind === 'management-auth-denied' ||
+    kind === 'management-auth-unavailable';
   const principalId = anonymous ? null : identifier(event.principalId);
   const credentialId = anonymous ? null : credentialIdentifier(event.credentialId);
   const versions = anonymous ? null : policyVersions(event.policyVersions);

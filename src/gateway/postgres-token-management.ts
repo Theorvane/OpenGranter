@@ -4,7 +4,10 @@ import {
   createPostgresProxyCredentialStore,
 } from './postgres-proxy-credentials.ts';
 import { createProxyTokenService, InvalidProxyCredentialInput } from './proxy-tokens.ts';
-import { createTokenManagementCoordinator } from './token-management.ts';
+import {
+  createTokenManagementCoordinator,
+  InvalidTokenManagementLifetime,
+} from './token-management.ts';
 
 /** Internal composition: callers must authenticate actors and resolve their policies. */
 export function createPostgresTokenManagementCoordinator(ports: {
@@ -25,11 +28,11 @@ export function createPostgresTokenManagementCoordinator(ports: {
         !Number.isSafeInteger(maximum) ||
         maximum <= 0 ||
         !Number.isSafeInteger(createdAt) ||
-        createdAt < 0 ||
-        input.expiresAt <= createdAt ||
-        input.expiresAt - createdAt > maximum
+        createdAt < 0
       )
         throw new InvalidProxyCredentialInput();
+      if (input.expiresAt <= createdAt || input.expiresAt - createdAt > maximum)
+        throw new InvalidTokenManagementLifetime();
       return createProxyTokenService({ store, now: () => createdAt }).issue(input);
     },
     revokeToken: tokens.revoke,

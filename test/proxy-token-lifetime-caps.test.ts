@@ -9,6 +9,10 @@ import { createProxyTokenService } from '../src/gateway/proxy-tokens.ts';
 
 const day = 86_400_000;
 const unavailable = { name: 'TokenManagementUnavailable', message: 'Token management unavailable' };
+const invalidLifetime = {
+  name: 'InvalidTokenManagementLifetime',
+  message: 'Invalid token management lifetime',
+};
 const denied = { name: 'TokenManagementDenied', message: 'Token management denied' };
 const request = (principalId: string, expiresAt: number) => ({
   authenticatedActorId: 'admin',
@@ -62,7 +66,7 @@ for (const [owner, days] of [
       const expiresAt = f.now() + days * day;
       const issued = await f.service.issue(request(owner, expiresAt));
       assert.equal((await f.tokens.verifyCredential(issued.token))?.principalId, owner);
-      await assert.rejects(f.service.issue(request(owner, expiresAt + 1)), unavailable);
+      await assert.rejects(f.service.issue(request(owner, expiresAt + 1)), invalidLifetime);
       assert.deepEqual(await f.counts(), { credentials: 1, events: 1 });
       assert.deepEqual((await f.db.query('SELECT outcome FROM token_management_decisions')).rows, [
         { outcome: 'allowed' },
@@ -82,7 +86,7 @@ test('caller kind/cap fields cannot widen the persisted human-owner cap', async 
       principalKind: 'service',
       maxLifetimeMs: 90 * day,
     };
-    await assert.rejects(f.service.issue(input), unavailable);
+    await assert.rejects(f.service.issue(input), invalidLifetime);
     assert.deepEqual(await f.counts(), { credentials: 0, events: 0 });
   } finally {
     await f.db.close();
@@ -93,7 +97,7 @@ test('the next issuance observes a persisted owner-kind change', async () => {
   const f = await fixture();
   try {
     const input = request('human-owner', f.now() + 60 * day);
-    await assert.rejects(f.service.issue(input), unavailable);
+    await assert.rejects(f.service.issue(input), invalidLifetime);
     await f.db.exec(
       "UPDATE iam_principals SET kind = 'service' WHERE principal_id = 'human-owner'",
     );
@@ -239,3 +243,41 @@ test('existing long-lived credentials remain revocable', async () => {
     await f.db.close();
   }
 });
+
+for (const expiry of [0, 999, 1000]) {
+  test(`authorized expired issuance reports a lifetime error: ${expiry}`, async () => {
+    const f = await fixture();
+    try {
+      await assert.rejects(f.service.issue(request('human-owner', expiry)), invalidLifetime);
+      assert.deepEqual(await f.counts(), { credentials: 0, events: 0 });
+      assert.deepEqual((await f.db.query('SELECT outcome FROM token_management_decisions')).rows, [
+        { outcome: 'allowed' },
+      ]);
+    } finally {
+      await f.db.close();
+    }
+  });
+}
+for (const clock of [NaN, -1, Infinity, 1.5, Number.MAX_SAFE_INTEGER + 1, 'throw'] as const) {
+  test(`post-authorization broken issuance clock remains unavailable: ${clock}`, async () => {
+    const f = await fixture();
+    let calls = 0;
+    try {
+      const service = createPostgresTokenManagementService({
+        client: f.client,
+        now: () => {
+          if (++calls === 1) return 1000;
+          if (clock === 'throw') throw Error('private-clock');
+          return clock;
+        },
+      });
+      await assert.rejects(service.issue(request('human-owner', 0)), unavailable);
+      assert.deepEqual(await f.counts(), { credentials: 0, events: 0 });
+      assert.deepEqual((await f.db.query('SELECT outcome FROM token_management_decisions')).rows, [
+        { outcome: 'allowed' },
+      ]);
+    } finally {
+      await f.db.close();
+    }
+  });
+}
