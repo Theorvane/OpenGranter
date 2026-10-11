@@ -2,6 +2,7 @@
 export interface OpenRouterModelMetadata {
   readonly canonical_slug: string;
   readonly name: string;
+  readonly hugging_face_id?: string | null;
   readonly description?: string;
   readonly expiration_date?: string | null;
   readonly knowledge_cutoff?: string | null;
@@ -10,6 +11,8 @@ export interface OpenRouterModelMetadata {
     readonly modality: string | null;
     readonly input_modalities: readonly string[];
     readonly output_modalities: readonly string[];
+    readonly tokenizer?: string;
+    readonly instruct_type?: string | null;
   };
   readonly pricing: Readonly<Record<string, string>>;
   readonly top_provider: {
@@ -29,6 +32,7 @@ export interface OpenRouterModelMetadata {
 const fields = [
   'canonical_slug',
   'name',
+  'hugging_face_id',
   'description',
   'expiration_date',
   'knowledge_cutoff',
@@ -87,7 +91,7 @@ function descriptiveText(value: unknown, max: number): string {
   if (typeof value !== 'string' || value.length > max) invalid();
   return value;
 }
-function descriptiveDate(value: unknown): string | null {
+function nullableDescriptiveText(value: unknown): string | null {
   return value === null ? null : descriptiveText(value, 256);
 }
 function strings(value: unknown): readonly string[] {
@@ -145,6 +149,8 @@ export function snapshotOpenRouterMetadata(value: unknown): OpenRouterModelMetad
       'modality',
       'input_modalities',
       'output_modalities',
+      'tokenizer',
+      'instruct_type',
     ]);
     const top = object(source.top_provider, [
       'is_moderated',
@@ -167,20 +173,29 @@ export function snapshotOpenRouterMetadata(value: unknown): OpenRouterModelMetad
     return Object.freeze({
       canonical_slug: text(source.canonical_slug),
       name: text(source.name),
+      ...(Object.hasOwn(source, 'hugging_face_id')
+        ? { hugging_face_id: nullableDescriptiveText(source.hugging_face_id) }
+        : {}),
       ...(Object.hasOwn(source, 'description')
         ? { description: descriptiveText(source.description, 8192) }
         : {}),
       ...(Object.hasOwn(source, 'expiration_date')
-        ? { expiration_date: descriptiveDate(source.expiration_date) }
+        ? { expiration_date: nullableDescriptiveText(source.expiration_date) }
         : {}),
       ...(Object.hasOwn(source, 'knowledge_cutoff')
-        ? { knowledge_cutoff: descriptiveDate(source.knowledge_cutoff) }
+        ? { knowledge_cutoff: nullableDescriptiveText(source.knowledge_cutoff) }
         : {}),
       context_length: nullableTokens(source.context_length),
       architecture: Object.freeze({
         modality: modality === null ? null : text(modality, 128),
         input_modalities: strings(architecture.input_modalities),
         output_modalities: strings(architecture.output_modalities),
+        ...(Object.hasOwn(architecture, 'tokenizer')
+          ? { tokenizer: descriptiveText(architecture.tokenizer, 256) }
+          : {}),
+        ...(Object.hasOwn(architecture, 'instruct_type')
+          ? { instruct_type: nullableDescriptiveText(architecture.instruct_type) }
+          : {}),
       }),
       pricing: prices(source.pricing),
       top_provider: Object.freeze({
