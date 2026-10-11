@@ -1,4 +1,5 @@
-import { createPostgresSsoIdentityBindingReader } from '../identity/postgres-sso-identity-bindings.ts';
+import { createPostgresSsoHumanAuthenticator } from '../identity/postgres-sso-human-authentication.ts';
+
 import {
   createRfc9068SsoAccessTokenVerifier,
   InvalidSsoAccessTokenConfiguration,
@@ -7,6 +8,11 @@ import {
 } from '../identity/rfc9068-sso-access-tokens.ts';
 import type { CredentialSqlClient } from './postgres-proxy-credentials.ts';
 import { createPostgresTokenManagementService } from './postgres-token-management-service.ts';
+
+export {
+  SsoManagementAuthenticationUnavailable,
+  SsoManagementUnauthenticated,
+} from '../identity/postgres-sso-human-authentication.ts';
 
 interface SsoRequest {
   readonly accessToken: string;
@@ -23,18 +29,6 @@ export class InvalidSsoTokenManagementInput extends Error {
   constructor() {
     super('Invalid SSO token management input');
     this.name = 'InvalidSsoTokenManagementInput';
-  }
-}
-export class SsoManagementUnauthenticated extends Error {
-  constructor() {
-    super('SSO management unauthenticated');
-    this.name = 'SsoManagementUnauthenticated';
-  }
-}
-export class SsoManagementAuthenticationUnavailable extends Error {
-  constructor() {
-    super('SSO management authentication unavailable');
-    this.name = 'SsoManagementAuthenticationUnavailable';
   }
 }
 function request(input: unknown, fields: readonly string[]): Record<string, unknown> {
@@ -68,25 +62,8 @@ export function createPostgresSsoTokenManagementService(ports: {
   readonly revoke: (input: SsoRevokeRequest) => Promise<boolean>;
 } {
   const { client, now, verifyAccessToken } = ports;
-  const bindings = createPostgresSsoIdentityBindingReader(client);
+  const authenticate = createPostgresSsoHumanAuthenticator({ client, verifyAccessToken });
   const management = createPostgresTokenManagementService({ client, now });
-  async function authenticate(token: string): Promise<string> {
-    let verified: VerifiedSsoIdentity | undefined;
-    try {
-      verified = await verifyAccessToken(token);
-    } catch {
-      throw new SsoManagementAuthenticationUnavailable();
-    }
-    if (verified === undefined) throw new SsoManagementUnauthenticated();
-    let principalId: string | undefined;
-    try {
-      principalId = await bindings.resolveHumanPrincipal(verified);
-    } catch {
-      throw new SsoManagementAuthenticationUnavailable();
-    }
-    if (principalId === undefined) throw new SsoManagementUnauthenticated();
-    return principalId;
-  }
   return {
     async issue(input) {
       let accessToken: string;

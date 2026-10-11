@@ -1015,3 +1015,7 @@ Exact issuer/subject bindings resolve only to existing active human principals. 
 ## Internal SSO token management (#488)
 
 An internal service accepts an access token and captured issue/revoke operation fields instead of a nominated actor ID. A trusted injected verifier supplies verified issuer/subject, the current pre-registered active human binding derives the actor, and the existing token-management service reloads IAM policies and retains owner scoping, Deny, required decision audit, lifetime caps and atomic credential lifecycle writes. Forged caller identity/policy/owner fields have no authority. The configured factory verifies RFC 9068 access tokens with registered RS256 public keys, a one-hour lifetime/age and 60-second clock tolerance, requiring signed auth_time under trusted issuer end-user semantics. It returns only a verified identity and enables no public login route. HTTP authentication/audit and audited provisioning remain separate. See [plan](plans/488-sso-token-management.md) and [contract](../contracts/sso-token-management.md).
+
+## Reusable SSO human authentication (#490)
+
+The confirmed JWT-to-active-human boundary is reusable independently of a management operation. It returns only the current bound human principal ID and adds no IAM rights, policy reads or mutations. Existing issue/revoke reuses it with unchanged validation, audit and lifetime behavior. Public management HTTP remains a separate contract. See [plan](plans/490-sso-human-authentication.md) and [contract](../contracts/sso-human-authentication.md).
