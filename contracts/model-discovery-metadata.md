@@ -25,3 +25,7 @@ Complete snapshots may carry own optional hugging_face_id and architecture.instr
 ## Reasoning and alias extension (#480)
 
 Complete snapshots may carry own optional reasoning and alias_target objects under the [capability metadata contract](model-capability-metadata.md). Preserve validated open effort/null/array shapes and exact target display fields; capture/freeze before asynchronous handoffs. These objects do not apply request defaults, resolve aliases, establish live provider support or alter routing/accounting authority. Local bounds, safe complete-catalog validation and current IAM/audit gates remain explicit.
+
+## Informational benchmarks extension (#482)
+
+Complete snapshots may carry own optional benchmarks with own required design_arena rows and optional artificial_analysis indices under the [benchmark contract](model-benchmark-metadata.md). Preserve finite scores/rates, nullable indices, signed safe ranks, exact bounded labels, empty arrays, duplicate rows and order. Capture/freeze nested values once without reading inherited optional fields or executing supplied iterators. Local field/array limits can still exceed the unchanged aggregate 64 KiB storage cap. These values neither expand queries nor establish freshness, ranking, live capability, routing or billing authority; current complete-catalog, model/provider IAM and required private audit gates remain shared.

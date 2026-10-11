@@ -14,6 +14,20 @@ export interface OpenRouterModelMetadata {
     readonly supported_efforts?: readonly (string | null)[] | null;
     readonly supports_max_tokens?: boolean;
   };
+  readonly benchmarks?: {
+    readonly artificial_analysis?: {
+      readonly intelligence_index: number | null;
+      readonly coding_index: number | null;
+      readonly agentic_index: number | null;
+    };
+    readonly design_arena: readonly {
+      readonly arena: string;
+      readonly category: string;
+      readonly elo: number;
+      readonly win_rate: number;
+      readonly rank: number;
+    }[];
+  };
   readonly context_length: number | null;
   readonly architecture: {
     readonly modality: string | null;
@@ -46,6 +60,7 @@ const fields = [
   'knowledge_cutoff',
   'alias_target',
   'reasoning',
+  'benchmarks',
   'context_length',
   'architecture',
   'pricing',
@@ -153,6 +168,63 @@ function aliasTargetMetadata(value: unknown): NonNullable<OpenRouterModelMetadat
     name: descriptiveText(source.name, 256),
   });
 }
+function requiredObject(value: unknown, keys: readonly string[]): Record<string, unknown> {
+  const source = object(value, keys);
+  if (keys.some((key) => !Object.hasOwn(source, key))) invalid();
+  return source;
+}
+function score(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) invalid();
+  return value;
+}
+function nullableScore(value: unknown): number | null {
+  return value === null ? null : score(value);
+}
+function rank(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value)) invalid();
+  return value;
+}
+function benchmarkMetadata(value: unknown): NonNullable<OpenRouterModelMetadata['benchmarks']> {
+  const source = object(value, ['artificial_analysis', 'design_arena']);
+  if (!Object.hasOwn(source, 'design_arena')) invalid();
+  const entries = source.design_arena;
+  if (!Array.isArray(entries)) invalid();
+  const count = entries.length;
+  if (!Number.isSafeInteger(count) || count < 0 || count > 64) invalid();
+  const rows: NonNullable<OpenRouterModelMetadata['benchmarks']>['design_arena'][number][] = [];
+  for (let index = 0; index < count; index++) {
+    if (!Object.hasOwn(entries, index)) invalid();
+    const entry = requiredObject(entries[index], ['arena', 'category', 'elo', 'win_rate', 'rank']);
+    rows.push(
+      Object.freeze({
+        arena: descriptiveText(entry.arena, 256),
+        category: descriptiveText(entry.category, 256),
+        elo: score(entry.elo),
+        win_rate: score(entry.win_rate),
+        rank: rank(entry.rank),
+      }),
+    );
+  }
+  const analysis = Object.hasOwn(source, 'artificial_analysis')
+    ? requiredObject(source.artificial_analysis, [
+        'intelligence_index',
+        'coding_index',
+        'agentic_index',
+      ])
+    : undefined;
+  return Object.freeze({
+    ...(analysis === undefined
+      ? {}
+      : {
+          artificial_analysis: Object.freeze({
+            intelligence_index: nullableScore(analysis.intelligence_index),
+            coding_index: nullableScore(analysis.coding_index),
+            agentic_index: nullableScore(analysis.agentic_index),
+          }),
+        }),
+    design_arena: Object.freeze(rows),
+  });
+}
 function strings(value: unknown): readonly string[] {
   if (!Array.isArray(value) || value.length > 64) invalid();
   const result: string[] = [];
@@ -250,6 +322,9 @@ export function snapshotOpenRouterMetadata(value: unknown): OpenRouterModelMetad
         : {}),
       ...(Object.hasOwn(source, 'alias_target')
         ? { alias_target: aliasTargetMetadata(source.alias_target) }
+        : {}),
+      ...(Object.hasOwn(source, 'benchmarks')
+        ? { benchmarks: benchmarkMetadata(source.benchmarks) }
         : {}),
       architecture: Object.freeze({
         modality: modality === null ? null : text(modality, 128),
