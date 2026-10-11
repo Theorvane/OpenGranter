@@ -61,7 +61,12 @@ async function readBody(request: Request): Promise<unknown> {
     request.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() !== 'application/json'
   )
     return undefined;
-  const reader = request.body?.getReader();
+  let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+  try {
+    reader = request.body?.getReader();
+  } catch {
+    return undefined;
+  }
   if (!reader) return undefined;
   const cancel = () => {
     void reader.cancel().catch(() => undefined);

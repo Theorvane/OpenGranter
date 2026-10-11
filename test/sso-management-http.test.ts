@@ -649,3 +649,20 @@ test('injected Node adapter failures return no-store 503 without invoking authen
     await new Promise<void>((resolve, reject) => server.close((e) => (e ? reject(e) : resolve())));
   }
 });
+
+for (const state of ['consumed', 'locked'] as const) {
+  test(`authenticated ${state} Fetch body is invalid input, not a management outage`, async () => {
+    const f = fixture();
+    const req = request('issue');
+    const reader = state === 'locked' ? req.body?.getReader() : undefined;
+    if (state === 'consumed') await req.text();
+    try {
+      await checkError(await f.handler(req), 400, 'invalid_request');
+      assert.deepEqual(f.calls, ['authenticate']);
+      assert.deepEqual(f.inputs, []);
+      assert.deepEqual(f.events, []);
+    } finally {
+      reader?.releaseLock();
+    }
+  });
+}
