@@ -1,0 +1,15 @@
+# Informational reasoning and alias metadata
+
+Issue #480. Plan: [480-model-capability-metadata](../docs/plans/480-model-capability-metadata.md).
+
+Complete administrator snapshots may carry own optional non-null reasoning and alias_target objects. Reasoning requires own mandatory:boolean; optional own default_enabled/supports_max_tokens are booleans, default_effort is string|null, and supported_efforts is array|null of string|null. Preserve omission, null, exact open strings, empty arrays, duplicate members and order, within 64 efforts and 256 UTF-16 units per string. Alias target requires own slug/name strings of 0..256 units, preserving exact blank/Unicode text. These local bounds, own required fields and unknown-key rejection are stricter than the structural source.
+
+Supplied undefined/null root objects, unknown/incomplete shapes, wrong scalar types, boolean null, array holes (including inherited fillers) and excessive bounds invalidate the entire snapshot with fixed errors. Capture the array length and own indexed values once without invoking a supplied iterator. Capture each value once and freeze nested objects/arrays before asynchronous work; inherited optional fields are omitted and getter failures remain private.
+
+GET /api/v1/models exposes these objects only after complete-catalog validation, enabled model AND final-provider IAM, existing query/order/paging and required private audit. Hidden/disabled/out-of-page malformed data still invalidates the catalog. Fresh page policy applies independently. Basic/legacy rows stay unchanged; no operational metadata/errors contain these objects, and listing calls no inference/routing/secret/limit/usage ports.
+
+No request defaults, mandatory reasoning behavior, native capabilities, token estimates, alias redirects, provider permissions, route selection or billed-cost authority are inferred. A target may be an external/catalog slug rather than a local alias; it is never resolved or fetched. Existing filters/search/sort do not inspect these new objects. Administrator publication/refresh, capability aggregation and automatic default/redirect policy remain unresolved.
+
+PostgreSQL listing and route resolution share the validator and capture frozen nested values while retaining approved route contents. Existing nullable JSONB object/64 KiB cap stays with no migration/backfill. Old validators require removal of newly supported keys when downgrading.
+
+Installed OpenRouter 1.4.18 retains aliasTarget and camelCase reasoning members, including nullable/future effort strings; OpenAI 7.23.0 preserves raw extra JSON fields despite narrower Model types. Public/storage/SDK conformance covers success, Deny, required failures, mutation and bounds. All three schema pins remain unchanged. Broader fields, publication/refresh, full #116 and unresolved #7 remain open. Sources: [official schema](https://openrouter.ai/openapi.json), [models reference](https://openrouter.ai/docs/api/api-reference/models/list-all-models-and-their-properties).
