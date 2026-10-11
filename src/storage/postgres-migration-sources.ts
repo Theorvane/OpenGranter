@@ -15,6 +15,7 @@ const migrationFiles = [
   '008_token_management_decisions.sql',
   '009_openrouter_provider_mappings.sql',
   '010_model_discovery_metadata.sql',
+  '011_sso_identity_bindings.sql',
 ] as const;
 
 export class MigrationSourceUnavailable extends Error {
