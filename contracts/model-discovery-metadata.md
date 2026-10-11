@@ -21,3 +21,7 @@ Complete snapshots may additionally carry own optional description strings (0..8
 ## Identifier extension (#478)
 
 Complete snapshots may carry own optional hugging_face_id and architecture.instruct_type strings or null, and architecture.tokenizer strings. Preserve exact text, future enum values, empty strings, null and omission within 256 UTF-16 units; tokenizer null, wrong scalar types, own undefined and excessive lengths fail safely. The [identifier contract](model-identifier-metadata.md) specifies public/storage/SDK capture and limits. No fetching, tokenization, prompt formatting, query expansion or routing/accounting authority follows from these fields.
+
+## Reasoning and alias extension (#480)
+
+Complete snapshots may carry own optional reasoning and alias_target objects under the [capability metadata contract](model-capability-metadata.md). Preserve validated open effort/null/array shapes and exact target display fields; capture/freeze before asynchronous handoffs. These objects do not apply request defaults, resolve aliases, establish live provider support or alter routing/accounting authority. Local bounds, safe complete-catalog validation and current IAM/audit gates remain explicit.

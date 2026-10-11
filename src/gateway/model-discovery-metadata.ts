@@ -6,6 +6,14 @@ export interface OpenRouterModelMetadata {
   readonly description?: string;
   readonly expiration_date?: string | null;
   readonly knowledge_cutoff?: string | null;
+  readonly alias_target?: { readonly slug: string; readonly name: string };
+  readonly reasoning?: {
+    readonly mandatory: boolean;
+    readonly default_enabled?: boolean;
+    readonly default_effort?: string | null;
+    readonly supported_efforts?: readonly (string | null)[] | null;
+    readonly supports_max_tokens?: boolean;
+  };
   readonly context_length: number | null;
   readonly architecture: {
     readonly modality: string | null;
@@ -36,6 +44,8 @@ const fields = [
   'description',
   'expiration_date',
   'knowledge_cutoff',
+  'alias_target',
+  'reasoning',
   'context_length',
   'architecture',
   'pricing',
@@ -93,6 +103,55 @@ function descriptiveText(value: unknown, max: number): string {
 }
 function nullableDescriptiveText(value: unknown): string | null {
   return value === null ? null : descriptiveText(value, 256);
+}
+function flag(value: unknown): boolean {
+  if (typeof value !== 'boolean') invalid();
+  return value;
+}
+function effortList(value: unknown): readonly (string | null)[] | null {
+  if (value === null) return null;
+  if (!Array.isArray(value)) invalid();
+  const count = value.length;
+  if (!Number.isSafeInteger(count) || count < 0 || count > 64) invalid();
+  const result: (string | null)[] = [];
+  for (let index = 0; index < count; index++) {
+    if (!Object.hasOwn(value, index)) invalid();
+    result.push(nullableDescriptiveText(value[index]));
+  }
+  return Object.freeze(result);
+}
+function reasoningMetadata(value: unknown): NonNullable<OpenRouterModelMetadata['reasoning']> {
+  const source = object(value, [
+    'mandatory',
+    'default_enabled',
+    'default_effort',
+    'supported_efforts',
+    'supports_max_tokens',
+  ]);
+  if (!Object.hasOwn(source, 'mandatory')) invalid();
+  return Object.freeze({
+    mandatory: flag(source.mandatory),
+    ...(Object.hasOwn(source, 'default_enabled')
+      ? { default_enabled: flag(source.default_enabled) }
+      : {}),
+    ...(Object.hasOwn(source, 'default_effort')
+      ? { default_effort: nullableDescriptiveText(source.default_effort) }
+      : {}),
+    ...(Object.hasOwn(source, 'supported_efforts')
+      ? { supported_efforts: effortList(source.supported_efforts) }
+      : {}),
+    ...(Object.hasOwn(source, 'supports_max_tokens')
+      ? { supports_max_tokens: flag(source.supports_max_tokens) }
+      : {}),
+  });
+}
+function aliasTargetMetadata(value: unknown): NonNullable<OpenRouterModelMetadata['alias_target']> {
+  const source = object(value, ['slug', 'name']);
+  if (!Object.hasOwn(source, 'slug') || !Object.hasOwn(source, 'name')) invalid();
+  return Object.freeze({
+    slug: descriptiveText(source.slug, 256),
+    name: descriptiveText(source.name, 256),
+  });
 }
 function strings(value: unknown): readonly string[] {
   if (!Array.isArray(value) || value.length > 64) invalid();
@@ -186,6 +245,12 @@ export function snapshotOpenRouterMetadata(value: unknown): OpenRouterModelMetad
         ? { knowledge_cutoff: nullableDescriptiveText(source.knowledge_cutoff) }
         : {}),
       context_length: nullableTokens(source.context_length),
+      ...(Object.hasOwn(source, 'reasoning')
+        ? { reasoning: reasoningMetadata(source.reasoning) }
+        : {}),
+      ...(Object.hasOwn(source, 'alias_target')
+        ? { alias_target: aliasTargetMetadata(source.alias_target) }
+        : {}),
       architecture: Object.freeze({
         modality: modality === null ? null : text(modality, 128),
         input_modalities: strings(architecture.input_modalities),
