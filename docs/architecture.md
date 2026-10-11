@@ -116,7 +116,7 @@ Fail closed when authentication, policy, route bounds, secrets, or required audi
 ## Decisions still needed
 
 1. Supported OpenRouter request options and first API capability set across all four adapters.
-2. OIDC identity binding and management authentication profile. Human-only first management authentication is confirmed but pending implementation; internal owner-specific lifetime caps are implemented separately.
+2. Public OIDC management HTTP routes/errors/authentication audit and administrator provisioning. Exact pre-registered active-human binding, the internal RFC 9068 verifier/composition and owner-specific lifetime caps are implemented; issuer auth_time semantics remain a deployment trust prerequisite.
 3. Operational configuration, secret delivery, migration coordination, and process startup for the PostgreSQL driver and secret stores in AWS and on-premises deployments.
 4. Whether monthly limits warn or block, and how concurrent calls reserve capacity.
 5. Content-audit default, configuration scope, retention, reader permissions, and tamper-resistant export.
@@ -1222,3 +1222,9 @@ HTTP projection and PostgreSQL list/route validation reuse this snapshot before 
 ## Pre-registered SSO identity bindings (#486)
 
 Migration011 adds C-collated exact issuer/subject keys, a composite primary key and a restricting FK to existing IAM principals; multiple bindings may name one principal. The bundled TypeScript reader captures own bounded well-formed opaque strings and freezes projected parameters before one joined binding/principal query. Return only an active human ID; missing/inactive/service state yields no identity, and malformed/ambiguous/mismatched/dependency failures expose fixed errors without claims or causes. No cache, normalization, email fallback, automatic account creation, JWT/key fetching or public authentication is introduced. State changed after this read is not revalidated; later verification and current policy/audit boundaries remain necessary. See [plan](plans/486-sso-identity-bindings.md) and [contract](../contracts/sso-identity-bindings.md).
+
+## Internal SSO token-management composition (#488)
+
+Project own access-token/request/target/expiry fields once before asynchronous work. The trusted access-token verification port precedes binding SQL; only a verified exact current active-human mapping derives the internal authenticatedActorId. Reuse current-policy token management without copying IAM or mutation logic. Verification rejection or missing/non-human binding yields fixed unauthenticated errors before management; malformed verifier claims and verifier/binding failures expose safe authentication availability errors. Failed auth creates no management decision with an unverified actor. Existing decision/lifecycle events carry only approved management metadata, without raw access token or issuer/subject claims.
+
+No authentication cache or public route is introduced. Binding and policy reads are separate and later changes are not transactionally revalidated. The configured factory wires a real local-key RFC 9068 verifier with immutable administrator issuer/audience/RS256 keys, mandatory bounded claims, one-hour lifetime/age, 60-second skew and required auth_time. Its end-user meaning depends on trusted issuer semantics. Configuration/key changes require a rebuilt verifier; no network JWKS lookup, replay/introspection or public authentication audit is added. All migrations and OpenRouter pins remain unchanged. See [plan](plans/488-sso-token-management.md) and [contract](../contracts/sso-token-management.md).
