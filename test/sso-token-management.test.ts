@@ -495,7 +495,7 @@ test('configured composition preserves exact human/service proxy-token lifetime 
       assert.ok((await f.service.issue({ ...issue, principalId, expiresAt })).token);
       await assert.rejects(
         f.service.issue({ ...issue, principalId, expiresAt: expiresAt + 1 }),
-        managementUnavailable,
+        fixed('InvalidTokenManagementLifetime', 'Invalid token management lifetime'),
       );
     }
     assert.deepEqual(await f.counts(), { credentials: 2, decisions: 4, lifecycle: 2 });

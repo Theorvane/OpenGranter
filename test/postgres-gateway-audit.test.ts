@@ -285,3 +285,49 @@ test('stream interruption projection strips content and rejects malformed outcom
     });
   }
 });
+
+for (const kind of ['management-auth-denied', 'management-auth-unavailable']) {
+  for (const operation of ['issue', 'revoke']) {
+    test(`${kind} projects anonymous operation metadata only: ${operation}`, async () => {
+      const { db, store } = await fixture();
+      try {
+        await store.append({
+          kind,
+          operation,
+          requestId: 'management-request',
+          ...attribution,
+          token: 'private-token',
+          issuer: 'private-issuer',
+          subject: 'private-subject',
+          body: { secret: 'private-body' },
+        } as unknown as GatewayAuditInput);
+        assert.deepEqual(
+          (
+            await db.query(
+              'SELECT kind, request_id, principal_id, credential_id, policy_versions, details, occurred_at_ms::text AS timestamp FROM gateway_audit_events',
+            )
+          ).rows,
+          [
+            {
+              kind,
+              request_id: 'management-request',
+              principal_id: null,
+              credential_id: null,
+              policy_versions: null,
+              details: { operation },
+              timestamp: '1000',
+            },
+          ],
+        );
+      } finally {
+        await db.close();
+      }
+    });
+  }
+  test(`${kind} rejects an absent/invalid operation before SQL`, async () => {
+    for (const operation of [undefined, 'delete', null, 1])
+      assert.throws(() => projectGatewayAuditEvent({ kind, requestId: 'req', operation }, 1000), {
+        name: 'InvalidGatewayAuditEvent',
+      });
+  });
+}

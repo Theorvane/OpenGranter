@@ -8,7 +8,7 @@
 - Each operation reads one consistent current actor/role/policy snapshot, with no actor cache. Extra caller fields (including actor state, statements, policy versions, or nominated owner) cannot affect evaluation or audit.
 - Missing/inactive actors are denied with empty evaluated policy versions. Active unattached actors default deny; direct and inherited statements apply together, with explicit Deny precedence.
 - Successful snapshot resolution feeds the existing `iam:Manage` owner-scoped coordinator. Required allow/deny decision persistence precedes credential mutation. Credential lifecycle events record successful completion atomically with mutation.
-- Invalid inputs throw `InvalidTokenManagementInput` before SQL. Valid policy denials throw `TokenManagementDenied` after required decision persistence. Snapshot/read/write failures throw fixed `TokenManagementUnavailable` with no driver cause or secrets and no credential mutation.
+- Invalid inputs throw `InvalidTokenManagementInput` before SQL. Valid policy denials throw `TokenManagementDenied` after required decision persistence. After Allow and required audit, a guarded issuance can throw fixed InvalidTokenManagementLifetime for past/equal-now or over-cap expiry; it contains no underlying cause or detail. Snapshot/read/write failures throw fixed `TokenManagementUnavailable` with no driver cause or secrets and no credential mutation.
 - A failed actor snapshot read cannot produce a reliable policy decision and therefore writes no allowed/denied decision. A decision-write failure also prevents target-kind lookup and mutation. Missing/malformed/unavailable target kind and invalid post-authorization lifetime fail safely without credential/lifecycle writes; an allowed decision is not an issuance-success event.
 - Policies changed between operations affect the next read. Changes concurrent with an operation after its snapshot read are not revalidated; no transaction spans snapshot, decision, and mutation.
 
@@ -16,7 +16,7 @@
 
 `test/postgres-token-management-service.test.ts` covers persisted role grants, direct Deny precedence, next-operation policy/attachment/active-state changes, missing actors, ignored forged fields, immutable owner scoping, malformed/unavailable snapshots, required decision-store failure, and invalid inputs before SQL.
 
-The [internal SSO composition](sso-token-management.md) derives this trusted actor ID from an injected verified access-token identity and a current pre-registered human binding. It retains these authorization/mutation controls and has a configured RFC 9068 verifier; public HTTP authentication remains pending.
+The [internal SSO composition](sso-token-management.md) derives this trusted actor ID from an injected verified access-token identity and a current pre-registered human binding. It retains these authorization/mutation controls and has a configured RFC 9068 verifier; the separate [public HTTP boundary](sso-management-http.md) authenticates before body parsing and reuses this service.
 
 ## Operation snapshots
 
