@@ -17,9 +17,9 @@
 
 - Planned integration boundaries: verified SSO identity to internal human principal, then existing fresh actor policy resolution and issue/revoke coordinator. Issuance must resolve the owner kind before enforcing its lifetime cap.
 - OIDC was selected over SAML. Human-only management was selected over introducing service management credentials in the first slice. The contributor selected separate human/service caps over a common cap or no maximum.
-- Pending Q4: administrator-pre-registered issuer/subject identity binding versus first-login account creation.
-- Pending Q5: API-specific SSO JWT access-token verification versus browser login and server sessions.
-- Subsequent authentication profile, HTTP contracts, lifecycle edge cases, and final shared understanding must be completed before coding that new boundary. Do not treat recommendations for Q4/Q5 as requirements.
+- Q4 confirmed by the contributor on 2026-10-11: administrator-pre-registered issuer/subject bindings; no automatic first-login account creation.
+- Q5 confirmed by the contributor on 2026-10-11: API-specific SSO JWT access tokens. The exact verification profile remains pending.
+- Subsequent authentication profile, HTTP contracts, lifecycle edge cases, and final shared understanding must be completed before coding that new boundary. The confirmed Q4/Q5 choices are recorded in [plan486](486-sso-identity-bindings.md); do not infer the remaining token/HTTP profile.
 - See [PRD](../PRD.md), [architecture](../architecture.md), [acceptance](../acceptance.md), and [planning contract](../../contracts/sso-management-foundation.md).
 
 ## TDD plan
@@ -38,4 +38,4 @@
 
 - Documentation-only change; no production behavior or tests changed.
 - python3 scripts/check.py passed planning documents, links, contracts, and fixture secret scanning; git diff --check passed.
-- CLAUDE.md remains a symbolic link to AGENTS.md. The pending decisions are explicitly recorded rather than implemented.
+- CLAUDE.md remains a symbolic link to AGENTS.md. The remaining profile decisions are explicitly recorded rather than implemented; Q4/Q5 were subsequently confirmed under #486.

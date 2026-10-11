@@ -279,14 +279,14 @@ The PostgreSQL migration runner applies versions `001` through `008` in order, r
 
 - OIDC-authenticated human management callers still pass existing iam:Manage policy checks; authentication does not grant management authority. Service-account management authentication is excluded from the first slice.
 - New human-owner proxy tokens cannot exceed 30 days; new service-owner tokens cannot exceed 90 days. Expiry remains mandatory.
-- Identity binding and management authentication scenarios await the remaining planning answers. SSO scenarios remain pending implementation; internal lifetime cap scenarios are covered separately below.
+- Administrator-pre-registered issuer/subject bindings and API-specific SSO JWT access tokens are confirmed. Binding reader scenarios are implemented under #486; JWT verification/public HTTP authentication remain pending. Internal lifetime caps are covered separately below.
 
 ## Internal proxy-token lifetime caps
 
 - For both persisted owner kinds, exact maximum future expiry succeeds and one millisecond beyond fails without credential or lifecycle writes; caller kind/cap fields cannot widen it.
 - Policy Deny and decision-audit failure stop before target-kind lookup. Missing/malformed/duplicate/unavailable owner data fails safely after authorized decision persistence.
 - Cap validation and credential creation use one issuance timestamp. Previously issued long-lived credentials remain revocable.
-- These scenarios concern the trusted internal service; SSO identity binding and public management authentication remain pending.
+- These scenarios concern the trusted internal service; the SSO binding reader is delivered under #486, while JWT verification and public management authentication remain pending.
 
 ## Token-management operation snapshots
 
@@ -1418,3 +1418,7 @@ Root/nested/row/index getters and array length are captured once; inherited opti
 Public and actual OpenRouter1.4.18/OpenAI7.23.0 sockets preserve finite signed/fractional/extreme discounts/conditions, exact decimal spelling, all override fields, empty/duplicate rows, blank/future/duplicate day labels, omission and SDK field mappings. Verify 64-row/day, 128-unit price and 256-UTF-16 day boundaries; reject supplied empty day arrays, null/undefined/nonfinite/malformed/unknown fields, holes and inherited required base prices privately, including disabled/denied catalog entries. Authentication precedes catalog; model/provider/implicit Deny, fresh page policy, required failures, private events/errors and basic/legacy/query/order behavior remain unchanged.
 
 Root/price/condition/row/day/index getters and array lengths are read once; inherited optional getters stay unread, custom iterators never execute, inherited hole fillers reject, and audit mutation cannot alter output. Non-enumerable own required prices remain captured rather than omitted. PostgreSQL list/route snapshots remain deeply frozen, retain approved routes and fixed failures. Migrated JSONB preserves spelling/duplicates and no-backfill behavior; oversized aggregate snapshots reject without replacing the previous row. See [plan](plans/484-model-pricing-adjustments.md) and [contract](../contracts/model-pricing-adjustments.md).
+
+## Pre-registered SSO identity binding cases (#486)
+
+Verify migrated uniqueness/FK/restricted deletion, exact issuer/subject case/Unicode/whitespace matching, cross-issuer separation and multiple bindings for one principal without automatic creation. Current missing/inactive/service identities yield no human; next-call mapping/kind/active changes take effect. Public reader tests cover own field/getter capture, source mutation across SQL awaits, frozen parameterization, ignored forged caller state, malformed/duplicate/mismatched results and fixed claim-free errors before SQL for invalid input. No JWT verification, policy grant, audit append or HTTP management flow is certified. See [plan](plans/486-sso-identity-bindings.md) and [contract](../contracts/sso-identity-bindings.md).

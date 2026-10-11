@@ -80,3 +80,6 @@ Optional retention of LLM prompts and responses linked to audit events.
 
 **Usage ledger**:
 Per-attempt records of token usage and cost attribution, linked to the client request they served.
+
+**SSO identity binding**:
+An administrator-approved association between a company SSO issuer and subject identity and an OpenGranter principal.
