@@ -83,3 +83,7 @@ Per-attempt records of token usage and cost attribution, linked to the client re
 
 **SSO identity binding**:
 An administrator-approved association between a company SSO issuer and subject identity and an OpenGranter principal.
+
+**SSO management access token**:
+A company SSO token intended to identify a human caller of the OpenGranter management API before policy evaluation.
+_Avoid_: Proxy API token

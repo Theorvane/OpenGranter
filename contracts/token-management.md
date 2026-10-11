@@ -16,6 +16,8 @@
 
 `test/postgres-token-management-service.test.ts` covers persisted role grants, direct Deny precedence, next-operation policy/attachment/active-state changes, missing actors, ignored forged fields, immutable owner scoping, malformed/unavailable snapshots, required decision-store failure, and invalid inputs before SQL.
 
+The [internal SSO composition](sso-token-management.md) derives this trusted actor ID from an injected verified access-token identity and a current pre-registered human binding. It retains these authorization/mutation controls and has a configured RFC 9068 verifier; public HTTP authentication remains pending.
+
 ## Operation snapshots
 
 Capture validated service request fields before actor resolution. The coordinator captures operation fields and projects immutable actor/policy context before owner lookup or audit; decision events and evaluated policy versions are frozen. Caller updates during asynchronous work cannot change this operation's target, expiry, credential, or attribution. Subsequent calls inspect current caller values and reload persisted policies. See [snapshot contract](token-management-snapshots.md).
