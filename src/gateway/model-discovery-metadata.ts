@@ -36,7 +36,7 @@ export interface OpenRouterModelMetadata {
     readonly tokenizer?: string;
     readonly instruct_type?: string | null;
   };
-  readonly pricing: Readonly<Record<string, string>>;
+  readonly pricing: OpenRouterModelPricing;
   readonly top_provider: {
     readonly is_moderated: boolean;
     readonly context_length?: number | null;
@@ -87,6 +87,31 @@ const priceFields = [
   'internal_reasoning',
   'web_search',
 ] as const;
+const overridePriceFields = [
+  'prompt',
+  'completion',
+  'audio',
+  'input_audio_cache',
+  'input_cache_read',
+  'input_cache_write',
+  'input_cache_write_1h',
+] as const;
+export type OpenRouterPricingOverride = Readonly<
+  Partial<Record<(typeof overridePriceFields)[number], string>> & {
+    min_prompt_tokens?: number;
+    utc_start?: number;
+    utc_end?: number;
+    utc_days?: readonly string[];
+  }
+>;
+export type OpenRouterModelPricing = Readonly<
+  Partial<Record<(typeof priceFields)[number], string>> & {
+    prompt: string;
+    completion: string;
+    discount?: number;
+    overrides?: readonly OpenRouterPricingOverride[];
+  }
+>;
 const defaultFields = [
   'temperature',
   'top_p',
@@ -173,12 +198,12 @@ function requiredObject(value: unknown, keys: readonly string[]): Record<string,
   if (keys.some((key) => !Object.hasOwn(source, key))) invalid();
   return source;
 }
-function score(value: unknown): number {
+function finiteNumber(value: unknown): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) invalid();
   return value;
 }
 function nullableScore(value: unknown): number | null {
-  return value === null ? null : score(value);
+  return value === null ? null : finiteNumber(value);
 }
 function rank(value: unknown): number {
   if (typeof value !== 'number' || !Number.isSafeInteger(value)) invalid();
@@ -199,8 +224,8 @@ function benchmarkMetadata(value: unknown): NonNullable<OpenRouterModelMetadata[
       Object.freeze({
         arena: descriptiveText(entry.arena, 256),
         category: descriptiveText(entry.category, 256),
-        elo: score(entry.elo),
-        win_rate: score(entry.win_rate),
+        elo: finiteNumber(entry.elo),
+        win_rate: finiteNumber(entry.win_rate),
         rank: rank(entry.rank),
       }),
     );
@@ -240,20 +265,77 @@ function tokens(value: unknown): number {
 function nullableTokens(value: unknown): number | null {
   return value === null ? null : tokens(value);
 }
-function prices(value: unknown): Readonly<Record<string, string>> {
-  const source = object(value, priceFields);
-  if (!Object.hasOwn(source, 'prompt') || !Object.hasOwn(source, 'completion')) invalid();
-  const result: Record<string, string> = {};
-  for (const key of Object.keys(source)) {
-    const price = text(source[key], 128);
-    if (
-      !/^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$/u.test(price) ||
-      !Number.isFinite(Number(price))
-    )
-      invalid();
-    result[key] = price;
+function decimalPrice(value: unknown): string {
+  const price = text(value, 128);
+  if (
+    !/^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$/u.test(price) ||
+    !Number.isFinite(Number(price))
+  )
+    invalid();
+  return price;
+}
+function utcDays(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) invalid();
+  const count = value.length;
+  if (!Number.isSafeInteger(count) || count < 1 || count > 64) invalid();
+  const result: string[] = [];
+  for (let index = 0; index < count; index++) {
+    if (!Object.hasOwn(value, index)) invalid();
+    result.push(descriptiveText(value[index], 256));
   }
   return Object.freeze(result);
+}
+function pricingOverride(value: unknown): OpenRouterPricingOverride {
+  const source = object(value, [
+    ...overridePriceFields,
+    'min_prompt_tokens',
+    'utc_start',
+    'utc_end',
+    'utc_days',
+  ]);
+  const prices: Partial<Record<(typeof overridePriceFields)[number], string>> = {};
+  for (const key of overridePriceFields)
+    if (Object.hasOwn(source, key)) prices[key] = decimalPrice(source[key]);
+  return Object.freeze({
+    ...prices,
+    ...(Object.hasOwn(source, 'min_prompt_tokens')
+      ? { min_prompt_tokens: finiteNumber(source.min_prompt_tokens) }
+      : {}),
+    ...(Object.hasOwn(source, 'utc_start') ? { utc_start: finiteNumber(source.utc_start) } : {}),
+    ...(Object.hasOwn(source, 'utc_end') ? { utc_end: finiteNumber(source.utc_end) } : {}),
+    ...(Object.hasOwn(source, 'utc_days') ? { utc_days: utcDays(source.utc_days) } : {}),
+  });
+}
+function pricingOverrides(value: unknown): readonly OpenRouterPricingOverride[] {
+  if (!Array.isArray(value)) invalid();
+  const count = value.length;
+  if (!Number.isSafeInteger(count) || count < 0 || count > 64) invalid();
+  const result: OpenRouterPricingOverride[] = [];
+  for (let index = 0; index < count; index++) {
+    if (!Object.hasOwn(value, index)) invalid();
+    result.push(pricingOverride(value[index]));
+  }
+  return Object.freeze(result);
+}
+function prices(value: unknown): OpenRouterModelPricing {
+  const source = object(value, [...priceFields, 'discount', 'overrides']);
+  if (!Object.hasOwn(source, 'prompt') || !Object.hasOwn(source, 'completion')) invalid();
+  const result: { prompt: string; completion: string } & Partial<
+    Record<(typeof priceFields)[number], string>
+  > = {
+    prompt: decimalPrice(source.prompt),
+    completion: decimalPrice(source.completion),
+  };
+  for (const key of priceFields)
+    if (key !== 'prompt' && key !== 'completion' && Object.hasOwn(source, key))
+      result[key] = decimalPrice(source[key]);
+  return Object.freeze({
+    ...result,
+    ...(Object.hasOwn(source, 'discount') ? { discount: finiteNumber(source.discount) } : {}),
+    ...(Object.hasOwn(source, 'overrides')
+      ? { overrides: pricingOverrides(source.overrides) }
+      : {}),
+  });
 }
 function defaults(value: unknown): Readonly<Record<string, number | null>> | null {
   if (value === null) return null;
