@@ -1,0 +1,7 @@
+# Owned PostgreSQL SSO management runtime
+
+Trusted deployment code may call `startPostgresSsoManagementGateway` with an explicit host, port, PostgreSQL connection factory, server clock, request ID factory, exact SSO issuer/API audience and registered RS256 public keys. The runtime loads and applies the bundled migrations, creates the existing configured SSO management Node server on that connection, binds the requested address and returns its actual address plus an idempotent asynchronous close operation.
+
+The management server exposes only the existing `POST /management/v1/proxy-tokens` and `/management/v1/proxy-tokens/revoke` contract. It authenticates SSO before reading the body, resolves the current active-human binding, then applies current owner-scoped IAM, mandatory audit and atomic credential lifecycle behavior. Anonymous failed authentication is audited; all HTTP outcomes retain fixed no-store responses. No inference route or provider secret is reachable through this server.
+
+Invalid host/port fails before connection opening. Source, connection, migration, configuration and bind failures expose only the safe startup error and close an opened connection; a successfully started runtime closes its server before its connection and shares one close promise. The runtime is opt-in and separate from existing inference runtimes. It does not provision bindings, rotate or refresh signing keys, mount itself on a proxy listener, retry issuance or deduplicate a lost secret response.
