@@ -7,6 +7,7 @@ import type { BundledPostgresServerPorts } from './bundled-postgres-server.ts';
 import { createNodePostgresDirectChatServer } from './node-postgres-chat-server.ts';
 import { createNodePostgresDualRouteChatServer } from './node-postgres-dual-chat-server.ts';
 import type { PostgresDualRouteChatHandlerPorts } from './postgres-dual-chat-handler.ts';
+import { createPostgresRfc9068SsoManagementServer } from './postgres-sso-management-http.ts';
 
 interface GatewayRuntimeInfrastructure {
   readonly host: string;
@@ -22,6 +23,10 @@ export interface PostgresGatewayRuntimePorts
 
 export interface PostgresDualRouteGatewayRuntimePorts
   extends Omit<PostgresDualRouteChatHandlerPorts, 'client'>,
+    GatewayRuntimeInfrastructure {}
+
+export interface PostgresSsoManagementRuntimePorts
+  extends Omit<Parameters<typeof createPostgresRfc9068SsoManagementServer>[0], 'client'>,
     GatewayRuntimeInfrastructure {}
 
 export class InvalidGatewayRuntimeInput extends Error {
@@ -154,5 +159,19 @@ export async function startPostgresDualRouteGateway(ports: PostgresDualRouteGate
   } = ports;
   return startOwnedPostgresGateway(ports, (client) =>
     createNodePostgresDualRouteChatServer({ ...gatewayPorts, client }),
+  );
+}
+
+/** Explicitly own a migrated, separate SSO proxy-token management listener. */
+export async function startPostgresSsoManagementGateway(ports: PostgresSsoManagementRuntimePorts) {
+  const {
+    openConnection: _open,
+    host: _host,
+    port: _port,
+    migrationDirectory: _directory,
+    ...managementPorts
+  } = ports;
+  return startOwnedPostgresGateway(ports, async (client) =>
+    createPostgresRfc9068SsoManagementServer({ ...managementPorts, client }),
   );
 }
