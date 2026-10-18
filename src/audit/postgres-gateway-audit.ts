@@ -156,6 +156,7 @@ function details(event: RecordValue): RecordValue {
     case 'route-unavailable':
       return { modelAlias: identifier(event.modelAlias) };
     case 'models-listed':
+    case 'models-counted':
       return { count: count(event.count) };
     case 'usage-read':
       return {

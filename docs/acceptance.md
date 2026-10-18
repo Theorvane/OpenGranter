@@ -71,6 +71,10 @@
 - Administrative changes record actor and nonsecret identifiers of the prior and new configuration.
 - Disabled content auditing stores no request or response body. When enabled, only authorized auditors can read retained bodies.
 
+## Compatible IAM model counts (#506)
+
+Verify raw/installed OpenRouter SDK default text, text/image union, explicit all, absent/unknown output metadata and zero counts on managed/delegated catalogs. Count aliases once across candidates, with complete model/provider/implicit Deny, fresh state per request and required no-store output. Unsupported paths/methods remain 404; malformed/duplicate/unsupported queries reject after authentication before catalog/body access. Hidden malformed catalog data and required catalog/audit failure suppress all counts privately. Audit mutation cannot change a captured total. models-counted retains only visible count/attribution in migrated PostgreSQL and principal-scoped history; invalid negative/nonfinite/unsafe values and storage faults fail safely. Existing listing defaults, queries, source pins and no inference/secret/limit/usage behavior remain covered. See [plan](plans/506-model-count.md) and [contract](../contracts/model-count.md).
+
 ## Harness connection
 
 The PostgreSQL migration runner applies versions `001` through `008` in order, records their checksums, and skips unchanged history on a second run. It refuses edited, missing, duplicate, skipped, and out-of-order versions before applying new SQL. A failing migration leaves neither its schema changes nor its history row, and driver errors expose no SQL text. Deployment connection provisioning and concurrent migrator coordination remain separate release work.

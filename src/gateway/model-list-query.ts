@@ -155,6 +155,13 @@ export function parseModelListQuery(url: URL, compatible: boolean): ModelListQue
   };
 }
 
+export function parseModelCountQuery(url: URL): ModelListQuery | undefined {
+  for (const key of url.searchParams.keys()) if (key !== 'output_modalities') return undefined;
+  const query = parseModelListQuery(url, true);
+  if (!query) return undefined;
+  return { ...query, outputModalities: query.outputModalities ?? Object.freeze(['text']) };
+}
+
 /** Continuations retain only validated filters and a fixed relative destination. */
 export function modelListContinuation(query: ModelListQuery, offset: number): string | null {
   if (query.limit === undefined) return null;
