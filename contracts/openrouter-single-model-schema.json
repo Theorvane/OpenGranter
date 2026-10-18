@@ -1,0 +1,151 @@
+{
+  "version": 1,
+  "source": "https://openrouter.ai/openapi.json",
+  "retrievedAt": "2026-10-18",
+  "sourceSha256": "e14bcc1e02453bff8807cc79d03170ce7d229a9d0836e253ff49b764b8aa811d",
+  "projectionSha256": "de4f732c32b47607cd875b2dd5d4eb000365b232a9d855ee5ae5f91106689d8c",
+  "projection": {
+    "openapi": "3.1.0",
+    "documentVersion": "1.0.0",
+    "path": "/model/{author}/{slug}",
+    "method": "get",
+    "operationId": "getModel",
+    "parameters": {
+      "author": {
+        "in": "path",
+        "name": "author",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "slug": {
+        "in": "path",
+        "name": "slug",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "status": "200",
+    "mediaType": "application/json",
+    "schema": {
+      "$ref": "#/components/schemas/ModelResponse"
+    },
+    "definitions": {
+      "ModelResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Model"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Model": {
+        "properties": {
+          "alias_target": {
+            "$ref": "#/components/schemas/ModelAliasTarget"
+          },
+          "architecture": {
+            "$ref": "#/components/schemas/ModelArchitecture"
+          },
+          "benchmarks": {
+            "$ref": "#/components/schemas/ModelBenchmarks"
+          },
+          "canonical_slug": {
+            "type": "string"
+          },
+          "context_length": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "created": {
+            "type": "integer"
+          },
+          "default_parameters": {
+            "$ref": "#/components/schemas/DefaultParameters"
+          },
+          "description": {
+            "type": "string"
+          },
+          "expiration_date": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "hugging_face_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "knowledge_cutoff": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "links": {
+            "$ref": "#/components/schemas/ModelLinks"
+          },
+          "name": {
+            "type": "string"
+          },
+          "per_request_limits": {
+            "$ref": "#/components/schemas/PerRequestLimits"
+          },
+          "pricing": {
+            "$ref": "#/components/schemas/PublicPricing"
+          },
+          "reasoning": {
+            "$ref": "#/components/schemas/ModelReasoning"
+          },
+          "supported_parameters": {
+            "items": {
+              "$ref": "#/components/schemas/Parameter"
+            },
+            "type": "array"
+          },
+          "supported_voices": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "top_provider": {
+            "$ref": "#/components/schemas/TopProviderInfo"
+          }
+        },
+        "required": [
+          "id",
+          "canonical_slug",
+          "name",
+          "created",
+          "pricing",
+          "context_length",
+          "architecture",
+          "top_provider",
+          "per_request_limits",
+          "supported_parameters",
+          "default_parameters",
+          "supported_voices",
+          "links"
+        ],
+        "type": "object"
+      }
+    }
+  }
+}
