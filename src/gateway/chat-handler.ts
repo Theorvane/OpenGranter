@@ -100,6 +100,7 @@ import {
   snapshotOpenRouterMetadata,
 } from './model-discovery-metadata.ts';
 import { modelListContinuation, parseModelListQuery } from './model-list-query.ts';
+import { createModelPriceComparator } from './model-price-order.ts';
 import { chatContentText, validatePromptCacheHistory } from './prompt-cache-parts.ts';
 import {
   type ReasoningConfiguration,
@@ -1043,7 +1044,13 @@ export function createChatHandler<T>(
             (metadata.get(right)?.context_length ?? -1) -
             (metadata.get(left)?.context_length ?? -1),
         );
-      else if (query.sortOrder !== undefined) {
+      else if (
+        query.sortOrder === 'pricing-low-to-high' ||
+        query.sortOrder === 'pricing-high-to-low'
+      ) {
+        const compare = createModelPriceComparator(query.sortOrder);
+        visible.sort((left, right) => compare(metadata.get(left), metadata.get(right)));
+      } else if (query.sortOrder !== undefined) {
         const sort = query.sortOrder;
         visible.sort((left, right) =>
           compareModelBenchmarks(sort, metadata.get(left), metadata.get(right)),

@@ -3,7 +3,8 @@ export type BenchmarkSort =
   | 'coding-high-to-low'
   | 'agentic-high-to-low'
   | 'design-arena-elo-high-to-low';
-type ModelListSort = 'newest' | 'context-high-to-low' | BenchmarkSort;
+export type PriceSort = 'pricing-low-to-high' | 'pricing-high-to-low';
+type ModelListSort = 'newest' | 'context-high-to-low' | BenchmarkSort | PriceSort;
 const sortOrders: readonly ModelListSort[] = [
   'newest',
   'context-high-to-low',
@@ -11,6 +12,8 @@ const sortOrders: readonly ModelListSort[] = [
   'coding-high-to-low',
   'agentic-high-to-low',
   'design-arena-elo-high-to-low',
+  'pricing-low-to-high',
+  'pricing-high-to-low',
 ];
 function isSortOrder(value: string | null): value is ModelListSort {
   return sortOrders.some((sort) => sort === value);

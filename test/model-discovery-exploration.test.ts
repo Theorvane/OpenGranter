@@ -145,7 +145,7 @@ const invalid = [
   '?sort=NEWEST',
   '?sort=%20newest',
   '?sort=newest%20',
-  '?sort=pricing-low-to-high',
+  '?sort=latency-low-to-high',
   '?sort=newest&sort=newest',
   '?sort=future-sort',
   '?q=',
