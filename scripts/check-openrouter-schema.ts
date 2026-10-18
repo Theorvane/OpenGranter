@@ -1,5 +1,9 @@
 import { readFile } from 'node:fs/promises';
 import {
+  compareOfficialModelCountSchema,
+  validateModelCountSchemaPin,
+} from './openrouter-model-count-schema.ts';
+import {
   compareOfficialModelQuerySchema,
   validateModelQuerySchemaPin,
 } from './openrouter-model-query-schema.ts';
@@ -34,11 +38,19 @@ try {
     ),
   );
   validateModelResponseSchemaPin(responsePin);
+  const countPin: unknown = JSON.parse(
+    await readFile(
+      new URL('../contracts/openrouter-model-count-schema.json', import.meta.url),
+      'utf8',
+    ),
+  );
+  validateModelCountSchemaPin(countPin);
   const source = args[0] === '--live' ? await fetchOfficialSchema() : undefined;
   const chatMatches = source === undefined || compareOfficialSchema(source, pin);
   const modelsMatch = source === undefined || compareOfficialModelQuerySchema(source, modelPin);
   const responseMatches =
     source === undefined || compareOfficialModelResponseSchema(source, responsePin);
+  const countMatches = source === undefined || compareOfficialModelCountSchema(source, countPin);
   if (!chatMatches) {
     process.stderr.write(
       'FAIL selected OpenRouter request schema drift; review the pin and contracts\n',
@@ -73,6 +85,18 @@ try {
       args[0] === '--live'
         ? 'PASS selected OpenRouter model-response schema unchanged\n'
         : 'PASS pinned OpenRouter model-response schema integrity\n',
+    );
+  }
+  if (!countMatches) {
+    process.stderr.write(
+      'FAIL selected OpenRouter model-count schema drift; review the pin and contracts\n',
+    );
+    process.exitCode = 1;
+  } else {
+    process.stdout.write(
+      args[0] === '--live'
+        ? 'PASS selected OpenRouter model-count schema unchanged\n'
+        : 'PASS pinned OpenRouter model-count schema integrity\n',
     );
   }
 } catch {
