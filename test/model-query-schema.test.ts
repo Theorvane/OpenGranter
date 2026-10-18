@@ -16,13 +16,19 @@ const pin = JSON.parse(
   ),
 );
 const shapes: Record<string, Record<string, unknown>> = {
-  offset: { default: 0, minimum: 0, type: ['integer', 'null'] },
+  offset: { default: 0, minimum: 0, nullable: false, type: ['integer', 'null'] },
   limit: { default: 500, maximum: 1000, minimum: 1, type: 'integer' },
   output_modalities: { type: 'string' },
   supported_parameters: { type: 'string' },
   context: { minimum: 1, type: 'integer' },
   input_modalities: { type: 'string' },
   q: { type: 'string' },
+  min_intelligence_index: { minimum: 0, type: ['number', 'null'] },
+  max_intelligence_index: { minimum: 0, type: ['number', 'null'] },
+  min_coding_index: { minimum: 0, type: ['number', 'null'] },
+  max_coding_index: { minimum: 0, type: ['number', 'null'] },
+  min_agentic_index: { minimum: 0, type: ['number', 'null'] },
+  max_agentic_index: { minimum: 0, type: ['number', 'null'] },
   sort: {
     type: 'string',
     enum: [
@@ -101,7 +107,7 @@ test('model-query pin reflects independent official inline shapes without prose 
       ]),
     ),
   });
-  assert.equal(pin.version, 2);
+  assert.equal(pin.version, 3);
   assert.deepEqual(validateModelQuerySchemaPin(pin).projection, p);
   assert.equal(compareOfficialModelQuerySchema(source(), pin), true);
 });
@@ -110,6 +116,7 @@ const changes: [string, string, string, unknown][] = [
   ['nullable offset', 'offset', 'type', 'integer'],
   ['offset minimum', 'offset', 'minimum', 1],
   ['offset default', 'offset', 'default', 1],
+  ['offset nullable marker', 'offset', 'nullable', true],
   ['limit type', 'limit', 'type', 'number'],
   ['limit minimum', 'limit', 'minimum', 0],
   ['limit maximum', 'limit', 'maximum', 2000],
@@ -131,6 +138,13 @@ const changes: [string, string, string, unknown][] = [
   ['sort enum', 'sort', 'enum', ['newest']],
   ['sort extension', 'sort', 'x-speakeasy-unknown-values', 'deny'],
 ];
+for (const index of ['intelligence', 'coding', 'agentic'])
+  for (const side of ['min', 'max']) {
+    const field = `${side}_${index}_index`;
+    changes.push([`${field} lower bound`, field, 'minimum', 1]);
+    changes.push([`${field} nullability`, field, 'type', 'number']);
+    changes.push([`${field} default`, field, 'default', 0]);
+  }
 for (const [name, field, key, value] of changes)
   test(`selected ${name} detects model-query structural drift`, () => {
     const data = source();
@@ -153,6 +167,21 @@ test('explicit optional required removal remains a structural change', () => {
   const data = source();
   Reflect.deleteProperty(parameter(data), 'required');
   assert.equal(compareOfficialModelQuerySchema(data, pin), false);
+});
+test('removing the fresh offset nullable marker is structural drift', () => {
+  const data = source();
+  Reflect.deleteProperty(parameter(data, 'offset').schema, 'nullable');
+  assert.equal(compareOfficialModelQuerySchema(data, pin), false);
+});
+test('removing v3 additions reconstructs the exact v2 projection digest', () => {
+  const previous = structuredClone(pin.projection);
+  for (const index of ['intelligence', 'coding', 'agentic'])
+    for (const side of ['min', 'max']) delete previous.parameters[`${side}_${index}_index`];
+  delete previous.parameters.offset.schema.nullable;
+  assert.equal(
+    createHash('sha256').update(canonicalSchema(previous)).digest('hex'),
+    'f1a927b999855356c0507a31a3236deea64a6a7f3e1ca77b433cb5bf89e542d9',
+  );
 });
 for (const part of ['openapi', 'version', 'operationId'] as const)
   test(`model-query ${part} identity changes detect drift`, () => {
@@ -259,6 +288,7 @@ test('model-query pin rejects invalid envelope provenance/digests/version withou
   for (const patch of [
     { version: 0 },
     { version: 1 },
+    { version: 2 },
     { source: 'https://example.invalid/private' },
     { retrievedAt: '2026-02-30' },
     { sourceSha256: 'private source' },
@@ -328,8 +358,11 @@ test('model-query vendor extension objects keep annotation-named literal data st
   );
 });
 
-test('discovery query version2 removal reproduces the reviewed version1 projection digest', () => {
+test('removing v3 and v2 additions reproduces the reviewed version1 projection digest', () => {
   const p = structuredClone(pin.projection);
+  for (const index of ['intelligence', 'coding', 'agentic'])
+    for (const side of ['min', 'max']) delete p.parameters[`${side}_${index}_index`];
+  delete p.parameters.offset.schema.nullable;
   for (const name of ['input_modalities', 'q', 'sort']) delete p.parameters[name];
   assert.equal(
     createHash('sha256').update(canonicalSchema(p)).digest('hex'),

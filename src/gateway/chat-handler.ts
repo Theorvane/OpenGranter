@@ -1014,6 +1014,16 @@ export function createChatHandler<T>(
       const visible = authorized.filter((model) => {
         const published = metadata.get(model);
         return (
+          (query.benchmarkRanges === undefined ||
+            query.benchmarkRanges.every((range) => {
+              const score = published?.benchmarks?.artificial_analysis?.[range.index];
+              return (
+                score !== undefined &&
+                score !== null &&
+                (range.minimum === undefined || score >= range.minimum) &&
+                (range.maximum === undefined || score <= range.maximum)
+              );
+            })) &&
           (query.inputModalities === undefined ||
             query.inputModalities.every(
               (modality) => published?.architecture.input_modalities.includes(modality) === true,

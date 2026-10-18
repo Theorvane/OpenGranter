@@ -1040,6 +1040,10 @@ GET /api/v1/models supports descending intelligence, coding and agentic Artifici
 
 GET /api/v1/models accepts pricing-low-to-high and pricing-high-to-low by the exact equally weighted prompt/completion base-price mean. Known zero remains known, missing metadata is last in both directions and equal sums preserve catalog order. Retain original decimal strings and all existing query/IAM/paging/private-audit gates. Discounts, conditional overrides, optional charges, actual request token mix, price fetching and billed-cost calculation are outside this ordering. Existing sorts, legacy queries, storage and source pins retain their behavior. See [plan](plans/500-model-price-sort.md) and [contract](../contracts/model-price-order.md).
 
+## Benchmark discovery ranges (#502)
+
+Compatible discovery accepts inclusive min/max intelligence, coding and agentic Artificial Analysis indices together with existing filters/sorts. Unknown/null scores cannot match selected bounds. Numeric score semantics and bounded decimal/scientific input apply; reversed/invalid pairs reject before catalog access after authentication. Full model/final-provider IAM, fresh page policy and private audit remain required. No score fetching, provider ranking or capability guarantee is added. See [plan](plans/502-model-benchmark-ranges.md) and [contract](../contracts/model-benchmark-ranges.md).
+
 ## Root-relative model details links (#504)
 
 Compatible rich model discovery and persisted metadata accept safe root-relative links.details values in addition to existing credential-free absolute HTTPS links. Preserve original text and shared model/provider IAM, full-catalog validation and required private audit. Do not fetch/follow links or infer that the referenced endpoint exists. See [plan](plans/504-relative-model-links.md) and [contract](../contracts/model-details-links.md).
