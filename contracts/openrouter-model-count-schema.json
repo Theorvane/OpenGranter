@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "source": "https://openrouter.ai/openapi.json",
+  "retrievedAt": "2026-10-18",
+  "sourceSha256": "e14bcc1e02453bff8807cc79d03170ce7d229a9d0836e253ff49b764b8aa811d",
+  "projectionSha256": "12ebf1d530d80407d91f9b7cf42a8de8e4a5c9fe5095657c0415c758bc5aec38",
+  "projection": {
+    "openapi": "3.1.0",
+    "documentVersion": "1.0.0",
+    "path": "/models/count",
+    "method": "get",
+    "operationId": "listModelsCount",
+    "parameters": {
+      "output_modalities": {
+        "in": "query",
+        "name": "output_modalities",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "status": "200",
+    "mediaType": "application/json",
+    "schema": {
+      "$ref": "#/components/schemas/ModelsCountResponse"
+    },
+    "definitions": {
+      "ModelsCountResponse": {
+        "properties": {
+          "data": {
+            "properties": {
+              "count": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "count"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      }
+    }
+  }
+}

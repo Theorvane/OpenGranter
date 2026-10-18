@@ -83,6 +83,10 @@ The scenarios in [acceptance.md](acceptance.md) must pass, including unauthorize
 
 GET /api/v1/models/count returns a no-store data.count envelope containing only enabled aliases authorized for both model and final provider. Accept output_modalities with any-member/all matching and a text default; unknown metadata cannot establish text output. All query, authentication, whole-catalog validation and mandatory private audit gates apply. Count aliases once without inference, credentials, limits or accounting. A distinct models-counted event persists only visible count/attribution through audit storage/history. Existing list defaults remain unchanged, and source pins do not yet track this separate endpoint. See [plan](plans/506-model-count.md) and [contract](../contracts/model-count.md).
 
+## Model count source drift (#508)
+
+The compatibility harness tracks official count query and HTTP200 response structures using a separate fourth pin. Offline integrity and explicit live checks validate all pins before one bounded credential-free download; valid count drift is independent and malformed data withholds success. Existing runtime IAM/audit/API behavior and previous three pins remain unchanged. This detects selected source changes rather than certifying instance or full client compatibility. See [plan](plans/508-model-count-schema.md) and [contract](../contracts/model-count-schema.md).
+
 ## References
 
 - [AWS IAM default denial and explicit Deny](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic_policy-eval-denyallow.html)

@@ -128,6 +128,10 @@ Fail closed when authentication, policy, route bounds, secrets, or required audi
 
 The exact GET count route shares the model listing snapshot, full catalog validation, enabled-alias model/provider authorization and output filter flow. A narrow parser accepts only output_modalities and supplies text when absent; count requests construct no model payload and return data.count with no-store after models-counted audit succeeds. Existing list defaults remain unchanged. The audit allowlist projects the new attributed success kind into a nonnegative safe count for PostgreSQL storage and principal-scoped history; existing denial/unavailable kinds and migrations remain shared. Count-specific structural drift remains outside existing pins. See [plan](plans/506-model-count.md) and [contract](../contracts/model-count.md).
 
+## Count schema guard composition (#508)
+
+A separate model-count projector captures GET /models/count identity, output_modalities parameter and HTTP200 application/json schema plus ModelsCountResponse. It reuses bounded structural normalization and an exact version1 provenance/digest envelope. The CLI validates four pins before one optional fixed-host download and computes every comparison before emitting results. Count drift is independent; malformed selected input uses a fixed private error and no pin writes. Previous pin bytes and runtime/catalog/audit behavior are unchanged. See [plan](plans/508-model-count-schema.md) and [contract](../contracts/model-count-schema.md).
+
 ## References
 
 - [AWS IAM policy evaluation](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic_policy-eval-denyallow.html)
