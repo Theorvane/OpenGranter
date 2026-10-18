@@ -9,7 +9,11 @@ import { pathToFileURL } from 'node:url';
 test('offline compatibility command verifies all three structural pins', () => {
   const result = spawnSync(
     process.execPath,
-    ['--experimental-strip-types', 'scripts/check-openrouter-schema.ts'],
+    [
+      '--disable-warning=ExperimentalWarning',
+      '--experimental-strip-types',
+      'scripts/check-openrouter-schema.ts',
+    ],
     { encoding: 'utf8' },
   );
   assert.equal(result.status, 0);
@@ -136,7 +140,13 @@ async function controlledLive(mode: string) {
       await import(${JSON.stringify(pathToFileURL(script).href)});`;
     const result = spawnSync(
       process.execPath,
-      ['--experimental-strip-types', '--input-type=module', '-e', setup],
+      [
+        '--disable-warning=ExperimentalWarning',
+        '--experimental-strip-types',
+        '--input-type=module',
+        '-e',
+        setup,
+      ],
       { encoding: 'utf8', timeout: 5000 },
     );
     const calls = await readFile(join(directory, 'calls.json'), 'utf8').then(JSON.parse, () => ({

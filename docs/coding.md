@@ -32,6 +32,7 @@ OpenGranter's service and future management UI use TypeScript. The repository cu
 - For permission changes, cover implicit Deny, explicit Deny precedence, wildcard matching, inactive principals, and action/resource mismatches.
 - For provider and persistence adapters, use fakes for routine tests and focused integration tests for failure paths. Avoid live provider calls in CI.
 - Keep tests deterministic: control time, identifiers, and external responses. Do not put real credentials or customer content in fixtures.
+- Schema CLI conformance child processes disable only Node's `ExperimentalWarning` while using experimental type stripping on supported Node 22.14. Keep exact application stderr assertions; do not rely on global `NODE_NO_WARNINGS` or filter captured diagnostics. Production CLI commands retain their normal runtime warnings.
 - Write or update the issue plan in `docs/plans/` before implementation. Update acceptance scenarios and contract cases when product behavior changes; record unresolved product choices as open decisions.
 
 ## References
