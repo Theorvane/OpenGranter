@@ -1045,3 +1045,7 @@ No schema, proxy client API, provider/route, limits, usage or source-pin changes
 ## Owned SSO management runtime (#494)
 
 Trusted deployment code can explicitly start the separate SSO proxy-token management listener with migrated PostgreSQL storage and a shared server/connection lifecycle. This does not change OpenRouter-compatible chat, model discovery, routing, usage or provider adapters and does not mount management endpoints on an inference listener. The existing SSO authentication, IAM, audit and no-store HTTP contracts remain in force. No OpenRouter source pin changes; full #116 and unresolved #7 remain open. See [plan](plans/494-sso-management-runtime.md) and [contract](../contracts/sso-management-runtime.md).
+
+## Schema CLI test runtime portability (#496)
+
+The conformance children disable Node's experimental warning while exercising the unchanged offline/live schema command on supported Node 22.14. Exact safe diagnostics, drift results, bounded fixture downloads and pin-preservation assertions remain required. This removes the global warning-suppression workaround from the local gate; production commands, all three source pins and the supported client API are unchanged. Full #116 and unresolved #7 remain open. See [plan](plans/496-schema-cli-warnings.md).
