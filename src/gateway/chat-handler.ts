@@ -94,6 +94,7 @@ import {
   createClientErrorResponse,
 } from './client-errors.ts';
 import { normalizeClientTextMessages } from './client-text-messages.ts';
+import { compareModelBenchmarks } from './model-benchmark-order.ts';
 import {
   type OpenRouterModelMetadata,
   snapshotOpenRouterMetadata,
@@ -1042,6 +1043,12 @@ export function createChatHandler<T>(
             (metadata.get(right)?.context_length ?? -1) -
             (metadata.get(left)?.context_length ?? -1),
         );
+      else if (query.sortOrder !== undefined) {
+        const sort = query.sortOrder;
+        visible.sort((left, right) =>
+          compareModelBenchmarks(sort, metadata.get(left), metadata.get(right)),
+        );
+      }
       const selected =
         query.limit === undefined
           ? visible

@@ -1,3 +1,21 @@
+export type BenchmarkSort =
+  | 'intelligence-high-to-low'
+  | 'coding-high-to-low'
+  | 'agentic-high-to-low'
+  | 'design-arena-elo-high-to-low';
+type ModelListSort = 'newest' | 'context-high-to-low' | BenchmarkSort;
+const sortOrders: readonly ModelListSort[] = [
+  'newest',
+  'context-high-to-low',
+  'intelligence-high-to-low',
+  'coding-high-to-low',
+  'agentic-high-to-low',
+  'design-arena-elo-high-to-low',
+];
+function isSortOrder(value: string | null): value is ModelListSort {
+  return sortOrders.some((sort) => sort === value);
+}
+
 export interface ModelListQuery {
   readonly offset: number;
   readonly limit?: number;
@@ -6,7 +24,7 @@ export interface ModelListQuery {
   readonly minimumContextLength?: number;
   readonly inputModalities?: readonly string[];
   readonly searchText?: string;
-  readonly sortOrder?: 'newest' | 'context-high-to-low';
+  readonly sortOrder?: ModelListSort;
 }
 
 const outputModalities = [
@@ -60,7 +78,7 @@ export function parseModelListQuery(url: URL, compatible: boolean): ModelListQue
       )
         return undefined;
     } else if (key === 'sort') {
-      if (value !== 'newest' && value !== 'context-high-to-low') return undefined;
+      if (!isSortOrder(value)) return undefined;
     } else if (key === 'supported_parameters') {
       if (value.length > 64 * 128 + 63) return undefined;
       const selected = value.split(',');
@@ -97,7 +115,7 @@ export function parseModelListQuery(url: URL, compatible: boolean): ModelListQue
     ...(context === null ? {} : { minimumContextLength: Number(context) }),
     ...(inputModality === null ? {} : { inputModalities: Object.freeze(inputModality.split(',')) }),
     ...(searchText === null ? {} : { searchText }),
-    ...(sortOrder === 'newest' || sortOrder === 'context-high-to-low' ? { sortOrder } : {}),
+    ...(isSortOrder(sortOrder) ? { sortOrder } : {}),
   };
 }
 
