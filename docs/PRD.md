@@ -8,6 +8,10 @@ LLM subscriptions and API keys spread across teams make it difficult to revoke a
 
 Success means unauthorized principals cannot obtain provider credentials or invoke models; administrators can inspect permissions and usage by principal, role, and model; and auditors can trace permission changes and denied calls.
 
+## Compatible advertised price ranges (#512)
+
+Compatible model discovery accepts inclusive input/output minimum/maximum base-price filters in USD per million tokens. Apply exact decimal comparison to trusted per-token metadata, excluding unknown prices and retaining current IAM, audit, filters and paging. This does not estimate a bill or refresh prices. See [plan](plans/512-model-price-ranges.md) and [contract](../contracts/model-price-ranges.md).
+
 ## 2. Users
 
 | User | Primary task |

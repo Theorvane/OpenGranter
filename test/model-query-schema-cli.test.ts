@@ -133,6 +133,9 @@ async function controlledLive(mode: string) {
       countPin.projection.parameters.output_modalities.schema.type = 'integer';
     if (mode === 'count-response-drift')
       schemas.ModelsCountResponse.properties.data.properties.count.type = 'number';
+    for (const name of ['min_price', 'max_price', 'min_output_price', 'max_output_price'])
+      if (mode === `${name}-drift`) modelPin.projection.parameters[name].schema.minimum = 1;
+    if (mode === 'stale-model-pin') modelPin.version = 3;
     if (mode === 'invalid-model-pin') modelPin.version = 0;
     if (mode === 'invalid-chat-pin') chatPin.version = 0;
     if (mode === 'stale-chat-pin') chatPin.version = 31;
@@ -147,7 +150,8 @@ async function controlledLive(mode: string) {
     // The downloaded source was constructed before drift mutations, and shares the selected objects.
     await writeFile(join(directory, 'source.json'), JSON.stringify(source));
     const pins = [...originals];
-    if (mode === 'invalid-model-pin') pins[1] = JSON.stringify(modelPin);
+    if (mode === 'invalid-model-pin' || mode === 'stale-model-pin')
+      pins[1] = JSON.stringify(modelPin);
     if (mode === 'invalid-chat-pin' || mode === 'stale-chat-pin') pins[0] = JSON.stringify(chatPin);
     if (mode === 'invalid-response-pin' || mode === 'stale-response-pin')
       pins[2] = JSON.stringify(responsePin);
@@ -226,6 +230,10 @@ for (const mode of [
   'legacy-nullable-drift',
   'count-query-drift',
   'count-response-drift',
+  'min_price-drift',
+  'max_price-drift',
+  'min_output_price-drift',
+  'max_output_price-drift',
 ])
   test(`live ${mode} reports the selected subset and preserves all pins`, async () => {
     const { result, calls } = await controlledLive(mode);
@@ -241,7 +249,15 @@ for (const mode of [
       'safeguard-drift',
       'defer-loading-drift',
     ].includes(mode);
-    const modelDrift = ['model-drift', 'both-drift', 'all-drift'].includes(mode);
+    const modelDrift = [
+      'model-drift',
+      'both-drift',
+      'all-drift',
+      'min_price-drift',
+      'max_price-drift',
+      'min_output_price-drift',
+      'max_output_price-drift',
+    ].includes(mode);
     const responseDrift = ['response-drift', 'all-drift', 'legacy-nullable-drift'].includes(mode);
     const countDrift = ['count-query-drift', 'count-response-drift', 'all-drift'].includes(mode);
     assert.equal(
@@ -261,6 +277,7 @@ test('live transport failures expose only the safe fixed diagnostic and do not w
 });
 for (const mode of [
   'invalid-model-pin',
+  'stale-model-pin',
   'invalid-chat-pin',
   'invalid-response-pin',
   'stale-chat-pin',
