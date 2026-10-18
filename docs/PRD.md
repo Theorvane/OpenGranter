@@ -1035,3 +1035,7 @@ Trusted deployment code may explicitly start a separate PostgreSQL-backed SSO pr
 ## Compatible benchmark discovery ordering (#498)
 
 GET /api/v1/models supports descending intelligence, coding and agentic Artificial Analysis indices and best Design Arena ELO across published arenas. Missing scores sort last; zero/negative scores remain known, and equal/missing scores retain catalog order. Complete catalog validation and model/final-provider IAM precede matching/sorting, then paging and required audit. Each continuation reloads current state. This ordering uses administrator-published informational values, without fetching/verifying benchmarks or choosing inference providers. Source pins and legacy queries remain unchanged. See [plan](plans/498-model-benchmark-sort.md) and [contract](../contracts/model-benchmark-order.md).
+
+## Exact base-price discovery ordering (#500)
+
+GET /api/v1/models accepts pricing-low-to-high and pricing-high-to-low by the exact equally weighted prompt/completion base-price mean. Known zero remains known, missing metadata is last in both directions and equal sums preserve catalog order. Retain original decimal strings and all existing query/IAM/paging/private-audit gates. Discounts, conditional overrides, optional charges, actual request token mix, price fetching and billed-cost calculation are outside this ordering. Existing sorts, legacy queries, storage and source pins retain their behavior. See [plan](plans/500-model-price-sort.md) and [contract](../contracts/model-price-order.md).
