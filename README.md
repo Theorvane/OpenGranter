@@ -10,6 +10,7 @@ Contributions follow the [issue, branch, and pull-request workflow](CONTRIBUTING
 
 ## Documents
 
+- [Agent handoff and continuation guide](docs/HANDOFF.md)
 - [Product requirements](docs/PRD.md)
 - [Architecture and open decisions](docs/architecture.md)
 - [Acceptance scenarios](docs/acceptance.md)
