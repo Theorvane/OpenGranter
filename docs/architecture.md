@@ -6,6 +6,10 @@ Status: Internal authorization, portable deployment, dual upstream modes, initia
 
 OpenGranter does **not** call AWS IAM to decide access. Its policy engine adopts default denial, explicit Deny precedence, and principal/action/resource concepts. It does not reproduce every AWS IAM policy type, STS, AssumeRole, SigV4, or cross-account semantics. A role is an assignable policy grouping, not a temporary role session in the first release.
 
+## Single model lookup boundary (#514)
+
+Decode bounded path segments after authentication, then reuse discovery's full catalog capture, model/final-provider IAM and rich row projection. Match exact published aliases only; build output before mandatory audit. model-read records only count0/1 and model-read-unavailable has empty details through the shared PostgreSQL sanitizer/history. All recognized lookup responses use no-store. No route, provider, metadata target, secret or inference is resolved. Existing pins/migrations remain unchanged; new-operation structural selection remains follow-up work. See [plan](plans/514-single-model-discovery.md) and [contract](../contracts/single-model-discovery.md).
+
 ## Exact advertised price filtering (#512)
 
 Capture bounded price-query strings and immutable range objects, reject exactly reversed pairs before catalog access and prepare sparse decimal bound keys with a minus-six position shift for per-million units. After full catalog validation and model/final-provider IAM, filter captured base prices before existing sort/paging and required audit. Reuse exact ordering digit logic without floating-point money operations, exponent-sized allocation, provider calls or routing authority. Query pin v4 adds four raw parameter objects; other pins are unchanged. See [plan](plans/512-model-price-ranges.md) and [contract](../contracts/model-price-ranges.md).
