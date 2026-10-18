@@ -1,9 +1,9 @@
 {
-  "version": 31,
+  "version": 32,
   "source": "https://openrouter.ai/openapi.json",
-  "retrievedAt": "2026-10-06",
-  "sourceSha256": "0f220980d0c335ca4b4efd5684e1055f88eb84e73d4e34b0b9a859c9d2cf0458",
-  "projectionSha256": "0bf32d91e86d7c0cbb41042133f781ce3b6bb299bef2396a41a8a9d920a069e2",
+  "retrievedAt": "2026-10-18",
+  "sourceSha256": "e14bcc1e02453bff8807cc79d03170ce7d229a9d0836e253ff49b764b8aa811d",
+  "projectionSha256": "03612bdd85051a62e6862d3f06ac92ab62ba02f5a8be90ef5660f6bef743dc7e",
   "projection": {
     "openapi": "3.1.0",
     "documentVersion": "1.0.0",
@@ -12,6 +12,9 @@
     "responseDefinitions": {
       "ChatResult": {
         "properties": {
+          "alignment": {
+            "$ref": "#/components/schemas/Alignment"
+          },
           "choices": {
             "items": {
               "$ref": "#/components/schemas/ChatChoice"
@@ -35,6 +38,12 @@
           },
           "openrouter_metadata": {
             "$ref": "#/components/schemas/OpenRouterMetadata"
+          },
+          "safeguard_results": {
+            "items": {
+              "$ref": "#/components/schemas/ArmorSafeguardResult"
+            },
+            "type": "array"
           },
           "service_tier": {
             "type": [
@@ -1336,8 +1345,14 @@
               "cache_control": {
                 "$ref": "#/components/schemas/ChatContentCacheControl"
               },
+              "defer_loading": {
+                "type": "boolean"
+              },
               "function": {
                 "properties": {
+                  "defer_loading": {
+                    "type": "boolean"
+                  },
                   "description": {
                     "type": "string"
                   },
@@ -1504,6 +1519,14 @@
     "streamDefinitions": {
       "ChatStreamChunk": {
         "properties": {
+          "alignment": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Alignment"
+              },
+              {}
+            ]
+          },
           "choices": {
             "items": {
               "$ref": "#/components/schemas/ChatStreamChoice"
@@ -1557,6 +1580,12 @@
           },
           "openrouter_metadata": {
             "$ref": "#/components/schemas/OpenRouterMetadata"
+          },
+          "safeguard_results": {
+            "items": {
+              "$ref": "#/components/schemas/ArmorSafeguardResult"
+            },
+            "type": "array"
           },
           "service_tier": {
             "type": [

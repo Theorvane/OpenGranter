@@ -77,6 +77,10 @@ Verify raw/installed OpenRouter SDK default text, text/image union, explicit all
 
 ## Harness connection
 
+### Reviewed source drift (#509)
+
+The request v32 and model-response v2 pins must match reviewed official structures without broad normalization changes. Assert exact new optional fields, both deferred-tool booleans, seven retained nullable type arrays, stale-version rejection and reconstructed prior projection digests. Controlled CLI probes must report only the changed subset, download once without credentials, reject stale pins before download and preserve all pin bytes. New target bodies remain explicitly unselected; no runtime field support or complete compatibility is inferred. See [plan](plans/509-reviewed-schema-drift.md) and [contracts](../contracts/openrouter-schema-drift.md).
+
 The PostgreSQL migration runner applies versions `001` through `008` in order, records their checksums, and skips unchanged history on a second run. It refuses edited, missing, duplicate, skipped, and out-of-order versions before applying new SQL. A failing migration leaves neither its schema changes nor its history row, and driver errors expose no SQL text. Deployment connection provisioning and concurrent migrator coordination remain separate release work.
 
 `contracts/policy_cases.json` fixes policy-evaluator inputs and expected decisions. `contracts/attachment_cases.json` fixes principal and role policy resolution, including failure paths. `contracts/route_cases.json` fixes candidate authorization and model-specific provider bounds; these three contracts run against pure TypeScript functions. `contracts/gateway_cases.json` fixes expected HTTP behavior and still needs service-level tests against fake upstreams. `scripts/check.py` validates the original fixture structure and planning documents.

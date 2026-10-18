@@ -103,12 +103,24 @@ async function controlledLive(mode: string) {
       schemas.ChatContentImage.properties.image_url.properties.url = { type: 'integer' };
     if (mode === 'content-union-drift')
       schemas.ChatContentItems.discriminator.mapping.image_url = '#/components/schemas/NewImage';
+    if (mode === 'alignment-drift') schemas.ChatResult.properties.alignment = { type: 'boolean' };
+    if (mode === 'safeguard-drift')
+      schemas.ChatStreamChunk.properties.safeguard_results.items = {
+        $ref: '#/components/schemas/ChangedSafeguard',
+      };
+    if (mode === 'defer-loading-drift')
+      schemas.ChatFunctionTool.anyOf[0].properties.function.properties.defer_loading = {
+        type: 'string',
+      };
+    if (mode === 'legacy-nullable-drift')
+      schemas.DefaultParameters.properties.temperature.nullable = true;
     if (mode === 'response-drift' || mode === 'all-drift')
       schemas.Model.properties.context_length = { type: 'string' };
     if (mode === 'invalid-model-pin') modelPin.version = 0;
     if (mode === 'invalid-chat-pin') chatPin.version = 0;
-    if (mode === 'stale-chat-pin') chatPin.version = 30;
+    if (mode === 'stale-chat-pin') chatPin.version = 31;
     if (mode === 'invalid-response-pin') responsePin.version = 0;
+    if (mode === 'stale-response-pin') responsePin.version = 1;
     if (mode === 'invalid-model-source') source.paths['/models'].get.parameters = [];
     if (mode === 'invalid-response-source') delete schemas.Model;
     if (mode === 'invalid-image-source') delete schemas.ChatContentImage;
@@ -119,7 +131,7 @@ async function controlledLive(mode: string) {
         ? [chatRaw, JSON.stringify(modelPin), responseRaw]
         : mode === 'invalid-chat-pin' || mode === 'stale-chat-pin'
           ? [JSON.stringify(chatPin), modelRaw, responseRaw]
-          : mode === 'invalid-response-pin'
+          : mode === 'invalid-response-pin' || mode === 'stale-response-pin'
             ? [chatRaw, modelRaw, JSON.stringify(responsePin)]
             : originals;
     for (let i = 0; i < pinNames.length; i++) {
@@ -190,6 +202,10 @@ for (const mode of [
   'all-drift',
   'image-drift',
   'content-union-drift',
+  'alignment-drift',
+  'safeguard-drift',
+  'defer-loading-drift',
+  'legacy-nullable-drift',
 ])
   test(`live ${mode} reports the selected subset and preserves all pins`, async () => {
     const { result, calls } = await controlledLive(mode);
@@ -201,9 +217,12 @@ for (const mode of [
       'all-drift',
       'image-drift',
       'content-union-drift',
+      'alignment-drift',
+      'safeguard-drift',
+      'defer-loading-drift',
     ].includes(mode);
     const modelDrift = ['model-drift', 'both-drift', 'all-drift'].includes(mode);
-    const responseDrift = ['response-drift', 'all-drift'].includes(mode);
+    const responseDrift = ['response-drift', 'all-drift', 'legacy-nullable-drift'].includes(mode);
     assert.equal(
       result.stdout,
       `${chatDrift ? '' : 'PASS selected OpenRouter request schema unchanged\n'}${modelDrift ? '' : 'PASS selected OpenRouter model-query schema unchanged\n'}${responseDrift ? '' : 'PASS selected OpenRouter model-response schema unchanged\n'}`,
@@ -224,6 +243,7 @@ for (const mode of [
   'invalid-chat-pin',
   'invalid-response-pin',
   'stale-chat-pin',
+  'stale-response-pin',
 ])
   test(`live ${mode} rejects before fetching or reporting success`, async () => {
     const { result, calls } = await controlledLive(mode);
