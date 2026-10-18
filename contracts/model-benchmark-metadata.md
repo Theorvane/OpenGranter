@@ -8,7 +8,7 @@ Own undefined, null objects, incomplete/unknown shapes, invalid/nonfinite values
 
 Only enabled model AND final-provider IAM-authorized aliases expose benchmark data on GET /api/v1/models after complete hidden-catalog validation, existing filters/order/paging and required private audit. Each page reevaluates policy; basic/legacy rows stay unchanged. No benchmark data enters operational errors/events. Listing calls no inference/routing/secret/limit/usage ports. New fields do not expand existing search/capability/sort predicates or change alias identity/routes.
 
-Benchmarks are administrator-published source-relative information, not correctness/freshness guarantees, provider rankings or authority to choose/authorize an endpoint, estimate tokens, set limits or establish billed cost. No benchmark API fetching, aggregation, refresh or management publication is added.
+Benchmarks are administrator-published source-relative information, not correctness/freshness guarantees, provider rankings or authority to choose/authorize an endpoint, estimate tokens, set limits or establish billed cost. Explicit discovery benchmark sorting is specified separately by the [benchmark order contract](model-benchmark-order.md); it does not rank inference candidates. No benchmark API fetching, refresh or management publication is added.
 
 PostgreSQL listing/route resolution shares validation and deeply frozen capture while retaining approved routes. Existing nullable JSONB object/64 KiB cap remains with no migration/backfill; otherwise individually valid field limits may exceed that aggregate storage cap. Downgrading requires removing the newly supported key.
 

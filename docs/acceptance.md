@@ -1454,3 +1454,7 @@ No schema, proxy client API, provider/route, limits, usage or source-pin changes
 ## Schema CLI checks on supported Node 22.14 (#496)
 
 The existing 17 offline and controlled-download CLI cases pass without global warning suppression on Node 22.14. Each conformance child disables only the experimental runtime warning and retains exact exit-code/stdout/stderr, private-error, request-bound and unchanged-pin checks. Production CLI commands and all three pins retain their behavior. Plain `npm run check` requires no `NODE_NO_WARNINGS` workaround. See [plan](plans/496-schema-cli-warnings.md).
+
+## Benchmark model discovery sorting (#498)
+
+Verify all four sort modes on managed/delegated catalogs and installed OpenRouter/OpenAI SDK sockets: selected index mapping, best ELO across arenas, missing/null/empty metadata, stable ties, zero/negative/extreme finite scores and unchanged omitted ordering. Combined filters and relative continuation fields retain order before pagination; pages reevaluate fresh model/provider IAM. Authentication precedes query/catalog work; malformed syntax and legacy queries reject early. Hidden/disabled malformed scores and required dependency/audit failure withhold the whole response privately. Audit-time score/catalog mutation cannot alter captured order/data, and scores/query values never enter operational events. No inference/secret/limit/usage calls occur. See [plan](plans/498-model-benchmark-sort.md) and [contract](../contracts/model-benchmark-order.md).
