@@ -99,7 +99,11 @@ import {
   type OpenRouterModelMetadata,
   snapshotOpenRouterMetadata,
 } from './model-discovery-metadata.ts';
-import { modelListContinuation, parseModelListQuery } from './model-list-query.ts';
+import {
+  modelListContinuation,
+  parseModelCountQuery,
+  parseModelListQuery,
+} from './model-list-query.ts';
 import { createModelPriceComparator } from './model-price-order.ts';
 import { chatContentText, validatePromptCacheHistory } from './prompt-cache-parts.ts';
 import {
@@ -208,7 +212,7 @@ export type GatewayAuditEvent =
       readonly requestId: string;
     })
   | (AuditAttribution & {
-      readonly kind: 'models-listed';
+      readonly kind: 'models-listed' | 'models-counted';
       readonly requestId: string;
       readonly count: number;
     })
@@ -682,9 +686,16 @@ export function createChatHandler<T>(
     const modelListRequest =
       request.method === 'GET' &&
       (url.pathname === '/v1/models' || url.pathname === '/api/v1/models');
+    const modelCountRequest = request.method === 'GET' && url.pathname === '/api/v1/models/count';
     const usageListRequest = request.method === 'GET' && url.pathname === '/v1/usage';
     const auditListRequest = request.method === 'GET' && url.pathname === '/v1/audit';
-    if (!chatRequest && !modelListRequest && !usageListRequest && !auditListRequest) {
+    if (
+      !chatRequest &&
+      !modelListRequest &&
+      !modelCountRequest &&
+      !usageListRequest &&
+      !auditListRequest
+    ) {
       return errorResponse(404, 'not_found', requestId);
     }
 
@@ -966,8 +977,10 @@ export function createChatHandler<T>(
       );
     }
 
-    if (modelListRequest) {
-      const query = parseModelListQuery(url, format === 'openrouter');
+    if (modelListRequest || modelCountRequest) {
+      const query = modelCountRequest
+        ? parseModelCountQuery(url)
+        : parseModelListQuery(url, format === 'openrouter');
       if (!query) {
         try {
           await ports.writeAudit({
@@ -1066,8 +1079,9 @@ export function createChatHandler<T>(
           compareModelBenchmarks(sort, metadata.get(left), metadata.get(right)),
         );
       }
-      const selected =
-        query.limit === undefined
+      const selected = modelCountRequest
+        ? []
+        : query.limit === undefined
           ? visible
           : visible.slice(query.offset, query.offset + query.limit);
       const data = selected.map((model) => ({
@@ -1085,13 +1099,21 @@ export function createChatHandler<T>(
       try {
         await ports.writeAudit({
           ...attribution,
-          kind: 'models-listed',
+          kind: modelCountRequest ? 'models-counted' : 'models-listed',
           requestId,
-          count: data.length,
+          count: modelCountRequest ? visible.length : data.length,
         });
       } catch {
         return errorResponse(503, 'audit_unavailable', requestId);
       }
+      if (modelCountRequest)
+        return Response.json(
+          { data: { count: visible.length } },
+          {
+            status: 200,
+            headers: { 'x-request-id': requestId, 'cache-control': 'no-store' },
+          },
+        );
       return Response.json(
         {
           object: 'list',

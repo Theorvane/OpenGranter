@@ -79,6 +79,10 @@ Unrestricted cross-mode fallback, credit resale, every provider-specific API par
 
 The scenarios in [acceptance.md](acceptance.md) must pass, including unauthorized-call rejection, Deny precedence, non-disclosure of credentials, failure auditing, usage attribution, and isolation of each principal's view.
 
+## Compatible model counts (#506)
+
+GET /api/v1/models/count returns a no-store data.count envelope containing only enabled aliases authorized for both model and final provider. Accept output_modalities with any-member/all matching and a text default; unknown metadata cannot establish text output. All query, authentication, whole-catalog validation and mandatory private audit gates apply. Count aliases once without inference, credentials, limits or accounting. A distinct models-counted event persists only visible count/attribution through audit storage/history. Existing list defaults remain unchanged, and source pins do not yet track this separate endpoint. See [plan](plans/506-model-count.md) and [contract](../contracts/model-count.md).
+
 ## References
 
 - [AWS IAM default denial and explicit Deny](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic_policy-eval-denyallow.html)

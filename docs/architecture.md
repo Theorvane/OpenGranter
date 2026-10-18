@@ -124,6 +124,10 @@ Fail closed when authentication, policy, route bounds, secrets, or required audi
 7. Exact managed-route score, metric freshness, and retry triggers.
 8. OpenRouter provider-ID mapping and verification of provider restrictions for delegated routes.
 
+## Compatible model count boundary (#506)
+
+The exact GET count route shares the model listing snapshot, full catalog validation, enabled-alias model/provider authorization and output filter flow. A narrow parser accepts only output_modalities and supplies text when absent; count requests construct no model payload and return data.count with no-store after models-counted audit succeeds. Existing list defaults remain unchanged. The audit allowlist projects the new attributed success kind into a nonnegative safe count for PostgreSQL storage and principal-scoped history; existing denial/unavailable kinds and migrations remain shared. Count-specific structural drift remains outside existing pins. See [plan](plans/506-model-count.md) and [contract](../contracts/model-count.md).
+
 ## References
 
 - [AWS IAM policy evaluation](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic_policy-eval-denyallow.html)
