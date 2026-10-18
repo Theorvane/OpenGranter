@@ -8,6 +8,10 @@ LLM subscriptions and API keys spread across teams make it difficult to revoke a
 
 Success means unauthorized principals cannot obtain provider credentials or invoke models; administrators can inspect permissions and usage by principal, role, and model; and auditors can trace permission changes and denied calls.
 
+## Single model source conformance (#515)
+
+The conformance harness monitors the single lookup operation, path parameters and ModelResponse/Model structures through a fifth official source pin, alongside existing metadata definition coverage. This detects selected structural drift without changing runtime lookup permissions or claiming complete compatibility. See [plan](plans/515-single-model-schema.md) and [contract](../contracts/single-model-schema.md).
+
 ## Compatible single model lookup (#514)
 
 Expose GET /api/v1/model/{author}/{slug} for exact published rich model aliases through the installed OpenRouter SDK. Apply the same current model/final-provider IAM, complete catalog validation and required private audit as listing. Hide inaccessible/unknown models behind404, fail safely on unavailable required metadata and retain no-store responses. Do not resolve metadata aliases into routing authority. See [plan](plans/514-single-model-discovery.md) and [contract](../contracts/single-model-discovery.md).

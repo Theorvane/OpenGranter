@@ -51,6 +51,6 @@ Use only a disposable database; the integration test creates a uniquely named sc
 
 ## OpenRouter schema drift
 
-`npm run compatibility:check` validates the reviewed chat, supported model-query and model-response pins without network access and is included in `npm run check`. Run `npm run compatibility:drift` explicitly to compare all three selected structural projections against one bounded retrieval of the official public schema; it performs no inference, sends no credentials, and does not update any pin. Review differences through an issue and pull request before updating provenance and contract expectations.
+`npm run compatibility:check` validates the reviewed chat, model-query, model-response, model-count and single-model pins without network access and is included in `npm run check`. Run `npm run compatibility:drift` explicitly to compare all five selected structural projections against one bounded retrieval of the official public schema; it performs no inference, sends no credentials, and does not update any pin. Review differences through an issue and pull request before updating provenance and contract expectations.
 
 This covers selected chat definitions, eight model query objects and 21 model response definitions, not full instance validation, all referenced targets or complete external-client certification. See [chat coverage and limitations](contracts/openrouter-schema-drift.md) and [model-query coverage and limitations](contracts/model-query-schema.md), and [model-response coverage and limitations](contracts/model-response-schema.md).

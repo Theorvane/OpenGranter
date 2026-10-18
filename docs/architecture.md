@@ -6,9 +6,13 @@ Status: Internal authorization, portable deployment, dual upstream modes, initia
 
 OpenGranter does **not** call AWS IAM to decide access. Its policy engine adopts default denial, explicit Deny precedence, and principal/action/resource concepts. It does not reproduce every AWS IAM policy type, STS, AssumeRole, SigV4, or cross-account semantics. A role is an assignable policy grouping, not a temporary role session in the first release.
 
+## Single model source guard (#515)
+
+A separate fixed projection selects getModel, two inline required path parameters, its HTTP200 JSON root and whole ModelResponse/Model definitions. Validate it with the prior four pins before a shared bounded credential-free download, compute all comparisons before output and preserve separate drift results. Existing model-response coverage monitors referenced metadata bodies. No automatic traversal, pin mutation or runtime control change is introduced. See [plan](plans/515-single-model-schema.md) and [contract](../contracts/single-model-schema.md).
+
 ## Single model lookup boundary (#514)
 
-Decode bounded path segments after authentication, then reuse discovery's full catalog capture, model/final-provider IAM and rich row projection. Match exact published aliases only; build output before mandatory audit. model-read records only count0/1 and model-read-unavailable has empty details through the shared PostgreSQL sanitizer/history. All recognized lookup responses use no-store. No route, provider, metadata target, secret or inference is resolved. Existing pins/migrations remain unchanged; new-operation structural selection remains follow-up work. See [plan](plans/514-single-model-discovery.md) and [contract](../contracts/single-model-discovery.md).
+Decode bounded path segments after authentication, then reuse discovery's full catalog capture, model/final-provider IAM and rich row projection. Match exact published aliases only; build output before mandatory audit. model-read records only count0/1 and model-read-unavailable has empty details through the shared PostgreSQL sanitizer/history. All recognized lookup responses use no-store. No route, provider, metadata target, secret or inference is resolved. The fifth source guard now monitors selected lookup structures; migrations and runtime controls remain unchanged. See [plan](plans/514-single-model-discovery.md) and [contract](../contracts/single-model-discovery.md).
 
 ## Exact advertised price filtering (#512)
 

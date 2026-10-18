@@ -2,9 +2,13 @@
 
 Tracking issue: [#116](https://github.com/Theorvane/OpenGranter/issues/116).
 
+## Single model source guard (#515)
+
+A fifth version1 pin now selects getModel path/operation, complete author/slug required path parameters, HTTP200 JSON root and whole ModelResponse/Model definitions. Existing model-response coverage continues to monitor referenced metadata bodies. Five-pin offline/live commands retain one bounded credential-free retrieval, all-pin validation before fetch, atomic invalid-source output and separate drift results without writes. Previous four pin bytes and runtime controls stay unchanged. This closes the selected lookup structural gap, with semantic/instance validation, unselected targets/status/media/headers, broad alias resolution and complete #116 still open. See [plan](plans/515-single-model-schema.md) and [contract](../contracts/single-model-schema.md).
+
 ## Exact single model discovery (#514)
 
-The installed OpenRouter models.get operation now reaches GET /api/v1/model/{author}/{slug} for exact published rich aliases, including explicit variants and safe Unicode. Shared full catalog validation, current model/final-provider IAM and required sanitized audit apply; hidden/unknown models share404, visible missing rich metadata returns503 and recognized responses are no-store. Metadata slug targets never grant redirects or routing authority. The local bounded path/encoding/query rules are explicit restrictions; broad slug alias resolution and endpoint inventory remain open. All four pins stay unchanged: the new operation/path/root response requires separate structural selection in [#515](https://github.com/Theorvane/OpenGranter/issues/515). Complete compatibility #116 and unresolved #7 remain open. See [plan](plans/514-single-model-discovery.md) and [contract](../contracts/single-model-discovery.md).
+The installed OpenRouter models.get operation now reaches GET /api/v1/model/{author}/{slug} for exact published rich aliases, including explicit variants and safe Unicode. Shared full catalog validation, current model/final-provider IAM and required sanitized audit apply; hidden/unknown models share404, visible missing rich metadata returns503 and recognized responses are no-store. Metadata slug targets never grant redirects or routing authority. The local bounded path/encoding/query rules are explicit restrictions; broad slug alias resolution and endpoint inventory remain open. The fifth source guard now monitors selected operation/path/root/Model structures alongside existing metadata definitions; structural coverage remains bounded. Complete compatibility #116 and unresolved #7 remain open. See [plan](plans/514-single-model-discovery.md) and [contract](../contracts/single-model-discovery.md).
 
 ## Exact advertised price query ranges (#512)
 
