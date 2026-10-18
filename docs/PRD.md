@@ -12,6 +12,10 @@ Success means unauthorized principals cannot obtain provider credentials or invo
 
 The conformance harness monitors the single lookup operation, path parameters and ModelResponse/Model structures through a fifth official source pin, alongside existing metadata definition coverage. This detects selected structural drift without changing runtime lookup permissions or claiming complete compatibility. See [plan](plans/515-single-model-schema.md) and [contract](../contracts/single-model-schema.md).
 
+## Private model discovery caching (#518)
+
+All recognized model discovery paths now require Cache-Control: no-store, including listing/count/lookup success, errors and Node fallback. Every page still reevaluates current IAM and required audit. Headers cannot invalidate previously stored copies or guarantee external proxy compliance. See [plan](plans/518-discovery-no-store.md) and [contract](../contracts/model-discovery-cache.md).
+
 ## Compatible single model lookup (#514)
 
 Expose GET /api/v1/model/{author}/{slug} for exact published rich model aliases through the installed OpenRouter SDK. Apply the same current model/final-provider IAM, complete catalog validation and required private audit as listing. Hide inaccessible/unknown models behind404, fail safely on unavailable required metadata and retain no-store responses. Do not resolve metadata aliases into routing authority. See [plan](plans/514-single-model-discovery.md) and [contract](../contracts/single-model-discovery.md).

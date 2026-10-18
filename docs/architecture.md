@@ -1,5 +1,9 @@
 # Architecture Draft
 
+## Private discovery cache boundary (#518)
+
+One shared pathname predicate identifies legacy/compatible model lists, compatible count and singular model lookup. Gateway errors and list success set no-store; count/lookup success retain it. The Node bridge overrides conflicting response cache headers and applies the same directive to pre-header generic/configured fallbacks. Preserve existing payloads, status, request IDs, IAM, snapshot validation, required audit and socket cancellation. Conditional headers do not create304 or skip authorization/audit. See [plan](plans/518-discovery-no-store.md) and [contract](../contracts/model-discovery-cache.md).
+
 Status: Internal authorization, portable deployment, dual upstream modes, initial selection controls, and same-kind fallback are decided; exact scoring and several release policies remain open. Updated 2026-09-27.
 
 ## Core decision
