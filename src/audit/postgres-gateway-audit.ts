@@ -152,12 +152,18 @@ function details(event: RecordValue): RecordValue {
     case 'auth-denied':
     case 'auth-unavailable':
     case 'model-list-unavailable':
+    case 'model-read-unavailable':
       return {};
     case 'route-unavailable':
       return { modelAlias: identifier(event.modelAlias) };
     case 'models-listed':
     case 'models-counted':
       return { count: count(event.count) };
+    case 'model-read': {
+      const resultCount = count(event.count);
+      if (resultCount > 1) throw new InvalidGatewayAuditEvent();
+      return { count: resultCount };
+    }
     case 'usage-read':
       return {
         targetPrincipalId: identifier(event.targetPrincipalId),

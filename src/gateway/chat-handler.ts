@@ -100,6 +100,7 @@ import {
   snapshotOpenRouterMetadata,
 } from './model-discovery-metadata.ts';
 import {
+  type ModelListQuery,
   modelListContinuation,
   parseModelCountQuery,
   parseModelListQuery,
@@ -110,6 +111,7 @@ import {
   type ReasoningConfiguration,
   snapshotReasoningConfiguration,
 } from './reasoning-configuration.ts';
+import { parseSingleModelAlias } from './single-model-query.ts';
 
 const MAX_BODY_BYTES = 1024 * 1024;
 
@@ -208,11 +210,11 @@ export type GatewayAuditEvent =
       readonly modelAlias: string;
     })
   | (AuditAttribution & {
-      readonly kind: 'model-list-unavailable';
+      readonly kind: 'model-list-unavailable' | 'model-read-unavailable';
       readonly requestId: string;
     })
   | (AuditAttribution & {
-      readonly kind: 'models-listed' | 'models-counted';
+      readonly kind: 'models-listed' | 'models-counted' | 'model-read';
       readonly requestId: string;
       readonly count: number;
     })
@@ -678,8 +680,12 @@ export function createChatHandler<T>(
     const requestId = ports.newRequestId();
     const url = new URL(request.url);
     const format = clientErrorFormat(url.pathname);
-    const errorResponse = (status: number, code: ClientErrorCode, id: string) =>
-      createClientErrorResponse(status, code, id, format);
+    const singleModelPath = url.pathname.startsWith('/api/v1/model/');
+    const errorResponse = (status: number, code: ClientErrorCode, id: string) => {
+      const response = createClientErrorResponse(status, code, id, format);
+      if (singleModelPath) response.headers.set('cache-control', 'no-store');
+      return response;
+    };
     const chatRequest =
       request.method === 'POST' &&
       (url.pathname === '/v1/chat/completions' || url.pathname === '/api/v1/chat/completions');
@@ -687,12 +693,14 @@ export function createChatHandler<T>(
       request.method === 'GET' &&
       (url.pathname === '/v1/models' || url.pathname === '/api/v1/models');
     const modelCountRequest = request.method === 'GET' && url.pathname === '/api/v1/models/count';
+    const modelGetRequest = request.method === 'GET' && singleModelPath;
     const usageListRequest = request.method === 'GET' && url.pathname === '/v1/usage';
     const auditListRequest = request.method === 'GET' && url.pathname === '/v1/audit';
     if (
       !chatRequest &&
       !modelListRequest &&
       !modelCountRequest &&
+      !modelGetRequest &&
       !usageListRequest &&
       !auditListRequest
     ) {
@@ -977,10 +985,15 @@ export function createChatHandler<T>(
       );
     }
 
-    if (modelListRequest || modelCountRequest) {
-      const query = modelCountRequest
-        ? parseModelCountQuery(url)
-        : parseModelListQuery(url, format === 'openrouter');
+    if (modelListRequest || modelCountRequest || modelGetRequest) {
+      const requestedModelAlias = modelGetRequest ? parseSingleModelAlias(url) : undefined;
+      const query: ModelListQuery | undefined = modelGetRequest
+        ? requestedModelAlias === undefined
+          ? undefined
+          : { offset: 0 }
+        : modelCountRequest
+          ? parseModelCountQuery(url)
+          : parseModelListQuery(url, format === 'openrouter');
       if (!query) {
         try {
           await ports.writeAudit({
@@ -995,20 +1008,25 @@ export function createChatHandler<T>(
         return errorResponse(400, 'invalid_request', requestId);
       }
       let catalog: readonly PublishedModel[] | undefined;
+      const unavailableResponse = async () => {
+        try {
+          await ports.writeAudit({
+            ...attribution,
+            kind: modelGetRequest ? 'model-read-unavailable' : 'model-list-unavailable',
+            requestId,
+          });
+        } catch {
+          return errorResponse(503, 'audit_unavailable', requestId);
+        }
+        return errorResponse(503, 'catalog_unavailable', requestId);
+      };
       try {
         catalog = await ports.listPublishedModels?.();
       } catch {
         catalog = undefined;
       }
       const metadata = new Map<object, OpenRouterModelMetadata>();
-      if (!validCatalog(catalog, metadata)) {
-        try {
-          await ports.writeAudit({ ...attribution, kind: 'model-list-unavailable', requestId });
-        } catch {
-          return errorResponse(503, 'audit_unavailable', requestId);
-        }
-        return errorResponse(503, 'catalog_unavailable', requestId);
-      }
+      if (!validCatalog(catalog, metadata)) return unavailableResponse();
       const authorized = catalog.filter(
         (model) =>
           model.enabled &&
@@ -1031,6 +1049,7 @@ export function createChatHandler<T>(
       const visible = authorized.filter((model) => {
         const published = metadata.get(model);
         return (
+          (requestedModelAlias === undefined || model.alias === requestedModelAlias) &&
           (matchesPrice === undefined || matchesPrice(published)) &&
           (query.benchmarkRanges === undefined ||
             query.benchmarkRanges.every((range) => {
@@ -1084,6 +1103,9 @@ export function createChatHandler<T>(
           compareModelBenchmarks(sort, metadata.get(left), metadata.get(right)),
         );
       }
+      const singleModel = visible[0];
+      if (modelGetRequest && singleModel !== undefined && !metadata.has(singleModel))
+        return unavailableResponse();
       const selected = modelCountRequest
         ? []
         : query.limit === undefined
@@ -1104,12 +1126,25 @@ export function createChatHandler<T>(
       try {
         await ports.writeAudit({
           ...attribution,
-          kind: modelCountRequest ? 'models-counted' : 'models-listed',
+          kind: modelGetRequest
+            ? 'model-read'
+            : modelCountRequest
+              ? 'models-counted'
+              : 'models-listed',
           requestId,
           count: modelCountRequest ? visible.length : data.length,
         });
       } catch {
         return errorResponse(503, 'audit_unavailable', requestId);
+      }
+      if (modelGetRequest) {
+        const model = data[0];
+        return model === undefined
+          ? errorResponse(404, 'not_found', requestId)
+          : Response.json(
+              { data: model },
+              { status: 200, headers: { 'x-request-id': requestId, 'cache-control': 'no-store' } },
+            );
       }
       if (modelCountRequest)
         return Response.json(
