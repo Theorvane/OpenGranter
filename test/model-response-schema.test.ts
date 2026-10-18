@@ -93,7 +93,7 @@ function source() {
   schemas.DefaultParameters = {
     type: ['object', 'null'],
     additionalProperties: false,
-    properties: { temperature: { type: ['number', 'null'], format: 'double', nullable: true } },
+    properties: { temperature: { type: ['number', 'null'], format: 'double' } },
   };
   const schema: Record<string, unknown> = ref('ModelsListResponse');
   const response: Record<string, unknown> = {
@@ -148,7 +148,7 @@ test('response projection captures fixed operation, JSON success schema and exac
   });
   assert.equal(compareOfficialModelResponseSchema(s, baseline()), true);
   assert.deepEqual(validateModelResponseSchemaPin(pin).projection, pin.projection);
-  assert.equal(pin.version, 1);
+  assert.equal(pin.version, 2);
   assert.deepEqual(pin.projection.schema, ref('ModelsListResponse'));
   assert.deepEqual(pin.projection.definitions.ModelsListResponse.required, [
     'data',
@@ -314,7 +314,7 @@ test('missing or malformed response source containers expose fixed errors', () =
 test('invalid pin envelope, provenance, dates, hashes and stale versions reject', () => {
   for (const patch of [
     { version: 0 },
-    { version: 2 },
+    { version: 1 },
     { source: 'https://example.invalid/private' },
     { retrievedAt: '2026-02-30' },
     { sourceSha256: 'private' },

@@ -116,6 +116,17 @@ async function controlledLive(mode: string) {
       schemas.ChatContentImage.properties.image_url.properties.url = { type: 'integer' };
     if (mode === 'content-union-drift')
       schemas.ChatContentItems.discriminator.mapping.image_url = '#/components/schemas/NewImage';
+    if (mode === 'alignment-drift') schemas.ChatResult.properties.alignment = { type: 'boolean' };
+    if (mode === 'safeguard-drift')
+      schemas.ChatStreamChunk.properties.safeguard_results.items = {
+        $ref: '#/components/schemas/ChangedSafeguard',
+      };
+    if (mode === 'defer-loading-drift')
+      schemas.ChatFunctionTool.anyOf[0].properties.function.properties.defer_loading = {
+        type: 'string',
+      };
+    if (mode === 'legacy-nullable-drift')
+      schemas.DefaultParameters.properties.temperature.nullable = true;
     if (mode === 'response-drift' || mode === 'all-drift')
       schemas.Model.properties.context_length = { type: 'string' };
     if (mode === 'count-query-drift' || mode === 'all-drift')
@@ -124,8 +135,9 @@ async function controlledLive(mode: string) {
       schemas.ModelsCountResponse.properties.data.properties.count.type = 'number';
     if (mode === 'invalid-model-pin') modelPin.version = 0;
     if (mode === 'invalid-chat-pin') chatPin.version = 0;
-    if (mode === 'stale-chat-pin') chatPin.version = 30;
+    if (mode === 'stale-chat-pin') chatPin.version = 31;
     if (mode === 'invalid-response-pin') responsePin.version = 0;
+    if (mode === 'stale-response-pin') responsePin.version = 1;
     if (mode === 'invalid-count-pin') countPin.version = 0;
     if (mode === 'invalid-model-source') source.paths['/models'].get.parameters = [];
     if (mode === 'invalid-response-source') delete schemas.Model;
@@ -137,7 +149,8 @@ async function controlledLive(mode: string) {
     const pins = [...originals];
     if (mode === 'invalid-model-pin') pins[1] = JSON.stringify(modelPin);
     if (mode === 'invalid-chat-pin' || mode === 'stale-chat-pin') pins[0] = JSON.stringify(chatPin);
-    if (mode === 'invalid-response-pin') pins[2] = JSON.stringify(responsePin);
+    if (mode === 'invalid-response-pin' || mode === 'stale-response-pin')
+      pins[2] = JSON.stringify(responsePin);
     if (mode === 'invalid-count-pin') pins[3] = JSON.stringify(countPin);
     for (let i = 0; i < pinNames.length; i++) {
       const name = pinNames[i];
@@ -207,6 +220,10 @@ for (const mode of [
   'all-drift',
   'image-drift',
   'content-union-drift',
+  'alignment-drift',
+  'safeguard-drift',
+  'defer-loading-drift',
+  'legacy-nullable-drift',
   'count-query-drift',
   'count-response-drift',
 ])
@@ -220,9 +237,12 @@ for (const mode of [
       'all-drift',
       'image-drift',
       'content-union-drift',
+      'alignment-drift',
+      'safeguard-drift',
+      'defer-loading-drift',
     ].includes(mode);
     const modelDrift = ['model-drift', 'both-drift', 'all-drift'].includes(mode);
-    const responseDrift = ['response-drift', 'all-drift'].includes(mode);
+    const responseDrift = ['response-drift', 'all-drift', 'legacy-nullable-drift'].includes(mode);
     const countDrift = ['count-query-drift', 'count-response-drift', 'all-drift'].includes(mode);
     assert.equal(
       result.stdout,
@@ -244,6 +264,7 @@ for (const mode of [
   'invalid-chat-pin',
   'invalid-response-pin',
   'stale-chat-pin',
+  'stale-response-pin',
   'invalid-count-pin',
 ])
   test(`live ${mode} rejects before fetching or reporting success`, async () => {

@@ -1,5 +1,17 @@
 # Official schema drift contract
 
+## Reviewed source additions (version 32, #509)
+
+Request pin v32 retains every v31 selected target, field and normalization rule. It records optional ChatResult.alignment as a reference to Alignment, optional ChatStreamChunk.alignment as allOf containing that reference and an empty schema, and optional safeguard_results arrays referencing ArmorSafeguardResult on both response objects. The first ChatFunctionTool.anyOf branch adds optional non-null boolean defer_loading at both the declaration root and nested function object. Required lists, all other alternatives and all prior selections remain unchanged.
+
+Alignment was inspected as an object requiring calls and referencing AlignmentCallRecord; ArmorSafeguardResult was inspected as an object requiring type/status with nested per-tool outcomes. Their bodies are deliberately not added to the fixed selection: changed references are detected, but changes solely inside these targets remain outside detection, as do other unselected server-tool definitions. No automatic traversal, remote retrieval, alignment plugin, safeguard response mapping or deferred-tool runtime support follows from recording the source additions. Full #116 remains open.
+
+Reversing exactly these six additions reproduces the entire v31 projection digest 0bf32d91e86d7c0cbb41042133f781ce3b6bb299bef2396a41a8a9d920a069e2. Historical migration digests continue through that reviewed reconstruction. Exact independent shape, optionality/type/reference drift and stale-v31 tests apply. Controlled CLI cases preserve every pin and report the affected subset without private source data; invalid pins reject before download.
+
+Official source retrieved 2026-10-18: canonical source SHA-256 e14bcc1e02453bff8807cc79d03170ce7d229a9d0836e253ff49b764b8aa811d; v32 projection SHA-256 03612bdd85051a62e6862d3f06ac92ab62ba02f5a8be90ef5660f6bef743dc7e. The separately reviewed model-response v2 change is documented in [its contract](model-response-schema.md). Query/count pins, runtime routes, IAM, secrets, audit, limits and usage are unchanged. See [plan](../docs/plans/509-reviewed-schema-drift.md).
+
+## Earlier reviewed selections
+
 The pin records source URL, retrieval date, canonical source SHA-256 and a canonical structural projection SHA-256. Source: [official OpenRouter OpenAPI](https://openrouter.ai/openapi.json), retrieved 2026-10-05 for version 28. The snapshot contains selected schema constraints, with examples/descriptions and other annotations removed.
 
 The offline gate validates provenance shape and projection integrity. `npm run compatibility:drift` explicitly fetches only the official HTTPS URL, rejects redirects, bounds time/body size and compares selected chat request and response definitions. It neither changes the pin nor sends credentials or inference calls. Failures expose fixed messages, not downloaded content or transport errors.

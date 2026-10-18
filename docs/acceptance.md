@@ -79,6 +79,10 @@ Verify raw/installed OpenRouter SDK default text, text/image union, explicit all
 
 Verify independently specified query/envelope/nested-count shapes and exact provenance against the new fourth pin. Detect operation, parameter serialization/type/default/bounds/nullability, required lists, references, nested count and literal/extension changes while ignoring editorial and unselected data. Malformed/missing/duplicate/inherited parameters, response/definition containers, excessive depth and invalid/rehashed pin envelopes fail privately. Offline CLI reports four integrity results; controlled live tests verify count-only/simultaneous drift, all pins before fetch, one fixed credential-free download, atomic failure output and unchanged bytes. Existing runtime count/discovery and previous pins remain covered. See [plan](plans/508-model-count-schema.md) and [contract](../contracts/model-count-schema.md).
 
+## Reviewed source drift (#509)
+
+The request v32 and model-response v2 pins must match reviewed official structures without broad normalization changes. Assert exact new optional fields, both deferred-tool booleans, seven retained nullable type arrays, stale-version rejection and reconstructed prior projection digests. Controlled CLI probes must report only the changed subset, download once without credentials, reject stale pins before download and preserve all pin bytes. New target bodies remain explicitly unselected; no runtime field support or complete compatibility is inferred. See [plan](plans/509-reviewed-schema-drift.md) and [contracts](../contracts/openrouter-schema-drift.md).
+
 ## Harness connection
 
 The PostgreSQL migration runner applies versions `001` through `008` in order, records their checksums, and skips unchanged history on a second run. It refuses edited, missing, duplicate, skipped, and out-of-order versions before applying new SQL. A failing migration leaves neither its schema changes nor its history row, and driver errors expose no SQL text. Deployment connection provisioning and concurrent migrator coordination remain separate release work.

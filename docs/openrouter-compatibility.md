@@ -2,6 +2,10 @@
 
 Tracking issue: [#116](https://github.com/Theorvane/OpenGranter/issues/116).
 
+## Reviewed official source drift (#509)
+
+Request pin v32 records new optional alignment/safeguard response references and both optional boolean defer_loading declarations. Model-response pin v2 removes only seven legacy nullable:true markers while retaining explicit nullable number/integer arrays. Independent shapes, old-version rejection, exact prior-digest reconstruction and controlled CLI drift cases cover the refresh; query/count pins remain unchanged. Alignment/AlignmentCallRecord/ArmorSafeguardResult bodies were inspected but remain outside the fixed target selection. Structural tracking does not implement these runtime fields or plugins, certify safeguards or change IAM/audit/usage. Full #116 and unresolved #7 remain open. See [plan](plans/509-reviewed-schema-drift.md), [chat contract](../contracts/openrouter-schema-drift.md) and [response contract](../contracts/model-response-schema.md).
+
 ## Product requirement and release gate
 
 The contributor requires external tools to register and use OpenGranter with OpenRouter-compatible model APIs. Compatibility is a release requirement, covering client registration, discovery, request/response formats, streaming and tool-call workflows across approved delegated and managed destinations. Each supported operation must preserve authentication, IAM, limits, metadata audit and usage accounting. Never declare complete compatibility from a successful text-chat demo.

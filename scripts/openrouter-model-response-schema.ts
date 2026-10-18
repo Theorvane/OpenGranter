@@ -137,7 +137,7 @@ export function validateModelResponseSchemaPin(value: unknown): {
         'projectionSha256',
         'projection',
       ]) ||
-      data.version !== 1 ||
+      data.version !== 2 ||
       data.source !== OFFICIAL_SCHEMA_URL ||
       typeof data.retrievedAt !== 'string' ||
       !/^\d{4}-\d{2}-\d{2}$/.test(data.retrievedAt) ||
