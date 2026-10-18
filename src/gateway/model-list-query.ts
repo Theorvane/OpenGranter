@@ -1,3 +1,5 @@
+import { comparePriceDecimals } from './model-price-order.ts';
+
 export type BenchmarkSort =
   | 'intelligence-high-to-low'
   | 'coding-high-to-low'
@@ -29,7 +31,20 @@ export interface ModelListQuery {
   readonly searchText?: string;
   readonly sortOrder?: ModelListSort;
   readonly benchmarkRanges?: readonly BenchmarkRange[];
+  readonly priceRanges?: readonly ModelPriceRange[];
 }
+
+export interface ModelPriceRange {
+  readonly price: 'prompt' | 'completion';
+  readonly minimum?: string;
+  readonly maximum?: string;
+}
+
+const priceFields = [
+  { price: 'prompt', minimum: 'min_price', maximum: 'max_price' },
+  { price: 'completion', minimum: 'min_output_price', maximum: 'max_output_price' },
+] as const;
+const priceBoundNames = priceFields.flatMap((field) => [field.minimum, field.maximum]);
 
 interface BenchmarkRange {
   readonly index: 'intelligence_index' | 'coding_index' | 'agentic_index';
@@ -89,7 +104,7 @@ export function parseModelListQuery(url: URL, compatible: boolean): ModelListQue
         })
       )
         return undefined;
-    } else if (benchmarkBoundNames.includes(key)) {
+    } else if (priceBoundNames.some((name) => name === key) || benchmarkBoundNames.includes(key)) {
       if (
         value.length > 128 ||
         !/^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$/u.test(value) ||
@@ -123,6 +138,21 @@ export function parseModelListQuery(url: URL, compatible: boolean): ModelListQue
   const searchText = params.get('q');
   const sortOrder = params.get('sort');
   const benchmarkRanges: BenchmarkRange[] = [];
+  const priceRanges: ModelPriceRange[] = [];
+  for (const field of priceFields) {
+    const minimum = params.get(field.minimum);
+    const maximum = params.get(field.maximum);
+    if (minimum === null && maximum === null) continue;
+    if (minimum !== null && maximum !== null && comparePriceDecimals(minimum, maximum) > 0)
+      return undefined;
+    priceRanges.push(
+      Object.freeze({
+        price: field.price,
+        ...(minimum === null ? {} : { minimum }),
+        ...(maximum === null ? {} : { maximum }),
+      }),
+    );
+  }
   for (const index of benchmarkIndices) {
     const min = params.get(`min_${index}`);
     const max = params.get(`max_${index}`);
@@ -152,6 +182,7 @@ export function parseModelListQuery(url: URL, compatible: boolean): ModelListQue
     ...(searchText === null ? {} : { searchText }),
     ...(isSortOrder(sortOrder) ? { sortOrder } : {}),
     ...(benchmarkRanges.length === 0 ? {} : { benchmarkRanges: Object.freeze(benchmarkRanges) }),
+    ...(priceRanges.length === 0 ? {} : { priceRanges: Object.freeze(priceRanges) }),
   };
 }
 
@@ -179,6 +210,12 @@ export function modelListContinuation(query: ModelListQuery, offset: number): st
   for (const range of query.benchmarkRanges ?? []) {
     if (range.minimum !== undefined) params.set(`min_${range.index}`, String(range.minimum));
     if (range.maximum !== undefined) params.set(`max_${range.index}`, String(range.maximum));
+  }
+  for (const range of query.priceRanges ?? []) {
+    const field = priceFields.find((field) => field.price === range.price);
+    if (field === undefined) continue;
+    if (range.minimum !== undefined) params.set(field.minimum, range.minimum);
+    if (range.maximum !== undefined) params.set(field.maximum, range.maximum);
   }
   return `/api/v1/models?${params}`;
 }

@@ -104,7 +104,7 @@ import {
   parseModelCountQuery,
   parseModelListQuery,
 } from './model-list-query.ts';
-import { createModelPriceComparator } from './model-price-order.ts';
+import { createModelPriceComparator, createModelPriceRangeMatcher } from './model-price-order.ts';
 import { chatContentText, validatePromptCacheHistory } from './prompt-cache-parts.ts';
 import {
   type ReasoningConfiguration,
@@ -1024,9 +1024,14 @@ export function createChatHandler<T>(
           ),
       );
       const search = query.searchText?.toLowerCase();
+      const matchesPrice =
+        query.priceRanges === undefined
+          ? undefined
+          : createModelPriceRangeMatcher(query.priceRanges);
       const visible = authorized.filter((model) => {
         const published = metadata.get(model);
         return (
+          (matchesPrice === undefined || matchesPrice(published)) &&
           (query.benchmarkRanges === undefined ||
             query.benchmarkRanges.every((range) => {
               const score = published?.benchmarks?.artificial_analysis?.[range.index];

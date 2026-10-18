@@ -1,32 +1,28 @@
-import type {
-  OpenRouterModelMetadata,
-  OpenRouterModelPricing,
-} from './model-discovery-metadata.ts';
-import type { PriceSort } from './model-list-query.ts';
+import type { OpenRouterModelMetadata } from './model-discovery-metadata.ts';
+import type { ModelPriceRange, PriceSort } from './model-list-query.ts';
 
 interface DecimalDigit {
   readonly power: bigint;
   readonly value: number;
 }
 
-function addPriceDigits(digits: Map<bigint, number>, price: string): void {
+function addPriceDigits(digits: Map<bigint, number>, price: string, powerShift: bigint): void {
   const exponentIndex = price.search(/[eE]/u);
   const mantissa = exponentIndex < 0 ? price : price.slice(0, exponentIndex);
   const exponent = exponentIndex < 0 ? 0n : BigInt(price.slice(exponentIndex + 1));
   const point = mantissa.indexOf('.');
   const fractionLength = point < 0 ? 0 : mantissa.length - point - 1;
   const coefficient = mantissa.replace('.', '');
-  let power = exponent - BigInt(fractionLength);
+  let power = exponent - BigInt(fractionLength) + powerShift;
   for (let index = coefficient.length - 1; index >= 0; index--, power++) {
     const value = coefficient.charCodeAt(index) - 48;
     if (value !== 0) digits.set(power, (digits.get(power) ?? 0) + value);
   }
 }
 
-function summedPriceDigits(pricing: OpenRouterModelPricing): readonly DecimalDigit[] {
+function priceDigits(prices: readonly string[], powerShift = 0n): readonly DecimalDigit[] {
   const digits = new Map<bigint, number>();
-  addPriceDigits(digits, pricing.prompt);
-  addPriceDigits(digits, pricing.completion);
+  for (const price of prices) addPriceDigits(digits, price, powerShift);
   const powers = [...digits.keys()].sort((left, right) => (left < right ? -1 : 1));
   for (const power of powers) {
     const value = digits.get(power) ?? 0;
@@ -53,12 +49,35 @@ function compareDigits(left: readonly DecimalDigit[], right: readonly DecimalDig
   return 0;
 }
 
+/** Inputs have already passed the bounded nonnegative decimal syntax boundary. */
+export function comparePriceDecimals(left: string, right: string): number {
+  return compareDigits(priceDigits([left]), priceDigits([right]));
+}
+
+export function createModelPriceRangeMatcher(ranges: readonly ModelPriceRange[]) {
+  const bounds = ranges.map((range) => ({
+    price: range.price,
+    minimum: range.minimum === undefined ? undefined : priceDigits([range.minimum], -6n),
+    maximum: range.maximum === undefined ? undefined : priceDigits([range.maximum], -6n),
+  }));
+  return (metadata: OpenRouterModelMetadata | undefined): boolean => {
+    if (metadata === undefined) return false;
+    return bounds.every((bound) => {
+      const value = priceDigits([metadata.pricing[bound.price]]);
+      return (
+        (bound.minimum === undefined || compareDigits(value, bound.minimum) >= 0) &&
+        (bound.maximum === undefined || compareDigits(value, bound.maximum) <= 0)
+      );
+    });
+  };
+}
+
 export function createModelPriceComparator(sort: PriceSort) {
   const cache = new WeakMap<OpenRouterModelMetadata, readonly DecimalDigit[]>();
   function key(metadata: OpenRouterModelMetadata): readonly DecimalDigit[] {
     let digits = cache.get(metadata);
     if (digits === undefined) {
-      digits = summedPriceDigits(metadata.pricing);
+      digits = priceDigits([metadata.pricing.prompt, metadata.pricing.completion]);
       cache.set(metadata, digits);
     }
     return digits;

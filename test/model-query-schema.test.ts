@@ -15,6 +15,7 @@ const pin = JSON.parse(
     'utf8',
   ),
 );
+const pinV3Digest = 'd985275c9d19ea77b69ce525117e05c6c0dd62ccfba807abff15725268bec77a';
 const shapes: Record<string, Record<string, unknown>> = {
   offset: { default: 0, minimum: 0, nullable: false, type: ['integer', 'null'] },
   limit: { default: 500, maximum: 1000, minimum: 1, type: 'integer' },
@@ -29,6 +30,10 @@ const shapes: Record<string, Record<string, unknown>> = {
   max_coding_index: { minimum: 0, type: ['number', 'null'] },
   min_agentic_index: { minimum: 0, type: ['number', 'null'] },
   max_agentic_index: { minimum: 0, type: ['number', 'null'] },
+  min_price: { minimum: 0, type: ['number', 'null'] },
+  max_price: { minimum: 0, type: ['number', 'null'] },
+  min_output_price: { minimum: 0, type: ['number', 'null'] },
+  max_output_price: { minimum: 0, type: ['number', 'null'] },
   sort: {
     type: 'string',
     enum: [
@@ -107,7 +112,7 @@ test('model-query pin reflects independent official inline shapes without prose 
       ]),
     ),
   });
-  assert.equal(pin.version, 3);
+  assert.equal(pin.version, 4);
   assert.deepEqual(validateModelQuerySchemaPin(pin).projection, p);
   assert.equal(compareOfficialModelQuerySchema(source(), pin), true);
 });
@@ -145,6 +150,11 @@ for (const index of ['intelligence', 'coding', 'agentic'])
     changes.push([`${field} nullability`, field, 'type', 'number']);
     changes.push([`${field} default`, field, 'default', 0]);
   }
+for (const field of ['min_price', 'max_price', 'min_output_price', 'max_output_price']) {
+  changes.push([`${field} lower bound`, field, 'minimum', 1]);
+  changes.push([`${field} nullability`, field, 'type', 'number']);
+  changes.push([`${field} default`, field, 'default', 0]);
+}
 for (const [name, field, key, value] of changes)
   test(`selected ${name} detects model-query structural drift`, () => {
     const data = source();
@@ -173,8 +183,22 @@ test('removing the fresh offset nullable marker is structural drift', () => {
   Reflect.deleteProperty(parameter(data, 'offset').schema, 'nullable');
   assert.equal(compareOfficialModelQuerySchema(data, pin), false);
 });
+function reviewedVersion3Projection() {
+  const p = structuredClone(pin.projection);
+  for (const name of ['min_price', 'max_price', 'min_output_price', 'max_output_price'])
+    delete p.parameters[name];
+  return p;
+}
+
+test('removing four price parameters reproduces the complete reviewed v3 digest', () => {
+  assert.equal(
+    createHash('sha256').update(canonicalSchema(reviewedVersion3Projection())).digest('hex'),
+    pinV3Digest,
+  );
+});
+
 test('removing v3 additions reconstructs the exact v2 projection digest', () => {
-  const previous = structuredClone(pin.projection);
+  const previous = reviewedVersion3Projection();
   for (const index of ['intelligence', 'coding', 'agentic'])
     for (const side of ['min', 'max']) delete previous.parameters[`${side}_${index}_index`];
   delete previous.parameters.offset.schema.nullable;
@@ -289,6 +313,7 @@ test('model-query pin rejects invalid envelope provenance/digests/version withou
     { version: 0 },
     { version: 1 },
     { version: 2 },
+    { version: 3 },
     { source: 'https://example.invalid/private' },
     { retrievedAt: '2026-02-30' },
     { sourceSha256: 'private source' },
@@ -359,7 +384,7 @@ test('model-query vendor extension objects keep annotation-named literal data st
 });
 
 test('removing v3 and v2 additions reproduces the reviewed version1 projection digest', () => {
-  const p = structuredClone(pin.projection);
+  const p = reviewedVersion3Projection();
   for (const index of ['intelligence', 'coding', 'agentic'])
     for (const side of ['min', 'max']) delete p.parameters[`${side}_${index}_index`];
   delete p.parameters.offset.schema.nullable;

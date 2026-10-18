@@ -83,6 +83,10 @@ Verify independently specified query/envelope/nested-count shapes and exact prov
 
 The request v32 and model-response v2 pins must match reviewed official structures without broad normalization changes. Assert exact new optional fields, both deferred-tool booleans, seven retained nullable type arrays, stale-version rejection and reconstructed prior projection digests. Controlled CLI probes must report only the changed subset, download once without credentials, reject stale pins before download and preserve all pin bytes. New target bodies remain explicitly unselected; no runtime field support or complete compatibility is inferred. See [plan](plans/509-reviewed-schema-drift.md) and [contracts](../contracts/openrouter-schema-drift.md).
 
+## Exact discovery price ranges (#512)
+
+Verify raw and installed SDK four-field filters, inclusive/one-sided/zero bounds, exact per-million conversion, high precision/underflow/huge exponents, ignored discounts/overrides and missing-price exclusion. Use an independent bounded integer oracle. Verify combined filters/sorting, original spelling in relative continuations, fresh catalog/model/provider IAM, hidden malformed data, auth-before-query/catalog, private required failures and immutable audit-time snapshots. Count/legacy queries reject price bounds. Query v4 exact shapes, stale/maps/structural drift and historical projection digests must pass; all other pins remain unchanged. See [plan](plans/512-model-price-ranges.md) and [contract](../contracts/model-price-ranges.md).
+
 ## Harness connection
 
 The PostgreSQL migration runner applies versions `001` through `008` in order, records their checksums, and skips unchanged history on a second run. It refuses edited, missing, duplicate, skipped, and out-of-order versions before applying new SQL. A failing migration leaves neither its schema changes nor its history row, and driver errors expose no SQL text. Deployment connection provisioning and concurrent migrator coordination remain separate release work.

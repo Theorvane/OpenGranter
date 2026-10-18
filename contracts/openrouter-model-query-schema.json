@@ -1,9 +1,9 @@
 {
-  "version": 3,
+  "version": 4,
   "source": "https://openrouter.ai/openapi.json",
   "retrievedAt": "2026-10-18",
   "sourceSha256": "e14bcc1e02453bff8807cc79d03170ce7d229a9d0836e253ff49b764b8aa811d",
-  "projectionSha256": "d985275c9d19ea77b69ce525117e05c6c0dd62ccfba807abff15725268bec77a",
+  "projectionSha256": "aa9f1298d0c56d6d786499f859c3ee9062b2bc01407e2c9926bff1e85921ff62",
   "projection": {
     "openapi": "3.1.0",
     "documentVersion": "1.0.0",
@@ -163,6 +163,54 @@
       "max_agentic_index": {
         "in": "query",
         "name": "max_agentic_index",
+        "required": false,
+        "schema": {
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "min_price": {
+        "in": "query",
+        "name": "min_price",
+        "required": false,
+        "schema": {
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "max_price": {
+        "in": "query",
+        "name": "max_price",
+        "required": false,
+        "schema": {
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "min_output_price": {
+        "in": "query",
+        "name": "min_output_price",
+        "required": false,
+        "schema": {
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "max_output_price": {
+        "in": "query",
+        "name": "max_output_price",
         "required": false,
         "schema": {
           "minimum": 0,
