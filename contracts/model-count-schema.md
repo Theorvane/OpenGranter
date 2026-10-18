@@ -1,0 +1,15 @@
+# Official model count structural drift
+
+A separate version1 pin selects GET /models/count OpenAPI/document identity, operationId:listModelsCount, the complete inline output_modalities query parameter, HTTP200 application/json response schema and complete ModelsCountResponse component definition. Preserve required lists, nullable/type/reference/default/bounds/serialization/extension shapes and nested data.count integer structure. Do not add the runtime text default, modality vocabulary, nonnegative safe-integer count constraints or IAM rules to the official schema.
+
+Read inline operation parameters; reject malformed containers, missing/duplicate supported parameter names, wrong locations, parameter references/content instead of schema and selected-name inherited parameters. Leave unrelated inherited references unselected and unresolved. Keep exact projection/envelope/parameter/definition maps, version/source URL/date and canonical source/projection digests. Offline integrity rejects stale/invalid provenance and rehashed malformed maps/identities, but cannot independently authenticate the source digest without its source.
+
+Use the shared structural normalizer: discard editorial annotations while preserving annotation-named schema properties and literal default/const/enum/vendor-extension data. Normalize object/parameter order, retain schema array order, and compare selected structural changes. A changed reference is structural; unselected target bodies and new references are not automatically traversed or fetched.
+
+Offline and explicit live compatibility commands validate all four pins before one optional fixed official HTTPS download. Reuse credential omission, redirect rejection, bounded time/body and private errors. Compute all comparisons before emitting success; malformed count input withholds every success line. Valid count drift reports its own nonzero failure independently of other subsets. Never rewrite any pin. Existing three pins and runtime/model-count/audit/IAM behavior remain unchanged.
+
+This is partial source-change detection, not instance, authentication, live capability or full compatibility certification. Other statuses/media/headers/endpoints and unselected reference bodies remain outside detection. See [plan](../docs/plans/508-model-count-schema.md) and [runtime contract](model-count.md). Full #116 and unresolved #7 remain open. Source: [official OpenAPI](https://openrouter.ai/openapi.json), retrieved 2026-10-18.
+
+Canonical source SHA-256: e14bcc1e02453bff8807cc79d03170ce7d229a9d0836e253ff49b764b8aa811d. Canonical count projection SHA-256: 12ebf1d530d80407d91f9b7cf42a8de8e4a5c9fe5095657c0415c758bc5aec38. Existing request/query/response pins retain their bytes and provenance.
+
+The real 2026-10-18 live CLI reports count and model-query unchanged, with existing request/model-response drift recorded in [#509](https://github.com/Theorvane/OpenGranter/issues/509). That expected nonzero overall result remains visible; this contract closes only the count-specific guard gap.
