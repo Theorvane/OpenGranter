@@ -377,7 +377,19 @@ export function snapshotOpenRouterMetadata(value: unknown): OpenRouterModelMetad
     const perRequestLimits = source.per_request_limits;
     const links = object(source.links, ['details']);
     const details = text(links.details, 2048);
-    const url = new URL(details);
+    const relative = details.startsWith('/');
+    const linkOrigin = 'https://metadata.opengranter.invalid';
+    if (
+      relative &&
+      (details.startsWith('//') ||
+        Array.from(details).some((character) => {
+          const code = character.charCodeAt(0);
+          return character === '\\' || code <= 32 || (code >= 127 && code <= 159);
+        }))
+    )
+      invalid();
+    const url = new URL(details, relative ? linkOrigin : undefined);
+    if (relative && url.origin !== linkOrigin) invalid();
     if (url.protocol !== 'https:' || url.username || url.password) invalid();
     const limits =
       perRequestLimits === null
