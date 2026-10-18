@@ -1252,3 +1252,7 @@ The compatible query parser accepts four selected benchmark sort literals alread
 ## Exact price discovery ordering (#500)
 
 Build request-local sum keys from the two validated bounded base-price strings. Sparse decimal digits use BigInt powers, normalize carries in ascending power order and compare nonzero digits lexicographically from highest power. Work/storage depends on string length, including astronomically distant negative exponents; no exponent-sized power/zero expansion or floating-point money operation is needed. A comparator caches keys only for immutable captured metadata within one request, handles missing data before direction and sorts the authorized filtered copy before paging. No billing, conditional price application, provider ranking, schema or pin change follows. See [plan](plans/500-model-price-sort.md) and [contract](../contracts/model-price-order.md).
+
+## Model details link capture (#504)
+
+The shared metadata boundary validates root-relative detail strings using a fixed synthetic HTTPS origin, rejecting network authorities, backslashes and raw whitespace/control characters before preserving the original string. It does not use request host/forwarding headers or access the network. Absolute HTTPS credential checks and the 2,048-unit cap remain unchanged. HTTP and PostgreSQL list/route readers share the frozen snapshot; links add no routes, destinations or permissions. All source pins and migrations remain unchanged. See [plan](plans/504-relative-model-links.md) and [contract](../contracts/model-details-links.md).

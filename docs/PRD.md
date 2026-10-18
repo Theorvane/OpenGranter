@@ -1039,3 +1039,7 @@ GET /api/v1/models supports descending intelligence, coding and agentic Artifici
 ## Exact base-price discovery ordering (#500)
 
 GET /api/v1/models accepts pricing-low-to-high and pricing-high-to-low by the exact equally weighted prompt/completion base-price mean. Known zero remains known, missing metadata is last in both directions and equal sums preserve catalog order. Retain original decimal strings and all existing query/IAM/paging/private-audit gates. Discounts, conditional overrides, optional charges, actual request token mix, price fetching and billed-cost calculation are outside this ordering. Existing sorts, legacy queries, storage and source pins retain their behavior. See [plan](plans/500-model-price-sort.md) and [contract](../contracts/model-price-order.md).
+
+## Root-relative model details links (#504)
+
+Compatible rich model discovery and persisted metadata accept safe root-relative links.details values in addition to existing credential-free absolute HTTPS links. Preserve original text and shared model/provider IAM, full-catalog validation and required private audit. Do not fetch/follow links or infer that the referenced endpoint exists. See [plan](plans/504-relative-model-links.md) and [contract](../contracts/model-details-links.md).
