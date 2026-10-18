@@ -1,0 +1,9 @@
+# Private model discovery caching
+
+Recognized paths /v1/models, /api/v1/models, /api/v1/models/count and /api/v1/model/* emit Cache-Control: no-store. This includes successful/empty results, filtered pages and continuations, malformed queries/aliases, unsupported methods, not-found results, authentication errors, whole-catalog faults and required-audit failures. The directive does not authorize an unsupported path or method. Neighboring paths retain existing behavior.
+
+Fetch gateway responses retain their existing body, status, request ID and content-free error format. The Node socket bridge enforces the same directive on recognized paths after copying response headers, including an immutable/custom response with a conflicting cache directive and the generic or configured pre-header fallback. Generic fallback still has no fabricated request ID. Responses already sent cannot be replaced; existing connection destruction/cancellation semantics remain in effect.
+
+Each request and continuation still authenticates, validates/captures the whole catalog, evaluates enabled model AND final-provider IAM with explicit Deny precedence and completes required private audit. Conditional request headers do not bypass these gates or produce 304. No cache keys, validators, upstream inference, secret resolution, limits, accounting or persistence changes are introduced. Model/count payloads, exact single-model matching and SDK field mappings remain unchanged.
+
+Installed OpenRouter 1.4.18 and OpenAI 7.23.0 tests inspect actual HTTP headers and decoded results on managed/delegated catalogs with current policy changes. These are controlled local conformance tests, not live-provider certification. no-store directs compliant HTTP caches; it does not purge previously stored copies, erase SDK state or configure reverse proxies. Broader compatibility #116 and unresolved Jev #7 remain open. See [plan](../docs/plans/518-discovery-no-store.md).

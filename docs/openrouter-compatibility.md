@@ -1,5 +1,9 @@
 # OpenRouter external-client compatibility
 
+## Private model discovery responses (#518)
+
+Legacy/compatible listing, compatible count and exact model lookup now consistently emit Cache-Control: no-store on recognized paths, including errors and Node pre-header fallback. Installed OpenRouter1.4.18/OpenAI7.23.0 socket tests retain payload compatibility, current model/provider IAM, required private audit and fresh continuations. This is a local privacy guarantee for compliant HTTP caches; previous copies, client-internal state and proxy configuration remain external. Schema pins, routing and accounting are unchanged; complete compatibility #116 and unresolved #7 remain open. See [plan](plans/518-discovery-no-store.md) and [contract](../contracts/model-discovery-cache.md).
+
 Tracking issue: [#116](https://github.com/Theorvane/OpenGranter/issues/116).
 
 ## Single model source guard (#515)

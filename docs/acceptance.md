@@ -1,5 +1,12 @@
 # Acceptance and Verification Scenarios
 
+## Private model discovery caching (#518)
+
+- Both route kinds and both listing bases return no-store on full/filtered/paged/empty results; policy changes take effect on continuations and conditional request headers do not yield304 or skip audit.
+- Recognized listing/count/single-model paths retain no-store on invalid queries, unsupported methods, missing/inactive/unavailable authentication, malformed hidden catalog and required-audit errors. Preserve fixed private errors, attribution and denied-port ordering.
+- Actual Node sockets enforce no-store even for custom normal/fallback responses with conflicting public cache headers. Unrecognized neighbors and unrelated endpoint cache behavior remain unchanged. Installed OpenRouter/OpenAI SDKs decode responses and expose the expected HTTP headers.
+- Header compliance and deletion of previously stored copies are outside the gateway guarantee. See [plan](plans/518-discovery-no-store.md) and [contract](../contracts/model-discovery-cache.md).
+
 ## Policy evaluation
 
 - An active principal with no matching policy cannot invoke a model.

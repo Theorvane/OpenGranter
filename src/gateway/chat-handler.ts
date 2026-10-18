@@ -99,6 +99,7 @@ import {
   type OpenRouterModelMetadata,
   snapshotOpenRouterMetadata,
 } from './model-discovery-metadata.ts';
+import { isModelDiscoveryPath } from './model-discovery-path.ts';
 import {
   type ModelListQuery,
   modelListContinuation,
@@ -683,7 +684,7 @@ export function createChatHandler<T>(
     const singleModelPath = url.pathname.startsWith('/api/v1/model/');
     const errorResponse = (status: number, code: ClientErrorCode, id: string) => {
       const response = createClientErrorResponse(status, code, id, format);
-      if (singleModelPath) response.headers.set('cache-control', 'no-store');
+      if (isModelDiscoveryPath(url.pathname)) response.headers.set('cache-control', 'no-store');
       return response;
     };
     const chatRequest =
@@ -1160,7 +1161,7 @@ export function createChatHandler<T>(
           data,
           ...(format === 'openrouter' ? { total_count: visible.length, links: { next } } : {}),
         },
-        { status: 200, headers: { 'x-request-id': requestId } },
+        { status: 200, headers: { 'x-request-id': requestId, 'cache-control': 'no-store' } },
       );
     }
 
