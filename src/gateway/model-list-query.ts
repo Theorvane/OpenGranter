@@ -28,7 +28,16 @@ export interface ModelListQuery {
   readonly inputModalities?: readonly string[];
   readonly searchText?: string;
   readonly sortOrder?: ModelListSort;
+  readonly benchmarkRanges?: readonly BenchmarkRange[];
 }
+
+interface BenchmarkRange {
+  readonly index: 'intelligence_index' | 'coding_index' | 'agentic_index';
+  readonly minimum?: number;
+  readonly maximum?: number;
+}
+const benchmarkIndices = ['intelligence_index', 'coding_index', 'agentic_index'] as const;
+const benchmarkBoundNames = benchmarkIndices.flatMap((index) => [`min_${index}`, `max_${index}`]);
 
 const outputModalities = [
   'text',
@@ -80,6 +89,13 @@ export function parseModelListQuery(url: URL, compatible: boolean): ModelListQue
         })
       )
         return undefined;
+    } else if (benchmarkBoundNames.includes(key)) {
+      if (
+        value.length > 128 ||
+        !/^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$/u.test(value) ||
+        !Number.isFinite(Number(value))
+      )
+        return undefined;
     } else if (key === 'sort') {
       if (!isSortOrder(value)) return undefined;
     } else if (key === 'supported_parameters') {
@@ -106,6 +122,22 @@ export function parseModelListQuery(url: URL, compatible: boolean): ModelListQue
   const inputModality = params.get('input_modalities');
   const searchText = params.get('q');
   const sortOrder = params.get('sort');
+  const benchmarkRanges: BenchmarkRange[] = [];
+  for (const index of benchmarkIndices) {
+    const min = params.get(`min_${index}`);
+    const max = params.get(`max_${index}`);
+    if (min === null && max === null) continue;
+    const minimum = min === null ? undefined : Number(min);
+    const maximum = max === null ? undefined : Number(max);
+    if (minimum !== undefined && maximum !== undefined && minimum > maximum) return undefined;
+    benchmarkRanges.push(
+      Object.freeze({
+        index,
+        ...(minimum === undefined ? {} : { minimum }),
+        ...(maximum === undefined ? {} : { maximum }),
+      }),
+    );
+  }
   return {
     offset,
     ...(params.has('offset') || params.has('limit') ? { limit } : {}),
@@ -119,6 +151,7 @@ export function parseModelListQuery(url: URL, compatible: boolean): ModelListQue
     ...(inputModality === null ? {} : { inputModalities: Object.freeze(inputModality.split(',')) }),
     ...(searchText === null ? {} : { searchText }),
     ...(isSortOrder(sortOrder) ? { sortOrder } : {}),
+    ...(benchmarkRanges.length === 0 ? {} : { benchmarkRanges: Object.freeze(benchmarkRanges) }),
   };
 }
 
@@ -136,5 +169,9 @@ export function modelListContinuation(query: ModelListQuery, offset: number): st
     params.set('input_modalities', query.inputModalities.join(','));
   if (query.searchText !== undefined) params.set('q', query.searchText);
   if (query.sortOrder !== undefined) params.set('sort', query.sortOrder);
+  for (const range of query.benchmarkRanges ?? []) {
+    if (range.minimum !== undefined) params.set(`min_${range.index}`, String(range.minimum));
+    if (range.maximum !== undefined) params.set(`max_${range.index}`, String(range.maximum));
+  }
   return `/api/v1/models?${params}`;
 }

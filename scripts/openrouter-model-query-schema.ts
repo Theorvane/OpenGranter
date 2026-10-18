@@ -10,6 +10,12 @@ const PARAMETER_NAMES = [
   'input_modalities',
   'q',
   'sort',
+  'min_intelligence_index',
+  'max_intelligence_index',
+  'min_coding_index',
+  'max_coding_index',
+  'min_agentic_index',
+  'max_agentic_index',
 ] as const;
 
 export interface ModelQuerySchemaProjection {
@@ -139,7 +145,7 @@ export function validateModelQuerySchemaPin(value: unknown): {
         'projectionSha256',
         'projection',
       ]) ||
-      data.version !== 2 ||
+      data.version !== 3 ||
       data.source !== OFFICIAL_SCHEMA_URL ||
       typeof data.retrievedAt !== 'string' ||
       !/^\d{4}-\d{2}-\d{2}$/.test(data.retrievedAt) ||
