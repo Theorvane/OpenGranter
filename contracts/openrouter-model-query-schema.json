@@ -1,9 +1,9 @@
 {
-  "version": 2,
+  "version": 3,
   "source": "https://openrouter.ai/openapi.json",
-  "retrievedAt": "2026-10-06",
-  "sourceSha256": "0f220980d0c335ca4b4efd5684e1055f88eb84e73d4e34b0b9a859c9d2cf0458",
-  "projectionSha256": "f1a927b999855356c0507a31a3236deea64a6a7f3e1ca77b433cb5bf89e542d9",
+  "retrievedAt": "2026-10-18",
+  "sourceSha256": "e14bcc1e02453bff8807cc79d03170ce7d229a9d0836e253ff49b764b8aa811d",
+  "projectionSha256": "d985275c9d19ea77b69ce525117e05c6c0dd62ccfba807abff15725268bec77a",
   "projection": {
     "openapi": "3.1.0",
     "documentVersion": "1.0.0",
@@ -18,6 +18,7 @@
         "schema": {
           "default": 0,
           "minimum": 0,
+          "nullable": false,
           "type": [
             "integer",
             "null"
@@ -97,6 +98,78 @@
           ],
           "type": "string",
           "x-speakeasy-unknown-values": "allow"
+        }
+      },
+      "min_intelligence_index": {
+        "in": "query",
+        "name": "min_intelligence_index",
+        "required": false,
+        "schema": {
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "max_intelligence_index": {
+        "in": "query",
+        "name": "max_intelligence_index",
+        "required": false,
+        "schema": {
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "min_coding_index": {
+        "in": "query",
+        "name": "min_coding_index",
+        "required": false,
+        "schema": {
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "max_coding_index": {
+        "in": "query",
+        "name": "max_coding_index",
+        "required": false,
+        "schema": {
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "min_agentic_index": {
+        "in": "query",
+        "name": "min_agentic_index",
+        "required": false,
+        "schema": {
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "max_agentic_index": {
+        "in": "query",
+        "name": "max_agentic_index",
+        "required": false,
+        "schema": {
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
         }
       }
     }
