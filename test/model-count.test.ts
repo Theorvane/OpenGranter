@@ -93,7 +93,7 @@ test('count query rejects unsupported, malformed and duplicate fields before cat
 test('unsupported count paths and methods remain unavailable without catalog reads', async () => {
   const f = discoveryFixture(countCatalog());
   for (const [method, path] of [
-    ['GET', '/v1/models/count'],
+    ['GET', '/v1/models/count/extra'],
     ['POST', '/api/v1/models/count'],
     ['HEAD', '/api/v1/models/count'],
     ['GET', '/api/v1/models/count/'],

@@ -1,5 +1,7 @@
 # Private model discovery caching
 
+The [OpenAI retrieval extension](openai-model-retrieval.md) adds recognized single-parameter /v1/models/{model} and /api/v1/models/{model} paths to this same Fetch/Node no-store boundary. Literal nested paths remain unsupported, and the existing compatible count collection route keeps precedence. This supersedes the earlier treatment of /v1/models/count as an unrecognized neighbor: it is now a model read on the legacy base.
+
 Recognized paths /v1/models, /api/v1/models, /api/v1/models/count and /api/v1/model/* emit Cache-Control: no-store. This includes successful/empty results, filtered pages and continuations, malformed queries/aliases, unsupported methods, not-found results, authentication errors, whole-catalog faults and required-audit failures. The directive does not authorize an unsupported path or method. Neighboring paths retain existing behavior.
 
 Fetch gateway responses retain their existing body, status, request ID and content-free error format. The Node socket bridge enforces the same directive on recognized paths after copying response headers, including an immutable/custom response with a conflicting cache directive and the generic or configured pre-header fallback. Generic fallback still has no fabricated request ID. Responses already sent cannot be replaced; existing connection destruction/cancellation semantics remain in effect.
