@@ -1,5 +1,12 @@
 # Acceptance and Verification Scenarios
 
+## Proxy user model collection (#524)
+
+- Raw and installed OpenRouter SDK sockets cover both route kinds, text/default/all/any output matching, supported sorting, paging and fixed user-path continuation with fresh IAM and mandatory private audit.
+- The SDK's explicit bearer identifies the principal; different callers see different authorized aliases, and a query cannot select another principal. Invalid/auth/catalog/hidden-metadata/audit failures stay private and no-store before protected ports.
+- Capture rows/count/continuation before audit; retain existing sanitized models-listed history. Preserve regular/count/singular lookup and legacy OpenAI reads; reserve compatible user collection IDs and reject encoded alternate retrieval spellings.
+- Actual SDK all-output discovery with a basic row still fails its rich-model response validation; document this measured metadata provisioning gap and the separate upstream preference/privacy/region/source-conformance limits. See [plan](plans/524-user-model-discovery.md) and [contract](../contracts/user-model-discovery.md).
+
 ## OpenAI SDK model retrieval (#522)
 
 - Actual OpenAI7.23.0 sockets retrieve bare exact rich/basic listing rows on both bases and route kinds, including single-parameter slash/variant/Unicode IDs and fresh policy changes.

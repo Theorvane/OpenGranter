@@ -1,5 +1,7 @@
 # Private model discovery caching
 
+The exact [proxy user collection](user-model-discovery.md) at /api/v1/models/user shares this same Fetch/Node no-store boundary, including unsupported methods and generic/configured fallbacks. It is a reserved collection path rather than an OpenAI model parameter.
+
 The [OpenAI retrieval extension](openai-model-retrieval.md) adds recognized single-parameter /v1/models/{model} and /api/v1/models/{model} paths to this same Fetch/Node no-store boundary. Literal nested paths remain unsupported, and the existing compatible count collection route keeps precedence. This supersedes the earlier treatment of /v1/models/count as an unrecognized neighbor: it is now a model read on the legacy base.
 
 Recognized paths /v1/models, /api/v1/models, /api/v1/models/count and /api/v1/model/* emit Cache-Control: no-store. This includes successful/empty results, filtered pages and continuations, malformed queries/aliases, unsupported methods, not-found results, authentication errors, whole-catalog faults and required-audit failures. The directive does not authorize an unsupported path or method. Neighboring paths retain existing behavior.

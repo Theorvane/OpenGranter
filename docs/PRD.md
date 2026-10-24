@@ -1,5 +1,9 @@
 # OpenGranter Product Requirements
 
+## Proxy user model list (#524)
+
+Expose OpenRouter models.listForUser through /api/v1/models/user using the proxy principal's current model/final-provider IAM. Default to text, retain bounded output/sort/paging and fixed user-path continuations with fresh authorization and mandatory private audit per page. This local scope does not import upstream account preferences or privacy/region settings. Typed SDK rows still require published rich metadata. See [plan](plans/524-user-model-discovery.md) and [contract](../contracts/user-model-discovery.md).
+
 ## OpenAI SDK exact model retrieval (#522)
 
 Support models.retrieve(id) on both existing API bases with a bare model matching the exact authorized published alias's listing projection, including basic aliases. Preserve current model/provider IAM, whole-catalog capture, required private model-read audit and no-store. The compatible count collection path retains precedence; encoded single-parameter/local syntax restrictions are explicit. OpenRouter singular lookup remains wrapped and rich-only. See [plan](plans/522-openai-model-retrieval.md) and [contract](../contracts/openai-model-retrieval.md).
