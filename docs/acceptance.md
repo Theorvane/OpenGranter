@@ -1,5 +1,12 @@
 # Acceptance and Verification Scenarios
 
+## OpenAI SDK model retrieval (#522)
+
+- Actual OpenAI7.23.0 sockets retrieve bare exact rich/basic listing rows on both bases and route kinds, including single-parameter slash/variant/Unicode IDs and fresh policy changes.
+- Model/provider/implicit Deny and disabled/unpublished targets share private404 after required count0 audit; valid reads require count1. Full hidden-catalog validation, auth/query order, audit failures and mutation safety remain covered without inference/secret/limit/accounting access.
+- Invalid encoding, length, decoded components or queries reject privately after authentication; unsupported methods remain404/no-store. Literal nested paths are not retrieval parameters. Preserve the compatible count route/reserved-ID restriction, OpenRouter's wrapped rich-only get and all five structural pins.
+- Audit projection/history stay content-free; the Node cache boundary covers normal/error/fallback responses on the new paths. See [plan](plans/522-openai-model-retrieval.md) and [contract](../contracts/openai-model-retrieval.md).
+
 ## Private model discovery caching (#518)
 
 - Both route kinds and both listing bases return no-store on full/filtered/paged/empty results; policy changes take effect on continuations and conditional request headers do not yield304 or skip audit.
