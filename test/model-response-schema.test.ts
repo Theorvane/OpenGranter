@@ -148,7 +148,7 @@ test('response projection captures fixed operation, JSON success schema and exac
   });
   assert.equal(compareOfficialModelResponseSchema(s, baseline()), true);
   assert.deepEqual(validateModelResponseSchemaPin(pin).projection, pin.projection);
-  assert.equal(pin.version, 2);
+  assert.equal(pin.version, 3);
   assert.deepEqual(pin.projection.schema, ref('ModelsListResponse'));
   assert.deepEqual(pin.projection.definitions.ModelsListResponse.required, [
     'data',
@@ -315,6 +315,7 @@ test('invalid pin envelope, provenance, dates, hashes and stale versions reject'
   for (const patch of [
     { version: 0 },
     { version: 1 },
+    { version: 2 },
     { source: 'https://example.invalid/private' },
     { retrievedAt: '2026-02-30' },
     { sourceSha256: 'private' },

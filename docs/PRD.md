@@ -1,5 +1,9 @@
 # OpenGranter Product Requirements
 
+## Reviewed schema checkpoint (#526)
+
+Track the optional source breakpoint TTL field and reviewed nullable-marker changes with request/query/model-response pins v33/v5/v3. Retain previous selections, runtime restrictions and count/single pins unchanged. Source equality does not enable new runtime parameters or certify complete compatibility. See [plan](plans/526-reviewed-source-drift.md).
+
 ## Proxy user model list (#524)
 
 Expose OpenRouter models.listForUser through /api/v1/models/user using the proxy principal's current model/final-provider IAM. Default to text, retain bounded output/sort/paging and fixed user-path continuations with fresh authorization and mandatory private audit per page. This local scope does not import upstream account preferences or privacy/region settings. Typed SDK rows still require published rich metadata. See [plan](plans/524-user-model-discovery.md) and [contract](../contracts/user-model-discovery.md).

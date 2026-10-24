@@ -149,7 +149,7 @@ export function validateModelQuerySchemaPin(value: unknown): {
         'projectionSha256',
         'projection',
       ]) ||
-      data.version !== 4 ||
+      data.version !== 5 ||
       data.source !== OFFICIAL_SCHEMA_URL ||
       typeof data.retrievedAt !== 'string' ||
       !/^\d{4}-\d{2}-\d{2}$/.test(data.retrievedAt) ||

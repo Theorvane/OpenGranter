@@ -17,7 +17,7 @@ const pin = JSON.parse(
 );
 const pinV3Digest = 'd985275c9d19ea77b69ce525117e05c6c0dd62ccfba807abff15725268bec77a';
 const shapes: Record<string, Record<string, unknown>> = {
-  offset: { default: 0, minimum: 0, nullable: false, type: ['integer', 'null'] },
+  offset: { default: 0, minimum: 0, type: ['integer', 'null'] },
   limit: { default: 500, maximum: 1000, minimum: 1, type: 'integer' },
   output_modalities: { type: 'string' },
   supported_parameters: { type: 'string' },
@@ -112,7 +112,7 @@ test('model-query pin reflects independent official inline shapes without prose 
       ]),
     ),
   });
-  assert.equal(pin.version, 4);
+  assert.equal(pin.version, 5);
   assert.deepEqual(validateModelQuerySchemaPin(pin).projection, p);
   assert.equal(compareOfficialModelQuerySchema(source(), pin), true);
 });
@@ -178,13 +178,14 @@ test('explicit optional required removal remains a structural change', () => {
   Reflect.deleteProperty(parameter(data), 'required');
   assert.equal(compareOfficialModelQuerySchema(data, pin), false);
 });
-test('removing the fresh offset nullable marker is structural drift', () => {
+test('restoring the removed offset nullable marker is structural drift', () => {
   const data = source();
-  Reflect.deleteProperty(parameter(data, 'offset').schema, 'nullable');
+  Object.assign(parameter(data, 'offset').schema, { nullable: false });
   assert.equal(compareOfficialModelQuerySchema(data, pin), false);
 });
 function reviewedVersion3Projection() {
   const p = structuredClone(pin.projection);
+  p.parameters.offset.schema.nullable = false;
   for (const name of ['min_price', 'max_price', 'min_output_price', 'max_output_price'])
     delete p.parameters[name];
   return p;
