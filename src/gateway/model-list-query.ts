@@ -193,8 +193,21 @@ export function parseModelCountQuery(url: URL): ModelListQuery | undefined {
   return { ...query, outputModalities: query.outputModalities ?? Object.freeze(['text']) };
 }
 
+/** Proxy-user discovery has a narrow query surface and defaults to text output. */
+export function parseUserModelListQuery(url: URL): ModelListQuery | undefined {
+  for (const key of url.searchParams.keys())
+    if (!['offset', 'limit', 'output_modalities', 'sort'].includes(key)) return undefined;
+  const query = parseModelListQuery(url, true);
+  if (!query) return undefined;
+  return { ...query, outputModalities: query.outputModalities ?? Object.freeze(['text']) };
+}
+
 /** Continuations retain only validated filters and a fixed relative destination. */
-export function modelListContinuation(query: ModelListQuery, offset: number): string | null {
+export function modelListContinuation(
+  query: ModelListQuery,
+  offset: number,
+  path: '/api/v1/models' | '/api/v1/models/user' = '/api/v1/models',
+): string | null {
   if (query.limit === undefined) return null;
   const params = new URLSearchParams({ offset: String(offset), limit: String(query.limit) });
   if (query.outputModalities !== undefined)
@@ -217,5 +230,5 @@ export function modelListContinuation(query: ModelListQuery, offset: number): st
     if (range.minimum !== undefined) params.set(field.minimum, range.minimum);
     if (range.maximum !== undefined) params.set(field.maximum, range.maximum);
   }
-  return `/api/v1/models?${params}`;
+  return `${path}?${params}`;
 }

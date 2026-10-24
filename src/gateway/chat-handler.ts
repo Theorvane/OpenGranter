@@ -105,6 +105,7 @@ import {
   modelListContinuation,
   parseModelCountQuery,
   parseModelListQuery,
+  parseUserModelListQuery,
 } from './model-list-query.ts';
 import { createModelPriceComparator, createModelPriceRangeMatcher } from './model-price-order.ts';
 import { isOpenAIModelPath, parseOpenAIModelAlias } from './openai-model-query.ts';
@@ -696,6 +697,7 @@ export function createChatHandler<T>(
       request.method === 'GET' &&
       (url.pathname === '/v1/models' || url.pathname === '/api/v1/models');
     const modelCountRequest = request.method === 'GET' && url.pathname === '/api/v1/models/count';
+    const userModelListRequest = request.method === 'GET' && url.pathname === '/api/v1/models/user';
     const modelGetRequest = request.method === 'GET' && (singleModelPath || openAIModelPath);
     const usageListRequest = request.method === 'GET' && url.pathname === '/v1/usage';
     const auditListRequest = request.method === 'GET' && url.pathname === '/v1/audit';
@@ -703,6 +705,7 @@ export function createChatHandler<T>(
       !chatRequest &&
       !modelListRequest &&
       !modelCountRequest &&
+      !userModelListRequest &&
       !modelGetRequest &&
       !usageListRequest &&
       !auditListRequest
@@ -988,7 +991,7 @@ export function createChatHandler<T>(
       );
     }
 
-    if (modelListRequest || modelCountRequest || modelGetRequest) {
+    if (modelListRequest || modelCountRequest || userModelListRequest || modelGetRequest) {
       const requestedModelAlias = modelGetRequest
         ? openAIModelPath
           ? parseOpenAIModelAlias(url)
@@ -1000,7 +1003,9 @@ export function createChatHandler<T>(
           : { offset: 0 }
         : modelCountRequest
           ? parseModelCountQuery(url)
-          : parseModelListQuery(url, format === 'openrouter');
+          : userModelListRequest
+            ? parseUserModelListQuery(url)
+            : parseModelListQuery(url, format === 'openrouter');
       if (!query) {
         try {
           await ports.writeAudit({
@@ -1133,7 +1138,11 @@ export function createChatHandler<T>(
       const nextOffset = query.offset + data.length;
       const next =
         query.limit !== undefined && nextOffset < visible.length
-          ? modelListContinuation(query, nextOffset)
+          ? modelListContinuation(
+              query,
+              nextOffset,
+              userModelListRequest ? '/api/v1/models/user' : '/api/v1/models',
+            )
           : null;
       try {
         await ports.writeAudit({

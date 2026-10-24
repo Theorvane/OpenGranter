@@ -1,5 +1,9 @@
 # OpenRouter external-client compatibility
 
+## Proxy user model collection (#524)
+
+OpenRouter1.4.18 models.listForUser reaches /api/v1/models/user with explicit operation bearer, text output defaults and bounded output/sort/paging. Current proxy model/provider IAM, full catalog capture, per-page private audit and no-store remain shared; fixed relative continuations stay on the user route and reevaluate permissions. The compatible collection ID is reserved over OpenAI retrieval; legacy user alias reads remain available. Typed SDK rich-row validation still rejects explicit all when basic aliases are present. Upstream account preferences/privacy/regions, metadata provisioning, this operation's source pin and full #116 remain open; no Jev #7 decision changes. See [plan](plans/524-user-model-discovery.md), [contract](../contracts/user-model-discovery.md) and [official source](https://openrouter.ai/openapi.json).
+
 ## OpenAI-style model retrieval extension (#522)
 
 Installed OpenAI7.23.0 models.retrieve(id) now uses one encoded model parameter on /v1/models/{model} and /api/v1/models/{model}, returning a bare exact listing row, including basic aliases. Preserve model/final-provider IAM, whole-catalog capture, private count0/1 audit and no-store; metadata targets never redirect. OpenRouter models.get remains a separate wrapped rich-only singular operation. Local encoding/length/syntax and compatible count-path precedence are explicit restrictions; no claim is made for raw nested aliases, new proxy behavior or full discovery. Five OpenRouter pins remain unchanged and do not certify this OpenAI operation. Full #116 and unresolved #7 remain open. See [plan](plans/522-openai-model-retrieval.md), [contract](../contracts/openai-model-retrieval.md) and [official OpenAI reference](https://developers.openai.com/api/reference/resources/models/methods/retrieve).

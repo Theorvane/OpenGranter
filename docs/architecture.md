@@ -1,5 +1,9 @@
 # Architecture Draft
 
+## User-scoped collection discovery (#524)
+
+Register exact compatible GET models/user before OpenAI model-parameter lookup. Reuse the complete catalog snapshot, enabled model/provider IAM, output/sort filters, models-listed count audit and no-store flow. A narrow four-key parser adds the text default; continuation serialization accepts only the trusted regular/user collection path choice. Reserve compatible user (including encoded model-ID spellings) while preserving the legacy alias read. No upstream preferences, new event kinds or migrations are introduced. See [plan](plans/524-user-model-discovery.md) and [contract](../contracts/user-model-discovery.md).
+
 ## OpenAI model lookup projection (#522)
 
 A narrow classifier recognizes one encoded model parameter on both bases, excluding the compatible count collection path. Decode once into a bounded exact catalog key after authentication; never treat embedded alias slashes as routing authority. Reuse the existing catalog/IAM/model-read flow and capture output before audit. Return a bare listing row and require rich metadata only for the existing singular OpenRouter lookup. Shared discovery classification applies no-store at Fetch and Node boundaries. Existing pins/events/migrations remain unchanged. See [plan](plans/522-openai-model-retrieval.md) and [contract](../contracts/openai-model-retrieval.md).
