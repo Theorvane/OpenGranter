@@ -1,5 +1,9 @@
 # OpenGranter Product Requirements
 
+## User model source conformance (#528)
+
+Monitor the separate user model operation with a sixth official source pin: its four complete query objects, explicit bearer security, HTTP 200 JSON root and list/array/item definitions. Detect selected structural and authentication-contract drift without changing proxy IAM, supported runtime values or upstream preference behavior. This does not close full compatibility #116 or Jev #7. See [plan](plans/528-user-model-schema.md) and [contract](../contracts/user-model-schema.md).
+
 ## Reviewed schema checkpoint (#526)
 
 Track the optional source breakpoint TTL field and reviewed nullable-marker changes with request/query/model-response pins v33/v5/v3. Retain previous selections, runtime restrictions and count/single pins unchanged. Source equality does not enable new runtime parameters or certify complete compatibility. See [plan](plans/526-reviewed-source-drift.md).

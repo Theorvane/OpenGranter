@@ -1,6 +1,12 @@
 # OpenGranter agent handoff
 
-## Reviewed-source continuation (2026-10-25, #526)
+## Current continuation checkpoint (#528)
+
+PR [#525](https://github.com/Theorvane/OpenGranter/pull/525) merged the user collection runtime as 87512ac; issue #524 is closed. PR [#527](https://github.com/Theorvane/OpenGranter/pull/527) was approved on dd29d2fbdfcb4f53b0aff099fe37516cce6f0ed4 with all three checks successful and merged as 1704969; issue #526 is closed. This independently refreshed the request/query/response pins to33/5/3.
+
+Issue [#528](https://github.com/Theorvane/OpenGranter/issues/528), branch test/528-user-model-schema, adds the sixth bounded source guard for the user-list operation, its explicit bearer security, four query objects and root/array/item definitions. Read [plan](plans/528-user-model-schema.md) and [contract](../contracts/user-model-schema.md); refresh the linked PR state rather than assuming merge. The prior five pin bytes and all runtime code remain unchanged. The branch is rebased onto approved main 1704969, preserving both reviewed source changes and sixth-guard cases; integrated focused tests passed446 cases and the full gate passed7,095 cases with one optional external PostgreSQL skip, zero failures/cancellations and all six offline/live schema comparisons passing. Full #116, rich metadata provisioning, unsupported query values, upstream preferences/privacy/regions and Jev #7 remain open. Earlier checkpoints below are historical.
+
+## Historical reviewed-source checkpoint (2026-10-25, #526)
 
 PR #525 was approved on a66b98155e38e145821ab2e39dc863d5322cc340 with all checks successful and merged as87512ac; issue #524 is closed. Fresh official comparison found drift in three existing selections, so issue [#526](https://github.com/Theorvane/OpenGranter/issues/526) and branch test/526-reviewed-source-drift reconcile request/query/response pins to33/5/3 before a sixth user-operation guard is added. The only selected changes are optional breakpoint TTL, removal of offset nullable:false and restoration of seven nullable:true response markers. Runtime, five-result CLI scope and count/single pin bytes remain unchanged. Read the [plan](plans/526-reviewed-source-drift.md) and refresh PR/review/CI status before assuming merge. Nine focused schema suites passed 613 cases; full validation passed 7,016 tests with one optional PostgreSQL skip and zero failures/cancellations. Fresh live and offline comparisons passed all five selections. Broad #116, user-operation structural coverage and unresolved #7 remain open.
 
@@ -50,7 +56,7 @@ Main commit at this snapshot: c7cbbbe15c2c6ae3e79d2c1d706c87c7d571fd95.
 
 PR #519 was reapproved on exact head d5ce2cef7cada53184362f39b8279a06767e25e5; both check jobs and metadata CI succeeded before merge. An earlier approval on f0b60de was not used as approval of the rebased head. No implementation PR remains open at this snapshot. Issue [#520](https://github.com/Theorvane/OpenGranter/issues/520) tracks this documentation handoff; refresh its PR status separately.
 
-The current schema CLI monitors five selected structural projections: chat request/response fragments, model-list queries, model-list response metadata, model count and single model. Referenced metadata coverage is shared between the model-response and single-model guards. These are integrity/drift checks, not full graph traversal, runtime instance validation or live capability certification. Do not refresh provenance blindly when live drift fails.
+The current schema CLI monitors six selected structural projections: chat request/response fragments, model-list queries, model-list response metadata, model count, single model and user model (including explicit operation security). Referenced metadata coverage is shared between the model-response and single-model guards. These are integrity/drift checks, not full graph traversal, runtime instance validation or live capability certification. Do not refresh provenance blindly when live drift fails.
 
 ## Remaining work and next decisions
 

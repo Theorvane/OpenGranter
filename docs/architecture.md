@@ -1,5 +1,9 @@
 # Architecture Draft
 
+## User model source guard (#528)
+
+A bounded projector selects listModelsUser, four inline query objects, literal explicit operation security, the success root and ModelsListResponse/ModelsListResponseData/Model. Validate all six pins before one shared bounded credential-free fetch; compute every comparison before output. Do not inherit top-level security, strip security requirement keys as annotations, traverse new reference targets or mutate pins. Existing metadata guards cover the remaining selected definitions; runtime controls are unchanged. See [plan](plans/528-user-model-schema.md) and [contract](../contracts/user-model-schema.md).
+
 ## Reviewed structural source drift (#526)
 
 The existing projectors retain their exact selections and normalization while paired pin validators advance to request33/query5/response3. Record only the reviewed optional breakpoint TTL property, removed offset marker and seven restored response markers with fresh provenance. Historical tests reconstruct prior32/4/2 projections before older migrations; CLI probes still validate all five before one bounded fetch and never write pins. Runtime/IAM/accounting behavior is unchanged. See [plan](plans/526-reviewed-source-drift.md).

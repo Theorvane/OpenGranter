@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 import { pathToFileURL } from 'node:url';
 
-test('offline compatibility command verifies all five structural pins', () => {
+test('offline compatibility command verifies all six structural pins', () => {
   const result = spawnSync(
     process.execPath,
     [
@@ -19,7 +19,7 @@ test('offline compatibility command verifies all five structural pins', () => {
   assert.equal(result.status, 0);
   assert.equal(
     result.stdout,
-    'PASS pinned OpenRouter request schema integrity\nPASS pinned OpenRouter model-query schema integrity\nPASS pinned OpenRouter model-response schema integrity\nPASS pinned OpenRouter model-count schema integrity\nPASS pinned OpenRouter single-model schema integrity\n',
+    'PASS pinned OpenRouter request schema integrity\nPASS pinned OpenRouter model-query schema integrity\nPASS pinned OpenRouter model-response schema integrity\nPASS pinned OpenRouter model-count schema integrity\nPASS pinned OpenRouter single-model schema integrity\nPASS pinned OpenRouter user-model schema integrity\n',
   );
   assert.equal(result.stderr, '');
 });
@@ -32,6 +32,7 @@ const scriptNames = [
   'openrouter-model-response-schema.ts',
   'openrouter-model-count-schema.ts',
   'openrouter-single-model-schema.ts',
+  'openrouter-user-model-schema.ts',
 ];
 const pinNames = [
   'openrouter-request-schema.json',
@@ -39,6 +40,7 @@ const pinNames = [
   'openrouter-model-response-schema.json',
   'openrouter-model-count-schema.json',
   'openrouter-single-model-schema.json',
+  'openrouter-user-model-schema.json',
 ];
 const safeFailure = 'FAIL OpenRouter schema check unavailable or invalid; no pin changed\n';
 async function controlledLive(mode: string) {
@@ -51,13 +53,14 @@ async function controlledLive(mode: string) {
     const originals = await Promise.all(
       pinNames.map((name) => readFile(new URL(`contracts/${name}`, root), 'utf8')),
     );
-    const [chatRaw, modelRaw, responseRaw, countRaw, singleRaw] = originals;
-    assert.ok(chatRaw && modelRaw && responseRaw && countRaw && singleRaw);
+    const [chatRaw, modelRaw, responseRaw, countRaw, singleRaw, userRaw] = originals;
+    assert.ok(chatRaw && modelRaw && responseRaw && countRaw && singleRaw && userRaw);
     const chatPin = JSON.parse(chatRaw);
     const modelPin = JSON.parse(modelRaw);
     const responsePin = JSON.parse(responseRaw);
     const countPin = JSON.parse(countRaw);
     const singlePin = JSON.parse(singleRaw);
+    const userPin = JSON.parse(userRaw);
     const p = chatPin.projection;
     const schemas = {
       ...p.definitions,
@@ -69,6 +72,7 @@ async function controlledLive(mode: string) {
       ...responsePin.projection.definitions,
       ...countPin.projection.definitions,
       ...singlePin.projection.definitions,
+      ...userPin.projection.definitions,
     };
     for (const [name, entry] of Object.entries(p.messageNames)) {
       const item = entry as { schema: object; required: boolean };
@@ -106,6 +110,17 @@ async function controlledLive(mode: string) {
             parameters: Object.values(singlePin.projection.parameters),
             responses: {
               '200': { content: { 'application/json': { schema: singlePin.projection.schema } } },
+            },
+          },
+          parameters: [] as Record<string, unknown>[],
+        },
+        '/models/user': {
+          get: {
+            operationId: userPin.projection.operationId,
+            parameters: Object.values(userPin.projection.parameters),
+            security: userPin.projection.security,
+            responses: {
+              '200': { content: { 'application/json': { schema: userPin.projection.schema } } },
             },
           },
           parameters: [] as Record<string, unknown>[],
@@ -186,6 +201,26 @@ async function controlledLive(mode: string) {
     if (mode === 'invalid-image-source') delete schemas.ChatContentImage;
     if (mode === 'invalid-count-source') delete schemas.ModelsCountResponse;
     if (mode === 'invalid-count-query-source') source.paths['/models/count'].get.parameters = [];
+    const userOperation = source.paths['/models/user'].get;
+    if (mode === 'user-query-drift' || mode === 'all-drift')
+      userPin.projection.parameters.limit.schema.maximum = 999;
+    if (mode === 'user-security-drift') userOperation.security = [];
+    if (mode === 'user-identity-drift') userOperation.operationId = 'changed';
+    if (mode === 'user-reference-drift')
+      userOperation.responses['200'].content['application/json'].schema = {
+        $ref: '#/components/schemas/Other',
+      };
+    if (mode === 'user-list-root-drift') schemas.ModelsListResponse.required = [];
+    if (mode === 'user-array-drift')
+      schemas.ModelsListResponseData.items = { $ref: '#/components/schemas/Other' };
+    if (mode === 'invalid-user-pin') userPin.version = 0;
+    if (mode === 'stale-user-pin') userPin.version = 2;
+    if (mode === 'invalid-user-source') userOperation.parameters = [];
+    if (mode === 'invalid-user-security') userOperation.security = null;
+    if (mode === 'invalid-user-parameter')
+      userOperation.parameters.push(userPin.projection.parameters.offset);
+    if (mode === 'invalid-user-inherited')
+      source.paths['/models/user'].parameters.push(userPin.projection.parameters.offset);
     // The downloaded source was constructed before drift mutations, and shares the selected objects.
     await writeFile(join(directory, 'source.json'), JSON.stringify(source));
     const pins = [...originals];
@@ -197,6 +232,7 @@ async function controlledLive(mode: string) {
     if (mode === 'invalid-count-pin') pins[3] = JSON.stringify(countPin);
     if (mode === 'invalid-single-pin' || mode === 'stale-single-pin')
       pins[4] = JSON.stringify(singlePin);
+    if (mode === 'invalid-user-pin' || mode === 'stale-user-pin') pins[5] = JSON.stringify(userPin);
     for (let i = 0; i < pinNames.length; i++) {
       const name = pinNames[i];
       const raw = pins[i];
@@ -247,13 +283,13 @@ async function controlledLive(mode: string) {
   }
 }
 
-test('live compatibility validates all five pins against one bounded credential-free download', async () => {
+test('live compatibility validates all six pins against one bounded credential-free download', async () => {
   const { result, calls } = await controlledLive('unchanged');
   assert.equal(result.status, 0);
   assert.equal(calls.count, 1);
   assert.equal(
     result.stdout,
-    'PASS selected OpenRouter request schema unchanged\nPASS selected OpenRouter model-query schema unchanged\nPASS selected OpenRouter model-response schema unchanged\nPASS selected OpenRouter model-count schema unchanged\nPASS selected OpenRouter single-model schema unchanged\n',
+    'PASS selected OpenRouter request schema unchanged\nPASS selected OpenRouter model-query schema unchanged\nPASS selected OpenRouter model-response schema unchanged\nPASS selected OpenRouter model-count schema unchanged\nPASS selected OpenRouter single-model schema unchanged\nPASS selected OpenRouter user-model schema unchanged\n',
   );
   assert.equal(result.stderr, '');
 });
@@ -279,6 +315,12 @@ for (const mode of [
   'single-reference-drift',
   'single-model-drift',
   'metadata-drift',
+  'user-query-drift',
+  'user-security-drift',
+  'user-identity-drift',
+  'user-reference-drift',
+  'user-list-root-drift',
+  'user-array-drift',
   'min_price-drift',
   'max_price-drift',
   'min_output_price-drift',
@@ -315,6 +357,8 @@ for (const mode of [
       'legacy-nullable-drift',
       'single-model-drift',
       'metadata-drift',
+      'user-list-root-drift',
+      'user-array-drift',
     ].includes(mode);
     const countDrift = ['count-query-drift', 'count-response-drift', 'all-drift'].includes(mode);
     const singleDrift = [
@@ -326,13 +370,24 @@ for (const mode of [
       'response-drift',
       'all-drift',
     ].includes(mode);
+    const userDrift = [
+      'user-query-drift',
+      'user-security-drift',
+      'user-identity-drift',
+      'user-reference-drift',
+      'user-list-root-drift',
+      'user-array-drift',
+      'response-drift',
+      'single-model-drift',
+      'all-drift',
+    ].includes(mode);
     assert.equal(
       result.stdout,
-      `${chatDrift ? '' : 'PASS selected OpenRouter request schema unchanged\n'}${modelDrift ? '' : 'PASS selected OpenRouter model-query schema unchanged\n'}${responseDrift ? '' : 'PASS selected OpenRouter model-response schema unchanged\n'}${countDrift ? '' : 'PASS selected OpenRouter model-count schema unchanged\n'}${singleDrift ? '' : 'PASS selected OpenRouter single-model schema unchanged\n'}`,
+      `${chatDrift ? '' : 'PASS selected OpenRouter request schema unchanged\n'}${modelDrift ? '' : 'PASS selected OpenRouter model-query schema unchanged\n'}${responseDrift ? '' : 'PASS selected OpenRouter model-response schema unchanged\n'}${countDrift ? '' : 'PASS selected OpenRouter model-count schema unchanged\n'}${singleDrift ? '' : 'PASS selected OpenRouter single-model schema unchanged\n'}${userDrift ? '' : 'PASS selected OpenRouter user-model schema unchanged\n'}`,
     );
     assert.equal(
       result.stderr,
-      `${chatDrift ? 'FAIL selected OpenRouter request schema drift; review the pin and contracts\n' : ''}${modelDrift ? 'FAIL selected OpenRouter model-query schema drift; review the pin and contracts\n' : ''}${responseDrift ? 'FAIL selected OpenRouter model-response schema drift; review the pin and contracts\n' : ''}${countDrift ? 'FAIL selected OpenRouter model-count schema drift; review the pin and contracts\n' : ''}${singleDrift ? 'FAIL selected OpenRouter single-model schema drift; review the pin and contracts\n' : ''}`,
+      `${chatDrift ? 'FAIL selected OpenRouter request schema drift; review the pin and contracts\n' : ''}${modelDrift ? 'FAIL selected OpenRouter model-query schema drift; review the pin and contracts\n' : ''}${responseDrift ? 'FAIL selected OpenRouter model-response schema drift; review the pin and contracts\n' : ''}${countDrift ? 'FAIL selected OpenRouter model-count schema drift; review the pin and contracts\n' : ''}${singleDrift ? 'FAIL selected OpenRouter single-model schema drift; review the pin and contracts\n' : ''}${userDrift ? 'FAIL selected OpenRouter user-model schema drift; review the pin and contracts\n' : ''}`,
     );
   });
 test('live transport failures expose only the safe fixed diagnostic and do not write pins', async () => {
@@ -351,6 +406,8 @@ for (const mode of [
   'invalid-count-pin',
   'invalid-single-pin',
   'stale-single-pin',
+  'invalid-user-pin',
+  'stale-user-pin',
 ])
   test(`live ${mode} rejects before fetching or reporting success`, async () => {
     const { result, calls } = await controlledLive(mode);
@@ -368,6 +425,10 @@ for (const mode of [
   'invalid-single-source',
   'invalid-single-parameter',
   'invalid-single-inherited',
+  'invalid-user-source',
+  'invalid-user-security',
+  'invalid-user-parameter',
+  'invalid-user-inherited',
 ])
   test(`malformed selected ${mode} withholds all success output and preserves pins`, async () => {
     const { result, calls } = await controlledLive(mode);

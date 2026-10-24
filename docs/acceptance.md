@@ -1,5 +1,12 @@
 # Acceptance and Verification Scenarios
 
+## User model source conformance (#528)
+
+- Independent fixtures verify all four raw query objects, exact bearer declaration, identities and the selected list-root/array/item chain. Detect valid security removal/change as drift and reject missing/malformed explicit security privately without inheriting document security.
+- Parameter structure, selected definitions and response-reference changes fail; editorial annotations, unrelated references and unselected metadata do not widen the selection. Reject corrupt/stale/noncanonical pins and malformed selected source with content-free errors.
+- Offline output contains six integrity results. Controlled live fixtures use exactly one fixed-host credential-free fetch, cover sixth-only/shared/all-six drift, reject invalid sixth pins before fetch, suppress partial output for invalid sixth source and preserve all pin bytes. The five prior pins remain unchanged by this issue.
+- Runtime IAM/audit/usage/secrets/limits, supported query subset and SDK metadata provisioning constraints retain their contracts; this structural guard does not certify all account preferences or full compatibility. See [plan](plans/528-user-model-schema.md) and [contract](../contracts/user-model-schema.md).
+
 ## Reviewed official source drift (#526)
 
 - Independently assert optional breakpoint TTL:string|null, retained required mode, offset integer/null without nullable:false and all seven restored response nullable:true markers with retained explicit types.
