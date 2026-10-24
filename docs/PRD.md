@@ -1,5 +1,9 @@
 # OpenGranter Product Requirements
 
+## OpenAI SDK exact model retrieval (#522)
+
+Support models.retrieve(id) on both existing API bases with a bare model matching the exact authorized published alias's listing projection, including basic aliases. Preserve current model/provider IAM, whole-catalog capture, required private model-read audit and no-store. The compatible count collection path retains precedence; encoded single-parameter/local syntax restrictions are explicit. OpenRouter singular lookup remains wrapped and rich-only. See [plan](plans/522-openai-model-retrieval.md) and [contract](../contracts/openai-model-retrieval.md).
+
 Status: Dual routing direction, routing controls, fallback boundary, provider-level authorization, and first adapters are agreed; audit and operational settings remain open. Updated 2026-09-27.
 
 ## 1. Problem and goal

@@ -107,6 +107,7 @@ import {
   parseModelListQuery,
 } from './model-list-query.ts';
 import { createModelPriceComparator, createModelPriceRangeMatcher } from './model-price-order.ts';
+import { isOpenAIModelPath, parseOpenAIModelAlias } from './openai-model-query.ts';
 import { chatContentText, validatePromptCacheHistory } from './prompt-cache-parts.ts';
 import {
   type ReasoningConfiguration,
@@ -682,6 +683,7 @@ export function createChatHandler<T>(
     const url = new URL(request.url);
     const format = clientErrorFormat(url.pathname);
     const singleModelPath = url.pathname.startsWith('/api/v1/model/');
+    const openAIModelPath = isOpenAIModelPath(url.pathname);
     const errorResponse = (status: number, code: ClientErrorCode, id: string) => {
       const response = createClientErrorResponse(status, code, id, format);
       if (isModelDiscoveryPath(url.pathname)) response.headers.set('cache-control', 'no-store');
@@ -694,7 +696,7 @@ export function createChatHandler<T>(
       request.method === 'GET' &&
       (url.pathname === '/v1/models' || url.pathname === '/api/v1/models');
     const modelCountRequest = request.method === 'GET' && url.pathname === '/api/v1/models/count';
-    const modelGetRequest = request.method === 'GET' && singleModelPath;
+    const modelGetRequest = request.method === 'GET' && (singleModelPath || openAIModelPath);
     const usageListRequest = request.method === 'GET' && url.pathname === '/v1/usage';
     const auditListRequest = request.method === 'GET' && url.pathname === '/v1/audit';
     if (
@@ -987,7 +989,11 @@ export function createChatHandler<T>(
     }
 
     if (modelListRequest || modelCountRequest || modelGetRequest) {
-      const requestedModelAlias = modelGetRequest ? parseSingleModelAlias(url) : undefined;
+      const requestedModelAlias = modelGetRequest
+        ? openAIModelPath
+          ? parseOpenAIModelAlias(url)
+          : parseSingleModelAlias(url)
+        : undefined;
       const query: ModelListQuery | undefined = modelGetRequest
         ? requestedModelAlias === undefined
           ? undefined
@@ -1105,7 +1111,12 @@ export function createChatHandler<T>(
         );
       }
       const singleModel = visible[0];
-      if (modelGetRequest && singleModel !== undefined && !metadata.has(singleModel))
+      if (
+        modelGetRequest &&
+        !openAIModelPath &&
+        singleModel !== undefined &&
+        !metadata.has(singleModel)
+      )
         return unavailableResponse();
       const selected = modelCountRequest
         ? []
@@ -1142,10 +1153,10 @@ export function createChatHandler<T>(
         const model = data[0];
         return model === undefined
           ? errorResponse(404, 'not_found', requestId)
-          : Response.json(
-              { data: model },
-              { status: 200, headers: { 'x-request-id': requestId, 'cache-control': 'no-store' } },
-            );
+          : Response.json(openAIModelPath ? model : { data: model }, {
+              status: 200,
+              headers: { 'x-request-id': requestId, 'cache-control': 'no-store' },
+            });
       }
       if (modelCountRequest)
         return Response.json(

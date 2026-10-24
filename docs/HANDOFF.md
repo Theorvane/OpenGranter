@@ -1,5 +1,9 @@
 # OpenGranter agent handoff
 
+## Continuation checkpoint (2026-10-24)
+
+PR #521 merged this guide as 1a9d019; no new remote work was present when continuation began. Issue [#522](https://github.com/Theorvane/OpenGranter/issues/522) and branch feat/522-openai-model-retrieval now track a separate OpenAI models.retrieve extension using exact encoded alias parameters and bare listing projections on both bases. The compatible count path retains precedence; OpenRouter's singular wrapped rich lookup is unchanged. Read its [plan](plans/522-openai-model-retrieval.md) and [contract](../contracts/openai-model-retrieval.md), then refresh the linked issue's PR/review/CI state before assuming it is merged. Local full validation passed 6,977 tests with one optional PostgreSQL skip, zero failures/cancellations and all five offline schema checks, using the documented CPU-affinity gate. The older delivery/workspace snapshot below remains historical; temporary worktrees may have disappeared. Broad #116 and unresolved #7 remain open.
+
 Snapshot: 2026-10-18, after PR #519 merged at 13:13 UTC. This is a continuation guide, not a release certification. Refresh GitHub and Git before acting on its status tables.
 
 ## Start here

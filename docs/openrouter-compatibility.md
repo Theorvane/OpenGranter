@@ -1,5 +1,9 @@
 # OpenRouter external-client compatibility
 
+## OpenAI-style model retrieval extension (#522)
+
+Installed OpenAI7.23.0 models.retrieve(id) now uses one encoded model parameter on /v1/models/{model} and /api/v1/models/{model}, returning a bare exact listing row, including basic aliases. Preserve model/final-provider IAM, whole-catalog capture, private count0/1 audit and no-store; metadata targets never redirect. OpenRouter models.get remains a separate wrapped rich-only singular operation. Local encoding/length/syntax and compatible count-path precedence are explicit restrictions; no claim is made for raw nested aliases, new proxy behavior or full discovery. Five OpenRouter pins remain unchanged and do not certify this OpenAI operation. Full #116 and unresolved #7 remain open. See [plan](plans/522-openai-model-retrieval.md), [contract](../contracts/openai-model-retrieval.md) and [official OpenAI reference](https://developers.openai.com/api/reference/resources/models/methods/retrieve).
+
 ## Private model discovery responses (#518)
 
 Legacy/compatible listing, compatible count and exact model lookup now consistently emit Cache-Control: no-store on recognized paths, including errors and Node pre-header fallback. Installed OpenRouter1.4.18/OpenAI7.23.0 socket tests retain payload compatibility, current model/provider IAM, required private audit and fresh continuations. This is a local privacy guarantee for compliant HTTP caches; previous copies, client-internal state and proxy configuration remain external. Schema pins, routing and accounting are unchanged; complete compatibility #116 and unresolved #7 remain open. See [plan](plans/518-discovery-no-store.md) and [contract](../contracts/model-discovery-cache.md).

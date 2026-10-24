@@ -1,5 +1,9 @@
 # Architecture Draft
 
+## OpenAI model lookup projection (#522)
+
+A narrow classifier recognizes one encoded model parameter on both bases, excluding the compatible count collection path. Decode once into a bounded exact catalog key after authentication; never treat embedded alias slashes as routing authority. Reuse the existing catalog/IAM/model-read flow and capture output before audit. Return a bare listing row and require rich metadata only for the existing singular OpenRouter lookup. Shared discovery classification applies no-store at Fetch and Node boundaries. Existing pins/events/migrations remain unchanged. See [plan](plans/522-openai-model-retrieval.md) and [contract](../contracts/openai-model-retrieval.md).
+
 ## Private discovery cache boundary (#518)
 
 One shared pathname predicate identifies legacy/compatible model lists, compatible count and singular model lookup. Gateway errors and list success set no-store; count/lookup success retain it. The Node bridge overrides conflicting response cache headers and applies the same directive to pre-header generic/configured fallbacks. Preserve existing payloads, status, request IDs, IAM, snapshot validation, required audit and socket cancellation. Conditional headers do not create304 or skip authorization/audit. See [plan](plans/518-discovery-no-store.md) and [contract](../contracts/model-discovery-cache.md).

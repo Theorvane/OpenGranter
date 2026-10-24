@@ -28,6 +28,8 @@ const discovery = [
   '/api/v1/models',
   '/api/v1/models/count',
   '/api/v1/model/fixture/chat',
+  '/v1/models/fixture%2Fchat',
+  '/api/v1/models/simple',
 ];
 for (const scenario of ['normal', 'throw', 'custom-error'] as const)
   test(`Node ${scenario} discovery responses override cacheable headers while preserving payloads`, async () => {

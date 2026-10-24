@@ -152,7 +152,7 @@ test('neighbors are not discovery and retain existing error caching behavior', a
   for (const path of [
     '/api/v1/models-extra',
     '/api/v1/model',
-    '/v1/models/count',
+    '/v1/models/count/extra',
     '/api/v1/models/count/',
   ]) {
     const response = await f.handler(request(path));
