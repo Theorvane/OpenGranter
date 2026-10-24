@@ -1,0 +1,220 @@
+{
+  "version": 1,
+  "source": "https://openrouter.ai/openapi.json",
+  "retrievedAt": "2026-10-25",
+  "sourceSha256": "d1bdaad4b513143f1b122de5e0c50ce06469e7a669efef0c2f3b9d40829ac1ee",
+  "projectionSha256": "03e958c30046a895748ad19fc387f99be821005340e4e1c16c08435841448c64",
+  "projection": {
+    "openapi": "3.1.0",
+    "documentVersion": "1.0.0",
+    "path": "/models/user",
+    "method": "get",
+    "operationId": "listModelsUser",
+    "parameters": {
+      "offset": {
+        "in": "query",
+        "name": "offset",
+        "required": false,
+        "schema": {
+          "default": 0,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "limit": {
+        "in": "query",
+        "name": "limit",
+        "required": false,
+        "schema": {
+          "default": 500,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "output_modalities": {
+        "in": "query",
+        "name": "output_modalities",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "sort": {
+        "in": "query",
+        "name": "sort",
+        "required": false,
+        "schema": {
+          "enum": [
+            "most-popular",
+            "newest",
+            "top-weekly",
+            "pricing-low-to-high",
+            "pricing-high-to-low",
+            "context-high-to-low",
+            "throughput-high-to-low",
+            "latency-low-to-high",
+            "intelligence-high-to-low",
+            "coding-high-to-low",
+            "agentic-high-to-low",
+            "design-arena-elo-high-to-low"
+          ],
+          "type": "string",
+          "x-speakeasy-unknown-values": "allow"
+        }
+      }
+    },
+    "security": [
+      {
+        "bearer": []
+      }
+    ],
+    "status": "200",
+    "mediaType": "application/json",
+    "schema": {
+      "$ref": "#/components/schemas/ModelsListResponse"
+    },
+    "definitions": {
+      "ModelsListResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ModelsListResponseData"
+          },
+          "links": {
+            "properties": {
+              "next": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "next"
+            ],
+            "type": "object"
+          },
+          "total_count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "data",
+          "total_count",
+          "links"
+        ],
+        "type": "object"
+      },
+      "ModelsListResponseData": {
+        "items": {
+          "$ref": "#/components/schemas/Model"
+        },
+        "type": "array"
+      },
+      "Model": {
+        "properties": {
+          "alias_target": {
+            "$ref": "#/components/schemas/ModelAliasTarget"
+          },
+          "architecture": {
+            "$ref": "#/components/schemas/ModelArchitecture"
+          },
+          "benchmarks": {
+            "$ref": "#/components/schemas/ModelBenchmarks"
+          },
+          "canonical_slug": {
+            "type": "string"
+          },
+          "context_length": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "created": {
+            "type": "integer"
+          },
+          "default_parameters": {
+            "$ref": "#/components/schemas/DefaultParameters"
+          },
+          "description": {
+            "type": "string"
+          },
+          "expiration_date": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "hugging_face_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "knowledge_cutoff": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "links": {
+            "$ref": "#/components/schemas/ModelLinks"
+          },
+          "name": {
+            "type": "string"
+          },
+          "per_request_limits": {
+            "$ref": "#/components/schemas/PerRequestLimits"
+          },
+          "pricing": {
+            "$ref": "#/components/schemas/PublicPricing"
+          },
+          "reasoning": {
+            "$ref": "#/components/schemas/ModelReasoning"
+          },
+          "supported_parameters": {
+            "items": {
+              "$ref": "#/components/schemas/Parameter"
+            },
+            "type": "array"
+          },
+          "supported_voices": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "top_provider": {
+            "$ref": "#/components/schemas/TopProviderInfo"
+          }
+        },
+        "required": [
+          "id",
+          "canonical_slug",
+          "name",
+          "created",
+          "pricing",
+          "context_length",
+          "architecture",
+          "top_provider",
+          "per_request_limits",
+          "supported_parameters",
+          "default_parameters",
+          "supported_voices",
+          "links"
+        ],
+        "type": "object"
+      }
+    }
+  }
+}

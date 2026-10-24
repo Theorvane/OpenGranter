@@ -1,5 +1,9 @@
 # OpenRouter external-client compatibility
 
+## User model operation source guard (#528)
+
+The sixth structural pin monitors GET /models/user, its four inline query objects, explicit operation bearer security and HTTP 200 list-root/array/Model definitions. The offline/live commands validate all six pins and compute complete source projections before printing results, with one bounded credential-free fetch and no pin writes. Security requirements retain literal keys and scopes; missing/malformed explicit declarations fail safely. See [contract](../contracts/user-model-schema.md) and [plan](plans/528-user-model-schema.md). This closes only the separate selected-operation monitoring gap. Rich metadata publication, unsupported query values, upstream preferences/privacy/regions and full #116 remain release gates; #7 is unchanged.
+
 ## Reviewed source drift checkpoint (#526)
 
 Request pin v33 records optional PromptCacheBreakpoint.ttl:string|null. Query pin v5 removes only offset's nullable:false marker, retaining integer/null semantics. Model-response pin v3 restores seven nullable:true markers alongside explicit nullable arrays. Independent shapes, previous full digests and controlled CLI drift/stale/no-write cases preserve bounded structural tracking. Count/single pins and runtime restrictions remain unchanged; this does not enable breakpoint TTL. Existing drift was reconciled before adding the separate user-operation source guard, which remains follow-up work under #116. Jev #7 is unchanged. See [plan](plans/526-reviewed-source-drift.md) and [official source](https://openrouter.ai/openapi.json).
