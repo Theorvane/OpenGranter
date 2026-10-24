@@ -1,5 +1,11 @@
 # Acceptance and Verification Scenarios
 
+## Reviewed official source drift (#526)
+
+- Independently assert optional breakpoint TTL:string|null, retained required mode, offset integer/null without nullable:false and all seven restored response nullable:true markers with retained explicit types.
+- Reconstruct complete previous request32/query4/response2 digests and preserve earlier historical digest checks. Old versions reject even with correct rehashed projections.
+- Controlled CLI probes detect each reviewed structural delta, reject stale pins before download, preserve safe diagnostics/no-write behavior and retain all five results. Fresh live comparison and full offline/local gates must pass; runtime support and a separate user-operation source guard remain open. See [plan](plans/526-reviewed-source-drift.md).
+
 ## Proxy user model collection (#524)
 
 - Raw and installed OpenRouter SDK sockets cover both route kinds, text/default/all/any output matching, supported sorting, paging and fixed user-path continuation with fresh IAM and mandatory private audit.

@@ -140,7 +140,11 @@ async function controlledLive(mode: string) {
         type: 'string',
       };
     if (mode === 'legacy-nullable-drift')
-      schemas.DefaultParameters.properties.temperature.nullable = true;
+      delete schemas.DefaultParameters.properties.temperature.nullable;
+    if (mode === 'breakpoint-ttl-drift')
+      schemas.PromptCacheBreakpoint.properties.ttl.type = 'string';
+    if (mode === 'offset-nullable-drift')
+      modelPin.projection.parameters.offset.schema.nullable = false;
     if (mode === 'response-drift' || mode === 'all-drift')
       schemas.Model.properties.context_length = { type: 'string' };
     if (mode === 'count-query-drift' || mode === 'all-drift')
@@ -149,7 +153,7 @@ async function controlledLive(mode: string) {
       schemas.ModelsCountResponse.properties.data.properties.count.type = 'number';
     for (const name of ['min_price', 'max_price', 'min_output_price', 'max_output_price'])
       if (mode === `${name}-drift`) modelPin.projection.parameters[name].schema.minimum = 1;
-    if (mode === 'stale-model-pin') modelPin.version = 3;
+    if (mode === 'stale-model-pin') modelPin.version = 4;
     const singleOperation = source.paths['/model/{author}/{slug}'].get;
     if (mode === 'single-author-drift')
       singlePin.projection.parameters.author.schema.type = 'integer';
@@ -173,9 +177,9 @@ async function controlledLive(mode: string) {
       );
     if (mode === 'invalid-model-pin') modelPin.version = 0;
     if (mode === 'invalid-chat-pin') chatPin.version = 0;
-    if (mode === 'stale-chat-pin') chatPin.version = 31;
+    if (mode === 'stale-chat-pin') chatPin.version = 32;
     if (mode === 'invalid-response-pin') responsePin.version = 0;
-    if (mode === 'stale-response-pin') responsePin.version = 1;
+    if (mode === 'stale-response-pin') responsePin.version = 2;
     if (mode === 'invalid-count-pin') countPin.version = 0;
     if (mode === 'invalid-model-source') source.paths['/models'].get.parameters = [];
     if (mode === 'invalid-response-source') delete schemas.Model;
@@ -265,6 +269,8 @@ for (const mode of [
   'safeguard-drift',
   'defer-loading-drift',
   'legacy-nullable-drift',
+  'breakpoint-ttl-drift',
+  'offset-nullable-drift',
   'count-query-drift',
   'count-response-drift',
   'single-author-drift',
@@ -291,6 +297,7 @@ for (const mode of [
       'alignment-drift',
       'safeguard-drift',
       'defer-loading-drift',
+      'breakpoint-ttl-drift',
     ].includes(mode);
     const modelDrift = [
       'model-drift',
@@ -300,6 +307,7 @@ for (const mode of [
       'max_price-drift',
       'min_output_price-drift',
       'max_output_price-drift',
+      'offset-nullable-drift',
     ].includes(mode);
     const responseDrift = [
       'response-drift',

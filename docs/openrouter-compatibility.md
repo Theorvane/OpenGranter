@@ -1,5 +1,9 @@
 # OpenRouter external-client compatibility
 
+## Reviewed source drift checkpoint (#526)
+
+Request pin v33 records optional PromptCacheBreakpoint.ttl:string|null. Query pin v5 removes only offset's nullable:false marker, retaining integer/null semantics. Model-response pin v3 restores seven nullable:true markers alongside explicit nullable arrays. Independent shapes, previous full digests and controlled CLI drift/stale/no-write cases preserve bounded structural tracking. Count/single pins and runtime restrictions remain unchanged; this does not enable breakpoint TTL. Existing drift was reconciled before adding the separate user-operation source guard, which remains follow-up work under #116. Jev #7 is unchanged. See [plan](plans/526-reviewed-source-drift.md) and [official source](https://openrouter.ai/openapi.json).
+
 ## Proxy user model collection (#524)
 
 OpenRouter1.4.18 models.listForUser reaches /api/v1/models/user with explicit operation bearer, text output defaults and bounded output/sort/paging. Current proxy model/provider IAM, full catalog capture, per-page private audit and no-store remain shared; fixed relative continuations stay on the user route and reevaluate permissions. The compatible collection ID is reserved over OpenAI retrieval; legacy user alias reads remain available. Typed SDK rich-row validation still rejects explicit all when basic aliases are present. Upstream account preferences/privacy/regions, metadata provisioning, this operation's source pin and full #116 remain open; no Jev #7 decision changes. See [plan](plans/524-user-model-discovery.md), [contract](../contracts/user-model-discovery.md) and [official source](https://openrouter.ai/openapi.json).

@@ -1,5 +1,9 @@
 # Architecture Draft
 
+## Reviewed structural source drift (#526)
+
+The existing projectors retain their exact selections and normalization while paired pin validators advance to request33/query5/response3. Record only the reviewed optional breakpoint TTL property, removed offset marker and seven restored response markers with fresh provenance. Historical tests reconstruct prior32/4/2 projections before older migrations; CLI probes still validate all five before one bounded fetch and never write pins. Runtime/IAM/accounting behavior is unchanged. See [plan](plans/526-reviewed-source-drift.md).
+
 ## User-scoped collection discovery (#524)
 
 Register exact compatible GET models/user before OpenAI model-parameter lookup. Reuse the complete catalog snapshot, enabled model/provider IAM, output/sort filters, models-listed count audit and no-store flow. A narrow four-key parser adds the text default; continuation serialization accepts only the trusted regular/user collection path choice. Reserve compatible user (including encoded model-ID spellings) while preserving the legacy alias read. No upstream preferences, new event kinds or migrations are introduced. See [plan](plans/524-user-model-discovery.md) and [contract](../contracts/user-model-discovery.md).

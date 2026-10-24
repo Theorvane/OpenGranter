@@ -83,8 +83,8 @@ function chatSource() {
     components: { schemas },
   };
 }
-test('reviewed chat v32 shapes match independent optional field definitions', () => {
-  assert.equal(chat.version, 32);
+test('reviewed chat v33 shapes match independent optional field definitions', () => {
+  assert.equal(chat.version, 33);
   assert.deepEqual(
     chat.projection.responseDefinitions.ChatResult.properties.alignment,
     ref('Alignment'),
@@ -145,6 +145,7 @@ test('new referenced target bodies remain explicitly outside the bounded chat se
 });
 test('reversing only the six reviewed additions reproduces the complete v31 digest', () => {
   const p = structuredClone(chat.projection);
+  delete p.definitions.PromptCacheBreakpoint.properties.ttl;
   for (const schema of [p.responseDefinitions.ChatResult, p.streamDefinitions.ChatStreamChunk]) {
     delete schema.properties.alignment;
     delete schema.properties.safeguard_results;
@@ -183,24 +184,24 @@ function modelSource() {
   };
 }
 for (const [name, field, type] of nullableFields) {
-  test(`${name}.${field} retains explicit nullability without a legacy marker`, () => {
+  test(`${name}.${field} retains explicit nullability with the restored legacy marker`, () => {
     const schema = models.projection.definitions[name].properties[field];
     assert.deepEqual(
       schema,
       type === 'number'
-        ? { type: ['number', 'null'], format: 'double' }
-        : { type: ['integer', 'null'] },
+        ? { type: ['number', 'null'], format: 'double', nullable: true }
+        : { type: ['integer', 'null'], nullable: true },
     );
     const s = modelSource();
     assert.equal(compareOfficialModelResponseSchema(s, models), true);
-    s.components.schemas[name].properties[field] = { ...schema, nullable: true };
+    delete s.components.schemas[name].properties[field].nullable;
     assert.equal(compareOfficialModelResponseSchema(s, models), false);
     s.components.schemas[name].properties[field] = { ...schema, type };
     assert.equal(compareOfficialModelResponseSchema(s, models), false);
   });
 }
 test('restoring only seven legacy markers reproduces the complete v1 model-response digest', () => {
-  assert.equal(models.version, 2);
+  assert.equal(models.version, 3);
   const p = structuredClone(models.projection);
   for (const [name, field] of nullableFields) p.definitions[name].properties[field].nullable = true;
   assert.equal(hash(p), '825714729401e81ab4a6196b7a8ed6b76d89a32c09869d02a18e812276ced87b');
