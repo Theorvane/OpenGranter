@@ -1,6 +1,13 @@
 # OpenGranter agent handoff
 
-## Current continuation checkpoint (#528)
+## Current continuation checkpoint (#530)
+
+PR [#529](https://github.com/Theorvane/OpenGranter/pull/529) received approval on da14b765aaa5d90ebddd9c4c220c31032a85847d with all three checks successful and merged as db31938; issue #528 is closed. Six source guards are now in approved main. Issue [#530](https://github.com/Theorvane/OpenGranter/issues/530), branch feat/530-breakpoint-ttl, adds optional 30m/12h TTL to existing text breakpoints. Read [plan](plans/530-breakpoint-ttl.md) and [contract](../contracts/prompt-cache-breakpoints.md#optional-text-breakpoint-ttl-530), then refresh its PR/review/CI state before assuming merge.
+
+Only the shared immutable marker snapshot changes in production; existing pins, dependencies, migrations, IAM/audit/accounting controls and native unsupported-marker boundaries are preserved. Raw HTTP and OpenAI SDK retain TTL, while pinned OpenRouter1.4.18 strips it before HTTP; do not claim typed TTL support for that client. Focused cache/SDK suites passed1,198 cases; the full gate passed7,167 cases with one optional external PostgreSQL skip, zero failures/cancellations, and all six offline/live source checks passing. No live inference, credential or cache cost/retention guarantee was used. Full #116 and unresolved Jev #7 remain open. Earlier checkpoints below are historical.
+
+
+## Historical continuation checkpoint (#528)
 
 PR [#525](https://github.com/Theorvane/OpenGranter/pull/525) merged the user collection runtime as 87512ac; issue #524 is closed. PR [#527](https://github.com/Theorvane/OpenGranter/pull/527) was approved on dd29d2fbdfcb4f53b0aff099fe37516cce6f0ed4 with all three checks successful and merged as 1704969; issue #526 is closed. This independently refreshed the request/query/response pins to33/5/3.
 

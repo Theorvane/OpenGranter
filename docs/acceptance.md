@@ -1,5 +1,12 @@
 # Acceptance and Verification Scenarios
 
+## Text breakpoint TTL (#530)
+
+- Raw/internal tests retain 30m/12h and mixed boundary lifetimes across five history roles, exact text/order/empty blocks, both bases/routes and nonstream/text/refusal/function streaming. Omission/null/undefined adds no TTL or root default; root options remain independent.
+- Verify own-TTL single capture before credential mutation, private getter/value/prototype rejection, auth/implicit/model/provider Deny, limits, selection/audit/usage failures, missing usage and possible-billing accounting. Native Anthropic/Gemini still reject marked histories before secrets/upstream calls with the established safe unsupported response.
+- Installed OpenAI SDK sockets preserve TTL. Installed OpenRouter1.4.18 sockets explicitly verify its serializer drops TTL; this measured client limitation remains a compatibility gate, not a server capability claim. No operational content leakage or synthetic echoes, source-pin changes or live inference. See [plan](plans/530-breakpoint-ttl.md) and [contract](../contracts/prompt-cache-breakpoints.md#optional-text-breakpoint-ttl-530).
+
+
 ## User model source conformance (#528)
 
 - Independent fixtures verify all four raw query objects, exact bearer declaration, identities and the selected list-root/array/item chain. Detect valid security removal/change as drift and reject missing/malformed explicit security privately without inheriting document security.

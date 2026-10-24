@@ -1,5 +1,10 @@
 # Architecture Draft
 
+## Text breakpoint TTL capture (#530)
+
+Extend only the shared immutable text-marker snapshot with an own optional 30m/12h TTL read once before credentials. Existing external/internal message snapshots and registered invokers preserve this field through supported delegated/managed paths; no new serializer or native translation is needed. Null/undefined becomes omission locally, and root options keep their existing bounds. Native Anthropic/Gemini retain pre-secret unsupported-marker rejection. Six source pins, events, migrations and accounting are unchanged. See [plan](plans/530-breakpoint-ttl.md) and [contract](../contracts/prompt-cache-breakpoints.md#optional-text-breakpoint-ttl-530).
+
+
 ## User model source guard (#528)
 
 A bounded projector selects listModelsUser, four inline query objects, literal explicit operation security, the success root and ModelsListResponse/ModelsListResponseData/Model. Validate all six pins before one shared bounded credential-free fetch; compute every comparison before output. Do not inherit top-level security, strip security requirement keys as annotations, traverse new reference targets or mutate pins. Existing metadata guards cover the remaining selected definitions; runtime controls are unchanged. See [plan](plans/528-user-model-schema.md) and [contract](../contracts/user-model-schema.md).

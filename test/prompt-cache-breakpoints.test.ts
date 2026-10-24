@@ -114,7 +114,7 @@ const invalidMarkers = [
   { mode: 'private' },
   { mode: 'implicit' },
   { mode: null },
-  { mode: 'explicit', ttl: '30m' },
+  { mode: 'explicit', ttl: '5m' },
   { mode: 'explicit', private: 'forged' },
 ];
 for (const kind of ['openai', 'openrouter', 'anthropic', 'google'] as const)

@@ -1,5 +1,12 @@
 # OpenRouter external-client compatibility
 
+## Explicit text breakpoint TTL (#530)
+
+Both chat bases preserve optional per-text-breakpoint ttl:30m|12h for managed OpenAI and delegated OpenRouter across all existing roles and supported nonstream/text/refusal/function streaming paths. Own TTL is captured once before credentials; null/undefined omits it locally and absence injects no default. Preserve mixed boundary lifetimes and independent root options without native cache conversion, inferred cost/usage or retention guarantees. This supersedes the earlier text-marker TTL exclusion only; Anthropic/Gemini and richer/mixed marker formats retain their prior restrictions. The v33 source's nullable unconstrained string remains unchanged by this bounded runtime subset.
+
+Actual OpenAI7.23.0 SDK sockets preserve TTL on both bases/routes. Actual OpenRouter1.4.18 sockets show its generated serializer removes TTL before HTTP; raw compatible HTTP supports the field, but typed support for that pinned client is not certified. See [plan](plans/530-breakpoint-ttl.md), [contract](../contracts/prompt-cache-breakpoints.md#optional-text-breakpoint-ttl-530), [official OpenAI reference](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create) and [OpenRouter schema](https://openrouter.ai/openapi.json), checked 2026-10-25. Full #116 and Jev #7 remain open.
+
+
 ## User model operation source guard (#528)
 
 The sixth structural pin monitors GET /models/user, its four inline query objects, explicit operation bearer security and HTTP 200 list-root/array/Model definitions. The offline/live commands validate all six pins and compute complete source projections before printing results, with one bounded credential-free fetch and no pin writes. Security requirements retain literal keys and scopes; missing/malformed explicit declarations fail safely. See [contract](../contracts/user-model-schema.md) and [plan](plans/528-user-model-schema.md). This closes only the separate selected-operation monitoring gap. Rich metadata publication, unsupported query values, upstream preferences/privacy/regions and full #116 remain release gates; #7 is unchanged.

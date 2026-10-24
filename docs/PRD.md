@@ -1,5 +1,10 @@
 # OpenGranter Product Requirements
 
+## Explicit text cache boundary lifetimes (#530)
+
+Accept optional 30m/12h TTL on existing explicit text breakpoints for managed OpenAI/delegated OpenRouter across both client bases and nonstream/stream outputs. Preserve exact histories, shared controls and absence/null without injecting defaults or inferring cache usage, cost or retention guarantees. The pinned OpenRouter SDK drops TTL before sending; raw HTTP and the installed OpenAI SDK preserve it. See [plan](plans/530-breakpoint-ttl.md) and [contract](../contracts/prompt-cache-breakpoints.md#optional-text-breakpoint-ttl-530).
+
+
 ## User model source conformance (#528)
 
 Monitor the separate user model operation with a sixth official source pin: its four complete query objects, explicit bearer security, HTTP 200 JSON root and list/array/item definitions. Detect selected structural and authentication-contract drift without changing proxy IAM, supported runtime values or upstream preference behavior. This does not close full compatibility #116 or Jev #7. See [plan](plans/528-user-model-schema.md) and [contract](../contracts/user-model-schema.md).
