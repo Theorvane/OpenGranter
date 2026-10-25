@@ -1,5 +1,10 @@
 # Architecture Draft
 
+## Anthropic response-tier normalization (#536)
+
+A shared narrow reader captures only the own primitive usage.service_tier separately from the token counter. Native JSON normalization projects it onto service_tier; native text/function SSE consumers retain initial/later reports in summary state without adding it to content deltas. Omitted updates retain state, explicit null replaces it, and malformed selected values use existing private failure/possible-billing paths. The common compatible SSE encoder retains a tier-only final metadata frame even when counters are absent/incomplete, without a fabricated usage object. Required audit/usage still precedes final metadata. No request admission, dependency, pin or operational schema changes. See [plan](plans/536-anthropic-served-tiers.md) and [contract](../contracts/service-tier-requests.md#reported-anthropic-response-tiers-536).
+
+
 ## Anthropic service-tier preparation (#534)
 
 The common registered direct transport admits only auto/default for Anthropic before credentials. Its native body builder preserves auto and translates explicit default to standard_only. Existing immutable primitive capture, host/model/output-cap/version headers and all nonstream/text/function invoker boundaries stay shared. Omission injects no tier, other native/delegated subsets remain unchanged, and no response tier or operational metadata is synthesized. See [plan](plans/534-anthropic-service-tiers.md) and [contract](../contracts/service-tier-requests.md#direct-anthropic-capacity-mapping-534).

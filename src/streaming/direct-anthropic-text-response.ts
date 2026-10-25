@@ -1,4 +1,5 @@
 import { AnthropicStreamUsage } from '../providers/anthropic-chat-usage.ts';
+import { snapshotAnthropicServiceTier } from '../providers/anthropic-service-tier.ts';
 import {
   DirectProviderFailure,
   type DirectProviderFailureCategory,
@@ -61,6 +62,7 @@ export async function consumeDirectAnthropicTextResponse(
       active: number | undefined,
       nextIndex = 0;
     let capturedUsage = new AnthropicStreamUsage(undefined);
+    let serviceTier: string | null | undefined;
     let output: unknown,
       previousOutput: number | undefined,
       finish: Delta['finishReason'] = null;
@@ -101,9 +103,9 @@ export async function consumeDirectAnthropicTextResponse(
         )
           throw Error();
         id = message.id;
-        capturedUsage = new AnthropicStreamUsage(
-          message.usage == null ? undefined : record(message.usage),
-        );
+        const initialUsage = message.usage == null ? undefined : record(message.usage);
+        serviceTier = snapshotAnthropicServiceTier(initialUsage);
+        capturedUsage = new AnthropicStreamUsage(initialUsage);
         phase = 'blocks';
         await emit({ role: 'assistant', finishReason: null });
         continue;
@@ -172,6 +174,8 @@ export async function consumeDirectAnthropicTextResponse(
         )
           throw Error();
         const usage = event.usage == null ? undefined : record(event.usage);
+        const reportedTier = snapshotAnthropicServiceTier(usage);
+        if (reportedTier !== undefined) serviceTier = reportedTier;
         output = capturedUsage.update(usage);
         if (typeof output === 'number' && Number.isSafeInteger(output) && output >= 0) {
           if (previousOutput !== undefined && output < previousOutput) throw Error();
@@ -196,6 +200,7 @@ export async function consumeDirectAnthropicTextResponse(
           model: fixed.clientModelAlias,
           finishReason: finish,
           usage: capturedUsage.finish(),
+          ...(serviceTier === undefined ? {} : { serviceTier }),
         });
       }
       throw Error();

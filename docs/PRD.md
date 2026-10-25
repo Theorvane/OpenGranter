@@ -1,5 +1,10 @@
 # OpenGranter Product Requirements
 
+## Reported Anthropic response tiers (#536)
+
+Preserve an actually reported native usage.service_tier as compatible response service_tier on both bases for nonstream/text/refusal/function responses. Retain exact strings, null and omission without inferring a served tier from a request preference. Streaming updates retain the prior value when omitted, replace it on explicit null, and expose the latest report only after required audit/usage. Tier-only reports retain metadata without inventing token usage or cost. See [plan](plans/536-anthropic-served-tiers.md) and [contract](../contracts/service-tier-requests.md#reported-anthropic-response-tiers-536).
+
+
 ## Direct Anthropic capacity preferences (#534)
 
 Support normalized service_tier auto/default for direct Anthropic, mapping to native auto/standard_only through existing nonstream/text/refusal/function streams. Preserve omission, current model/provider IAM, limits, required audit/accounting and private errors. Do not turn preferences into served-tier metadata, billing or capability guarantees. See [plan](plans/534-anthropic-service-tiers.md) and [contract](../contracts/service-tier-requests.md#direct-anthropic-capacity-mapping-534).

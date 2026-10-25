@@ -1,6 +1,13 @@
 # OpenGranter agent handoff
 
-## Current continuation checkpoint (#534)
+## Current continuation checkpoint (#536)
+
+PR [#535](https://github.com/Theorvane/OpenGranter/pull/535) received approval on9715665415e0a6162eb70ede052810d667e67f71 with all three checks successful. Following explicit user merge authorization it merged as6e4b6ca; issue #534 is closed. Issue [#536](https://github.com/Theorvane/OpenGranter/issues/536), branch feat/536-anthropic-served-tiers, preserves actually reported native Anthropic service tiers in compatible responses. Read [plan](plans/536-anthropic-served-tiers.md) and [contract](../contracts/service-tier-requests.md#reported-anthropic-response-tiers-536), then refresh the linked PR/review/CI state before assuming merge.
+
+JSON and both native SSE consumers capture exact string/null/absence separately from counters; stream metadata is withheld until successful final persistence. A separately reproduced shared SSE encoder bug now retains tier-only final frames without invented token usage. Request mappings, model/provider IAM, limits, cache counters, six pins, dependencies and operational schemas remain unchanged. Focused native/SDK/encoder/cache regressions passed 515 cases. The full gate passed 7,294 cases with one optional external PostgreSQL skip, zero failures/cancellations and all six offline/live schema comparisons passing. Full #116 and unresolved Jev #7 remain open. Earlier checkpoints below are historical.
+
+
+## Historical continuation checkpoint (#534)
 
 PR [#533](https://github.com/Theorvane/OpenGranter/pull/533) received approval on c6fcba9482930d3c64405f413e4ac4857e1b03ad with all three checks successful and merged as78d5d29; issue #532 is closed. Issue [#534](https://github.com/Theorvane/OpenGranter/issues/534), branch feat/534-anthropic-service-tiers, adds direct Anthropic auto/default request tiers mapped to native auto/standard_only. Read [plan](plans/534-anthropic-service-tiers.md) and [contract](../contracts/service-tier-requests.md#direct-anthropic-capacity-mapping-534), then refresh the linked PR/review/CI state before assuming merge.
 

@@ -1,10 +1,17 @@
 # OpenRouter external-client compatibility
 
+## Reported Anthropic response tiers (#536)
+
+Direct Anthropic native usage.service_tier now reaches compatible response service_tier on both bases for nonstream/text/refusal/function responses. This closes the native response-projection gap mentioned in #534 only. Preserve exact strings, null and omission; future strings are metadata rather than new request authority. Initial and later SSE reports merge with omission retaining the prior value and explicit null replacing it. Emit the latest supplied tier only in the completed final metadata frame after required audit/usage, never in content deltas. The shared encoder now retains tier-only final frames when counters are absent/incomplete without manufacturing a usage object; ledger missing-usage semantics stay intact.
+
+Actual OpenAI7.23.0/OpenRouter1.4.18 SDK sockets verify controlled native JSON/SSE across both bases. The installed compatible response schema accepts nullable strings; native standard/priority/batch are preserved without translating them to normalized request preferences. Invalid nonstring/non-null reports fail privately with existing possible-billing semantics. [Anthropic service tiers](https://platform.claude.com/docs/en/api/service-tiers) and [Messages API](https://platform.claude.com/docs/en/api/http/messages/create), checked2026-10-25, describe reported native usage metadata. This is no live tier-eligibility, capacity, latency, SLA or billed-price certification. Six pins, dependencies, storage/accounting schemas and request admission remain unchanged. See [plan](plans/536-anthropic-served-tiers.md) and [contract](../contracts/service-tier-requests.md#reported-anthropic-response-tiers-536); full #116 and Jev #7 remain open.
+
+
 ## Direct Anthropic service-tier requests (#534)
 
 Normalized auto/default now map to native auto/standard_only for direct Anthropic on both bases and supported nonstream/text/refusal/function streams. Null/omission stays omitted; unsupported recognized values reject before credentials. The same prepared request retains the approved host/model, cap, version header, IAM/limits/audit/usage and cancellation boundaries. Other providers and delegated endpoint-tier admission keep their existing subsets; no speed or region mapping is added.
 
-Actual OpenAI7.23.0/OpenRouter1.4.18 sockets use controlled native JSON/SSE responses and verify both mapped values plus null. Request tiers do not establish served-tier metadata, eligibility, capacity, latency, SLA or billed price; native served-tier projection remains future work. See [plan](plans/534-anthropic-service-tiers.md), [contract](../contracts/service-tier-requests.md#direct-anthropic-capacity-mapping-534) and [official capacity controls](https://platform.claude.com/docs/en/api/service-tiers), checked2026-10-25. Six pins and storage/accounting schemas remain unchanged; full #116 and Jev #7 stay open.
+Actual OpenAI7.23.0/OpenRouter1.4.18 sockets use controlled native JSON/SSE responses and verify both mapped values plus null. Request tiers do not establish served-tier metadata, eligibility, capacity, latency, SLA or billed price; native served-tier projection is covered separately in #536 above. See [plan](plans/534-anthropic-service-tiers.md), [contract](../contracts/service-tier-requests.md#direct-anthropic-capacity-mapping-534) and [official capacity controls](https://platform.claude.com/docs/en/api/service-tiers), checked2026-10-25. Six pins and storage/accounting schemas remain unchanged; full #116 and Jev #7 stay open.
 
 
 ## Delegated request-level12h (#532)

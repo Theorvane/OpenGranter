@@ -1,11 +1,20 @@
 # Acceptance and Verification Scenarios
 
+## Reported Anthropic response tiers (#536)
+
+- Raw HTTP and actual OpenAI/OpenRouter SDK sockets cover both bases and nonstream/text/refusal/function responses, preserving exact standard/priority/batch/future/empty strings, explicit null and omission from controlled native JSON/SSE.
+- Stream initial/update/final reports obey latest-supplied precedence: absent reports retain state and null replaces it. Never emit tiers in content deltas; required audit/usage failure and cancellation withhold pending final metadata and terminal success.
+- Malformed selected tier values fail privately before/after output, preserve failed possibly-billed accounting and never leak upstream payloads. Auth/implicit/model/provider Deny, limits and selection failure still prevent secret/upstream access.
+- Tier-only native usage retains metadata while the ledger reports missing counters. Shared text/function SSE encoding preserves tier-only final frames for absent/incomplete counts without adding usage. Existing cache accounting, request tiers and provider subsets remain green.
+- Do not infer prices, SLA, capacity or served tiers from request preferences. No live inference, pin/dependency/migration/event/ledger changes or full #116 certification. Jev #7 remains open. See [plan](plans/536-anthropic-served-tiers.md) and [contract](../contracts/service-tier-requests.md#reported-anthropic-response-tiers-536).
+
+
 ## Direct Anthropic request tiers (#534)
 
 - Raw HTTP/internal invoker and actual OpenAI/OpenRouter SDK sockets cover auto/default/null/omission across both bases and nonstream/text/refusal/function streaming, with controlled native JSON/SSE. Verify exact auto/standard_only output, approved model and output cap, and no inserted speed/region fields.
 - Preserve primitive capture before credentials and mutation safety; test unsupported/native public literals and private getters, auth/implicit/model/provider Deny, limits, selection/audit/usage failure, missing usage, opened failure and audited stream cancellation.
 - Other Anthropic recognized tiers reject before secrets, and prior OpenAI/delegated/Gemini subsets remain green. Request tiers must not appear as fabricated served metadata or operational data; preserve explicit unknown usage and possible billing.
-- No pin/dependency/migration/event/accounting changes or live capacity/price/capability certification. Native served-tier response projection and full #116 remain open. See [plan](plans/534-anthropic-service-tiers.md) and [contract](../contracts/service-tier-requests.md#direct-anthropic-capacity-mapping-534).
+- No pin/dependency/migration/event/accounting changes or live capacity/price/capability certification. Native served-tier projection is covered separately in #536 above; full #116 remains open. See [plan](plans/534-anthropic-service-tiers.md) and [contract](../contracts/service-tier-requests.md#direct-anthropic-capacity-mapping-534).
 
 
 ## Delegated root12h cache options (#532)
