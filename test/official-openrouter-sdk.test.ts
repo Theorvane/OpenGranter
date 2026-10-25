@@ -365,8 +365,13 @@ for (const base of ['/v1', '/api/v1'])
           for await (const item of result) chunks.push(item);
           assert.equal(chunks[0]?.serviceTier, 'private-text-tier');
           assert.equal(chunks[1]?.serviceTier, 'private-text-tier');
-          assert.equal(chunks.length, missingUsage ? 2 : 3);
-          if (!missingUsage) assert.equal(chunks[2]?.serviceTier, tier);
+          const hasFinalMetadata = !missingUsage || tier !== undefined;
+          assert.equal(chunks.length, hasFinalMetadata ? 3 : 2);
+          if (hasFinalMetadata) {
+            assert.equal(chunks[2]?.serviceTier, tier);
+            if (missingUsage) assert.equal(chunks[2]?.usage, undefined);
+            else assert.equal(chunks[2]?.usage?.totalTokens, 3);
+          }
         });
         assert.equal(f.usage[0]?.usage.status, missingUsage ? 'missing' : 'reported');
         assert.equal(f.usage[0]?.outcome, 'succeeded');

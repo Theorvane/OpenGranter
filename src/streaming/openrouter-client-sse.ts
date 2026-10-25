@@ -165,7 +165,9 @@ function encodeSse(event: OpenRouterFunctionStreamPayload, functions: boolean): 
       !validCount(usage.completion_tokens) ||
       !validCount(usage.total_tokens)
     )
-      return logprobs === undefined ? undefined : frame({ ...base(event, serviceTier), choices });
+      return logprobs === undefined && serviceTier === undefined
+        ? undefined
+        : frame({ ...base(event, serviceTier), choices });
     return frame({
       ...base(event, serviceTier),
       choices,

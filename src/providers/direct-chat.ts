@@ -47,6 +47,7 @@ import {
   prepareAnthropicFunctions,
   prepareAnthropicMessages,
 } from './anthropic-client-functions.ts';
+import { snapshotAnthropicServiceTier } from './anthropic-service-tier.ts';
 import { type AssistantResponse, normalizeAssistantResponse } from './assistant-response.ts';
 import { type ChatLogprobs, snapshotChatLogprobs } from './chat-logprobs.ts';
 import { type ChatUsage, normalizeChatUsage } from './chat-usage.ts';
@@ -235,19 +236,24 @@ function normalize(
     };
   }
   if (kind === 'anthropic') {
+    const serviceTier = snapshotAnthropicServiceTier(value.usage);
+    const withServiceTier = (result: ChatCompletion): ChatCompletion =>
+      serviceTier === undefined ? result : { ...result, service_tier: serviceTier };
     const refusal = value.stop_reason === 'refusal';
     const blocks = items(value.content);
     if (value.stop_reason === 'tool_use') {
       const assistant = blocks && normalizeAnthropicFunctionResponse(blocks, value.stop_reason);
       if (!assistant) fail('other');
-      return completion(
-        value.id,
-        undefined,
-        model,
-        assistant.content,
-        'tool_calls',
-        normalizeAnthropicChatUsage(value.usage),
-        assistant,
+      return withServiceTier(
+        completion(
+          value.id,
+          undefined,
+          model,
+          assistant.content,
+          'tool_calls',
+          normalizeAnthropicChatUsage(value.usage),
+          assistant,
+        ),
       );
     }
     if (
@@ -259,26 +265,30 @@ function normalize(
     )
       fail('other');
     if (refusal) {
-      return completion(
-        value.id,
-        undefined,
-        model,
-        null,
-        'content_filter',
-        normalizeAnthropicChatUsage(value.usage),
-        { role: 'assistant', content: null, refusal: null },
+      return withServiceTier(
+        completion(
+          value.id,
+          undefined,
+          model,
+          null,
+          'content_filter',
+          normalizeAnthropicChatUsage(value.usage),
+          { role: 'assistant', content: null, refusal: null },
+        ),
       );
     }
     const stopReason = value.stop_reason;
     if (stopReason !== 'max_tokens' && stopReason !== 'end_turn' && stopReason !== 'stop_sequence')
       fail('other');
-    return completion(
-      value.id,
-      undefined,
-      model,
-      blocks.map((block) => record(block)?.text).join(''),
-      stopReason === 'max_tokens' ? 'length' : 'stop',
-      normalizeAnthropicChatUsage(value.usage),
+    return withServiceTier(
+      completion(
+        value.id,
+        undefined,
+        model,
+        blocks.map((block) => record(block)?.text).join(''),
+        stopReason === 'max_tokens' ? 'length' : 'stop',
+        normalizeAnthropicChatUsage(value.usage),
+      ),
     );
   }
   const googleUsage = normalizeGoogleChatUsage(value.usageMetadata);

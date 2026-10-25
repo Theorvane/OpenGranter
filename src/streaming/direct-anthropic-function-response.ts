@@ -1,5 +1,6 @@
 import { snapshotBoundedJsonObject } from '../gateway/chat-tools.ts';
 import { AnthropicStreamUsage } from '../providers/anthropic-chat-usage.ts';
+import { snapshotAnthropicServiceTier } from '../providers/anthropic-service-tier.ts';
 import {
   DirectProviderFailure,
   type DirectProviderFailureCategory,
@@ -68,6 +69,7 @@ export async function consumeDirectAnthropicFunctionResponse(
       argumentsText = '',
       hasArgumentDelta = false;
     let capturedUsage = new AnthropicStreamUsage(undefined);
+    let serviceTier: string | null | undefined;
     let output: unknown,
       previousOutput: number | undefined,
       finish: Delta['finishReason'] = null;
@@ -109,9 +111,9 @@ export async function consumeDirectAnthropicFunctionResponse(
         )
           throw Error();
         id = message.id;
-        capturedUsage = new AnthropicStreamUsage(
-          message.usage == null ? undefined : record(message.usage),
-        );
+        const initialUsage = message.usage == null ? undefined : record(message.usage);
+        serviceTier = snapshotAnthropicServiceTier(initialUsage);
+        capturedUsage = new AnthropicStreamUsage(initialUsage);
         phase = 'blocks';
         await emit({ role: 'assistant', finishReason: null });
         continue;
@@ -219,6 +221,8 @@ export async function consumeDirectAnthropicFunctionResponse(
         )
           throw Error();
         const usage = event.usage == null ? undefined : record(event.usage);
+        const reportedTier = snapshotAnthropicServiceTier(usage);
+        if (reportedTier !== undefined) serviceTier = reportedTier;
         output = capturedUsage.update(usage);
         if (typeof output === 'number' && Number.isSafeInteger(output) && output >= 0) {
           if (previousOutput !== undefined && output < previousOutput) throw Error();
@@ -250,6 +254,7 @@ export async function consumeDirectAnthropicFunctionResponse(
           model: fixed.clientModelAlias,
           finishReason: null,
           usage: capturedUsage.finish(),
+          ...(serviceTier === undefined ? {} : { serviceTier }),
         });
         sequence.accept({ kind: 'done' });
         const result = sequence.finish();
