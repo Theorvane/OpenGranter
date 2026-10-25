@@ -1,5 +1,10 @@
 # OpenGranter Product Requirements
 
+## Compatible nonstream usage on both bases (#540)
+
+Both /v1 and /api/v1 omit incomplete numeric usage from normalized chat completions so compatible clients can consume the response without fabricated totals or zero counters. Preserve complete aggregates/details and all partial data in existing protected usage history. This intentionally changes legacy sparse usage output; fingerprint/error behavior and streaming stay unchanged. See [plan](plans/540-legacy-usage.md) and [contract](../contracts/compatible-completion-usage.md#both-base-numeric-usage-omission-540).
+
+
 ## OpenRouter AI SDK application workflows (#538)
 
 Support the measured OpenRouter-maintained AI SDK chat provider with custom gateway URL and proxy token for text and streamed client function/result loops across both bases and delegated/direct routes. Accept a redundant tool-result name only when it exactly matches its pending call, then remove it before transport. Preserve per-request fresh IAM, limits, audit/usage and safe cancellation. See [plan](plans/538-ai-sdk-workflows.md), [contract](../contracts/ai-sdk-client-workflows.md) and [reproduction](ai-sdk-conformance.md).

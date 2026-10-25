@@ -44,10 +44,10 @@ for await (const part of result.fullStream) {
 }
 ```
 
-Supply a real proxy token from the application's protected configuration and a published alias visible to that token. The app owns tool execution and access checks. Check error parts rather than treating every finish event as successful server accounting. Use an application abort deadline as appropriate. /v1 is also probed, with the sparse-usage limitation below.
+Supply a real proxy token from the application's protected configuration and a published alias visible to that token. The app owns tool execution and access checks. Check error parts rather than treating every finish event as successful server accounting. Use an application abort deadline as appropriate. /v1 is also probed; #540 resolves the previously measured sparse-usage parser failure.
 
 ## What is measured
 
 Both bases exercise delegated OpenRouter and managed OpenAI/Anthropic/Gemini for nonstream text, streamed text, tool calls and correlated results, with a fresh IAM evaluation per continuation. Auth/implicit/model/provider Deny, limits, required audit/usage failure, follow-up Deny and cancellation preserve existing boundaries. Upstream model/host/provider scope and per-attempt records are asserted. Optional correlated result names are validated and removed under [the contract](../contracts/ai-sdk-client-workflows.md).
 
-Missing usage may appear as zero in this client even though the ledger remains missing/null. Sparse Gemini usage fails the provider's legacy /v1 response schema; /api/v1 omits the incomplete usage and the client displays zero. These are recorded limits, not fabricated server counters. See [plan](plans/538-ai-sdk-workflows.md) for red/green and full-gate evidence. Full compatibility #116 and Jev #7 remain open; no discovery, signed-Google, image, reasoning, other endpoint or live capability certification follows from these text/tool probes.
+Missing usage may appear as zero in this client even though the ledger remains missing/null. Both bases omit incomplete Gemini usage under #540 and the client displays zero, while the ledger retains known partial counters and an unknown total. These are recorded limits, not fabricated server counters. See [client plan](plans/538-ai-sdk-workflows.md) and [usage correction plan](plans/540-legacy-usage.md) for red/green and full-gate evidence. Full compatibility #116 and Jev #7 remain open; no discovery, signed-Google, image, reasoning, other endpoint or live capability certification follows from these text/tool probes.

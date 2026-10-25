@@ -1,6 +1,13 @@
 # OpenGranter agent handoff
 
-## Current continuation checkpoint (#538)
+## Current continuation checkpoint (#540)
+
+PR [#539](https://github.com/Theorvane/OpenGranter/pull/539) received approval on 6925f6d3e0a2dbe7f0deb528ad50c589826e109e with all three checks successful and merged as 3dcd2c6; issue #538 is closed. Issue [#540](https://github.com/Theorvane/OpenGranter/issues/540), branch fix/540-legacy-usage, applies the existing complete-counter usage projection to /v1 nonstream chat responses. Read [plan](plans/540-legacy-usage.md) and [contract](../contracts/compatible-completion-usage.md#both-base-numeric-usage-omission-540), then refresh PR/review/CI state before assuming merge.
+
+The actual AI SDK legacy sparse-Google parser failure is resolved without inferred totals: both bases omit incomplete usage, preserving partial/missing/invalid ledger records and complete counters/details. Legacy fingerprint omission and error formats, opaque results and streams remain unchanged. Protected usage history provides partial data under existing permissions. Focused regressions passed 1,542 cases; the follow-up SDK/core selection passed 91. The final full gate passed 7,367 cases with one optional external PostgreSQL skip, zero failures/cancellations and all six offline/live schema checks passing. No pins, dependencies, migrations or operational schemas change. Full #116 and unresolved Jev #7 remain open; earlier checkpoints are historical.
+
+
+## Historical continuation checkpoint (#538)
 
 PR [#537](https://github.com/Theorvane/OpenGranter/pull/537) received approval on 7f68a056f3fdf22d6921997cb5d69164974bc1c4 with all three checks successful and merged as 54f548a; issue #536 is closed. Issue [#538](https://github.com/Theorvane/OpenGranter/issues/538), branch feat/538-ai-sdk-workflows, adds real OpenRouter AI SDK text/tool-loop conformance and fixes correlated optional tool-result names. Read [plan](plans/538-ai-sdk-workflows.md), [contract](../contracts/ai-sdk-client-workflows.md) and [reproduction](ai-sdk-conformance.md), then refresh PR/review/CI state before assuming merge.
 

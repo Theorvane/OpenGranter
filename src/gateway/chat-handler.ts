@@ -360,8 +360,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function projectClientCompletion(value: unknown, format: ClientErrorFormat): unknown {
-  if (format !== 'openrouter' || !isRecord(value) || value.object !== 'chat.completion')
-    return value;
+  if (!isRecord(value) || value.object !== 'chat.completion') return value;
   const usage = value.usage;
   const incompleteUsage =
     Object.hasOwn(value, 'usage') &&
@@ -370,9 +369,10 @@ function projectClientCompletion(value: unknown, format: ClientErrorFormat): unk
         (key) =>
           typeof usage[key] !== 'number' || !Number.isSafeInteger(usage[key]) || usage[key] < 0,
       ));
-  if (value.system_fingerprint !== undefined && !incompleteUsage) return value;
+  const unknownFingerprint = format === 'openrouter' && value.system_fingerprint === undefined;
+  if (!unknownFingerprint && !incompleteUsage) return value;
   const projected = { ...value };
-  if (projected.system_fingerprint === undefined) projected.system_fingerprint = null;
+  if (unknownFingerprint) projected.system_fingerprint = null;
   if (incompleteUsage) delete projected.usage;
   return projected;
 }

@@ -198,10 +198,7 @@ for (const mode of ['nonstream', 'text-stream', 'function-stream'] as const)
         const response = await f.handler(f.request(base));
         assert.equal(response.status, 200);
         const output = await cacheUsageOutput(response, mode);
-        assert.deepEqual(
-          output.usage,
-          s.status === 'reported' || (mode === 'nonstream' && base === '/v1') ? s.usage : undefined,
-        );
+        assert.deepEqual(output.usage, s.status === 'reported' ? s.usage : undefined);
         assert.equal(f.records.length, 1);
         assert.deepEqual(f.records[0]?.usage, {
           status: s.status,

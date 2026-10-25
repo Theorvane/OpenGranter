@@ -1,5 +1,13 @@
 # Acceptance and Verification Scenarios
 
+## Legacy compatible numeric usage (#540)
+
+- Reproduce the actual AI SDK /v1 sparse-Google parse error and require successful text output after correction. Both bases omit incomplete usage; SDK zero defaults remain separate from partial/null ledger totals.
+- Raw managed/delegated and native cases preserve missing/partial/invalid classifications and exact known counters, complete/zero/independent totals, admitted token details, frozen inputs and text/refusal/function response metadata.
+- Actual OpenAI/OpenRouter SDK sockets accept absent sparse usage when other required metadata is supplied. Legacy fingerprint omission remains a separate limitation; opaque responses, error formats and streams keep their existing contracts.
+- Both-base auth/implicit/model/provider Deny, limits and required ledger/outcome audit failures cannot be bypassed by response projection. No invented totals/costs, dependency/pin/schema changes or full #116 certification. Jev #7 remains open. See [plan](plans/540-legacy-usage.md) and [contract](../contracts/compatible-completion-usage.md#both-base-numeric-usage-omission-540).
+
+
 ## OpenRouter AI SDK client conformance (#538)
 
 - Actual provider 3.1.0/AI SDK 7.0.153 sockets cover both bases and delegated OpenRouter/managed OpenAI/Anthropic/Gemini for complete-counter nonstream text, streamed text and correlated client function/result continuation.
