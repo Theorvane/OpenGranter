@@ -1,5 +1,10 @@
 # Architecture Draft
 
+## Correlated tool-result name normalization (#538)
+
+The shared pre-await history snapshot tracks pending call ID to function name. Optional own tool-result names must match that mapping and are stripped before constructing the immutable internal ChatMessage. Native preparation and delegated wire shapes are unchanged; client hints grant no new destination or execution authority. Pinned development-only OpenRouter AI SDK probes use actual local sockets with bounded retries/steps and fixed approved upstream fixtures. See [plan](plans/538-ai-sdk-workflows.md) and [contract](../contracts/ai-sdk-client-workflows.md).
+
+
 ## Anthropic response-tier normalization (#536)
 
 A shared narrow reader captures only the own primitive usage.service_tier separately from the token counter. Native JSON normalization projects it onto service_tier; native text/function SSE consumers retain initial/later reports in summary state without adding it to content deltas. Omitted updates retain state, explicit null replaces it, and malformed selected values use existing private failure/possible-billing paths. The common compatible SSE encoder retains a tier-only final metadata frame even when counters are absent/incomplete, without a fabricated usage object. Required audit/usage still precedes final metadata. No request admission, dependency, pin or operational schema changes. See [plan](plans/536-anthropic-served-tiers.md) and [contract](../contracts/service-tier-requests.md#reported-anthropic-response-tiers-536).

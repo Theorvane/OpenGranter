@@ -111,7 +111,7 @@ export function snapshotChatMessages(value: unknown): readonly ChatMessage[] {
   const messages: ChatMessage[] = [];
   let conversationSeen = false;
   let imageUnits = 0;
-  const pending = new Set<string>();
+  const pending = new Map<string, string>();
   const source: readonly unknown[] = value;
   const entries = Array.from({ length }, (_, index) => source[index]);
   for (const raw of entries) {
@@ -125,20 +125,24 @@ export function snapshotChatMessages(value: unknown): readonly ChatMessage[] {
         if (part.type === 'image_url') imageUnits += part.image_url.url.length;
       }
     if (imageUnits > MAX_INLINE_IMAGE_HISTORY_UNITS) throw new TypeError('Invalid chat messages');
-    const name = item.name;
     if (role === 'tool') {
       const toolCallId = item.tool_call_id;
+      const hasName = Object.hasOwn(item, 'name');
+      const name = hasName ? item.name : undefined;
       if (
-        !exact(item, ['role', 'content', 'tool_call_id']) ||
+        !exact(item, ['role', 'content', 'tool_call_id', 'name']) ||
         content === null ||
         content === undefined ||
         typeof toolCallId !== 'string' ||
-        !pending.delete(toolCallId)
+        !pending.has(toolCallId) ||
+        (hasName && (typeof name !== 'string' || name !== pending.get(toolCallId)))
       )
         throw new TypeError('Invalid chat messages');
+      pending.delete(toolCallId);
       messages.push(Object.freeze({ role, content, tool_call_id: toolCallId }));
       continue;
     }
+    const name = item.name;
     if (pending.size > 0) throw new TypeError('Invalid chat messages');
     if (role !== 'system' && role !== 'developer' && role !== 'user' && role !== 'assistant')
       throw new TypeError('Invalid chat messages');
@@ -180,7 +184,7 @@ export function snapshotChatMessages(value: unknown): readonly ChatMessage[] {
       )
         throw new TypeError('Invalid chat messages');
       const calls = snapshotCalls(toolCalls);
-      for (const call of calls) pending.add(call.id);
+      for (const call of calls) pending.set(call.id, call.function.name);
       messages.push(
         Object.freeze({
           role,

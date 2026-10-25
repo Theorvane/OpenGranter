@@ -1,5 +1,13 @@
 # Acceptance and Verification Scenarios
 
+## OpenRouter AI SDK client conformance (#538)
+
+- Actual provider 3.1.0/AI SDK 7.0.153 sockets cover both bases and delegated OpenRouter/managed OpenAI/Anthropic/Gemini for complete-counter nonstream text, streamed text and correlated client function/result continuation.
+- Reproduce named tool-result rejection before the production fix. Verify exact matching, multi-call out-of-order results, own single capture, immutable normalized output and private pre-route rejection of mismatched/nonstring names; retain all existing orphan/duplicate/missing-result gates.
+- Test proxy authentication, implicit/model/provider Deny, limits, selection/persistence failure, fresh continuation Deny and audited abort. Preflight denial grants no tool execution or provider credential access. Persistence failures emit errors and no actual final usage/DONE even if the SDK synthesizes a finish-step.
+- Missing/partial counters stay unknown in the ledger despite SDK zero defaults or sparse legacy-schema rejection. No accounting, endpoint, source-pin or authority expansion. Full #116 and Jev #7 remain open. See [plan](plans/538-ai-sdk-workflows.md), [contract](../contracts/ai-sdk-client-workflows.md) and [reproduction](ai-sdk-conformance.md).
+
+
 ## Reported Anthropic response tiers (#536)
 
 - Raw HTTP and actual OpenAI/OpenRouter SDK sockets cover both bases and nonstream/text/refusal/function responses, preserving exact standard/priority/batch/future/empty strings, explicit null and omission from controlled native JSON/SSE.

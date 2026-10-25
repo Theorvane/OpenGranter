@@ -15,3 +15,7 @@ it cannot resolve pending results or authorize tool execution.
 Fixed history/call positions and every used scalar/reference are captured once
 under the [capture contract](function-history-capture.md). Uniqueness, pending
 matching and immutable output use the same validated IDs and function payload.
+
+## Measured optional result-name extension (#538)
+
+The actual OpenRouter AI SDK provider sends a name on tool-result messages. Accept an own supplied name only when it is a string exactly equal to the pending tool_call_id's function name, capture it once and remove the redundant hint from the immutable internal message. Mismatched/nonstring/undefined names fail before routes or credentials; omission remains valid. Preserve current group completeness, ID correlation, duplicate/orphan rejection and native history mappings. This is distinct from speaker names and does not change native request shapes or the official ChatToolMessage pin. See [client workflow contract](ai-sdk-client-workflows.md) and [plan](../docs/plans/538-ai-sdk-workflows.md).

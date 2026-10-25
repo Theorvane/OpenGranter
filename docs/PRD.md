@@ -1,5 +1,10 @@
 # OpenGranter Product Requirements
 
+## OpenRouter AI SDK application workflows (#538)
+
+Support the measured OpenRouter-maintained AI SDK chat provider with custom gateway URL and proxy token for text and streamed client function/result loops across both bases and delegated/direct routes. Accept a redundant tool-result name only when it exactly matches its pending call, then remove it before transport. Preserve per-request fresh IAM, limits, audit/usage and safe cancellation. See [plan](plans/538-ai-sdk-workflows.md), [contract](../contracts/ai-sdk-client-workflows.md) and [reproduction](ai-sdk-conformance.md).
+
+
 ## Reported Anthropic response tiers (#536)
 
 Preserve an actually reported native usage.service_tier as compatible response service_tier on both bases for nonstream/text/refusal/function responses. Retain exact strings, null and omission without inferring a served tier from a request preference. Streaming updates retain the prior value when omitted, replace it on explicit null, and expose the latest report only after required audit/usage. Tier-only reports retain metadata without inventing token usage or cost. See [plan](plans/536-anthropic-served-tiers.md) and [contract](../contracts/service-tier-requests.md#reported-anthropic-response-tiers-536).

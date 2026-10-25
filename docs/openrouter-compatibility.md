@@ -1,5 +1,12 @@
 # OpenRouter external-client compatibility
 
+## OpenRouter AI SDK client workflows (#538)
+
+Pinned OpenRouter-maintained provider 3.1.0 with AI SDK 7.0.153 now exercises actual sockets on both bases and delegated OpenRouter/managed OpenAI/Anthropic/Gemini for nonstream text, streamed text and client function execution/result continuation. Its optional tool-result name is accepted only when it matches the pending call's function name, then removed before transport. This measured extension is absent from the selected official ChatToolMessage property map; all six source pins remain unchanged. Other speaker-name restrictions and tool correlation remain intact.
+
+Fresh auth/model/provider IAM, limits, required persistence, follow-up Deny and cancellation remain shared. The SDK may synthesize finish-step after an error and zero token totals for missing usage; neither is server success/billing evidence. Legacy sparse Gemini usage fails client response validation while /api/v1 omits incomplete usage and the client displays zero; the ledger remains partial/null rather than zero. See [reproduction](ai-sdk-conformance.md), [contract](../contracts/ai-sdk-client-workflows.md) and [plan](plans/538-ai-sdk-workflows.md). Development-only dependencies also move zod from the existing 4.6.5 to the compatible patched 4.6.6 used for fixture input validation. These probes do not certify discovery, signed-Google/images/reasoning, other endpoints, live providers or full #116. Jev #7 remains open.
+
+
 ## Reported Anthropic response tiers (#536)
 
 Direct Anthropic native usage.service_tier now reaches compatible response service_tier on both bases for nonstream/text/refusal/function responses. This closes the native response-projection gap mentioned in #534 only. Preserve exact strings, null and omission; future strings are metadata rather than new request authority. Initial and later SSE reports merge with omission retaining the prior value and explicit null replacing it. Emit the latest supplied tier only in the completed final metadata frame after required audit/usage, never in content deltas. The shared encoder now retains tier-only final frames when counters are absent/incomplete without manufacturing a usage object; ledger missing-usage semantics stay intact.

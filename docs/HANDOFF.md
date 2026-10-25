@@ -1,6 +1,13 @@
 # OpenGranter agent handoff
 
-## Current continuation checkpoint (#536)
+## Current continuation checkpoint (#538)
+
+PR [#537](https://github.com/Theorvane/OpenGranter/pull/537) received approval on 7f68a056f3fdf22d6921997cb5d69164974bc1c4 with all three checks successful and merged as 54f548a; issue #536 is closed. Issue [#538](https://github.com/Theorvane/OpenGranter/issues/538), branch feat/538-ai-sdk-workflows, adds real OpenRouter AI SDK text/tool-loop conformance and fixes correlated optional tool-result names. Read [plan](plans/538-ai-sdk-workflows.md), [contract](../contracts/ai-sdk-client-workflows.md) and [reproduction](ai-sdk-conformance.md), then refresh PR/review/CI state before assuming merge.
+
+The shared history snapshot validates name against its pending call and drops the redundant hint before unchanged native/delegated transport. Pinned development-only provider/AI SDK/zod versions are 3.1.0/7.0.153/4.6.6. Client finish-step/zero defaults are not server persistence/billing evidence; sparse legacy Google usage remains a measured client gap. Focused regressions passed 372 cases; the full gate passed 7,363 cases with one optional external PostgreSQL skip, zero failures/cancellations and all six offline/live schema checks passing. Existing six pins, production dependencies, migrations and ledger schemas remain unchanged. Full #116 and unresolved Jev #7 stay open; earlier checkpoints are historical.
+
+
+## Historical continuation checkpoint (#536)
 
 PR [#535](https://github.com/Theorvane/OpenGranter/pull/535) received approval on9715665415e0a6162eb70ede052810d667e67f71 with all three checks successful. Following explicit user merge authorization it merged as6e4b6ca; issue #534 is closed. Issue [#536](https://github.com/Theorvane/OpenGranter/issues/536), branch feat/536-anthropic-served-tiers, preserves actually reported native Anthropic service tiers in compatible responses. Read [plan](plans/536-anthropic-served-tiers.md) and [contract](../contracts/service-tier-requests.md#reported-anthropic-response-tiers-536), then refresh the linked PR/review/CI state before assuming merge.
 
