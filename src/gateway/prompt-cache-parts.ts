@@ -14,6 +14,7 @@ import {
 
 export interface PromptCacheBreakpoint {
   readonly mode: 'explicit';
+  readonly ttl?: '30m' | '12h';
 }
 export interface PromptCacheTextPart {
   readonly type: 'text';
@@ -31,12 +32,15 @@ export function snapshotPromptCacheBreakpoint(value: unknown): PromptCacheBreakp
   if (
     (prototype !== Object.prototype && prototype !== null) ||
     !Object.hasOwn(value, 'mode') ||
-    Object.keys(value).some((key) => key !== 'mode')
+    Object.keys(value).some((key) => key !== 'mode' && key !== 'ttl')
   )
     throw new TypeError('Invalid cache breakpoint');
   const mode: unknown = Reflect.get(value, 'mode');
   if (mode !== 'explicit') throw new TypeError('Invalid cache breakpoint');
-  return Object.freeze({ mode });
+  const ttl: unknown = Object.hasOwn(value, 'ttl') ? Reflect.get(value, 'ttl') : undefined;
+  if (ttl !== undefined && ttl !== null && ttl !== '30m' && ttl !== '12h')
+    throw new TypeError('Invalid cache breakpoint');
+  return Object.freeze({ mode, ...(ttl === undefined || ttl === null ? {} : { ttl }) });
 }
 /** Snapshot a marked text history; plain internal arrays retain their prior rejection. */
 export function snapshotPromptCacheTextParts(value: unknown): readonly PromptCacheTextPart[];
