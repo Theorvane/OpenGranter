@@ -1,5 +1,13 @@
 # Acceptance and Verification Scenarios
 
+## Direct Anthropic request tiers (#534)
+
+- Raw HTTP/internal invoker and actual OpenAI/OpenRouter SDK sockets cover auto/default/null/omission across both bases and nonstream/text/refusal/function streaming, with controlled native JSON/SSE. Verify exact auto/standard_only output, approved model and output cap, and no inserted speed/region fields.
+- Preserve primitive capture before credentials and mutation safety; test unsupported/native public literals and private getters, auth/implicit/model/provider Deny, limits, selection/audit/usage failure, missing usage, opened failure and audited stream cancellation.
+- Other Anthropic recognized tiers reject before secrets, and prior OpenAI/delegated/Gemini subsets remain green. Request tiers must not appear as fabricated served metadata or operational data; preserve explicit unknown usage and possible billing.
+- No pin/dependency/migration/event/accounting changes or live capacity/price/capability certification. Native served-tier response projection and full #116 remain open. See [plan](plans/534-anthropic-service-tiers.md) and [contract](../contracts/service-tier-requests.md#direct-anthropic-capacity-mapping-534).
+
+
 ## Delegated root12h cache options (#532)
 
 - Preserve exact explicit root12h on both bases for delegated nonstream/text/refusal/function streams, including independent30m text boundaries, approved provider scope and both actual SDK transports.

@@ -1,5 +1,12 @@
 # OpenRouter external-client compatibility
 
+## Direct Anthropic service-tier requests (#534)
+
+Normalized auto/default now map to native auto/standard_only for direct Anthropic on both bases and supported nonstream/text/refusal/function streams. Null/omission stays omitted; unsupported recognized values reject before credentials. The same prepared request retains the approved host/model, cap, version header, IAM/limits/audit/usage and cancellation boundaries. Other providers and delegated endpoint-tier admission keep their existing subsets; no speed or region mapping is added.
+
+Actual OpenAI7.23.0/OpenRouter1.4.18 sockets use controlled native JSON/SSE responses and verify both mapped values plus null. Request tiers do not establish served-tier metadata, eligibility, capacity, latency, SLA or billed price; native served-tier projection remains future work. See [plan](plans/534-anthropic-service-tiers.md), [contract](../contracts/service-tier-requests.md#direct-anthropic-capacity-mapping-534) and [official capacity controls](https://platform.claude.com/docs/en/api/service-tiers), checked2026-10-25. Six pins and storage/accounting schemas remain unchanged; full #116 and Jev #7 stay open.
+
+
 ## Delegated request-level12h (#532)
 
 Delegated OpenRouter now preserves explicit prompt_cache_options.ttl:12h through both bases, nonstream/text/refusal/function streams, typed OpenRouter1.4.18 requests and an explicit OpenAI7.23.0 transport extension pointed at this gateway. Existing30m/null/omission, independent text-boundary TTL and all shared controls remain unchanged. All direct native routes reject root12h before credentials; direct OpenAI retains its current30m subset, with no Responses-to-Chat support inference. This extends the earlier root30m exclusion only for delegated routing and does not alter per-block TTL/SDK limitations.
