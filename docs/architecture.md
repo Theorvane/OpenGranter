@@ -1,5 +1,10 @@
 # Architecture Draft
 
+## Route-specific root cache TTL (#532)
+
+The shared immutable root-options snapshot accepts30m/12h; the registered direct transport rejects12h during preparation before credential access. All direct nonstream/text/function stream invokers reuse that transport, preserving native constraints without duplicating parsers. Delegated serialization retains the captured value and existing approved destination scope. No default, cross-format conversion, TTL inheritance, cache accounting, pin or schema mutation is added. See [plan](plans/532-delegated-cache-ttl.md) and [contract](../contracts/prompt-cache-options.md#delegated-request-ttl12h-532).
+
+
 ## Text breakpoint TTL capture (#530)
 
 Extend only the shared immutable text-marker snapshot with an own optional 30m/12h TTL read once before credentials. Existing external/internal message snapshots and registered invokers preserve this field through supported delegated/managed paths; no new serializer or native translation is needed. Null/undefined becomes omission locally, and root options keep their existing bounds. Native Anthropic/Gemini retain pre-secret unsupported-marker rejection. Six source pins, events, migrations and accounting are unchanged. See [plan](plans/530-breakpoint-ttl.md) and [contract](../contracts/prompt-cache-breakpoints.md#optional-text-breakpoint-ttl-530).

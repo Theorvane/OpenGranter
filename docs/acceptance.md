@@ -1,5 +1,13 @@
 # Acceptance and Verification Scenarios
 
+## Delegated root12h cache options (#532)
+
+- Preserve exact explicit root12h on both bases for delegated nonstream/text/refusal/function streams, including independent30m text boundaries, approved provider scope and both actual SDK transports.
+- Verify pre-credential root/mode/TTL capture, mutation isolation, auth/implicit/model/provider Deny, limits, selection/audit/usage failure, missing usage and possible-billing failures. Existing malformed input, null/omission,30m and cancellation regressions remain green.
+- A red probe must show that accepting shared12h without a native guard would wrongly admit managed OpenAI; the final common transport must reject OpenAI/Anthropic/Gemini root12h before secrets/upstream across nonstream/text/function streams. Retain safe unsupported outcomes and existing permitted native defaults.
+- Keep API-specific official source differences and SDK extension semantics explicit; no live cache/billing/retention or complete #116 claim. Source pins and dependency/migration/event/accounting schemas are unchanged. See [plan](plans/532-delegated-cache-ttl.md) and [contract](../contracts/prompt-cache-options.md#delegated-request-ttl12h-532).
+
+
 ## Text breakpoint TTL (#530)
 
 - Raw/internal tests retain 30m/12h and mixed boundary lifetimes across five history roles, exact text/order/empty blocks, both bases/routes and nonstream/text/refusal/function streaming. Omission/null/undefined adds no TTL or root default; root options remain independent.

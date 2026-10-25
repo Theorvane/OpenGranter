@@ -1,6 +1,13 @@
 # OpenGranter agent handoff
 
-## Current continuation checkpoint (#530)
+## Current continuation checkpoint (#532)
+
+PR [#531](https://github.com/Theorvane/OpenGranter/pull/531) received approval on4ad5e9392db4362b0ced2bfc59e1e416b6133030 with all three checks successful and merged as6ce0f33; issue #530 is closed. Issue [#532](https://github.com/Theorvane/OpenGranter/issues/532), branch feat/532-delegated-cache-ttl, extends explicit root cache options with12h for delegated OpenRouter. Read [plan](plans/532-delegated-cache-ttl.md) and [contract](../contracts/prompt-cache-options.md#delegated-request-ttl12h-532), then refresh PR/review/CI status before assuming merge.
+
+The shared snapshot admits12h but the common direct transport rejects it before credentials in all direct modes. Preserve the official Chat/Responses scope difference: managed OpenAI root TTL remains30m. Typed OpenRouter SDK root12h transport works, while its per-block TTL stripping limitation remains. Focused cache/SDK suites passed1,244 cases; the full gate passed7,213 with one optional external PostgreSQL skip, zero failures/cancellations and all six offline/live source comparisons passing. All six source pins, dependencies, migrations and operational accounting/event schemas are unchanged. Full #116 and unresolved Jev #7 remain open; prior checkpoints below are historical.
+
+
+## Historical continuation checkpoint (#530)
 
 PR [#529](https://github.com/Theorvane/OpenGranter/pull/529) received approval on da14b765aaa5d90ebddd9c4c220c31032a85847d with all three checks successful and merged as db31938; issue #528 is closed. Six source guards are now in approved main. Issue [#530](https://github.com/Theorvane/OpenGranter/issues/530), branch feat/530-breakpoint-ttl, adds optional 30m/12h TTL to existing text breakpoints. Read [plan](plans/530-breakpoint-ttl.md) and [contract](../contracts/prompt-cache-breakpoints.md#optional-text-breakpoint-ttl-530), then refresh its PR/review/CI state before assuming merge.
 

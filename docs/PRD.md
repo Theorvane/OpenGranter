@@ -1,5 +1,10 @@
 # OpenGranter Product Requirements
 
+## Delegated request cache TTL12h (#532)
+
+Accept explicit request-level12h for delegated OpenRouter alongside the existing30m subset. Preserve both SDK transports, supported streaming modes, current permissions/limits/audit/usage and independent text-boundary controls. Direct OpenAI retains root30m until its Chat Completions contract supports expansion; other native providers still reject options before secrets. See [plan](plans/532-delegated-cache-ttl.md) and [contract](../contracts/prompt-cache-options.md#delegated-request-ttl12h-532).
+
+
 ## Explicit text cache boundary lifetimes (#530)
 
 Accept optional 30m/12h TTL on existing explicit text breakpoints for managed OpenAI/delegated OpenRouter across both client bases and nonstream/stream outputs. Preserve exact histories, shared controls and absence/null without injecting defaults or inferring cache usage, cost or retention guarantees. The pinned OpenRouter SDK drops TTL before sending; raw HTTP and the installed OpenAI SDK preserve it. See [plan](plans/530-breakpoint-ttl.md) and [contract](../contracts/prompt-cache-breakpoints.md#optional-text-breakpoint-ttl-530).
