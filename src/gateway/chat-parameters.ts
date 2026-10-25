@@ -413,7 +413,7 @@ export function validatePredictionControls(
 
 export interface PromptCacheOptions {
   readonly mode: 'explicit';
-  readonly ttl?: '30m';
+  readonly ttl?: '30m' | '12h';
 }
 /** Capture a bounded explicit-only preference; nullable controls normalize to omission. */
 export function snapshotPromptCacheOptions(value: unknown): PromptCacheOptions | undefined {
@@ -429,7 +429,7 @@ export function snapshotPromptCacheOptions(value: unknown): PromptCacheOptions |
     throw new TypeError('Invalid cache options');
   const mode: unknown = Reflect.get(value, 'mode');
   const ttl: unknown = Object.hasOwn(value, 'ttl') ? Reflect.get(value, 'ttl') : undefined;
-  if (mode !== 'explicit' || (ttl != null && ttl !== '30m'))
+  if (mode !== 'explicit' || (ttl != null && ttl !== '30m' && ttl !== '12h'))
     throw new TypeError('Invalid cache options');
   return Object.freeze({ mode, ...(ttl == null ? {} : { ttl }) });
 }

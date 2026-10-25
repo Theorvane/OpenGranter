@@ -605,7 +605,11 @@ export function createDirectChatTransport(
       modalities = snapshotTextModalities(request.modalities);
       if (modalities !== undefined && registration.kind !== 'openai') fail('other');
       cacheOptions = snapshotPromptCacheOptions(request.prompt_cache_options);
-      if (cacheOptions !== undefined && registration.kind !== 'openai') fail('other');
+      if (
+        cacheOptions !== undefined &&
+        (registration.kind !== 'openai' || cacheOptions.ttl === '12h')
+      )
+        fail('other');
       cacheControl = snapshotCacheControl(request.cache_control);
       validateCacheOptionsControls(cacheOptions, cacheControl);
       if (cacheControl !== undefined && registration.kind !== 'anthropic') fail('other');

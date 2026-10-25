@@ -1,5 +1,12 @@
 # OpenRouter external-client compatibility
 
+## Delegated request-level12h (#532)
+
+Delegated OpenRouter now preserves explicit prompt_cache_options.ttl:12h through both bases, nonstream/text/refusal/function streams, typed OpenRouter1.4.18 requests and an explicit OpenAI7.23.0 transport extension pointed at this gateway. Existing30m/null/omission, independent text-boundary TTL and all shared controls remain unchanged. All direct native routes reject root12h before credentials; direct OpenAI retains its current30m subset, with no Responses-to-Chat support inference. This extends the earlier root30m exclusion only for delegated routing and does not alter per-block TTL/SDK limitations.
+
+[Official OpenRouter chat](https://openrouter.ai/docs/api/api-reference/chat/create-a-chat-completion) describes root30m/12h; [OpenAI Chat Completions](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create) still narrows root TTL to30m, while [its caching guide](https://developers.openai.com/api/docs/guides/prompt-caching) describes root12h for Responses (checked2026-10-25). Preserve this scope difference in capability claims. No pin updates, live capability, cache cost/retention guarantees or full #116 closure; Jev #7 remains open. See [plan](plans/532-delegated-cache-ttl.md) and [contract](../contracts/prompt-cache-options.md#delegated-request-ttl12h-532).
+
+
 ## Explicit text breakpoint TTL (#530)
 
 Both chat bases preserve optional per-text-breakpoint ttl:30m|12h for managed OpenAI and delegated OpenRouter across all existing roles and supported nonstream/text/refusal/function streaming paths. Own TTL is captured once before credentials; null/undefined omits it locally and absence injects no default. Preserve mixed boundary lifetimes and independent root options without native cache conversion, inferred cost/usage or retention guarantees. This supersedes the earlier text-marker TTL exclusion only; Anthropic/Gemini and richer/mixed marker formats retain their prior restrictions. The v33 source's nullable unconstrained string remains unchanged by this bounded runtime subset.

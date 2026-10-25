@@ -6,6 +6,6 @@ export function cacheOptionsPrivacy(f: ReturnType<typeof clientUserFixture>) {
   clientUserPrivacy(f);
   assert.doesNotMatch(
     JSON.stringify([f.records, f.audits]),
-    /prompt_cache_options|explicit|30m|private|forged/u,
+    /prompt_cache_options|explicit|30m|12h|private|forged/u,
   );
 }
