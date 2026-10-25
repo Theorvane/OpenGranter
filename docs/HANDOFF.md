@@ -1,6 +1,13 @@
 # OpenGranter agent handoff
 
-## Current continuation checkpoint (#532)
+## Current continuation checkpoint (#534)
+
+PR [#533](https://github.com/Theorvane/OpenGranter/pull/533) received approval on c6fcba9482930d3c64405f413e4ac4857e1b03ad with all three checks successful and merged as78d5d29; issue #532 is closed. Issue [#534](https://github.com/Theorvane/OpenGranter/issues/534), branch feat/534-anthropic-service-tiers, adds direct Anthropic auto/default request tiers mapped to native auto/standard_only. Read [plan](plans/534-anthropic-service-tiers.md) and [contract](../contracts/service-tier-requests.md#direct-anthropic-capacity-mapping-534), then refresh the linked PR/review/CI state before assuming merge.
+
+The common direct guard/body preparation changes; prior provider subsets, approved destination authority, caps/version headers, six pins, dependencies and storage/accounting schemas remain unchanged. SDK/native JSON/SSE regressions passed410 focused cases. The full gate passed7,249 with one optional external PostgreSQL skip, zero failures/cancellations and all six offline/live source comparisons passing. Do not infer served tier from request controls: native served-tier response projection, expanded delegated tier authorization, full #116 and Jev #7 remain open. Earlier checkpoints below are historical.
+
+
+## Historical continuation checkpoint (#532)
 
 PR [#531](https://github.com/Theorvane/OpenGranter/pull/531) received approval on4ad5e9392db4362b0ced2bfc59e1e416b6133030 with all three checks successful and merged as6ce0f33; issue #530 is closed. Issue [#532](https://github.com/Theorvane/OpenGranter/issues/532), branch feat/532-delegated-cache-ttl, extends explicit root cache options with12h for delegated OpenRouter. Read [plan](plans/532-delegated-cache-ttl.md) and [contract](../contracts/prompt-cache-options.md#delegated-request-ttl12h-532), then refresh PR/review/CI status before assuming merge.
 

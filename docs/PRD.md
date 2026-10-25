@@ -1,5 +1,10 @@
 # OpenGranter Product Requirements
 
+## Direct Anthropic capacity preferences (#534)
+
+Support normalized service_tier auto/default for direct Anthropic, mapping to native auto/standard_only through existing nonstream/text/refusal/function streams. Preserve omission, current model/provider IAM, limits, required audit/accounting and private errors. Do not turn preferences into served-tier metadata, billing or capability guarantees. See [plan](plans/534-anthropic-service-tiers.md) and [contract](../contracts/service-tier-requests.md#direct-anthropic-capacity-mapping-534).
+
+
 ## Delegated request cache TTL12h (#532)
 
 Accept explicit request-level12h for delegated OpenRouter alongside the existing30m subset. Preserve both SDK transports, supported streaming modes, current permissions/limits/audit/usage and independent text-boundary controls. Direct OpenAI retains root30m until its Chat Completions contract supports expansion; other native providers still reject options before secrets. See [plan](plans/532-delegated-cache-ttl.md) and [contract](../contracts/prompt-cache-options.md#delegated-request-ttl12h-532).

@@ -1,5 +1,10 @@
 # Architecture Draft
 
+## Anthropic service-tier preparation (#534)
+
+The common registered direct transport admits only auto/default for Anthropic before credentials. Its native body builder preserves auto and translates explicit default to standard_only. Existing immutable primitive capture, host/model/output-cap/version headers and all nonstream/text/function invoker boundaries stay shared. Omission injects no tier, other native/delegated subsets remain unchanged, and no response tier or operational metadata is synthesized. See [plan](plans/534-anthropic-service-tiers.md) and [contract](../contracts/service-tier-requests.md#direct-anthropic-capacity-mapping-534).
+
+
 ## Route-specific root cache TTL (#532)
 
 The shared immutable root-options snapshot accepts30m/12h; the registered direct transport rejects12h during preparation before credential access. All direct nonstream/text/function stream invokers reuse that transport, preserving native constraints without duplicating parsers. Delegated serialization retains the captured value and existing approved destination scope. No default, cross-format conversion, TTL inheritance, cache accounting, pin or schema mutation is added. See [plan](plans/532-delegated-cache-ttl.md) and [contract](../contracts/prompt-cache-options.md#delegated-request-ttl12h-532).

@@ -105,7 +105,9 @@ for (const kind of ['openai', 'openrouter', 'anthropic', 'google'] as const)
           ? ['ultrafast']
           : kind === 'openrouter'
             ? nativeTiers.filter((t) => t !== 'default').concat('ultrafast')
-            : nativeTiers.concat('ultrafast');
+            : kind === 'anthropic'
+              ? nativeTiers.filter((t) => t !== 'auto' && t !== 'default').concat('ultrafast')
+              : nativeTiers.concat('ultrafast');
       for (const service_tier of unsupported) {
         const f = clientUserFixture(kind, { stream });
         await assert.rejects(() =>

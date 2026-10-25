@@ -469,6 +469,9 @@ function prepare(
       body: {
         model: candidate.upstreamModelId,
         max_tokens: outputLimit ?? registration.maxOutputTokens,
+        ...(serviceTier === undefined
+          ? {}
+          : { service_tier: serviceTier === 'default' ? 'standard_only' : serviceTier }),
         ...(streaming ? { stream: true } : {}),
         ...(cacheControl === undefined ? {} : { cache_control: cacheControl }),
         ...(verbosity === undefined ? {} : { output_config: { effort: verbosity } }),
@@ -595,11 +598,14 @@ export function createDirectChatTransport(
     try {
       if (snapshotSessionId(request.session_id) !== undefined) fail('other');
       serviceTier = snapshotRequestServiceTier(request.service_tier);
-      if (
-        serviceTier !== undefined &&
-        (registration.kind !== 'openai' || serviceTier === 'ultrafast')
-      )
-        fail('other');
+      if (serviceTier !== undefined) {
+        const supportedTier =
+          registration.kind === 'openai'
+            ? serviceTier !== 'ultrafast'
+            : registration.kind === 'anthropic' &&
+              (serviceTier === 'auto' || serviceTier === 'default');
+        if (!supportedTier) fail('other');
+      }
       prediction = snapshotPrediction(request.prediction);
       if (prediction !== undefined && registration.kind !== 'openai') fail('other');
       modalities = snapshotTextModalities(request.modalities);
