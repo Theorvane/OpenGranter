@@ -149,7 +149,10 @@ for (const kind of ['openai', 'anthropic', 'google'] as const) {
       );
       assert.equal(response.status, 200);
       const body = (await response.json()) as { usage?: unknown };
-      assert.deepEqual(body.usage, expected.normalized);
+      assert.deepEqual(
+        body.usage,
+        expected.status === 'reported' ? expected.normalized : undefined,
+      );
       assert.equal(records.length, 1);
       assert.deepEqual(records[0]?.usage, {
         status: expected.status,

@@ -253,8 +253,9 @@ for (const kind of kinds) {
         if (kind === 'google') {
           assert.equal(f.usage[0]?.usage.status, 'partial');
           assert.equal(f.usage[0]?.usage.totalTokens, null);
-          assert.equal(completion.usage?.prompt_tokens, base === '/v1' ? 2 : undefined);
-          assert.equal(completion.usage?.completion_tokens, base === '/v1' ? 1 : undefined);
+          assert.equal(completion.usage, undefined);
+          assert.equal(f.usage[0]?.usage.promptTokens, 2);
+          assert.equal(f.usage[0]?.usage.completionTokens, 1);
         }
         assert.equal(f.usage.length, 1);
         assert.equal(nativeCount(kind, f.sent[0]), kind === 'anthropic' ? undefined : 1);

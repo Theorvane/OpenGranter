@@ -189,7 +189,7 @@ const sparse = [
   { value: 'private container', status: 'invalid' },
 ] as const;
 for (const kind of ['openai', 'openrouter'] as const) {
-  test(`${kind}: sparse compatible SDK usage preserves ledger classification and legacy reporting`, async () => {
+  test(`${kind}: sparse compatible SDK usage preserves ledger classification on both bases`, async () => {
     for (const scenario of sparse) {
       const f = fixture(kind, scenario.value);
       const result = await sdk(f);
@@ -201,8 +201,7 @@ for (const kind of ['openai', 'openrouter'] as const) {
       const legacy = await f.handler(request('/v1'));
       assert.equal(legacy.status, 200);
       const body = (await legacy.json()) as { usage?: unknown };
-      const shouldHaveUsage = scenario.status !== 'missing';
-      assert.equal(Object.hasOwn(body, 'usage'), shouldHaveUsage);
+      assert.equal(Object.hasOwn(body, 'usage'), false);
       assert.deepEqual(f.usage[1]?.usage, f.usage[0]?.usage);
       assert.equal(f.calls(), 2);
       assert.doesNotMatch(JSON.stringify([f.usage, f.audit]), /private/u);
@@ -224,27 +223,28 @@ for (const kind of ['openai', 'openrouter'] as const) {
     }
   });
   test(`${kind}: usage projection cannot bypass denial or required accounting failures`, async () => {
-    for (const [gate, status, calls] of [
-      ['auth', 401, 0],
-      ['deny', 403, 0],
-      ['model', 403, 0],
-      ['provider', 403, 0],
-      ['limit', 429, 0],
-      ['ledger', 503, 1],
-      ['audit', 503, 1],
-    ] as const) {
-      const f = fixture(kind, { prompt_tokens: 2 }, gate),
-        response = await f.handler(request('/api/v1'));
-      assert.equal(response.status, status, gate);
-      assert.equal(f.calls(), calls, gate);
-      if (!calls) {
-        assert.equal(f.secrets(), 0);
-        assert.equal(f.usage.length, 0);
+    for (const base of ['/v1', '/api/v1'])
+      for (const [gate, status, calls] of [
+        ['auth', 401, 0],
+        ['deny', 403, 0],
+        ['model', 403, 0],
+        ['provider', 403, 0],
+        ['limit', 429, 0],
+        ['ledger', 503, 1],
+        ['audit', 503, 1],
+      ] as const) {
+        const f = fixture(kind, { prompt_tokens: 2 }, gate),
+          response = await f.handler(request(base));
+        assert.equal(response.status, status, gate);
+        assert.equal(f.calls(), calls, gate);
+        if (!calls) {
+          assert.equal(f.secrets(), 0);
+          assert.equal(f.usage.length, 0);
+        }
+        if (gate === 'audit') assert.equal(f.usage[0]?.usage.status, 'partial');
+        assert.doesNotMatch(await response.text(), /private/u);
+        assert.doesNotMatch(JSON.stringify([f.usage, f.audit]), /private/u);
       }
-      if (gate === 'audit') assert.equal(f.usage[0]?.usage.status, 'partial');
-      assert.doesNotMatch(await response.text(), /private/u);
-      assert.doesNotMatch(JSON.stringify([f.usage, f.audit]), /private/u);
-    }
   });
 }
 for (const kind of ['anthropic', 'google'] as const)
@@ -261,7 +261,9 @@ for (const kind of ['anthropic', 'google'] as const)
     });
     const legacy = await f.handler(request('/v1'));
     assert.equal(legacy.status, 200);
-    assert.deepEqual(((await legacy.json()) as { usage: unknown }).usage, { prompt_tokens: 2 });
+    const body: unknown = await legacy.json();
+    assert.ok(body !== null && typeof body === 'object');
+    assert.equal(Object.hasOwn(body, 'usage'), false);
   });
 
 test('compatible usage projection clones frozen completions and preserves opaque values', async () => {
@@ -281,14 +283,18 @@ test('compatible usage projection clones frozen completions and preserves opaque
     });
     assert.deepEqual(original.usage, { prompt_tokens: 2 });
     const legacy = await f.handler(request('/v1'));
-    assert.deepEqual(await legacy.json(), original);
+    assert.deepEqual(await legacy.json(), {
+      object: 'chat.completion',
+      ...(fingerprint === undefined ? {} : { system_fingerprint: fingerprint }),
+    });
   }
   for (const original of [
     Object.freeze({ usage: { prompt_tokens: 2 } }),
     Object.freeze({ object: 'other', usage: null }),
   ]) {
     const f = fixture('openai', undefined, '', { response: original });
-    assert.deepEqual(await (await f.handler(request('/api/v1'))).json(), original);
+    for (const base of ['/v1', '/api/v1'])
+      assert.deepEqual(await (await f.handler(request(base))).json(), original);
   }
 });
 
@@ -406,11 +412,7 @@ for (const kind of ['openai', 'openrouter'] as const) {
         const result = (await response.json()) as { usage?: unknown };
         assert.equal(f.usage[0]?.usage.totalTokens, null);
         assert.notEqual(f.usage[0]?.usage.status, 'reported');
-        if (base === '/api/v1' || Object.keys(partial).length === 0) {
-          assert.equal(result.usage, undefined);
-        } else {
-          assert.deepEqual(result.usage, { ...partial, ...tokenDetails });
-        }
+        assert.equal(result.usage, undefined);
       }
     }
     const f = fixture(kind, { prompt_tokens: 2, completion_tokens: 1, ...tokenDetails });
@@ -568,3 +570,96 @@ for (const kind of ['anthropic', 'google'] as const)
     assert.deepEqual(((await response.json()) as { usage: unknown }).usage, aggregates);
     assert.equal(f.usage[0]?.usage.totalTokens, 3);
   });
+
+for (const kind of ['openai', 'openrouter'] as const) {
+  test(`${kind}: both actual SDKs accept sparse usage on both bases with a supplied fingerprint`, async () => {
+    for (const base of ['/v1', '/api/v1'])
+      for (const scenario of sparse) {
+        const f = fixture(kind, scenario.value, '', undefined, 'fp_reported');
+        const server = createNodeRequestServer(f.handler);
+        await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+        try {
+          const address = server.address();
+          assert.ok(address && typeof address === 'object');
+          const url = `http://127.0.0.1:${address.port}${base}`;
+          const router = new OpenRouter({
+            apiKey: 'fixture',
+            serverURL: url,
+            retryConfig: { strategy: 'none' },
+            timeoutMs: 3000,
+          });
+          const result = await router.chat.send({ chatRequest: input });
+          assert.ok('choices' in result);
+          assert.equal(result.usage, undefined);
+          assert.equal(result.systemFingerprint, 'fp_reported');
+          const client = new OpenAI({
+            apiKey: 'fixture',
+            baseURL: url,
+            maxRetries: 0,
+            timeout: 3000,
+          });
+          const other = await client.chat.completions.create(input);
+          assert.equal(other.usage, undefined);
+          assert.equal(other.system_fingerprint, 'fp_reported');
+          assert.equal(f.usage.length, 2);
+          assert.ok(
+            f.usage.every(
+              (row) => row.usage.status === scenario.status && row.outcome === 'succeeded',
+            ),
+          );
+          assert.doesNotMatch(JSON.stringify([f.usage, f.audit]), /private/u);
+        } finally {
+          server.closeAllConnections();
+          await new Promise<void>((resolve, reject) =>
+            server.close((error) => (error ? reject(error) : resolve())),
+          );
+        }
+      }
+  });
+  test(`${kind}: incomplete usage removal preserves text/refusal/function metadata and frozen inputs`, async () => {
+    for (const base of ['/v1', '/api/v1'])
+      for (const message of [
+        { role: 'assistant', content: 'private text', reasoning: 'private reasoning' },
+        { role: 'assistant', content: null, refusal: 'private refusal' },
+        {
+          role: 'assistant',
+          content: null,
+          tool_calls: [
+            { id: 'private-call', type: 'function', function: { name: 'read', arguments: '{}' } },
+          ],
+        },
+      ]) {
+        const stats = Object.freeze({ prompt_tokens: 2 });
+        const original = Object.freeze({
+          object: 'chat.completion',
+          id: 'completion',
+          model: 'chat',
+          system_fingerprint: null,
+          service_tier: 'reported',
+          choices: [
+            {
+              index: 0,
+              message,
+              finish_reason: message.tool_calls
+                ? 'tool_calls'
+                : message.refusal
+                  ? 'content_filter'
+                  : 'stop',
+            },
+          ],
+          usage: stats,
+        });
+        const f = fixture(kind, undefined, '', { response: original });
+        const response = await f.handler(request(base));
+        assert.equal(response.status, 200);
+        const body = await response.json();
+        const { usage: _usage, ...withoutUsage } = original;
+        assert.deepEqual(body, withoutUsage);
+        assert.deepEqual(original.usage, { prompt_tokens: 2 });
+        assert.equal(f.usage[0]?.usage.status, 'partial');
+        assert.equal(f.usage[0]?.usage.promptTokens, 2);
+        assert.equal(f.usage[0]?.usage.totalTokens, null);
+        assert.doesNotMatch(JSON.stringify([f.usage, f.audit]), /private/u);
+      }
+  });
+}

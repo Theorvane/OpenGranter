@@ -107,7 +107,7 @@ for (const base of ['/v1', '/api/v1'])
         );
         assert.deepEqual(
           result.usage,
-          base === '/api/v1' && !reported
+          !reported
             ? undefined
             : {
                 prompt_tokens: 3,

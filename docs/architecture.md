@@ -1,5 +1,10 @@
 # Architecture Draft
 
+## Both-base nonstream usage projection (#540)
+
+The existing post-persistence completion projector now checks numeric usage on both chat bases. Clone only when omitting an incomplete usage object or applying the existing /api/v1-only missing-fingerprint projection. Preserve the original normalized response/accounting input, complete counters/categories and legacy fingerprint/error behavior. No adapter, stream, dependency, pin, storage or ledger changes. See [plan](plans/540-legacy-usage.md) and [contract](../contracts/compatible-completion-usage.md#both-base-numeric-usage-omission-540).
+
+
 ## Correlated tool-result name normalization (#538)
 
 The shared pre-await history snapshot tracks pending call ID to function name. Optional own tool-result names must match that mapping and are stripped before constructing the immutable internal ChatMessage. Native preparation and delegated wire shapes are unchanged; client hints grant no new destination or execution authority. Pinned development-only OpenRouter AI SDK probes use actual local sockets with bounded retries/steps and fixed approved upstream fixtures. See [plan](plans/538-ai-sdk-workflows.md) and [contract](../contracts/ai-sdk-client-workflows.md).

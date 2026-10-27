@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { APICallError, generateText } from 'ai';
+import { generateText } from 'ai';
 import { withAiSdkServer } from './ai-sdk-client-fixture.ts';
 import { probabilityFixture, probabilityPrivacy } from './nonstream-logprobs-fixture.ts';
 
@@ -44,27 +44,17 @@ for (const base of ['/v1', '/api/v1'] as const) {
       assert.equal(f.records[0]?.usage.totalTokens, null);
       probabilityPrivacy(f);
     });
-  test(`AI SDK ${base}: incomplete native Google usage retains measured client gap`, async () => {
+  test(`AI SDK ${base}: incomplete native Google usage permits text without inventing ledger totals`, async () => {
     const f = probabilityFixture('google', undefined, { absent: true });
     await withAiSdkServer(f.ports, base, 'fixture-proxy-key', async (model) => {
-      const run = () =>
-        generateText({
-          model,
-          prompt: 'private prompt',
-          maxRetries: 0,
-          abortSignal: AbortSignal.timeout(10000),
-        });
-      if (base === '/v1')
-        await assert.rejects(run(), (error: unknown) => {
-          assert.ok(APICallError.isInstance(error));
-          assert.equal(error.message, 'Invalid JSON response');
-          return true;
-        });
-      else {
-        const result = await run();
-        assert.equal(result.text, 'reply');
-        assert.equal(result.usage.totalTokens, 0);
-      }
+      const result = await generateText({
+        model,
+        prompt: 'private prompt',
+        maxRetries: 0,
+        abortSignal: AbortSignal.timeout(10000),
+      });
+      assert.equal(result.text, 'reply');
+      assert.equal(result.usage.totalTokens, 0);
     });
     assert.equal(f.records[0]?.outcome, 'succeeded');
     assert.equal(f.records[0]?.usage.status, 'partial');

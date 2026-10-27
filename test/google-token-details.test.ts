@@ -135,18 +135,7 @@ for (const mode of ['nonstream', 'text-stream', 'function-stream'] as const)
         };
         const f = googleDetailsFixture(mode, usage);
         const result = await googleDetailOutput(await f.handler(f.request(base)), mode);
-        assert.deepEqual(
-          result.usage,
-          mode === 'nonstream' && base === '/v1' && aggregate !== 'detail-only'
-            ? {
-                prompt_tokens: 3,
-                completion_tokens: 2,
-                ...(aggregate === 'invalid' ? { total_tokens: null } : {}),
-                prompt_tokens_details: { cached_tokens: 1 },
-                completion_tokens_details: { reasoning_tokens: 4 },
-              }
-            : undefined,
-        );
+        assert.equal(result.usage, undefined);
         assert.equal(
           f.records[0]?.usage.status,
           aggregate === 'detail-only' ? 'missing' : aggregate,

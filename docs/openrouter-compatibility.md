@@ -1,10 +1,17 @@
 # OpenRouter external-client compatibility
 
+## Both-base incomplete nonstream usage omission (#540)
+
+Legacy /v1 now uses the same complete-counter requirement as /api/v1 for normalized chat completions: omit the whole usage object when any required numeric aggregate is unavailable or invalid. This resolves the actual OpenRouter AI SDK sparse-Google parse failure recorded in #538. Complete counters/categories, zero values and independent reported totals remain exact; the protected ledger still retains known partial counters and unknown totals. SDK zero defaults do not become server accounting evidence.
+
+Both-base raw/native/SDK cases cover sparse/invalid and complete usage, metadata/frozen input preservation and shared IAM/limits/required persistence. This intentionally changes prior /v1 sparse usage output; legacy fingerprint omission and symbolic errors, streaming and opaque results remain unchanged. Other legacy SDK gaps and full #116 are not certified. Six pins, dependencies, migrations and ledger schemas remain unchanged; Jev #7 stays open. See [plan](plans/540-legacy-usage.md), [contract](../contracts/compatible-completion-usage.md#both-base-numeric-usage-omission-540) and [AI SDK reproduction](ai-sdk-conformance.md).
+
+
 ## OpenRouter AI SDK client workflows (#538)
 
 Pinned OpenRouter-maintained provider 3.1.0 with AI SDK 7.0.153 now exercises actual sockets on both bases and delegated OpenRouter/managed OpenAI/Anthropic/Gemini for nonstream text, streamed text and client function execution/result continuation. Its optional tool-result name is accepted only when it matches the pending call's function name, then removed before transport. This measured extension is absent from the selected official ChatToolMessage property map; all six source pins remain unchanged. Other speaker-name restrictions and tool correlation remain intact.
 
-Fresh auth/model/provider IAM, limits, required persistence, follow-up Deny and cancellation remain shared. The SDK may synthesize finish-step after an error and zero token totals for missing usage; neither is server success/billing evidence. Legacy sparse Gemini usage fails client response validation while /api/v1 omits incomplete usage and the client displays zero; the ledger remains partial/null rather than zero. See [reproduction](ai-sdk-conformance.md), [contract](../contracts/ai-sdk-client-workflows.md) and [plan](plans/538-ai-sdk-workflows.md). Development-only dependencies also move zod from the existing 4.6.5 to the compatible patched 4.6.6 used for fixture input validation. These probes do not certify discovery, signed-Google/images/reasoning, other endpoints, live providers or full #116. Jev #7 remains open.
+Fresh auth/model/provider IAM, limits, required persistence, follow-up Deny and cancellation remain shared. The SDK may synthesize finish-step after an error and zero token totals for missing usage; neither is server success/billing evidence. The legacy sparse Gemini parser failure measured here is resolved by #540 above; both bases omit incomplete usage while the client displays zero and the ledger remains partial/null rather than zero. See [reproduction](ai-sdk-conformance.md), [contract](../contracts/ai-sdk-client-workflows.md) and [plan](plans/538-ai-sdk-workflows.md). Development-only dependencies also move zod from the existing 4.6.5 to the compatible patched 4.6.6 used for fixture input validation. These probes do not certify discovery, signed-Google/images/reasoning, other endpoints, live providers or full #116. Jev #7 remains open.
 
 
 ## Reported Anthropic response tiers (#536)

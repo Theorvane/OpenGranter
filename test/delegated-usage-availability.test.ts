@@ -145,7 +145,7 @@ for (const scenario of scenarios) {
     );
     assert.equal(response.status, 200);
     const body = (await response.json()) as { usage?: unknown };
-    assert.deepEqual(body.usage, scenario.expected);
+    assert.deepEqual(body.usage, scenario.status === 'reported' ? scenario.expected : undefined);
     assert.equal(upstreamCalls, 1);
     assert.equal(records.length, 1);
     assert.deepEqual(records[0]?.usage, {

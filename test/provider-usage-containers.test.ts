@@ -128,7 +128,7 @@ for (const kind of ['openai', 'anthropic', 'google', 'openrouter'] as const) {
       );
       assert.equal(response.status, 200);
       const normalized = (await response.json()) as { usage?: unknown };
-      assert.deepEqual(normalized.usage, scenario.invalid ? { total_tokens: null } : undefined);
+      assert.equal(normalized.usage, undefined);
       assert.equal(records.length, 1);
       assert.deepEqual(records[0]?.usage, {
         status: scenario.invalid ? 'invalid' : 'missing',
