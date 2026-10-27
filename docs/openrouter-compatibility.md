@@ -1,8 +1,15 @@
 # OpenRouter external-client compatibility
 
+## Reviewed model response source checkpoint (#543)
+
+Response pin v4 records the reviewed 2026-10-27 removal of seven nullable:true markers, preserving explicit null type arrays, optionality/formats and the rest of all 21 selected definitions. Its structure equals historical v2, but v1/v2/v3 pins remain stale: independently reviewed provenance and the validator version must move together. The complete v3 digest is reconstructible by restoring exactly those markers, which remain monitored structural data rather than ignored annotations.
+
+The other five pins and all runtime API/model-metadata/IAM/limits/audit/usage code, dependency versions and storage remain unchanged. Controlled CLI probes still detect restored markers, stale v3, malformed/private failures, multiple drift and unintended writes. See [plan](plans/543-model-response-drift.md) and [contract](../contracts/model-response-schema.md#reviewed-version4-checkpoint-543). This reconciles the source observation below; it does not certify full schema instances/graph/client behavior, full #116 or unresolved Jev #7.
+
+
 ## Observed model response source drift (2026-10-27)
 
-The live fixed-source comparison passes five selections and detects drift against model-response pin v3. Exactly seven nullable:true markers were removed from DefaultParameters and TopProviderInfo while their selected type arrays and other structures remain unchanged. Follow-up [#543](https://github.com/Theorvane/OpenGranter/issues/543) records the exact paths and independent review scope. No pin is rewritten by #542; the live guard remains nonzero pending reviewed reconciliation. Offline integrity and runtime compatibility are separate checks, and full #116 remains open.
+The live fixed-source comparison passes five selections and detects drift against model-response pin v3. Exactly seven nullable:true markers were removed from DefaultParameters and TopProviderInfo while their selected type arrays and other structures remain unchanged. Follow-up [#543](https://github.com/Theorvane/OpenGranter/issues/543) records the exact paths and independent review scope. No pin was rewritten by #542; the reviewed model-response-only reconciliation is recorded under #543 above. Offline integrity and runtime compatibility are separate checks, and full #116 remains open.
 
 
 ## Both-base unknown nonstream fingerprints (#542)

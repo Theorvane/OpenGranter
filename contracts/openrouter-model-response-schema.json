@@ -1,9 +1,9 @@
 {
-  "version": 3,
+  "version": 4,
   "source": "https://openrouter.ai/openapi.json",
-  "retrievedAt": "2026-10-25",
-  "sourceSha256": "d1bdaad4b513143f1b122de5e0c50ce06469e7a669efef0c2f3b9d40829ac1ee",
-  "projectionSha256": "825714729401e81ab4a6196b7a8ed6b76d89a32c09869d02a18e812276ced87b",
+  "retrievedAt": "2026-10-27",
+  "sourceSha256": "d211bd20aa7a7a7eac1c0f6deadf19417f8acd9a03ff51ec07ecda9194051e2e",
+  "projectionSha256": "5d8b334d04ca90d1c4d1b587771b12f135a56c78dd9d532661dd60202d55b6af",
   "projection": {
     "openapi": "3.1.0",
     "documentVersion": "1.0.0",
@@ -368,7 +368,6 @@
         "properties": {
           "frequency_penalty": {
             "format": "double",
-            "nullable": true,
             "type": [
               "number",
               "null"
@@ -376,7 +375,6 @@
           },
           "presence_penalty": {
             "format": "double",
-            "nullable": true,
             "type": [
               "number",
               "null"
@@ -384,7 +382,6 @@
           },
           "repetition_penalty": {
             "format": "double",
-            "nullable": true,
             "type": [
               "number",
               "null"
@@ -392,7 +389,6 @@
           },
           "temperature": {
             "format": "double",
-            "nullable": true,
             "type": [
               "number",
               "null"
@@ -406,7 +402,6 @@
           },
           "top_p": {
             "format": "double",
-            "nullable": true,
             "type": [
               "number",
               "null"
@@ -649,7 +644,6 @@
       "TopProviderInfo": {
         "properties": {
           "context_length": {
-            "nullable": true,
             "type": [
               "integer",
               "null"
@@ -659,7 +653,6 @@
             "type": "boolean"
           },
           "max_completion_tokens": {
-            "nullable": true,
             "type": [
               "integer",
               "null"

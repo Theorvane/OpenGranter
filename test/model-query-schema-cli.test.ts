@@ -155,7 +155,7 @@ async function controlledLive(mode: string) {
         type: 'string',
       };
     if (mode === 'legacy-nullable-drift')
-      delete schemas.DefaultParameters.properties.temperature.nullable;
+      schemas.DefaultParameters.properties.temperature.nullable = true;
     if (mode === 'breakpoint-ttl-drift')
       schemas.PromptCacheBreakpoint.properties.ttl.type = 'string';
     if (mode === 'offset-nullable-drift')
@@ -194,7 +194,7 @@ async function controlledLive(mode: string) {
     if (mode === 'invalid-chat-pin') chatPin.version = 0;
     if (mode === 'stale-chat-pin') chatPin.version = 32;
     if (mode === 'invalid-response-pin') responsePin.version = 0;
-    if (mode === 'stale-response-pin') responsePin.version = 2;
+    if (mode === 'stale-response-pin') responsePin.version = 3;
     if (mode === 'invalid-count-pin') countPin.version = 0;
     if (mode === 'invalid-model-source') source.paths['/models'].get.parameters = [];
     if (mode === 'invalid-response-source') delete schemas.Model;

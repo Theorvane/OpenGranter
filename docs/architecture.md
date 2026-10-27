@@ -1,5 +1,10 @@
 # Architecture Draft
 
+## Model-response v4 provenance review (#543)
+
+Use the existing structural projector/fixed-source transport without widening traversal or ignoring nullable keys. Pair the response pin v4 with its validator gate; remove only the seven reviewed markers and refresh its canonical source/projection digests. Restore markers in independent tests to reconstruct the complete previous digest. Other five pin bytes, all runtime source and operational schemas remain unchanged. See [plan](plans/543-model-response-drift.md) and [contract](../contracts/model-response-schema.md#reviewed-version4-checkpoint-543).
+
+
 ## Unified nonstream fingerprint projection (#542)
 
 The existing post-persistence completion projector now handles unknown fingerprints on both bases and no longer takes an error-format parameter. Both success branches still use it after required accounting/audit. Clone only for missing fingerprint or incomplete usage, preserving frozen originals and supplied metadata. Error formatting, opaque values, native validation and streaming remain separate and unchanged. See [plan](plans/542-legacy-fingerprints.md) and [contract](../contracts/compatible-completion-fingerprints.md#both-base-unknown-fingerprint-projection-542).

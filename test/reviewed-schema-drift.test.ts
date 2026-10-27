@@ -184,24 +184,24 @@ function modelSource() {
   };
 }
 for (const [name, field, type] of nullableFields) {
-  test(`${name}.${field} retains explicit nullability with the restored legacy marker`, () => {
+  test(`${name}.${field} retains explicit nullability without the redundant legacy marker`, () => {
     const schema = models.projection.definitions[name].properties[field];
     assert.deepEqual(
       schema,
       type === 'number'
-        ? { type: ['number', 'null'], format: 'double', nullable: true }
-        : { type: ['integer', 'null'], nullable: true },
+        ? { type: ['number', 'null'], format: 'double' }
+        : { type: ['integer', 'null'] },
     );
     const s = modelSource();
     assert.equal(compareOfficialModelResponseSchema(s, models), true);
-    delete s.components.schemas[name].properties[field].nullable;
+    s.components.schemas[name].properties[field].nullable = true;
     assert.equal(compareOfficialModelResponseSchema(s, models), false);
     s.components.schemas[name].properties[field] = { ...schema, type };
     assert.equal(compareOfficialModelResponseSchema(s, models), false);
   });
 }
 test('restoring only seven legacy markers reproduces the complete v1 model-response digest', () => {
-  assert.equal(models.version, 3);
+  assert.equal(models.version, 4);
   const p = structuredClone(models.projection);
   for (const [name, field] of nullableFields) p.definitions[name].properties[field].nullable = true;
   assert.equal(hash(p), '825714729401e81ab4a6196b7a8ed6b76d89a32c09869d02a18e812276ced87b');
