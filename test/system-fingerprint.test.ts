@@ -139,15 +139,8 @@ for (const kind of ['openai', 'openrouter'] as const) {
           const response = await f.handler(request(path));
           assert.equal(response.status, 200);
           const body = (await response.json()) as Record<string, unknown>;
-          const compatible = path.startsWith('/api/v1/');
-          assert.equal(
-            body.system_fingerprint,
-            compatible && fingerprint === undefined ? null : fingerprint,
-          );
-          assert.equal(
-            Object.hasOwn(body, 'system_fingerprint'),
-            compatible || fingerprint !== undefined,
-          );
+          assert.equal(body.system_fingerprint, fingerprint === undefined ? null : fingerprint);
+          assert.equal(Object.hasOwn(body, 'system_fingerprint'), true);
           assert.equal(f.usage.length, 1);
           assert.doesNotMatch(
             JSON.stringify([f.audits, f.usage]),
@@ -205,14 +198,15 @@ for (const kind of ['openai', 'openrouter'] as const) {
       ['limit', 429],
       ['audit', 503],
     ] as const)
-      for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
-        const f = fixture(kind, 'private response', undefined, 'stop', gate, 'fp-private-backend');
-        const response = await f.handler(request(path));
-        assert.equal(response.status, status);
-        assert.equal(f.calls(), 0);
-        assert.equal(f.usage.length, 0);
-        assert.doesNotMatch(await response.text(), /fp-private-backend/u);
-      }
+      for (const path of ['/v1/chat/completions', '/api/v1/chat/completions'])
+        for (const fingerprint of [undefined, 'fp-private-backend']) {
+          const f = fixture(kind, 'private response', undefined, 'stop', gate, fingerprint);
+          const response = await f.handler(request(path));
+          assert.equal(response.status, status);
+          assert.equal(f.calls(), 0);
+          assert.equal(f.usage.length, 0);
+          assert.doesNotMatch(await response.text(), /fp-private-backend/u);
+        }
   });
 }
 for (const kind of ['anthropic', 'google'] as const) {
@@ -303,29 +297,31 @@ test('compatible projection clones completions and preserves opaque responses', 
     'opaque',
   ]) {
     const handler = projectionFixture(response);
-    const result = await handler(request('/api/v1/chat/completions'));
-    assert.equal(result.status, 200);
-    const expected =
-      response &&
-      typeof response === 'object' &&
-      'object' in response &&
-      response.object === 'chat.completion'
-        ? { ...response, system_fingerprint: null }
-        : response;
-    assert.deepEqual(await result.json(), expected);
-    if (response && typeof response === 'object')
-      assert.equal(Object.hasOwn(response, 'system_fingerprint'), false);
+    for (const base of ['/v1', '/api/v1']) {
+      const result = await handler(request(`${base}/chat/completions`));
+      assert.equal(result.status, 200);
+      const expected =
+        response &&
+        typeof response === 'object' &&
+        'object' in response &&
+        response.object === 'chat.completion'
+          ? { ...response, system_fingerprint: null }
+          : response;
+      assert.deepEqual(await result.json(), expected);
+      if (response && typeof response === 'object')
+        assert.equal(Object.hasOwn(response, 'system_fingerprint'), false);
+    }
   }
 });
 
-test('compatible managed/delegated unknown fingerprints are explicit null while legacy omits', async () => {
+test('managed/delegated unknown fingerprints are explicit null on both bases', async () => {
   for (const kind of ['openai', 'openrouter'] as const) {
     const f = fixture(kind, 'private answer', undefined);
     const compatible = await f.handler(request('/api/v1/chat/completions'));
     assert.equal(compatible.status, 200);
     assert.equal(((await compatible.json()) as Record<string, unknown>).system_fingerprint, null);
     const legacy = await f.handler(request('/v1/chat/completions'));
-    assert.equal(Object.hasOwn((await legacy.json()) as object, 'system_fingerprint'), false);
+    assert.equal(((await legacy.json()) as Record<string, unknown>).system_fingerprint, null);
     assert.equal(f.usage.length, 2);
   }
 });
@@ -544,4 +540,22 @@ for (const kind of ['openai', 'openrouter'] as const)
         );
       }
     }
+  });
+
+for (const kind of ['openai', 'openrouter'] as const)
+  test(`${kind}: unknown fingerprint projection cannot bypass required persistence`, async () => {
+    for (const path of ['/v1/chat/completions', '/api/v1/chat/completions'])
+      for (const gate of ['ledger', 'outcome-audit'])
+        for (const fingerprint of [undefined, 'fp-private-backend']) {
+          const f = fixture(kind, 'private response', undefined, 'stop', gate, fingerprint);
+          const response = await f.handler(request(path));
+          assert.equal(response.status, 503);
+          assert.equal(f.calls(), 1);
+          assert.equal(f.usage.length, gate === 'ledger' ? 0 : 1);
+          assert.doesNotMatch(await response.text(), /system_fingerprint|private|fixture-key/u);
+          assert.doesNotMatch(
+            JSON.stringify([f.audits, f.usage]),
+            /fp-private-backend|private response|fixture-key/u,
+          );
+        }
   });

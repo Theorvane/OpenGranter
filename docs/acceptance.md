@@ -1,5 +1,13 @@
 # Acceptance and Verification Scenarios
 
+## Both-base nonstream fingerprint parity (#542)
+
+- Reproduce actual official SDK /v1 text and two-request function/result validation failures before production changes. Require null for unknown fingerprints on both bases, preserving exact reported string/null values, history correlation and separate per-attempt usage.
+- Verify ordinary/refusal/filter outputs, frozen originals and opaque values; preserve service tiers, complete numeric usage/categories and incomplete usage omission. Native Anthropic/Gemini keep their existing explicit unknown-null mapping.
+- Unknown and supplied metadata cannot bypass implicit/explicit Deny, limits, required ledger/outcome audit or malformed-native private possibly-billed failures. No metadata enters operational records.
+- This changes legacy field presence only for normalized nonstream completions; error formats, streams, source pins, dependencies and storage remain unchanged. Full #116 and Jev #7 remain open. See [plan](plans/542-legacy-fingerprints.md) and [contract](../contracts/compatible-completion-fingerprints.md#both-base-unknown-fingerprint-projection-542).
+
+
 ## Legacy compatible numeric usage (#540)
 
 - Reproduce the actual AI SDK /v1 sparse-Google parse error and require successful text output after correction. Both bases omit incomplete usage; SDK zero defaults remain separate from partial/null ledger totals.

@@ -100,7 +100,7 @@ test('delegated HTTP route sends only IAM-authorized final-provider slugs', asyn
   });
   const response = await handler(request());
   assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), completion);
+  assert.deepEqual(await response.json(), { ...completion, system_fingerprint: null });
   assert.deepEqual(calls, [
     'authenticate',
     'route',

@@ -1,10 +1,22 @@
 # OpenRouter external-client compatibility
 
+## Observed model response source drift (2026-10-27)
+
+The live fixed-source comparison passes five selections and detects drift against model-response pin v3. Exactly seven nullable:true markers were removed from DefaultParameters and TopProviderInfo while their selected type arrays and other structures remain unchanged. Follow-up [#543](https://github.com/Theorvane/OpenGranter/issues/543) records the exact paths and independent review scope. No pin is rewritten by #542; the live guard remains nonzero pending reviewed reconciliation. Offline integrity and runtime compatibility are separate checks, and full #116 remains open.
+
+
+## Both-base unknown nonstream fingerprints (#542)
+
+Both /v1 and /api/v1 now expose system_fingerprint:null when a normalized nonstream completion omits the upstream value. This resolves the measured legacy official OpenRouter SDK validation failure for text and managed OpenAI/delegated two-request function/result workflows. Exact supplied strings/null remain intact; unavailable metadata is not a backend identity or determinism assertion.
+
+Projection still follows required ledger/outcome audit and preserves authentication/model/provider IAM, limits, malformed-native accounting, opaque results and immutable originals. Both-base usage omission from #540 remains unchanged. This intentionally changes legacy fingerprint property presence; legacy symbolic errors and stream fingerprint/schema gaps retain their contracts. No pin/dependency/API-version/migration/ledger change or full #116 certification follows. Jev #7 stays open. See [plan](plans/542-legacy-fingerprints.md), [fingerprint contract](../contracts/compatible-completion-fingerprints.md#both-base-unknown-fingerprint-projection-542) and [SDK tools](../contracts/official-sdk-tools.md).
+
+
 ## Both-base incomplete nonstream usage omission (#540)
 
 Legacy /v1 now uses the same complete-counter requirement as /api/v1 for normalized chat completions: omit the whole usage object when any required numeric aggregate is unavailable or invalid. This resolves the actual OpenRouter AI SDK sparse-Google parse failure recorded in #538. Complete counters/categories, zero values and independent reported totals remain exact; the protected ledger still retains known partial counters and unknown totals. SDK zero defaults do not become server accounting evidence.
 
-Both-base raw/native/SDK cases cover sparse/invalid and complete usage, metadata/frozen input preservation and shared IAM/limits/required persistence. This intentionally changes prior /v1 sparse usage output; legacy fingerprint omission and symbolic errors, streaming and opaque results remain unchanged. Other legacy SDK gaps and full #116 are not certified. Six pins, dependencies, migrations and ledger schemas remain unchanged; Jev #7 stays open. See [plan](plans/540-legacy-usage.md), [contract](../contracts/compatible-completion-usage.md#both-base-numeric-usage-omission-540) and [AI SDK reproduction](ai-sdk-conformance.md).
+Both-base raw/native/SDK cases cover sparse/invalid and complete usage, metadata/frozen input preservation and shared IAM/limits/required persistence. This intentionally changes prior /v1 sparse usage output; legacy fingerprint omission is resolved separately by #542 above; symbolic errors, streaming and opaque results remain unchanged. Other legacy SDK gaps and full #116 are not certified. Six pins, dependencies, migrations and ledger schemas remain unchanged; Jev #7 stays open. See [plan](plans/540-legacy-usage.md), [contract](../contracts/compatible-completion-usage.md#both-base-numeric-usage-omission-540) and [AI SDK reproduction](ai-sdk-conformance.md).
 
 
 ## OpenRouter AI SDK client workflows (#538)

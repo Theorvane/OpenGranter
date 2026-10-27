@@ -1,5 +1,10 @@
 # Architecture Draft
 
+## Unified nonstream fingerprint projection (#542)
+
+The existing post-persistence completion projector now handles unknown fingerprints on both bases and no longer takes an error-format parameter. Both success branches still use it after required accounting/audit. Clone only for missing fingerprint or incomplete usage, preserving frozen originals and supplied metadata. Error formatting, opaque values, native validation and streaming remain separate and unchanged. See [plan](plans/542-legacy-fingerprints.md) and [contract](../contracts/compatible-completion-fingerprints.md#both-base-unknown-fingerprint-projection-542).
+
+
 ## Both-base nonstream usage projection (#540)
 
 The existing post-persistence completion projector now checks numeric usage on both chat bases. Clone only when omitting an incomplete usage object or applying the existing /api/v1-only missing-fingerprint projection. Preserve the original normalized response/accounting input, complete counters/categories and legacy fingerprint/error behavior. No adapter, stream, dependency, pin, storage or ledger changes. See [plan](plans/540-legacy-usage.md) and [contract](../contracts/compatible-completion-usage.md#both-base-numeric-usage-omission-540).

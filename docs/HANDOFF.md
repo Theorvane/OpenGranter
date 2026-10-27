@@ -1,6 +1,13 @@
 # OpenGranter agent handoff
 
-## Current continuation checkpoint (#540)
+## Current continuation checkpoint (#542)
+
+PR [#541](https://github.com/Theorvane/OpenGranter/pull/541) received approval on cc32c410e924e9e55cb1a0016f33c552f80673c6 with all three checks successful and merged as bf3d3d4; issue #540 is closed. Issue [#542](https://github.com/Theorvane/OpenGranter/issues/542), branch fix/542-legacy-fingerprints, makes unknown nonstream fingerprints null on both bases. Read [plan](plans/542-legacy-fingerprints.md), [contract](../contracts/compatible-completion-fingerprints.md#both-base-unknown-fingerprint-projection-542) and [official SDK tools](../contracts/official-sdk-tools.md), then refresh PR/review/CI before assuming merge.
+
+The shared post-persistence response projector removes its obsolete format parameter and preserves reported metadata/frozen originals. Actual official SDK text and two-request function/result workflows now accept omitted upstream fingerprints on /v1 as well as /api/v1. Legacy property presence intentionally changes; error formats, streams, numeric usage omission and accounting stay unchanged. Focused regressions passed 915 cases and the follow-up integration/core selection passed 122. The final full gate passed 7,373 cases with one optional external PostgreSQL skip, zero failures/cancellations and all six offline pin checks passing. Live comparison passes five selections; model-response nullable-marker drift is separately recorded in #543 and must be reviewed before claiming live equality. No pins, dependencies, migrations or operational schemas change. Full #116 and unresolved Jev #7 remain open; earlier checkpoints are historical.
+
+
+## Historical continuation checkpoint (#540)
 
 PR [#539](https://github.com/Theorvane/OpenGranter/pull/539) received approval on 6925f6d3e0a2dbe7f0deb528ad50c589826e109e with all three checks successful and merged as 3dcd2c6; issue #538 is closed. Issue [#540](https://github.com/Theorvane/OpenGranter/issues/540), branch fix/540-legacy-usage, applies the existing complete-counter usage projection to /v1 nonstream chat responses. Read [plan](plans/540-legacy-usage.md) and [contract](../contracts/compatible-completion-usage.md#both-base-numeric-usage-omission-540), then refresh PR/review/CI state before assuming merge.
 

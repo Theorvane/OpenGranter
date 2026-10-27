@@ -1,5 +1,10 @@
 # OpenGranter Product Requirements
 
+## Unknown nonstream fingerprints on both bases (#542)
+
+Both /v1 and /api/v1 represent unavailable system_fingerprint as null for normalized nonstream chat completions, allowing the official OpenRouter SDK to consume text and function/result workflows without a fabricated backend identity. Preserve supplied exact strings/null, all other metadata and required IAM/limits/audit/usage. This intentionally changes legacy property presence. See [plan](plans/542-legacy-fingerprints.md) and [contract](../contracts/compatible-completion-fingerprints.md#both-base-unknown-fingerprint-projection-542).
+
+
 ## Compatible nonstream usage on both bases (#540)
 
 Both /v1 and /api/v1 omit incomplete numeric usage from normalized chat completions so compatible clients can consume the response without fabricated totals or zero counters. Preserve complete aggregates/details and all partial data in existing protected usage history. This intentionally changes legacy sparse usage output; fingerprint/error behavior and streaming stay unchanged. See [plan](plans/540-legacy-usage.md) and [contract](../contracts/compatible-completion-usage.md#both-base-numeric-usage-omission-540).
