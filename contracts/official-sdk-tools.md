@@ -2,7 +2,7 @@
 
 The development-only official OpenRouter SDK 1.4.18 is tested over real local Node/HTTP sockets on both /v1 and /api/v1, through delegated OpenRouter and managed direct OpenAI invokers. Controlled upstream fixtures replace only fixed-host HTTP transport; no provider network calls or automatic tool execution occur.
 
-The first request supplies function declarations, named toolChoice and parallelToolCalls. Tests inspect their exact snake_case upstream serialization, authorized native model and delegated provider.only. SDK response validation preserves two calls with IDs, names, serialized argument strings, null assistant content and finishReason:tool_calls. Supplied fixture fingerprints satisfy both SDK paths without changing the legacy unknown-fingerprint gap.
+The first request supplies function declarations, named toolChoice and parallelToolCalls. Tests inspect their exact snake_case upstream serialization, authorized native model and delegated provider.only. SDK response validation preserves two calls with IDs, names, serialized argument strings, null assistant content and finishReason:tool_calls. Both supplied and omitted upstream fingerprints now pass the complete two-request lifecycle on both SDK paths under #542; unknown values project to null without invented backend identity.
 
 The second request is constructed from the returned SDK toolCalls, with only bounded assistant history fields and text-only tool results. Result order may differ from call order; SDK toolCallId serialization and text-part normalization preserve each association. The gateway returns a final text response, separately authenticates/checks limits and records one attributed usage entry for each inference request. Tool execution is the caller's responsibility.
 

@@ -89,7 +89,6 @@ import {
 } from './chat-tools.ts';
 import {
   type ClientErrorCode,
-  type ClientErrorFormat,
   clientErrorFormat,
   createClientErrorResponse,
 } from './client-errors.ts';
@@ -359,7 +358,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function projectClientCompletion(value: unknown, format: ClientErrorFormat): unknown {
+function projectClientCompletion(value: unknown): unknown {
   if (!isRecord(value) || value.object !== 'chat.completion') return value;
   const usage = value.usage;
   const incompleteUsage =
@@ -369,7 +368,7 @@ function projectClientCompletion(value: unknown, format: ClientErrorFormat): unk
         (key) =>
           typeof usage[key] !== 'number' || !Number.isSafeInteger(usage[key]) || usage[key] < 0,
       ));
-  const unknownFingerprint = format === 'openrouter' && value.system_fingerprint === undefined;
+  const unknownFingerprint = value.system_fingerprint === undefined;
   if (!unknownFingerprint && !incompleteUsage) return value;
   const projected = { ...value };
   if (unknownFingerprint) projected.system_fingerprint = null;
@@ -1350,7 +1349,7 @@ export function createChatHandler<T>(
           },
         });
         if (result.status === 'invoked') {
-          return Response.json(projectClientCompletion(result.response, format), {
+          return Response.json(projectClientCompletion(result.response), {
             status: 200,
             headers: { 'x-request-id': requestId },
           });
@@ -1455,7 +1454,7 @@ export function createChatHandler<T>(
         },
       });
       if (result.status === 'invoked') {
-        return Response.json(projectClientCompletion(result.response, format), {
+        return Response.json(projectClientCompletion(result.response), {
           status: 200,
           headers: { 'x-request-id': requestId },
         });

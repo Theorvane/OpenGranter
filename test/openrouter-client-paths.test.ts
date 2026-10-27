@@ -135,8 +135,8 @@ for (const delegated of [false, true]) {
     assert.equal(response.status, 200);
     assert.equal(response.headers.get('x-request-id'), 'request');
     const legacy = (await baseline.json()) as Record<string, unknown>;
-    assert.equal(Object.hasOwn(legacy, 'system_fingerprint'), false);
-    assert.deepEqual(await response.json(), { ...legacy, system_fingerprint: null });
+    assert.equal(legacy.system_fingerprint, null);
+    assert.deepEqual(await response.json(), legacy);
     assert.deepEqual(alias.activity, expected.activity);
     assert.deepEqual(alias.events, expected.events);
   });

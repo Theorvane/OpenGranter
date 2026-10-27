@@ -285,7 +285,7 @@ test('compatible usage projection clones frozen completions and preserves opaque
     const legacy = await f.handler(request('/v1'));
     assert.deepEqual(await legacy.json(), {
       object: 'chat.completion',
-      ...(fingerprint === undefined ? {} : { system_fingerprint: fingerprint }),
+      system_fingerprint: fingerprint ?? null,
     });
   }
   for (const original of [

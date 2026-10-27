@@ -35,7 +35,7 @@ const calls = [
 ];
 const wireCalls = calls.map((call) => ({ ...call }));
 
-function fixture(kind: Kind) {
+function fixture(kind: Kind, suppliedFingerprint = true) {
   const sent: Record<string, unknown>[] = [];
   const audit: Parameters<ChatHandlerPorts<unknown>['writeAudit']>[0][] = [];
   const usage: UsageRecord[] = [];
@@ -64,7 +64,7 @@ function fixture(kind: Kind) {
         id: `completion-${sent.length}`,
         created: 42,
         model: 'openai/example',
-        system_fingerprint: 'fp_fixture',
+        ...(suppliedFingerprint ? { system_fingerprint: 'fp_fixture' } : {}),
         choices: [
           {
             index: 0,
@@ -188,7 +188,7 @@ async function socket(
     );
   }
 }
-async function first(client: OpenRouter) {
+async function first(client: OpenRouter, fingerprint: string | null = 'fp_fixture') {
   const result = await client.chat.send({
     chatRequest: {
       model: 'chat',
@@ -200,6 +200,7 @@ async function first(client: OpenRouter) {
     },
   });
   assert.ok('choices' in result);
+  assert.equal(result.systemFingerprint, fingerprint);
   assert.equal(result.model, 'chat');
   assert.equal(result.choices[0]?.finishReason, 'tool_calls');
   assert.equal(result.choices[0]?.message.content, null);
@@ -254,44 +255,49 @@ async function rejected(promise: Promise<unknown>, status: number) {
 
 for (const kind of ['managed', 'delegated'] as const) {
   for (const base of ['/v1', '/api/v1']) {
-    test(`official SDK ${kind} ${base} completes the two-request function-tool lifecycle`, async () => {
-      const f = fixture(kind);
-      await socket(f, base, async (client) => {
-        const continuation = await first(client);
-        const result = await client.chat.send({ chatRequest: continuation });
-        assert.ok('choices' in result);
-        assert.equal(result.choices[0]?.message.content, 'private final answer');
-        assert.equal(result.choices[0]?.finishReason, 'stop');
-        assert.equal(result.usage?.totalTokens, 5);
+    for (const supplied of [true, false])
+      test(`official SDK ${kind} ${base} completes the two-request function-tool lifecycle with ${supplied ? 'reported' : 'unknown'} fingerprint`, async () => {
+        const f = fixture(kind, supplied);
+        await socket(f, base, async (client) => {
+          const continuation = await first(client, supplied ? 'fp_fixture' : null);
+          const result = await client.chat.send({ chatRequest: continuation });
+          assert.ok('choices' in result);
+          assert.equal(result.choices[0]?.message.content, 'private final answer');
+          assert.equal(result.choices[0]?.finishReason, 'stop');
+          assert.equal(result.systemFingerprint, supplied ? 'fp_fixture' : null);
+          assert.equal(result.usage?.totalTokens, 5);
+        });
+        assert.equal(f.sent.length, 2);
+        assert.deepEqual(f.sent[0]?.tools, tools);
+        assert.deepEqual(f.sent[0]?.tool_choice, {
+          type: 'function',
+          function: { name: 'lookup' },
+        });
+        assert.equal(f.sent[0]?.parallel_tool_calls, true);
+        assert.equal(f.sent[1]?.tool_choice, 'none');
+        assert.equal(f.sent[1]?.parallel_tool_calls, false);
+        assert.deepEqual(f.sent[1]?.messages, [
+          { role: 'user', content: 'private prompt' },
+          { role: 'assistant', content: null, tool_calls: wireCalls },
+          { role: 'tool', tool_call_id: 'call_two', content: 'private result two' },
+          { role: 'tool', tool_call_id: 'call_one', content: 'private result one' },
+        ]);
+        for (const body of f.sent) {
+          assert.equal(body.model, 'openai/example');
+          assert.deepEqual(body.provider, kind === 'delegated' ? { only: ['OpenAI'] } : undefined);
+        }
+        assert.deepEqual(f.counts(), { secrets: 2, authentication: 2, routes: 2, limits: 2 });
+        assert.equal(f.usage.length, 2);
+        assert.equal(new Set(f.usage.map((record) => record.requestId)).size, 2);
+        for (const record of f.usage) {
+          assert.equal(record.routeKind, kind);
+          assert.equal(record.modelAlias, 'chat');
+          assert.equal(record.principalId, 'user-1');
+          assert.equal(record.outcome, 'succeeded');
+          assert.equal(record.usage.totalTokens, 5);
+        }
+        safeMetadata(f);
       });
-      assert.equal(f.sent.length, 2);
-      assert.deepEqual(f.sent[0]?.tools, tools);
-      assert.deepEqual(f.sent[0]?.tool_choice, { type: 'function', function: { name: 'lookup' } });
-      assert.equal(f.sent[0]?.parallel_tool_calls, true);
-      assert.equal(f.sent[1]?.tool_choice, 'none');
-      assert.equal(f.sent[1]?.parallel_tool_calls, false);
-      assert.deepEqual(f.sent[1]?.messages, [
-        { role: 'user', content: 'private prompt' },
-        { role: 'assistant', content: null, tool_calls: wireCalls },
-        { role: 'tool', tool_call_id: 'call_two', content: 'private result two' },
-        { role: 'tool', tool_call_id: 'call_one', content: 'private result one' },
-      ]);
-      for (const body of f.sent) {
-        assert.equal(body.model, 'openai/example');
-        assert.deepEqual(body.provider, kind === 'delegated' ? { only: ['OpenAI'] } : undefined);
-      }
-      assert.deepEqual(f.counts(), { secrets: 2, authentication: 2, routes: 2, limits: 2 });
-      assert.equal(f.usage.length, 2);
-      assert.equal(new Set(f.usage.map((record) => record.requestId)).size, 2);
-      for (const record of f.usage) {
-        assert.equal(record.routeKind, kind);
-        assert.equal(record.modelAlias, 'chat');
-        assert.equal(record.principalId, 'user-1');
-        assert.equal(record.outcome, 'succeeded');
-        assert.equal(record.usage.totalTokens, 5);
-      }
-      safeMetadata(f);
-    });
 
     test(`official SDK ${kind} ${base} reevaluates gates before tool-result continuation`, async () => {
       for (const [failure, status] of [

@@ -173,7 +173,7 @@ for (const base of ['/v1', '/api/v1']) {
 }
 
 for (const base of ['/v1', '/api/v1']) {
-  test(`official SDK ${base} nonstream success requires supplied fingerprint`, {
+  test(`official SDK ${base} nonstream success preserves supplied fingerprint`, {
     timeout: 10000,
   }, async () => {
     const f = fixture({ fingerprint: true });
@@ -194,7 +194,7 @@ for (const base of ['/v1', '/api/v1']) {
     assert.equal(JSON.stringify({ audit: f.audit, usage: f.usage }).includes('private'), false);
   });
 
-  test(`official SDK ${base} handles unknown nonstream fingerprint under its path contract`, {
+  test(`official SDK ${base} accepts an unknown nonstream fingerprint as null`, {
     timeout: 10000,
   }, async () => {
     const f = fixture();
@@ -206,18 +206,10 @@ for (const base of ['/v1', '/api/v1']) {
           stream: false,
         },
       });
-      if (base === '/api/v1') {
-        const result = await completion;
-        assert.ok('choices' in result);
-        assert.equal(result.systemFingerprint, null);
-        assert.equal(result.choices[0]?.message.content, 'private answer');
-      } else {
-        await assert.rejects(completion, (error: unknown) => {
-          assert.ok(error instanceof Error);
-          assert.equal(error.name, 'ResponseValidationError');
-          return true;
-        });
-      }
+      const result = await completion;
+      assert.ok('choices' in result);
+      assert.equal(result.systemFingerprint, null);
+      assert.equal(result.choices[0]?.message.content, 'private answer');
     });
     assert.equal(f.usage[0]?.outcome, 'succeeded');
     assert.equal(f.sent.length, 1);
