@@ -1,5 +1,11 @@
 # OpenRouter external-client compatibility
 
+## AI SDK inline PNG inputs (#550)
+
+Actual pinned createOpenRouter with generateText/streamText now measures application-owned PNG bytes between two text parts across both bases and all four adapters. Exact native/compatible capture preserves bytes/MIME/order; explicit no-download and bounded local provider-fetch guards keep these fixtures independent of external image hosts. Current auth/model/provider Deny, limits, required audit/usage failures and stream cancellation retain shared privacy and possibly-billed accounting. Client finish events/usage summaries remain insufficient server persistence/billing evidence.
+
+This is a controlled single-PNG input conformance increment with no runtime, pin, dependency or storage change. The complete image MIME/count/size/detail matrix, image+tool continuations, remote/file media, rich outputs, signed Gemini, live providers and full #116 remain uncertified for this client; unresolved Jev #7 is unchanged. See [plan](plans/550-ai-sdk-inline-images.md), [contract](../contracts/ai-sdk-client-workflows.md#inline-png-workflows-550) and [reproduction](ai-sdk-conformance.md#inline-png-reproduction-550).
+
 ## Bounded nonstream retry hints (#548)
 
 Both chat bases and all four adapters preserve validated integer-seconds Retry-After from upstream 429/503 on the existing 502 upstream_failed response. Typed hints are emitted only after failed-attempt usage and required outcome audit succeed. Zero and leading zeros are supported; dates, malformed/private/oversized/unsafe/repeated values, other statuses, success and local/persistence errors receive no hint. Current statuses, fixed bodies, IAM/limits, approved hosts, billing flags and fallback stay unchanged; successful fallback clears earlier hints and terminal failures use only their own hint.

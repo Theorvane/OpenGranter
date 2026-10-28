@@ -65,3 +65,30 @@ For the example above, generateText accepts the same tools and stopWhen configur
 The pinned AI SDK recomputes totalTokens as input+output. A reported total 7 with input 2/output 3 appears as 5 per step and 10 for the two-step client aggregate; raw gateway responses and per-attempt ledger still retain 7. Native Anthropic's existing adapter derives 5 from its 2/3 counters. This extends the earlier missing-usage warning: client summaries are not the authoritative server accounting or billed cost. A final request denied after client execution cannot undo application-owned side effects. Outcome-audit failure may return 503 after provider work and a successful persisted usage record.
 
 These nonstream cases extend only ordinary function/result coverage. Signed-Google namespaces, images/reasoning, discovery, other endpoints, live providers and other versions remain uncertified for this client; full #116 and Jev #7 stay open.
+
+## Inline PNG reproduction (#550)
+
+```sh
+node --disable-warning=ExperimentalWarning --experimental-strip-types --test test/ai-sdk-inline-images.test.ts
+```
+
+Using the configured model above, the input shape is:
+
+```ts
+const result = await generateText({
+  model,
+  maxRetries: 0,
+  messages: [{
+    role: 'user',
+    content: [
+      { type: 'text', text: 'Describe the approved image.' },
+      { type: 'image', image: applicationOwnedPngBytes, mediaType: 'image/png' },
+      { type: 'text', text: 'Use a short answer.' },
+    ],
+  }],
+});
+```
+
+applicationOwnedPngBytes is a Uint8Array loaded by the application from its approved source. streamText accepts the same image input; consume error parts normally and use an application deadline. The 40 synthetic probes use the existing canonical PNG fixture, explicit media type and controlled native responses, with retries disabled and no credential/live inference requirement. They install a media-download hook that requires an empty URL plan and retain the bounded local provider-fetch guard. This tests inline serialization without making claims about remote URL handling.
+
+Both bases and all four adapters preserve exact upstream bytes/MIME/text order. Admission Deny, limits and required persistence failures retain shared boundaries; stream cancellation stops upstream and records possible billing privately. Success fixtures supply input/output counters 2/1 and explicit totals 3 where supported; native Anthropic retains its existing derived total of 3. These normalized counters do not establish image tokenization or billed price. Production code, pins, dependencies and storage are unchanged. Other image controls, image+tool loops, other modalities, signed Gemini, live vision capability and full #116 remain separate; Jev #7 is unchanged. See [plan](plans/550-ai-sdk-inline-images.md) and [contract](../contracts/ai-sdk-client-workflows.md#inline-png-workflows-550).
