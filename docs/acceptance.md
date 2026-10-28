@@ -1622,3 +1622,13 @@ See [plan](plans/548-upstream-retry-hints.md) and [error contract](../contracts/
 - No production source, pins, dependencies or storage change. Existing image MIME/size/count/detail contracts remain; their complete actual-client matrix, image+tool loops, richer/signed-Google/live workflows, full #116 and unresolved Jev #7 remain open.
 
 See [plan](plans/550-ai-sdk-inline-images.md), [contract](../contracts/ai-sdk-client-workflows.md#inline-png-workflows-550) and [reproduction](ai-sdk-conformance.md#inline-png-reproduction-550).
+
+## Actual AI SDK structured objects (#552)
+
+- Actual pinned Output.object sends exact schema/name/description/strict through both bases on managed OpenAI/delegated nonstream and streams. Native Anthropic/Gemini schema requests still fail before credentials with no provider work or fabricated usage.
+- Valid objects parse; malformed JSON/wrong property types throw a client-local content-bearing NoObjectGeneratedError after successful server completion/usage. Default Zod strips extra fields while server text remains exact. A strict request or parsed object does not certify server JSON-schema enforcement.
+- Auth/implicit/model/provider Deny, limits and selection audit prevent unauthorized upstream work. Required nonstream persistence failure withholds output. Streaming persistence failure emits errors and withholds actual final server usage/DONE, even though the client may resolve an object from previously delivered text.
+- Schema/content/credentials stay outside operational audit/ledger/public gateway errors. Outcome-audit failure may follow a successful usage record; usage-write failure does not establish no provider work. Client summaries/parsed objects do not replace server accounting or establish billed cost.
+- No production source, pins, dependency or storage changes. Other Output/partial object modes, native conversions, server validation/repair, live capabilities, full #116 and unresolved Jev #7 remain open.
+
+See [plan](plans/552-ai-sdk-structured-output.md), [contract](../contracts/ai-sdk-client-workflows.md#structured-object-workflows-552) and [reproduction](ai-sdk-conformance.md#structured-object-reproduction-552).

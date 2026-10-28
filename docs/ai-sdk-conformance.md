@@ -92,3 +92,44 @@ const result = await generateText({
 applicationOwnedPngBytes is a Uint8Array loaded by the application from its approved source. streamText accepts the same image input; consume error parts normally and use an application deadline. The 40 synthetic probes use the existing canonical PNG fixture, explicit media type and controlled native responses, with retries disabled and no credential/live inference requirement. They install a media-download hook that requires an empty URL plan and retain the bounded local provider-fetch guard. This tests inline serialization without making claims about remote URL handling.
 
 Both bases and all four adapters preserve exact upstream bytes/MIME/text order. Admission Deny, limits and required persistence failures retain shared boundaries; stream cancellation stops upstream and records possible billing privately. Success fixtures supply input/output counters 2/1 and explicit totals 3 where supported; native Anthropic retains its existing derived total of 3. These normalized counters do not establish image tokenization or billed price. Production code, pins, dependencies and storage are unchanged. Other image controls, image+tool loops, other modalities, signed Gemini, live vision capability and full #116 remain separate; Jev #7 is unchanged. See [plan](plans/550-ai-sdk-inline-images.md) and [contract](../contracts/ai-sdk-client-workflows.md#inline-png-workflows-550).
+
+## Structured object reproduction (#552)
+
+```sh
+node --disable-warning=ExperimentalWarning --experimental-strip-types --test test/ai-sdk-structured-output.test.ts
+```
+
+```ts
+import { Output, generateText, streamText } from 'ai';
+import { z } from 'zod';
+
+const output = Output.object({
+  schema: z.object({ answer: z.string() }),
+  name: 'answer',
+  description: 'A short answer object',
+});
+const generated = await generateText({
+  model,
+  output,
+  prompt: 'Return a short answer.',
+  maxRetries: 0,
+});
+const value = generated.output;
+
+const streaming = streamText({
+  model,
+  output,
+  prompt: 'Return a short answer.',
+  maxRetries: 0,
+});
+for await (const part of streaming.fullStream) {
+  if (part.type === 'error') throw part.error;
+}
+const streamedValue = await streaming.output;
+```
+
+Use an explicitly approved OpenAI or delegated route and an application abort deadline. The pinned provider emits a measured draft-07 schema, name/description and strict:true. Direct Anthropic/Gemini json_schema remains unsupported before provider credential lookup. No live model acceptance is established by controlled sockets.
+
+Client parsing is separate from server completion. Malformed JSON/wrong property types cause NoObjectGeneratedError containing generated text and usage locally, after the server has recorded successful provider work. Default Zod object validation strips extra properties despite the advertised additionalProperties:false; gateway text is preserved. A parsed object does not certify full JSON-schema enforcement.
+
+A streaming audit/usage failure after delivered text produces server error parts without actual final usage/DONE. The pinned SDK can nevertheless resolve its output object from that text, so do not use output resolution as a persistence acknowledgment or ignore stream errors. Nonstream persistence failures withhold the result. Server operational records and public errors exclude schema/content/credentials; SDK-local exceptions are a separate application boundary. All 48 new cases use bounded local sockets, retries disabled and controlled usage; source pins, dependencies, production source and storage are unchanged. Full #116, other Output modes/native mappings/live capabilities and unresolved Jev #7 remain open. See [plan](plans/552-ai-sdk-structured-output.md) and [contract](../contracts/ai-sdk-client-workflows.md#structured-object-workflows-552).

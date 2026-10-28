@@ -1,6 +1,12 @@
 # OpenGranter agent handoff
 
-## Current continuation checkpoint (#550)
+## Current continuation checkpoint (#552)
+
+PR [#551](https://github.com/Theorvane/OpenGranter/pull/551) received approval on eb544ee2b25da81d031150796bd09b22a922fd65 with all three checks successful and merged as c22b303; issue #550 is closed. Issue [#552](https://github.com/Theorvane/OpenGranter/issues/552), branch test/552-ai-sdk-structured-output, adds actual pinned Output.object conformance. It began independently from approved main fcb40ea and updated onto approved main c22b303 before final validation. Read [plan](plans/552-ai-sdk-structured-output.md), [contract](../contracts/ai-sdk-client-workflows.md#structured-object-workflows-552) and [reproduction](ai-sdk-conformance.md#structured-object-reproduction-552), then refresh PR/review/CI before assuming merge.
+
+All 48 new cases and 258 focused SDK/format regressions pass. The measured client can strip extra properties or resolve an object after a stream persistence error; output/finish events do not certify full schema conformance or server persistence. Actual wire errors/final-frame withholding, admission/private accounting and native schema rejection remain tested. No production code, six pins, dependencies or storage changes. Final full validation on approved main c22b303 passed 7,724 tests with one optional external PostgreSQL skip, zero failures/cancellations and all six offline integrity checks. Other Output/partial/native/live cases, full #116 and unresolved Jev #7 remain open; earlier checkpoints below are historical.
+
+## Historical continuation checkpoint (#550)
 
 PR [#549](https://github.com/Theorvane/OpenGranter/pull/549) received approval on 2346f1fc16bdb20047a1cf05333c669d38bf385e with all three checks successful and merged as fcb40ea; issue #548 is closed. This branch began independently from approved main 58700b6 and has now been updated onto approved main fcb40ea, preserving both the retry-header implementation and these image probes. Issue [#550](https://github.com/Theorvane/OpenGranter/issues/550), branch test/550-ai-sdk-inline-images, adds actual pinned generateText/streamText inline-PNG conformance. Read [plan](plans/550-ai-sdk-inline-images.md), [contract](../contracts/ai-sdk-client-workflows.md#inline-png-workflows-550) and [reproduction](ai-sdk-conformance.md#inline-png-reproduction-550), then refresh this branch's PR/review/CI before assuming merge.
 
