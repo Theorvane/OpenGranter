@@ -1,5 +1,13 @@
 # Acceptance and Verification Scenarios
 
+## Reviewed model response marker removal (#543)
+
+- Independently verify v4 provenance, exactly seven complete optional type/format shapes without nullable:true, and the complete previous v3 digest after restoring those markers. Current structure matching v2 must not allow stale v2/v3 pins.
+- Retain detection of marker restoration/changed literals/null-type removal, malformed/rehashed invalid maps, annotations/extensions, stale-before-fetch, simultaneous drift and content-free/no-write CLI failures.
+- Verify captured source equality for the other five selections and byte-identical other pins; refresh only paired model-response version/provenance/validator. Run all six offline/live comparisons and the full gate.
+- No runtime metadata/API/IAM/audit/usage/dependency/storage change or full compatibility certification follows. Full #116 and Jev #7 remain open. See [plan](plans/543-model-response-drift.md) and [contract](../contracts/model-response-schema.md#reviewed-version4-checkpoint-543).
+
+
 ## Both-base nonstream fingerprint parity (#542)
 
 - Reproduce actual official SDK /v1 text and two-request function/result validation failures before production changes. Require null for unknown fingerprints on both bases, preserving exact reported string/null values, history correlation and separate per-attempt usage.

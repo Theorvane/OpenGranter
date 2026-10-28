@@ -1,6 +1,13 @@
 # OpenGranter agent handoff
 
-## Current continuation checkpoint (#542)
+## Current continuation checkpoint (#543)
+
+PR [#544](https://github.com/Theorvane/OpenGranter/pull/544) received approval on 3c5ee42f1152f9b5c7a5d04873dd2108810ea816 with all three checks successful and merged as dbed817; issue #542 is closed. Issue [#543](https://github.com/Theorvane/OpenGranter/issues/543), branch test/543-model-response-drift, reconciles the previously observed official model-response nullable-marker drift. Read [plan](plans/543-model-response-drift.md) and [contract](../contracts/model-response-schema.md#reviewed-version4-checkpoint-543), then refresh PR/review/CI before assuming merge.
+
+Fresh captured source confirms exactly seven removed markers with type arrays and all other selected structures unchanged. Response pin/validator v4 retain stale-version rejection and full historical digest proofs; other five pin bytes, complete runtime source, dependencies and migrations remain unchanged. Focused schema/CLI regressions passed 711 cases. Full validation passed 7,392 cases with one optional external PostgreSQL skip, zero failures/cancellations and all six offline/live comparisons passing. The drift observed in #542 is reconciled in this branch; refresh the PR status before treating it as merged. No model capability or local null semantics change. Full #116 and unresolved Jev #7 remain open; earlier checkpoints are historical.
+
+
+## Historical continuation checkpoint (#542)
 
 PR [#541](https://github.com/Theorvane/OpenGranter/pull/541) received approval on cc32c410e924e9e55cb1a0016f33c552f80673c6 with all three checks successful and merged as bf3d3d4; issue #540 is closed. Issue [#542](https://github.com/Theorvane/OpenGranter/issues/542), branch fix/542-legacy-fingerprints, makes unknown nonstream fingerprints null on both bases. Read [plan](plans/542-legacy-fingerprints.md), [contract](../contracts/compatible-completion-fingerprints.md#both-base-unknown-fingerprint-projection-542) and [official SDK tools](../contracts/official-sdk-tools.md), then refresh PR/review/CI before assuming merge.
 

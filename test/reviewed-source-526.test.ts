@@ -84,7 +84,6 @@ function querySource() {
 }
 function responseSource() {
   const p = structuredClone(response.projection);
-  for (const [name, field] of fields) p.definitions[name].properties[field].nullable = true;
   return {
     openapi: p.openapi,
     info: { version: p.documentVersion },
@@ -99,8 +98,8 @@ function responseSource() {
     components: { schemas: p.definitions },
   };
 }
-test('reviewed versions and independent TTL/offset/property shapes match the fetched source', () => {
-  assert.deepEqual([chat.version, query.version, response.version], [33, 5, 3]);
+test('reviewed request/query checkpoint and current response shapes match the fetched source', () => {
+  assert.deepEqual([chat.version, query.version, response.version], [33, 5, 4]);
   assert.deepEqual(chat.projection.definitions.PromptCacheBreakpoint.properties.ttl, {
     type: ['string', 'null'],
   });
@@ -115,15 +114,14 @@ test('reviewed versions and independent TTL/offset/property shapes match the fet
   assert.equal(compareOfficialModelResponseSchema(responseSource(), response), true);
 });
 for (const [name, field, type] of fields)
-  test(`reviewed ${name}.${field} includes the legacy marker and explicit nullable type`, () => {
+  test(`reviewed ${name}.${field} retains the explicit nullable type after marker removal`, () => {
     const schema = response.projection.definitions[name].properties[field];
     assert.deepEqual(schema, {
       type: [type, 'null'],
       ...(type === 'number' ? { format: 'double' } : {}),
-      nullable: true,
     });
     const source = responseSource();
-    delete source.components.schemas[name].properties[field].nullable;
+    source.components.schemas[name].properties[field].nullable = true;
     assert.equal(compareOfficialModelResponseSchema(source, response), false);
     source.components.schemas[name].properties[field] = { ...schema, type };
     assert.equal(compareOfficialModelResponseSchema(source, response), false);
