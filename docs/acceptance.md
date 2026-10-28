@@ -1612,3 +1612,13 @@ See [plan](plans/546-ai-sdk-nonstream-tools.md), [contract](../contracts/ai-sdk-
 - Actual pinned OpenAI/OpenRouter/AI SDK sockets receive the canonical header on all routes/bases with no automatic retries. Streaming, precise status/cause parity, HTTP dates, live provider/SDK backoff guarantees, full #116 and unresolved #7 remain outside scope.
 
 See [plan](plans/548-upstream-retry-hints.md) and [error contract](../contracts/openrouter-error-schema.md#bounded-nonstream-retry-after-548).
+
+## Actual AI SDK inline PNG inputs (#550)
+
+- Actual pinned generateText/streamText sends application-owned PNG bytes between text parts through both chat bases and delegated OpenRouter/direct OpenAI/Anthropic/Gemini. Exact captured native/compatible history preserves MIME, bytes and order without wire rewriting.
+- The synthetic probes permit no media URL downloads and limit provider fetch to the configured local endpoint. They certify inline bytes only; no default remote-URL behavior, pixel validation or live vision capability is inferred.
+- Auth/implicit/model/provider Deny, limits and selection audit failure prevent provider calls/secret lookup. Required usage/outcome audit failure withholds the initial nonstream completion or actual final stream usage/DONE. Client finish events remain insufficient persistence evidence.
+- Cancellation after streamed content interrupts the upstream and preserves failed possibly-billed accounting. Input image bytes, prompt text and credentials stay outside operational records/errors; explicit complete aggregate counters remain unchanged and do not establish billed cost.
+- No production source, pins, dependencies or storage change. Existing image MIME/size/count/detail contracts remain; their complete actual-client matrix, image+tool loops, richer/signed-Google/live workflows, full #116 and unresolved Jev #7 remain open.
+
+See [plan](plans/550-ai-sdk-inline-images.md), [contract](../contracts/ai-sdk-client-workflows.md#inline-png-workflows-550) and [reproduction](ai-sdk-conformance.md#inline-png-reproduction-550).

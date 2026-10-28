@@ -1,6 +1,12 @@
 # OpenGranter agent handoff
 
-## Current continuation checkpoint (#548)
+## Current continuation checkpoint (#550)
+
+PR [#549](https://github.com/Theorvane/OpenGranter/pull/549) received approval on 2346f1fc16bdb20047a1cf05333c669d38bf385e with all three checks successful and merged as fcb40ea; issue #548 is closed. This branch began independently from approved main 58700b6 and has now been updated onto approved main fcb40ea, preserving both the retry-header implementation and these image probes. Issue [#550](https://github.com/Theorvane/OpenGranter/issues/550), branch test/550-ai-sdk-inline-images, adds actual pinned generateText/streamText inline-PNG conformance. Read [plan](plans/550-ai-sdk-inline-images.md), [contract](../contracts/ai-sdk-client-workflows.md#inline-png-workflows-550) and [reproduction](ai-sdk-conformance.md#inline-png-reproduction-550), then refresh this branch's PR/review/CI before assuming merge.
+
+All 40 new cases and 302 focused actual-client/image/native regressions pass without production changes. Exact native bytes/MIME/order, empty client media-download plans, admission/persistence gates and cancellation/possible-billing/privacy are measured on both bases/all four adapters. Final integrated validation on approved main fcb40ea passed 7,676 tests with one optional external PostgreSQL skip, zero failures/cancellations and all six offline integrity checks. Production source, six pins, dependencies and storage are unchanged. The broader image-control matrix, image+tool/richer/signed-Google/live workflows, full #116 and unresolved Jev #7 remain open. Earlier checkpoints below are historical.
+
+## Historical continuation checkpoint (#548)
 
 PR [#547](https://github.com/Theorvane/OpenGranter/pull/547) received approval on fd0940206a1cbedadd39c9207373d9353d30bce4 with all three checks successful and merged as 58700b6; issue #546 is closed. Issue [#548](https://github.com/Theorvane/OpenGranter/issues/548), branch feat/548-upstream-retry-hints, adds bounded nonstream Retry-After delivery. Read [plan](plans/548-upstream-retry-hints.md) and [error contract](../contracts/openrouter-error-schema.md#bounded-nonstream-retry-after-548), then refresh PR/review/CI before assuming merge.
 
