@@ -81,7 +81,7 @@ for (const base of ['/v1', '/api/v1'] as const)
             reply: () => upstreamResponse(kind, status, header),
           });
           const response = await f.handler(f.request(base));
-          assert.equal(response.status, 502);
+          assert.equal(response.status, base === '/api/v1' ? status : 502);
           assert.equal(response.headers.get('retry-after'), expected);
           assert.equal(response.headers.get('x-private-provider'), null);
           const body = await response.json();
@@ -90,7 +90,7 @@ for (const base of ['/v1', '/api/v1'] as const)
           assert.ok(
             typeof error === 'object' && error !== null && 'code' in error && 'message' in error,
           );
-          assert.equal(error.code, base === '/api/v1' ? 502 : 'upstream_failed');
+          assert.equal(error.code, base === '/api/v1' ? status : 'upstream_failed');
           assert.equal(error.message, 'Upstream model request failed.');
           assert.doesNotMatch(JSON.stringify(body), /private|retry.?after|fixture-provider-key/iu);
           assert.equal(response.headers.get('x-request-id'), 'req-probabilities');
@@ -108,7 +108,7 @@ for (const base of ['/v1', '/api/v1'] as const)
             reply: () => upstreamResponse(kind, status, header),
           });
           const response = await f.handler(f.request(base));
-          assert.equal(response.status, 502);
+          assert.equal(response.status, base === '/api/v1' ? status : 502);
           assert.equal(response.headers.get('retry-after'), null, String(header));
           assert.doesNotMatch(await response.text(), /private|fixture-provider-key/u);
           assertPrivate(f);

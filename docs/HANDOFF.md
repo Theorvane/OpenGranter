@@ -1,6 +1,12 @@
 # OpenGranter agent handoff
 
-## Current continuation checkpoint (#552)
+## Current continuation checkpoint (#554)
+
+PR [#553](https://github.com/Theorvane/OpenGranter/pull/553) received approval on 984b1ffd6394a1eacacb0d9ad7eb61e68bcf7635 with all three checks successful and merged as c7a2cf5; issue #552 is closed. Issue [#554](https://github.com/Theorvane/OpenGranter/issues/554), branch feat/554-upstream-statuses, adds bounded compatible nonstream upstream 429/503 status projection. Read [plan](plans/554-upstream-statuses.md) and [error contract](../contracts/openrouter-error-schema.md#compatible-observed-upstream-statuses-554), then refresh PR/review/CI before assuming merge.
+
+Only known observed responses with matching category/status are projected after required handoffs. Legacy 502, fixed messages/unmapped metadata, private conservative accounting, fallback and bounded hints remain. Initial red reproduced 16 missing-status failures among 40 cases; a separate defensive red found 2 contradictory no-response metadata cases. Final focused regressions passed 278 tests, including actual SDKs, spoofed metadata, delayed/failed persistence and fallback isolation. Final full validation passed 7,784 tests with one optional external PostgreSQL skip, zero failures/cancellations and all six offline integrity checks. Streaming, broader error/type/date/402 parity, full #116 and unresolved Jev #7 remain open. Pins, dependencies and storage are unchanged; earlier checkpoints below are historical.
+
+## Historical continuation checkpoint (#552)
 
 PR [#551](https://github.com/Theorvane/OpenGranter/pull/551) received approval on eb544ee2b25da81d031150796bd09b22a922fd65 with all three checks successful and merged as c22b303; issue #550 is closed. Issue [#552](https://github.com/Theorvane/OpenGranter/issues/552), branch test/552-ai-sdk-structured-output, adds actual pinned Output.object conformance. It began independently from approved main fcb40ea and updated onto approved main c22b303 before final validation. Read [plan](plans/552-ai-sdk-structured-output.md), [contract](../contracts/ai-sdk-client-workflows.md#structured-object-workflows-552) and [reproduction](ai-sdk-conformance.md#structured-object-reproduction-552), then refresh PR/review/CI before assuming merge.
 

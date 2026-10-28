@@ -1,5 +1,6 @@
 import type { AuditAttribution } from '../audit/attribution.ts';
 import { validRetryAfterSeconds } from '../providers/retry-after.ts';
+import { snapshotUpstreamStatus, type UpstreamStatus } from '../providers/upstream-status.ts';
 import { captureAttemptUsage, type UsageHandoff } from '../usage/capture-attempt.ts';
 import {
   authorizeCandidates,
@@ -29,12 +30,14 @@ export class DirectProviderFailure extends Error {
   readonly responseStarted: boolean;
   readonly possiblyBilled: boolean;
   readonly retryAfterSeconds?: number;
+  readonly upstreamStatus?: UpstreamStatus;
 
   constructor(
     category: DirectProviderFailureCategory,
     responseStarted: boolean,
     possiblyBilled: boolean,
     retryAfterSeconds?: number,
+    upstreamStatus?: number,
   ) {
     super('Direct provider attempt failed');
     this.name = 'DirectProviderFailure';
@@ -46,6 +49,9 @@ export class DirectProviderFailure extends Error {
       validRetryAfterSeconds(retryAfterSeconds)
     )
       this.retryAfterSeconds = retryAfterSeconds;
+    const capturedStatus = snapshotUpstreamStatus(category, upstreamStatus);
+    if (responseStarted === true && capturedStatus !== undefined)
+      this.upstreamStatus = capturedStatus;
   }
 }
 
@@ -109,6 +115,7 @@ export type JevManagedRouteResult<T> =
       readonly reason: 'provider-failed';
       readonly possiblyBilled?: boolean;
       readonly retryAfterSeconds?: number;
+      readonly upstreamStatus?: UpstreamStatus;
     }
   | {
       readonly status: 'failed';
@@ -281,9 +288,14 @@ export async function invokeManagedRoute<T>(
         failure.category !== 'other' &&
         index < attempts.length - 1;
       if (!retryable) {
+        const upstreamStatus =
+          failure?.responseStarted === true
+            ? snapshotUpstreamStatus(failure.category, failure.upstreamStatus)
+            : undefined;
         return {
           status: 'failed',
           reason: 'provider-failed',
+          ...(upstreamStatus === undefined ? {} : { upstreamStatus }),
           ...(failure &&
           (failure.category === 'rate-limit' || failure.category === 'server-error') &&
           validRetryAfterSeconds(failure.retryAfterSeconds)

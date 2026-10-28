@@ -74,7 +74,11 @@ export function createClientErrorResponse(
     },
     { status, ...(requestId === undefined ? {} : { headers: { 'x-request-id': requestId } }) },
   );
-  if (status === 502 && code === 'upstream_failed' && validRetryAfterSeconds(retryAfterSeconds))
+  if (
+    [429, 502, 503].includes(status) &&
+    code === 'upstream_failed' &&
+    validRetryAfterSeconds(retryAfterSeconds)
+  )
     response.headers.set('retry-after', String(retryAfterSeconds));
   return response;
 }

@@ -1632,3 +1632,13 @@ See [plan](plans/550-ai-sdk-inline-images.md), [contract](../contracts/ai-sdk-cl
 - No production source, pins, dependency or storage changes. Other Output/partial object modes, native conversions, server validation/repair, live capabilities, full #116 and unresolved Jev #7 remain open.
 
 See [plan](plans/552-ai-sdk-structured-output.md), [contract](../contracts/ai-sdk-client-workflows.md#structured-object-workflows-552) and [reproduction](ai-sdk-conformance.md#structured-object-reproduction-552).
+
+## Compatible upstream transient statuses (#554)
+
+- Across all four nonstream adapters, observed upstream 429/503 retains that exact status on /api/v1 with matching numeric error.code. /v1 still returns502/symbolic upstream_failed. Fixed messages, safe unmapped metadata, request IDs and bounded Retry-After remain; missing/invalid hints do not suppress a valid status.
+- Capture/project only known failure metadata with responseStarted===true and matching rate-limit429/server-error503. Missing/wrong-type/out-of-allowlist/mismatched values, unclassified errors and contradictory no-response state remain generic 502 without raw diagnostic forwarding.
+- Required usage and outcome audit complete before the hinted/status response settles. Admission/local/persistence failure retains existing status/reason, no unauthorized provider work and no inherited hints. Missing/possible-billing records remain conservative and private.
+- Managed fallback success clears earlier status/hints; a later generic failure remains502 and later valid terminal 429/503 uses only its own values. Existing duplicate-accounting flags and retry eligibility stay unchanged.
+- Actual pinned OpenAI/OpenRouter/AI SDK sockets receive compatible429/503 and legacy502 with unchanged safe Retry-After, while retries are disabled. Audit/ledger/error JSON exclude raw metadata and credentials. No streaming, provider error_type parsing, date/402 handling, schema pins, dependency or storage changes; full #116 and unresolved #7 remain open.
+
+See [plan](plans/554-upstream-statuses.md) and [contract](../contracts/openrouter-error-schema.md#compatible-observed-upstream-statuses-554).

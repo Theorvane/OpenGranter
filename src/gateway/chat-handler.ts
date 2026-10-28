@@ -1371,7 +1371,12 @@ export function createChatHandler<T>(
           return errorResponse(503, 'route_unavailable', requestId);
         }
         if (result.reason === 'upstream-failed')
-          return errorResponse(502, 'upstream_failed', requestId, result.retryAfterSeconds);
+          return errorResponse(
+            format === 'openrouter' ? (result.upstreamStatus ?? 502) : 502,
+            'upstream_failed',
+            requestId,
+            result.retryAfterSeconds,
+          );
         if (result.reason === 'usage-unavailable')
           return errorResponse(503, 'usage_unavailable', requestId);
         return errorResponse(503, 'audit_unavailable', requestId);
@@ -1472,7 +1477,12 @@ export function createChatHandler<T>(
         return errorResponse(403, 'forbidden', requestId);
       }
       if (result.reason === 'provider-failed')
-        return errorResponse(502, 'upstream_failed', requestId, result.retryAfterSeconds);
+        return errorResponse(
+          format === 'openrouter' ? (result.upstreamStatus ?? 502) : 502,
+          'upstream_failed',
+          requestId,
+          result.retryAfterSeconds,
+        );
       if (result.reason === 'usage-unavailable')
         return errorResponse(503, 'usage_unavailable', requestId);
       return errorResponse(503, 'audit_unavailable', requestId);

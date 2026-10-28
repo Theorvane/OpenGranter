@@ -169,7 +169,9 @@ for (const base of ['/v1', '/api/v1'] as const)
         await auditEntered;
         assert.equal(settled, false);
         releaseAudit();
-        assert.equal((await pending).headers.get('retry-after'), '7');
+        const response = await pending;
+        assert.equal(response.status, base === '/api/v1' ? 429 : 502);
+        assert.equal(response.headers.get('retry-after'), '7');
         assert.equal(f.records.length, 1);
         probabilityPrivacy(f);
       } finally {
