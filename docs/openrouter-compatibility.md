@@ -1,5 +1,11 @@
 # OpenRouter external-client compatibility
 
+## AI SDK nonstream parallel tool loops (#546)
+
+Actual pinned createOpenRouter/generateText now measures two-request JSON function/result continuation on both bases and delegated OpenRouter/managed OpenAI/Anthropic/Gemini. Distinct calls complete in reverse order on the client while exact native history preserves ID/argument/result correlation. Fresh continuation provider Deny, initial admission/limit/audit failures and required persistence failures prevent unauthorized upstream work or undelivered client tool execution. The client owns tool side effects; a later Deny cannot undo them.
+
+Measured AI SDK summaries recompute totalTokens from input/output rather than preserving independent reported totals. Controlled 2/3/reported 7 responses appear as 5 per step in this client; raw HTTP and server ledger retain 7. Outcome-audit failure may follow provider work and successful usage persistence, so an error is not evidence of zero accounting. Production code, six pins, dependencies and storage remain unchanged. Signed Gemini/richer workflows, other endpoints and full #116 remain uncertified; unresolved Jev #7 is unchanged. See [plan](plans/546-ai-sdk-nonstream-tools.md), [contract](../contracts/ai-sdk-client-workflows.md#nonstream-parallel-continuations-546) and [reproduction](ai-sdk-conformance.md#nonstream-parallel-tool-reproduction-546).
+
 ## Reviewed model response source checkpoint (#543)
 
 Response pin v4 records the reviewed 2026-10-27 removal of seven nullable:true markers, preserving explicit null type arrays, optionality/formats and the rest of all 21 selected definitions. Its structure equals historical v2, but v1/v2/v3 pins remain stale: independently reviewed provenance and the validator version must move together. The complete v3 digest is reconstructible by restoring exactly those markers, which remain monitored structural data rather than ignored annotations.
