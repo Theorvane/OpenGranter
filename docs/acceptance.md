@@ -1602,3 +1602,13 @@ Raw HTTP and installed OpenRouter/OpenAI SDKs preserve exact relative path/query
 - Operational records/errors exclude tool inputs, outputs, prompt/response text and tokens. No source pins, dependency versions, production code or persistence schemas change. Signed Gemini/richer workflows and complete compatibility remain unclaimed under #116; unresolved Jev #7 is unchanged.
 
 See [plan](plans/546-ai-sdk-nonstream-tools.md), [contract](../contracts/ai-sdk-client-workflows.md#nonstream-parallel-continuations-546) and [reproduction](ai-sdk-conformance.md#nonstream-parallel-tool-reproduction-546).
+
+## Nonstream upstream Retry-After (#548)
+
+- Both bases/four adapters preserve a canonical valid delta-seconds Retry-After from upstream 429/503 on their existing 502 upstream_failed response. Zero/leading zeros/max-safe values pass; missing/invalid/date/comma/repeated/unsafe/oversized/private values are omitted. Other statuses/success and unrelated provider headers never receive forwarding authority.
+- Failed-attempt usage and required outcome audit must both complete before the hinted response settles. Failure of either handoff returns its existing503 without a hint. Existing missing/possibly-billed records remain intact.
+- Authentication, implicit/explicit model/provider Deny, limits and selection-audit failures prevent upstream credential access and emit no hint. Fresh retries retain normal controls. Managed fallback success clears earlier hints; an unhinted terminal failure has no stale hint, while a hinted terminal attempt uses only its own value and retains duplicate-accounting flags.
+- Malformed/unrelated custom failure metadata and serializer inputs cannot inject header text. Audit/ledger/public JSON exclude hints, upstream error text and credentials.
+- Actual pinned OpenAI/OpenRouter/AI SDK sockets receive the canonical header on all routes/bases with no automatic retries. Streaming, precise status/cause parity, HTTP dates, live provider/SDK backoff guarantees, full #116 and unresolved #7 remain outside scope.
+
+See [plan](plans/548-upstream-retry-hints.md) and [error contract](../contracts/openrouter-error-schema.md#bounded-nonstream-retry-after-548).

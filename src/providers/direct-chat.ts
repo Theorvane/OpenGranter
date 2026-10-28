@@ -58,6 +58,7 @@ import {
   prepareGoogleFunctions,
   prepareGoogleMessages,
 } from './google-client-functions.ts';
+import { parseRetryAfterSeconds } from './retry-after.ts';
 
 export interface DirectProviderRegistration {
   readonly providerId: string;
@@ -153,8 +154,9 @@ function fail(
   category: 'rate-limit' | 'server-error' | 'timeout' | 'other',
   possiblyBilled = false,
   responseStarted = false,
+  retryAfterSeconds?: number,
 ): never {
-  throw new DirectProviderFailure(category, responseStarted, possiblyBilled);
+  throw new DirectProviderFailure(category, responseStarted, possiblyBilled, retryAfterSeconds);
 }
 function completion(
   id: unknown,
@@ -923,8 +925,17 @@ export function createDirectChatInvoker(
   const invoke = createDirectChatTransport(ports);
   return async (candidate, request) => {
     const { response, providerKind, clientModelAlias } = await invoke(candidate, request);
-    if (response.status === 429) fail('rate-limit', true, true);
-    if (response.status >= 500) fail('server-error', true, true);
+    if (response.status === 429)
+      fail('rate-limit', true, true, parseRetryAfterSeconds(response.headers.get('retry-after')));
+    if (response.status >= 500)
+      fail(
+        'server-error',
+        true,
+        true,
+        response.status === 503
+          ? parseRetryAfterSeconds(response.headers.get('retry-after'))
+          : undefined,
+      );
     if (!response.ok) fail('other', true, true);
     let body: unknown;
     try {

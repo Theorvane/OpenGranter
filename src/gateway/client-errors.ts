@@ -1,3 +1,5 @@
+import { validRetryAfterSeconds } from '../providers/retry-after.ts';
+
 const messages = {
   not_found: 'Requested endpoint was not found.',
   unauthorized: 'Authentication is required.',
@@ -56,8 +58,9 @@ export function createClientErrorResponse(
   code: ClientErrorCode,
   requestId?: string,
   format: ClientErrorFormat = 'opengranter',
+  retryAfterSeconds?: number,
 ): Response {
-  return Response.json(
+  const response = Response.json(
     {
       error:
         format === 'openrouter'
@@ -71,4 +74,7 @@ export function createClientErrorResponse(
     },
     { status, ...(requestId === undefined ? {} : { headers: { 'x-request-id': requestId } }) },
   );
+  if (status === 502 && code === 'upstream_failed' && validRetryAfterSeconds(retryAfterSeconds))
+    response.headers.set('retry-after', String(retryAfterSeconds));
+  return response;
 }

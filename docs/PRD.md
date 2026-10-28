@@ -1127,3 +1127,9 @@ Compatible discovery accepts inclusive min/max intelligence, coding and agentic 
 ## Root-relative model details links (#504)
 
 Compatible rich model discovery and persisted metadata accept safe root-relative links.details values in addition to existing credential-free absolute HTTPS links. Preserve original text and shared model/provider IAM, full-catalog validation and required private audit. Do not fetch/follow links or infer that the referenced endpoint exists. See [plan](plans/504-relative-model-links.md) and [contract](../contracts/model-details-links.md).
+
+## Bounded nonstream upstream retry hints (#548)
+
+On both chat bases and all four adapters, a registered upstream 429/503 Retry-After consisting of at most 16 ASCII digits representing nonnegative safe-integer seconds is delivered as a canonical response header after required failure usage/audit persistence. Preserve zero; omit malformed/date/duplicate/oversized/private values. Existing502 upstream_failed, fixed bodies, model/provider IAM, limits, failure billing flags and same-kind fallback remain unchanged. Successful fallback or a local/persistence error must not inherit an earlier provider hint.
+
+The advisory is not an automatic retry or capacity/billing guarantee and remains outside audit bodies/ledger/public error JSON. Only nonstream delta-seconds is covered; HTTP dates, precise error causes/status parity, streaming and full #116 remain open. Six source pins/dependencies/storage are unchanged; unresolved Jev #7 is unchanged. See [plan](plans/548-upstream-retry-hints.md) and [error contract](../contracts/openrouter-error-schema.md#bounded-nonstream-retry-after-548).

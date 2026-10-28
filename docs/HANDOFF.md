@@ -1,6 +1,12 @@
 # OpenGranter agent handoff
 
-## Current continuation checkpoint (#546)
+## Current continuation checkpoint (#548)
+
+PR [#547](https://github.com/Theorvane/OpenGranter/pull/547) received approval on fd0940206a1cbedadd39c9207373d9353d30bce4 with all three checks successful and merged as 58700b6; issue #546 is closed. Issue [#548](https://github.com/Theorvane/OpenGranter/issues/548), branch feat/548-upstream-retry-hints, adds bounded nonstream Retry-After delivery. Read [plan](plans/548-upstream-retry-hints.md) and [error contract](../contracts/openrouter-error-schema.md#bounded-nonstream-retry-after-548), then refresh PR/review/CI before assuming merge.
+
+Typed integer-seconds hints from registered upstream 429/503 are projected only after required failed-attempt usage and outcome audit, on the existing 502 upstream_failed response. Local/persistence failures, other statuses, success and stale fallback hints remain excluded. Actual OpenAI/OpenRouter/AI SDK sockets cover both bases/all four adapters with retries disabled; hints remain outside audit/ledger/error JSON. Initial red reproduced 64 missing-header failures among 96 cases; focused final regressions passed 218 cases. Final npm run check passed 7,636 tests with one optional external PostgreSQL skip, zero failures/cancellations and all six offline integrity checks. HTTP dates, streaming hints, precise cause/status parity, full #116 and unresolved Jev #7 remain open. Source pins, dependencies and storage are unchanged; earlier checkpoints below are historical.
+
+## Historical continuation checkpoint (#546)
 
 PR [#545](https://github.com/Theorvane/OpenGranter/pull/545) received approval on ec6375baee680fed09dbe14a41fa7337447d751d with all three checks successful and merged as 33a2a27; issue #543 is closed. Issue [#546](https://github.com/Theorvane/OpenGranter/issues/546), branch test/546-ai-sdk-nonstream-tools, measures actual pinned generateText parallel function/result loops across both bases and all four adapters. Read [plan](plans/546-ai-sdk-nonstream-tools.md), [contract](../contracts/ai-sdk-client-workflows.md#nonstream-parallel-continuations-546) and [reproduction](ai-sdk-conformance.md#nonstream-parallel-tool-reproduction-546), then refresh PR/review/CI before assuming merge.
 
