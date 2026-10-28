@@ -1592,3 +1592,13 @@ Verify every index with lower/upper/equal bounds, all six together, inclusive ed
 ## Root-relative model detail metadata (#504)
 
 Raw HTTP and installed OpenRouter/OpenAI SDKs preserve exact relative path/query/fragment strings on managed/delegated discovery and current-policy pages. Check the length boundary and absolute HTTPS regression; reject authority paths, backslashes, raw whitespace/control characters, document-relative text, unsupported schemes, credentials and malformed values even in disabled/out-of-page metadata. Model/provider/implicit Deny, authentication ordering and required catalog/audit failures remain private. One-time getter capture and audit-time mutation retain original strings without using caller host headers. Fake SQL and migrated JSONB exercise list/route capture, unchanged candidates and safe invalid storage. Listing touches no inference/route/secret/limit/usage ports and emits no link values in operational events/errors. See [plan](plans/504-relative-model-links.md) and [contract](../contracts/model-details-links.md).
+
+## AI SDK nonstream parallel tools (#546)
+
+- On both chat bases and all four route adapters, actual pinned generateText executes two client functions with distinct arguments and completes a two-request final answer. Reverse execution completion preserves exact native call IDs/arguments/result pairing.
+- Every continuation authenticates and evaluates fresh model/provider policy before limits and upstream credentials. Provider Deny after local execution prevents a second upstream call and leaves only the first successful usage attempt.
+- Auth/implicit/model/provider Deny, limits and selection audit failure deliver no executable calls. Required outcome audit/usage failure after upstream execution also withholds the initial JSON tool response; no client function runs. Persisted successful usage before an outcome-audit fault is retained rather than rewritten as no upstream work.
+- Separate request IDs and original per-attempt totals remain in the server ledger. For controlled 2/3/reported 7 counters, pinned AI SDK summaries recompute5 per step while raw HTTP and ledger retain 7. This difference neither changes server accounting nor establishes billed cost.
+- Operational records/errors exclude tool inputs, outputs, prompt/response text and tokens. No source pins, dependency versions, production code or persistence schemas change. Signed Gemini/richer workflows and complete compatibility remain unclaimed under #116; unresolved Jev #7 is unchanged.
+
+See [plan](plans/546-ai-sdk-nonstream-tools.md), [contract](../contracts/ai-sdk-client-workflows.md#nonstream-parallel-continuations-546) and [reproduction](ai-sdk-conformance.md#nonstream-parallel-tool-reproduction-546).

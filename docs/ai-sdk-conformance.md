@@ -53,3 +53,15 @@ Both bases exercise delegated OpenRouter and managed OpenAI/Anthropic/Gemini for
 Missing usage may appear as zero in this client even though the ledger remains missing/null. Both bases omit incomplete Gemini usage under #540 and the client displays zero, while the ledger retains known partial counters and an unknown total. These are recorded limits, not fabricated server counters. See [client plan](plans/538-ai-sdk-workflows.md) and [usage correction plan](plans/540-legacy-usage.md) for red/green and full-gate evidence. Full compatibility #116 and Jev #7 remain open; no discovery, signed-Google, image, reasoning, other endpoint or live capability certification follows from these text/tool probes.
 
 Both nonstream bases also expose unknown system_fingerprint as null under [#542](plans/542-legacy-fingerprints.md). This represents unavailable protocol metadata without inventing backend identity. Supplied values remain exact; streaming metadata and error formats retain their separate contracts. The official OpenRouter SDK text and two-request function/result lifecycle is separately verified with omitted upstream fingerprints under [its contract](../contracts/official-sdk-tools.md).
+
+## Nonstream parallel tool reproduction (#546)
+
+```sh
+node --disable-warning=ExperimentalWarning --experimental-strip-types --test test/ai-sdk-nonstream-tools.test.ts
+```
+
+For the example above, generateText accepts the same tools and stopWhen configuration as streamText; await its result instead of consuming fullStream. New probes use two parallel calls with different inputs, deliberately complete them in reverse order and inspect exact native follow-up messages for OpenAI/Anthropic/Gemini and delegated OpenRouter on both bases. They cover fresh continuation provider Deny, initial admission failures and required audit/usage persistence failures before tool delivery. No live provider request or client wire rewrite is used. The ordinary npm run check includes all 80 cases.
+
+The pinned AI SDK recomputes totalTokens as input+output. A reported total 7 with input 2/output 3 appears as 5 per step and 10 for the two-step client aggregate; raw gateway responses and per-attempt ledger still retain 7. Native Anthropic's existing adapter derives 5 from its 2/3 counters. This extends the earlier missing-usage warning: client summaries are not the authoritative server accounting or billed cost. A final request denied after client execution cannot undo application-owned side effects. Outcome-audit failure may return 503 after provider work and a successful persisted usage record.
+
+These nonstream cases extend only ordinary function/result coverage. Signed-Google namespaces, images/reasoning, discovery, other endpoints, live providers and other versions remain uncertified for this client; full #116 and Jev #7 stay open.

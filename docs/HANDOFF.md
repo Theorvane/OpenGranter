@@ -1,6 +1,12 @@
 # OpenGranter agent handoff
 
-## Current continuation checkpoint (#543)
+## Current continuation checkpoint (#546)
+
+PR [#545](https://github.com/Theorvane/OpenGranter/pull/545) received approval on ec6375baee680fed09dbe14a41fa7337447d751d with all three checks successful and merged as 33a2a27; issue #543 is closed. Issue [#546](https://github.com/Theorvane/OpenGranter/issues/546), branch test/546-ai-sdk-nonstream-tools, measures actual pinned generateText parallel function/result loops across both bases and all four adapters. Read [plan](plans/546-ai-sdk-nonstream-tools.md), [contract](../contracts/ai-sdk-client-workflows.md#nonstream-parallel-continuations-546) and [reproduction](ai-sdk-conformance.md#nonstream-parallel-tool-reproduction-546), then refresh PR/review/CI before assuming merge.
+
+New probes cover reverse client completion with exact native correlation, fresh continuation provider Deny and admission/required persistence failure before tool delivery. The pinned AI SDK recomputes totalTokens from input/output, while wire and server ledger preserve independent reported totals; do not use client summaries as billed accounting. Production code, six source pins, dependencies and storage remain unchanged. Focused SDK/native regressions passed 280 cases. The final full gate, including the final denial-audit/request-identity/persistence assertions, passed 7,472 tests with one optional external PostgreSQL skip, zero failures/cancellations and all six offline integrity checks. Signed Gemini/richer client paths, full #116 and unresolved Jev #7 remain open. Earlier checkpoints below are historical.
+
+## Historical continuation checkpoint (#543)
 
 PR [#544](https://github.com/Theorvane/OpenGranter/pull/544) received approval on 3c5ee42f1152f9b5c7a5d04873dd2108810ea816 with all three checks successful and merged as dbed817; issue #542 is closed. Issue [#543](https://github.com/Theorvane/OpenGranter/issues/543), branch test/543-model-response-drift, reconciles the previously observed official model-response nullable-marker drift. Read [plan](plans/543-model-response-drift.md) and [contract](../contracts/model-response-schema.md#reviewed-version4-checkpoint-543), then refresh PR/review/CI before assuming merge.
 
