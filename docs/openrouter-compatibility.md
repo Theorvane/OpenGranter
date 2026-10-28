@@ -1,5 +1,11 @@
 # OpenRouter external-client compatibility
 
+## AI SDK structured object workflows (#552)
+
+Actual pinned Output.object with generateText/streamText now measures exact schema/name/description/strict forwarding on both bases through managed OpenAI and delegated OpenRouter. Native Anthropic/Gemini schema requests retain pre-secret rejection. Malformed JSON/wrong property types produce client-local NoObjectGeneratedError after successful server completion/accounting; default Zod can strip extra fields while the original text remains exact. A strict request or parsed object does not certify returned-instance conformance or server enforcement.
+
+Required persistence failures retain shared gates: nonstream output is withheld; streams emit errors and omit actual final usage/DONE. This client may still resolve an object from delivered text after a stream persistence error, so object/finish events do not acknowledge server persistence. Schema/content/credentials stay private in operational records/errors. No runtime, pin, dependency or storage changes; other Output/partial/native/live cases, full #116 and unresolved Jev #7 stay open. See [plan](plans/552-ai-sdk-structured-output.md), [contract](../contracts/ai-sdk-client-workflows.md#structured-object-workflows-552) and [reproduction](ai-sdk-conformance.md#structured-object-reproduction-552).
+
 ## AI SDK inline PNG inputs (#550)
 
 Actual pinned createOpenRouter with generateText/streamText now measures application-owned PNG bytes between two text parts across both bases and all four adapters. Exact native/compatible capture preserves bytes/MIME/order; explicit no-download and bounded local provider-fetch guards keep these fixtures independent of external image hosts. Current auth/model/provider Deny, limits, required audit/usage failures and stream cancellation retain shared privacy and possibly-billed accounting. Client finish events/usage summaries remain insufficient server persistence/billing evidence.
