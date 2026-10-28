@@ -1,4 +1,5 @@
 import type { AuditAttribution } from '../audit/attribution.ts';
+import { validRetryAfterSeconds } from '../providers/retry-after.ts';
 import { captureAttemptUsage, type UsageHandoff } from '../usage/capture-attempt.ts';
 import {
   authorizeCandidates,
@@ -27,17 +28,24 @@ export class DirectProviderFailure extends Error {
   readonly category: DirectProviderFailureCategory;
   readonly responseStarted: boolean;
   readonly possiblyBilled: boolean;
+  readonly retryAfterSeconds?: number;
 
   constructor(
     category: DirectProviderFailureCategory,
     responseStarted: boolean,
     possiblyBilled: boolean,
+    retryAfterSeconds?: number,
   ) {
     super('Direct provider attempt failed');
     this.name = 'DirectProviderFailure';
     this.category = category;
     this.responseStarted = responseStarted;
     this.possiblyBilled = possiblyBilled;
+    if (
+      (category === 'rate-limit' || category === 'server-error') &&
+      validRetryAfterSeconds(retryAfterSeconds)
+    )
+      this.retryAfterSeconds = retryAfterSeconds;
   }
 }
 
@@ -93,8 +101,14 @@ export type JevManagedRouteResult<T> =
   | { readonly status: 'denied'; readonly reason: 'no-candidates' | 'limit' | 'secret-unavailable' }
   | {
       readonly status: 'failed';
-      readonly reason: 'audit-unavailable' | 'provider-failed' | 'usage-unavailable';
+      readonly reason: 'audit-unavailable' | 'usage-unavailable';
       readonly possiblyBilled?: boolean;
+    }
+  | {
+      readonly status: 'failed';
+      readonly reason: 'provider-failed';
+      readonly possiblyBilled?: boolean;
+      readonly retryAfterSeconds?: number;
     }
   | {
       readonly status: 'failed';
@@ -270,6 +284,11 @@ export async function invokeManagedRoute<T>(
         return {
           status: 'failed',
           reason: 'provider-failed',
+          ...(failure &&
+          (failure.category === 'rate-limit' || failure.category === 'server-error') &&
+          validRetryAfterSeconds(failure.retryAfterSeconds)
+            ? { retryAfterSeconds: failure.retryAfterSeconds }
+            : {}),
           ...(earlierAttemptPossiblyBilled ? { possiblyBilled: true } : {}),
         };
       }

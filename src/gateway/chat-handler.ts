@@ -684,8 +684,13 @@ export function createChatHandler<T>(
     const format = clientErrorFormat(url.pathname);
     const singleModelPath = url.pathname.startsWith('/api/v1/model/');
     const openAIModelPath = isOpenAIModelPath(url.pathname);
-    const errorResponse = (status: number, code: ClientErrorCode, id: string) => {
-      const response = createClientErrorResponse(status, code, id, format);
+    const errorResponse = (
+      status: number,
+      code: ClientErrorCode,
+      id: string,
+      retryAfterSeconds?: number,
+    ) => {
+      const response = createClientErrorResponse(status, code, id, format, retryAfterSeconds);
       if (isModelDiscoveryPath(url.pathname)) response.headers.set('cache-control', 'no-store');
       return response;
     };
@@ -1366,7 +1371,7 @@ export function createChatHandler<T>(
           return errorResponse(503, 'route_unavailable', requestId);
         }
         if (result.reason === 'upstream-failed')
-          return errorResponse(502, 'upstream_failed', requestId);
+          return errorResponse(502, 'upstream_failed', requestId, result.retryAfterSeconds);
         if (result.reason === 'usage-unavailable')
           return errorResponse(503, 'usage_unavailable', requestId);
         return errorResponse(503, 'audit_unavailable', requestId);
@@ -1467,7 +1472,7 @@ export function createChatHandler<T>(
         return errorResponse(403, 'forbidden', requestId);
       }
       if (result.reason === 'provider-failed')
-        return errorResponse(502, 'upstream_failed', requestId);
+        return errorResponse(502, 'upstream_failed', requestId, result.retryAfterSeconds);
       if (result.reason === 'usage-unavailable')
         return errorResponse(503, 'usage_unavailable', requestId);
       return errorResponse(503, 'audit_unavailable', requestId);
