@@ -4,6 +4,7 @@ import {
   type ClientErrorFormat,
   createClientErrorResponse,
 } from '../gateway/client-errors.ts';
+import type { UpstreamStatus } from '../providers/upstream-status.ts';
 import type { DelegatedRouteAuditEvent } from '../routing/invoke-delegated-route.ts';
 import type { ManagedRouteAuditEvent } from '../routing/invoke-jev-managed-route.ts';
 import type { UsageRecord } from '../usage/record-usage.ts';
@@ -75,6 +76,8 @@ function failure(
 ): {
   status: number;
   code: ClientErrorCode;
+  upstreamStatus?: UpstreamStatus;
+  retryAfterSeconds?: number;
 } {
   switch (result.reason) {
     case 'no-candidates':
@@ -83,7 +86,14 @@ function failure(
       return { status: 429, code: 'limit_exceeded' };
     case 'provider-failed':
     case 'upstream-failed':
-      return { status: 502, code: 'upstream_failed' };
+      return {
+        status: 502,
+        code: 'upstream_failed',
+        ...(result.upstreamStatus === undefined ? {} : { upstreamStatus: result.upstreamStatus }),
+        ...(result.retryAfterSeconds === undefined
+          ? {}
+          : { retryAfterSeconds: result.retryAfterSeconds }),
+      };
     case 'secret-unavailable':
     case 'credential-unavailable':
       return { status: 503, code: 'credential_unavailable' };
@@ -234,12 +244,23 @@ function createControlledHttpStreamResponse<
       return false;
     }
   }
-  async function fail(status: number, code: ClientErrorCode, recordInterruption: boolean) {
+  async function fail(
+    status: number,
+    code: ClientErrorCode,
+    recordInterruption: boolean,
+    retryAfterSeconds?: number,
+  ) {
     if (recordInterruption && !(await interrupted())) {
       status = 503;
       code = 'audit_unavailable';
     }
-    const error = createClientErrorResponse(status, code, input.requestId, input.format);
+    const error = createClientErrorResponse(
+      status,
+      code,
+      input.requestId,
+      input.format,
+      retryAfterSeconds,
+    );
     if (!started) {
       resolveResponse(error);
       return;
@@ -292,7 +313,17 @@ function createControlledHttpStreamResponse<
         }
       } else {
         const error = failure(result);
-        await fail(error.status, error.code, started || cancellation.signal.aborted);
+        const preStream = !started && !cancellation.signal.aborted;
+        const status =
+          preStream && input.format === 'openrouter'
+            ? (error.upstreamStatus ?? error.status)
+            : error.status;
+        await fail(
+          status,
+          error.code,
+          started || cancellation.signal.aborted,
+          preStream ? error.retryAfterSeconds : undefined,
+        );
       }
     } catch {
       await fail(503, 'route_unavailable', true).catch(() => {});

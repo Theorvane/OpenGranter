@@ -559,7 +559,10 @@ for (const kind of ['openai', 'openrouter'] as const) {
         f.fail(variant);
         await socket(kind, base, f, async (send) => {
           if (variant === 'pre' || variant === 'invalid') {
-            await rejected(() => collect(send(first)), 502);
+            await rejected(
+              () => collect(send(first)),
+              variant === 'pre' && base === '/api/v1' ? 429 : 502,
+            );
             return;
           }
           let chunks: Chunk[] | undefined;
@@ -758,9 +761,11 @@ for (const base of ['/v1', '/api/v1']) {
                 ? 429
                 : variant === 'selection'
                   ? 503
-                  : variant === 'pre' || variant === 'invalid'
-                    ? 502
-                    : 200;
+                  : variant === 'pre' && base === '/api/v1'
+                    ? 429
+                    : variant === 'pre' || variant === 'invalid'
+                      ? 502
+                      : 200;
         assert.equal(response.status, status);
         const wire = await response.text();
         assert.doesNotMatch(

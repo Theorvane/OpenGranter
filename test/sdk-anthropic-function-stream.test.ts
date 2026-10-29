@@ -477,7 +477,10 @@ for (const kind of ['openai', 'openrouter'] as const) {
         f.fail(variant);
         await socket(kind, base, f, async (send) => {
           if (variant === 'pre' || variant === 'invalid') {
-            await rejected(() => collect(send(first)), 502);
+            await rejected(
+              () => collect(send(first)),
+              variant === 'pre' && base === '/api/v1' ? 429 : 502,
+            );
             return;
           }
           let chunks: Chunk[] | undefined;

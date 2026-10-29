@@ -2,6 +2,7 @@ import {
   OpenRouterChatFailure,
   type OpenRouterFailureCategory,
 } from '../providers/openrouter-chat.ts';
+import { parseRetryAfterSeconds } from '../providers/retry-after.ts';
 import type { OpenRouterTextStreamPayload, StreamModelScope } from './openrouter-stream-chunks.ts';
 import { consumeOpenRouterTextStream } from './openrouter-stream-consumer.ts';
 import type { OpenRouterTextStreamOutcome } from './openrouter-stream-sequence.ts';
@@ -15,7 +16,14 @@ function fail(response: Response, category: OpenRouterFailureCategory): never {
   } catch {
     // Cancellation is best-effort; it must not hide or stall the safe failure.
   }
-  throw new OpenRouterChatFailure(category, true, true);
+  const rejected = response.status === 429 || response.status === 503;
+  throw new OpenRouterChatFailure(
+    category,
+    true,
+    true,
+    rejected ? parseRetryAfterSeconds(response.headers.get('retry-after')) : undefined,
+    rejected ? response.status : undefined,
+  );
 }
 
 /** Validate one upstream HTTP response before consuming its scoped SSE body. */

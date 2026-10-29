@@ -1,5 +1,6 @@
 import { AnthropicStreamUsage } from '../providers/anthropic-chat-usage.ts';
 import { snapshotAnthropicServiceTier } from '../providers/anthropic-service-tier.ts';
+import { parseRetryAfterSeconds } from '../providers/retry-after.ts';
 import {
   DirectProviderFailure,
   type DirectProviderFailureCategory,
@@ -24,7 +25,14 @@ function fail(response: Response, category: DirectProviderFailureCategory = 'oth
   try {
     void response.body?.cancel().catch(() => {});
   } catch {}
-  throw new DirectProviderFailure(category, true, true);
+  const rejected = response.status === 429 || response.status === 503;
+  throw new DirectProviderFailure(
+    category,
+    true,
+    true,
+    rejected ? parseRetryAfterSeconds(response.headers.get('retry-after')) : undefined,
+    rejected ? response.status : undefined,
+  );
 }
 /** Internal text-only Messages consumer. No response content is retained in its summary. */
 export async function consumeDirectAnthropicTextResponse(

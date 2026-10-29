@@ -1652,3 +1652,14 @@ See [plan](plans/554-upstream-statuses.md) and [contract](../contracts/openroute
 - No production, dependency, source-pin or storage changes. Signed Gemini, broader media/tool/live/version/endpoint coverage, full #116 and unresolved #7 remain open.
 
 See [plan](plans/556-ai-sdk-image-tools.md), [contract](../contracts/ai-sdk-client-workflows.md#inline-image-tool-continuations-556) and [reproduction](ai-sdk-conformance.md#inline-image-tool-reproduction-556).
+
+## Pre-stream transient status and hints (#558)
+
+- Both bases/all four adapters/text-function streams handle observed upstream429/503 as JSON before client streaming starts: compatible status/error.code stays429/503; legacy stays502/symbolic upstream_failed. A bounded canonical Retry-After preserves leading-zero normalization and zero independently of status validity.
+- Missing/malformed/private/date/repeated/unsafe/oversized hints, other statuses and invalid200 streams do not escape as advisory metadata. Known constructors/coordinators retain allowlists; unclassified exception properties cannot grant authority. Rejected bodies are cancelled best-effort without raw content/header forwarding.
+- Auth/implicit/model/provider/limit/selection failures prevent upstream work. Required usage/outcome-audit failures retain their own safe503 without upstream metadata; delayed handoffs prevent the JSON response from settling early. Preserve missing/possibly-billed accounting and operational content/credential privacy.
+- After a delta starts HTTP200, supplied upstream429/503/hints do not alter the generic safe SSE failure. Interruption-audit failure retains audit-unavailable semantics. Failed streams withhold final usage/DONE; delivered content is not a persistence acknowledgment.
+- Existing managed fallback success clears earlier hints; generic terminal failure cannot inherit them and a hinted terminal failure uses its own value. Possible-duplicate flags and eligibility remain unchanged; observed HTTP responses do not gain fallback eligibility.
+- Actual pinned OpenAI/OpenRouter/AI SDK clients on both bases/all four routes/text-function modes receive the expected JSON status/header with retries disabled and one provider attempt. No new retry/sleep, exact provider cause/date/402 parity, pin/dependency/storage change or complete #116 claim; Jev #7 stays unresolved.
+
+See [plan](plans/558-prestream-errors.md) and [contract](../contracts/openrouter-error-schema.md#pre-stream-observed-status-and-retry-hints-558).
