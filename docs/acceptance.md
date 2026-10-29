@@ -1642,3 +1642,13 @@ See [plan](plans/552-ai-sdk-structured-output.md), [contract](../contracts/ai-sd
 - Actual pinned OpenAI/OpenRouter/AI SDK sockets receive compatible429/503 and legacy502 with unchanged safe Retry-After, while retries are disabled. Audit/ledger/error JSON exclude raw metadata and credentials. No streaming, provider error_type parsing, date/402 handling, schema pins, dependency or storage changes; full #116 and unresolved #7 remain open.
 
 See [plan](plans/554-upstream-statuses.md) and [contract](../contracts/openrouter-error-schema.md#compatible-observed-upstream-statuses-554).
+
+## AI SDK inline-image tool continuations (#556)
+
+- Actual pinned generateText/streamText on both bases and all four adapters complete a two-request function/result loop with one inline PNG between two text parts. Exact native capture preserves MIME/bytes/order and tool ID/name/argument/result correlation on each request.
+- Nonstream parallel tools finish in reverse order; streaming runs one application-owned function. Every continuation authenticates and checks current model/final-provider IAM and limits. Fresh auth/implicit/model/provider denial or exhausted limits blocks a second secret/upstream access while preserving first-attempt accounting and completed client side effects.
+- Required usage/outcome-audit failure on either request withholds nonstream completion or actual final stream usage/DONE and emits safe errors. First-request failure prevents local tool execution in these probes; second-request failure can follow completed tools/provider work. Client content/finish events do not acknowledge successful persistence.
+- Distinct per-request ledger identities and exact reported/normalized counters remain private. SDK recomputed totals do not establish billed cost. Inline image, prompt, function payloads and credentials stay outside operational records/errors. Empty-only media-download plans and bounded local endpoint fetches remain required in the probes.
+- No production, dependency, source-pin or storage changes. Signed Gemini, broader media/tool/live/version/endpoint coverage, full #116 and unresolved #7 remain open.
+
+See [plan](plans/556-ai-sdk-image-tools.md), [contract](../contracts/ai-sdk-client-workflows.md#inline-image-tool-continuations-556) and [reproduction](ai-sdk-conformance.md#inline-image-tool-reproduction-556).

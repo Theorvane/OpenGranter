@@ -1,6 +1,12 @@
 # OpenGranter agent handoff
 
-## Current continuation checkpoint (#554)
+## Current continuation checkpoint (#556)
+
+PR [#555](https://github.com/Theorvane/OpenGranter/pull/555) received approval on 205c50019fceedcbc543dd18e827b47b2febc90b with all three checks successful and merged as db2535a; issue #554 is closed. Issue [#556](https://github.com/Theorvane/OpenGranter/issues/556), branch test/556-ai-sdk-image-tools, measures actual pinned inline-PNG/function-result composition. Read [plan](plans/556-ai-sdk-image-tools.md), [contract](../contracts/ai-sdk-client-workflows.md#inline-image-tool-continuations-556) and [reproduction](ai-sdk-conformance.md#inline-image-tool-reproduction-556), then refresh PR/review/CI before assuming merge.
+
+Initial 96 cases passed unchanged production code; expanded continuation auth/implicit/model/provider/limit gates bring the new suite to 160 passing cases. Focused SDK/native/image regressions passed 430 cases. Exact native image/history/correlation, fresh admission, first/second persistence faults, private accounting and actual final-frame withholding are measured. SDK summaries/finish events do not certify server persistence or billed cost. Final npm run check passed 7,944 tests with one optional external PostgreSQL skip, zero failures/cancellations and all six offline source-integrity checks (~242 seconds). No runtime defect or production red/green claim is made; runtime, dependencies, six source pins and storage remain unchanged. Signed Gemini/richer/remote/live/version/endpoint cases, full #116 and unresolved Jev #7 remain open; earlier checkpoints below are historical.
+
+## Historical continuation checkpoint (#554)
 
 PR [#553](https://github.com/Theorvane/OpenGranter/pull/553) received approval on 984b1ffd6394a1eacacb0d9ad7eb61e68bcf7635 with all three checks successful and merged as c7a2cf5; issue #552 is closed. Issue [#554](https://github.com/Theorvane/OpenGranter/issues/554), branch feat/554-upstream-statuses, adds bounded compatible nonstream upstream 429/503 status projection. Read [plan](plans/554-upstream-statuses.md) and [error contract](../contracts/openrouter-error-schema.md#compatible-observed-upstream-statuses-554), then refresh PR/review/CI before assuming merge.
 

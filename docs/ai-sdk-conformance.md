@@ -64,7 +64,7 @@ For the example above, generateText accepts the same tools and stopWhen configur
 
 The pinned AI SDK recomputes totalTokens as input+output. A reported total 7 with input 2/output 3 appears as 5 per step and 10 for the two-step client aggregate; raw gateway responses and per-attempt ledger still retain 7. Native Anthropic's existing adapter derives 5 from its 2/3 counters. This extends the earlier missing-usage warning: client summaries are not the authoritative server accounting or billed cost. A final request denied after client execution cannot undo application-owned side effects. Outcome-audit failure may return 503 after provider work and a successful persisted usage record.
 
-These nonstream cases extend only ordinary function/result coverage. Signed-Google namespaces, images/reasoning, discovery, other endpoints, live providers and other versions remain uncertified for this client; full #116 and Jev #7 stay open.
+These nonstream cases extend only ordinary function/result coverage. One inline-PNG/tool composition is measured separately under #556 below; broader images/reasoning, signed-Google namespaces, discovery, other endpoints, live providers and other versions remain uncertified for this client; full #116 and Jev #7 stay open.
 
 ## Inline PNG reproduction (#550)
 
@@ -133,3 +133,15 @@ Use an explicitly approved OpenAI or delegated route and an application abort de
 Client parsing is separate from server completion. Malformed JSON/wrong property types cause NoObjectGeneratedError containing generated text and usage locally, after the server has recorded successful provider work. Default Zod object validation strips extra properties despite the advertised additionalProperties:false; gateway text is preserved. A parsed object does not certify full JSON-schema enforcement.
 
 A streaming audit/usage failure after delivered text produces server error parts without actual final usage/DONE. The pinned SDK can nevertheless resolve its output object from that text, so do not use output resolution as a persistence acknowledgment or ignore stream errors. Nonstream persistence failures withhold the result. Server operational records and public errors exclude schema/content/credentials; SDK-local exceptions are a separate application boundary. All 48 new cases use bounded local sockets, retries disabled and controlled usage; source pins, dependencies, production source and storage are unchanged. Full #116, other Output modes/native mappings/live capabilities and unresolved Jev #7 remain open. See [plan](plans/552-ai-sdk-structured-output.md) and [contract](../contracts/ai-sdk-client-workflows.md#structured-object-workflows-552).
+
+## Inline-image tool reproduction (#556)
+
+```sh
+node --disable-warning=ExperimentalWarning --experimental-strip-types --test test/ai-sdk-image-tools.test.ts
+```
+
+Combine the inline-PNG messages example above with application-owned tools and stopWhen:stepCountIs(2) from the tool example; use generateText or consume streamText.fullStream and inspect error parts. The 160 new cases exercise both bases/all four adapters using exact native image/history capture. Nonstream probes run two parallel lookups in reverse completion order; streaming probes run one read function. PNG MIME/bytes/text order survives the subsequent function/result history without client or server wire rewrites. No download hook is allowed to request a URL; registered upstream transport and local client endpoint guards remain bounded.
+
+Fresh authentication failure, implicit/model/provider Deny or limit exhaustion after tool execution prevents a second provider/secret access. First- or second-request required usage/outcome-audit faults withhold completion acknowledgment; on streams inspect actual error/final usage/DONE frames separately from SDK events and already-delivered content. Completed local tools and provider work cannot be undone by a later error. Each successful request retains a distinct ledger request ID, existing counters and operational content/credential privacy. Client summaries still recompute nonstream totals; they are not authoritative accounting or billed cost.
+
+These fixtures need no credentials or live inference and run in the standard npm run check. They certify one canonical inline PNG combined with ordinary functions only; signed Gemini, broader media/controls, remote downloads, other tools/versions/endpoints and live vision support remain separate. Production code, dependencies, six source pins and storage are unchanged. Full #116 and Jev #7 remain open. See [plan](plans/556-ai-sdk-image-tools.md) and [contract](../contracts/ai-sdk-client-workflows.md#inline-image-tool-continuations-556).

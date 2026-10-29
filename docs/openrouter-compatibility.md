@@ -1,5 +1,11 @@
 # OpenRouter external-client compatibility
 
+## AI SDK inline-image tool continuations (#556)
+
+Actual pinned generateText/streamText now measures one inline PNG composed with a two-request function/result loop across both chat bases/all four adapters. Exact first and continued native history preserves MIME/bytes/text order and correlation. Fresh failed authentication, implicit/model/provider Deny or limit exhaustion prevents a second provider/secret access after local tools run. Required usage/outcome-audit failure on either request withholds completion acknowledgment; streams expose safe errors without actual final usage/DONE even if text has arrived. Per-attempt IDs/accounting and operational content/credential privacy remain intact; client summaries/events are not billed-cost or persistence proof.
+
+All 160 new cases pass without runtime, dependency, source-pin or storage changes. Empty-only media-download plans and bounded local endpoint fetches certify inline bytes only. Signed Gemini, remote/richer media/tool/live/version/endpoint coverage, full #116 and unresolved Jev #7 remain open. See [plan](plans/556-ai-sdk-image-tools.md), [contract](../contracts/ai-sdk-client-workflows.md#inline-image-tool-continuations-556) and [reproduction](ai-sdk-conformance.md#inline-image-tool-reproduction-556).
+
 ## Compatible upstream 429/503 statuses (#554)
 
 Nonstream /api/v1 retains exact registered upstream 429/503 after required failed-attempt usage/outcome audit. Legacy /v1 retains generic 502/symbolic errors. Known observed response state and matching classification must validate; missing/malformed/mismatched/unclassified metadata and other statuses/timeouts remain generic 502. Fixed bodies, unmapped safe type metadata, request IDs, bounded Retry-After, IAM/limits, fallback and private billing/usage remain intact. Status and hint validity are independent; local/persistence/success paths never inherit earlier values.
@@ -16,7 +22,7 @@ Required persistence failures retain shared gates: nonstream output is withheld;
 
 Actual pinned createOpenRouter with generateText/streamText now measures application-owned PNG bytes between two text parts across both bases and all four adapters. Exact native/compatible capture preserves bytes/MIME/order; explicit no-download and bounded local provider-fetch guards keep these fixtures independent of external image hosts. Current auth/model/provider Deny, limits, required audit/usage failures and stream cancellation retain shared privacy and possibly-billed accounting. Client finish events/usage summaries remain insufficient server persistence/billing evidence.
 
-This is a controlled single-PNG input conformance increment with no runtime, pin, dependency or storage change. The complete image MIME/count/size/detail matrix, image+tool continuations, remote/file media, rich outputs, signed Gemini, live providers and full #116 remain uncertified for this client; unresolved Jev #7 is unchanged. See [plan](plans/550-ai-sdk-inline-images.md), [contract](../contracts/ai-sdk-client-workflows.md#inline-png-workflows-550) and [reproduction](ai-sdk-conformance.md#inline-png-reproduction-550).
+This is a controlled single-PNG input conformance increment with no runtime, pin, dependency or storage change. One image+tool composition is measured separately under #556 above. The complete image MIME/count/size/detail matrix, remote/file media, rich outputs, signed Gemini, live providers and full #116 remain uncertified for this client; unresolved Jev #7 is unchanged. See [plan](plans/550-ai-sdk-inline-images.md), [contract](../contracts/ai-sdk-client-workflows.md#inline-png-workflows-550) and [reproduction](ai-sdk-conformance.md#inline-png-reproduction-550).
 
 ## Bounded nonstream retry hints (#548)
 
