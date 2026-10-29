@@ -1,6 +1,12 @@
 # OpenGranter agent handoff
 
-## Current continuation checkpoint (#556)
+## Current continuation checkpoint (#558)
+
+PR [#557](https://github.com/Theorvane/OpenGranter/pull/557) received approval on 59791e017c8bb728bfa2a9d34ef78db07a61ed53 with all three checks successful and merged as 491c3e8; issue #556 is closed. Issue [#558](https://github.com/Theorvane/OpenGranter/issues/558), branch feat/558-prestream-errors, adds bounded text/function pre-stream429/503 and retry hints. Read [plan](plans/558-prestream-errors.md) and [error contract](../contracts/openrouter-error-schema.md#pre-stream-observed-status-and-retry-hints-558), then refresh PR/review/CI before assuming merge.
+
+Initial red: 104 expected missing-status/hint failures among 144 cases, 40 passes; minimal consumer/HTTP-adapter changes made all 144 pass. First full validation found 9 existing SDK expectations of the superseded compatible pre-stream mapping; only those expectations changed. Integrated focused regressions passed 711 tests including all 268 new cases and 96 actual SDK cases. Both bases/all adapters/modes, malformed hints, admission, delayed/failed persistence, post-frame metadata isolation, interruption audit and fallback outcomes are covered. Final npm run check passed 8,212 tests with one optional external PostgreSQL skip, zero failures/cancellations and all six offline source-integrity checks (~244 seconds). Compatible pre-stream JSON keeps observed status; legacy keeps502 and both may receive bounded hints. Already-started SSE stays generic and no new retry eligibility/accounting/schema field is introduced. Six source pins, dependencies and storage are unchanged; broader error/type/date/402, full #116 and unresolved Jev #7 stay open. Earlier checkpoints below are historical.
+
+## Historical continuation checkpoint (#556)
 
 PR [#555](https://github.com/Theorvane/OpenGranter/pull/555) received approval on 205c50019fceedcbc543dd18e827b47b2febc90b with all three checks successful and merged as db2535a; issue #554 is closed. Issue [#556](https://github.com/Theorvane/OpenGranter/issues/556), branch test/556-ai-sdk-image-tools, measures actual pinned inline-PNG/function-result composition. Read [plan](plans/556-ai-sdk-image-tools.md), [contract](../contracts/ai-sdk-client-workflows.md#inline-image-tool-continuations-556) and [reproduction](ai-sdk-conformance.md#inline-image-tool-reproduction-556), then refresh PR/review/CI before assuming merge.
 

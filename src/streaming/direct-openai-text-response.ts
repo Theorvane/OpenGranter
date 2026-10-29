@@ -1,3 +1,4 @@
+import { parseRetryAfterSeconds } from '../providers/retry-after.ts';
 import {
   DirectProviderFailure,
   type DirectProviderFailureCategory,
@@ -48,7 +49,14 @@ function fail(response: Response, category: DirectProviderFailureCategory): neve
   } catch {
     /* Cleanup cannot delay or replace a fixed failure. */
   }
-  throw new DirectProviderFailure(category, true, true);
+  const rejected = response.status === 429 || response.status === 503;
+  throw new DirectProviderFailure(
+    category,
+    true,
+    true,
+    rejected ? parseRetryAfterSeconds(response.headers.get('retry-after')) : undefined,
+    rejected ? response.status : undefined,
+  );
 }
 
 /** Consume one already-authorized native response; never retain response content. */

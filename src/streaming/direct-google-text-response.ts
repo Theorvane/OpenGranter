@@ -1,4 +1,5 @@
 import { normalizeGoogleChatUsage } from '../providers/google-chat-usage.ts';
+import { parseRetryAfterSeconds } from '../providers/retry-after.ts';
 import {
   DirectProviderFailure,
   type DirectProviderFailureCategory,
@@ -23,7 +24,14 @@ function fail(response: Response, category: DirectProviderFailureCategory = 'oth
   try {
     void response.body?.cancel().catch(() => {});
   } catch {}
-  throw new DirectProviderFailure(category, true, true);
+  const rejected = response.status === 429 || response.status === 503;
+  throw new DirectProviderFailure(
+    category,
+    true,
+    true,
+    rejected ? parseRetryAfterSeconds(response.headers.get('retry-after')) : undefined,
+    rejected ? response.status : undefined,
+  );
 }
 /** Consume the bounded native GenerateContent text subset through clean framed EOF. */
 export async function consumeDirectGoogleTextResponse(
