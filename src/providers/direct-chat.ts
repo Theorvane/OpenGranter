@@ -155,8 +155,15 @@ function fail(
   possiblyBilled = false,
   responseStarted = false,
   retryAfterSeconds?: number,
+  upstreamStatus?: number,
 ): never {
-  throw new DirectProviderFailure(category, responseStarted, possiblyBilled, retryAfterSeconds);
+  throw new DirectProviderFailure(
+    category,
+    responseStarted,
+    possiblyBilled,
+    retryAfterSeconds,
+    upstreamStatus,
+  );
 }
 function completion(
   id: unknown,
@@ -926,7 +933,13 @@ export function createDirectChatInvoker(
   return async (candidate, request) => {
     const { response, providerKind, clientModelAlias } = await invoke(candidate, request);
     if (response.status === 429)
-      fail('rate-limit', true, true, parseRetryAfterSeconds(response.headers.get('retry-after')));
+      fail(
+        'rate-limit',
+        true,
+        true,
+        parseRetryAfterSeconds(response.headers.get('retry-after')),
+        429,
+      );
     if (response.status >= 500)
       fail(
         'server-error',
@@ -935,6 +948,7 @@ export function createDirectChatInvoker(
         response.status === 503
           ? parseRetryAfterSeconds(response.headers.get('retry-after'))
           : undefined,
+        response.status,
       );
     if (!response.ok) fail('other', true, true);
     let body: unknown;

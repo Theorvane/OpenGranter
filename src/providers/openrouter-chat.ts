@@ -43,6 +43,7 @@ import { snapshotChatLogprobs } from './chat-logprobs.ts';
 import { normalizeChatUsage } from './chat-usage.ts';
 import type { ChatCompletion } from './direct-chat.ts';
 import { parseRetryAfterSeconds, validRetryAfterSeconds } from './retry-after.ts';
+import { snapshotUpstreamStatus, type UpstreamStatus } from './upstream-status.ts';
 
 const OPENROUTER_CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const SAFE_SLUG = /^[A-Za-z0-9][A-Za-z0-9._/+:-]*$/u;
@@ -75,12 +76,14 @@ export class OpenRouterChatFailure extends Error {
   readonly responseStarted: boolean;
   readonly possiblyBilled: boolean;
   readonly retryAfterSeconds?: number;
+  readonly upstreamStatus?: UpstreamStatus;
 
   constructor(
     category: OpenRouterFailureCategory,
     responseStarted: boolean,
     possiblyBilled: boolean,
     retryAfterSeconds?: number,
+    upstreamStatus?: number,
   ) {
     super('OpenRouter chat attempt failed');
     this.name = 'OpenRouterChatFailure';
@@ -92,6 +95,9 @@ export class OpenRouterChatFailure extends Error {
       validRetryAfterSeconds(retryAfterSeconds)
     )
       this.retryAfterSeconds = retryAfterSeconds;
+    const capturedStatus = snapshotUpstreamStatus(category, upstreamStatus);
+    if (responseStarted === true && capturedStatus !== undefined)
+      this.upstreamStatus = capturedStatus;
   }
 }
 
@@ -100,8 +106,15 @@ function fail(
   responseStarted = false,
   possiblyBilled = false,
   retryAfterSeconds?: number,
+  upstreamStatus?: number,
 ): never {
-  throw new OpenRouterChatFailure(category, responseStarted, possiblyBilled, retryAfterSeconds);
+  throw new OpenRouterChatFailure(
+    category,
+    responseStarted,
+    possiblyBilled,
+    retryAfterSeconds,
+    upstreamStatus,
+  );
 }
 
 export function validOpenRouterSlug(value: unknown): value is string {
@@ -501,7 +514,13 @@ export function createOpenRouterChatInvoker(
       false,
     );
     if (response.status === 429)
-      fail('rate-limit', true, true, parseRetryAfterSeconds(response.headers.get('retry-after')));
+      fail(
+        'rate-limit',
+        true,
+        true,
+        parseRetryAfterSeconds(response.headers.get('retry-after')),
+        429,
+      );
     if (response.status >= 500)
       fail(
         'server-error',
@@ -510,6 +529,7 @@ export function createOpenRouterChatInvoker(
         response.status === 503
           ? parseRetryAfterSeconds(response.headers.get('retry-after'))
           : undefined,
+        response.status,
       );
     if (!response.ok) fail('upstream', true, true);
     let body: unknown;

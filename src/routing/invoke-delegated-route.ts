@@ -6,6 +6,7 @@ import {
   validOpenRouterSlug,
 } from '../providers/openrouter-chat.ts';
 import { validRetryAfterSeconds } from '../providers/retry-after.ts';
+import { snapshotUpstreamStatus, type UpstreamStatus } from '../providers/upstream-status.ts';
 import { captureAttemptUsage, type UsageHandoff } from '../usage/capture-attempt.ts';
 import {
   authorizeCandidates,
@@ -90,6 +91,7 @@ export type DelegatedRouteResult<T> =
       readonly reason: 'upstream-failed';
       readonly possiblyBilled?: boolean;
       readonly retryAfterSeconds?: number;
+      readonly upstreamStatus?: UpstreamStatus;
     }
   | { readonly status: 'invoked'; readonly response: T };
 
@@ -232,10 +234,15 @@ export async function invokeDelegatedRoute<T>(
     if (failure?.category === 'configuration') {
       return { status: 'failed', reason: 'configuration-unavailable' };
     }
+    const upstreamStatus =
+      failure?.responseStarted === true
+        ? snapshotUpstreamStatus(failure.category, failure.upstreamStatus)
+        : undefined;
     return {
       status: 'failed',
       reason: 'upstream-failed',
       possiblyBilled,
+      ...(upstreamStatus === undefined ? {} : { upstreamStatus }),
       ...(failure &&
       (failure.category === 'rate-limit' || failure.category === 'server-error') &&
       validRetryAfterSeconds(failure.retryAfterSeconds)

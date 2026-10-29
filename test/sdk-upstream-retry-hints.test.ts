@@ -51,7 +51,7 @@ for (const base of ['/v1', '/api/v1'] as const)
                 }),
                 (error: unknown) => {
                   assert.ok(error instanceof OpenAI.APIError);
-                  assert.equal(error.status, 502);
+                  assert.equal(error.status, base === '/api/v1' ? status : 502);
                   assert.equal(error.headers.get('retry-after'), '7');
                   assert.equal(error.headers.get('x-private-provider'), null);
                   return true;
@@ -75,7 +75,7 @@ for (const base of ['/v1', '/api/v1'] as const)
                 (error: unknown) => {
                   assert.ok(error instanceof Error && 'rawResponse' in error);
                   assert.ok(error.rawResponse instanceof Response);
-                  assert.equal(error.rawResponse.status, 502);
+                  assert.equal(error.rawResponse.status, base === '/api/v1' ? status : 502);
                   assert.equal(error.rawResponse.headers.get('retry-after'), '7');
                   assert.equal(error.rawResponse.headers.get('x-private-provider'), null);
                   return true;
@@ -92,7 +92,7 @@ for (const base of ['/v1', '/api/v1'] as const)
                 }),
                 (error: unknown) => {
                   assert.ok(APICallError.isInstance(error));
-                  assert.equal(error.statusCode, 502);
+                  assert.equal(error.statusCode, base === '/api/v1' ? status : 502);
                   assert.equal(error.responseHeaders?.['retry-after'], '7');
                   assert.equal(error.responseHeaders?.['x-private-provider'], undefined);
                   return true;
