@@ -52,3 +52,8 @@ test('systemd restricts privileges and writes without a Node-incompatible sandbo
   const workflow = await read('.github/workflows/check.yml');
   assert.ok(workflow.includes('systemd-analyze verify deploy/systemd/opengranter.service'));
 });
+
+test('CI provisions the declared Node path instead of skipping executable verification', async () => {
+  const workflow = await read('.github/workflows/check.yml');
+  assert.ok(workflow.includes('command -v node | xargs -I{} sudo ln -s {} /usr/bin/node'));
+});

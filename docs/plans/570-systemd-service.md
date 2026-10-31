@@ -25,5 +25,8 @@ Exact-head full CI and independent GitHub approval required. Document manual ins
 ## Verification evidence
 
 - Red: three new packaging tests failed with ENOENT for the absent unit before implementation. Green: all18 focused packaging/network/service/process tests passed. New test formatting, planning/link/contract/fixture-secret scan and diff whitespace checks passed.
-- Full npm run check is being run with CPU affinity0 and constrained Go compiler memory because of the shared2GiB environment. Final result must be recorded before publishing the PR.
+- Full npm run check passed types/lint (existing diagnostics) but failed locally: existing model-pricing-adjustments and postgres-gateway-audit files received SIGKILL near the shared2GiB memory ceiling. The already-failed owned test tree was stopped at4977 reported passing cases; no full-gate success is claimed. A concurrent focused CLI startup probe also failed readiness under that pressure; it is recorded as failure, not a pass. Re-run focused checks after releasing the failed full test workers; exact-head complete CI remains required.
+- First push CI correctly rejected the unit because setup-node installed Node in its toolcache, not /usr/bin/node. Added a failing regression (3pass/1fail) then provisioned a symlink to the actual setup-node executable at the declared unit path on the disposable runner. The verifier and application unit are not weakened; static verification must pass on the revised head.
 - systemd-analyze and a running systemd host are unavailable locally; Ubuntu CI performs static unit verification only. No actual host installation or production connectivity claim.
+
+- After stopping the failed full-suite workers, all19 focused service/process/container/systemd tests passed in2.2seconds without changed assertions or deadlines. Planning/link/secret/contract scan and all six pinned compatibility source-integrity checks passed.
