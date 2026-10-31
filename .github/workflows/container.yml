@@ -1,0 +1,78 @@
+name: Container
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build production image
+        run: docker build --tag opengranter:test .
+      - name: Check runtime files, dependencies and non-root identity
+        run: |
+          docker run --rm --read-only --entrypoint node opengranter:test --input-type=module -e '
+            import assert from "node:assert/strict";
+            import { access, readdir } from "node:fs/promises";
+            assert.notEqual(process.getuid(), 0);
+            await import("pg");
+            await import("jose");
+            assert.ok((await readdir("migrations")).some(name => name.endsWith(".sql")));
+            for (const path of ["node_modules/typescript", "node_modules/@electric-sql/pglite", ".git", "test", "docs"]) {
+              await assert.rejects(access(path));
+            }
+          '
+      - name: Refuse missing bootstrap
+        run: |
+          set +e
+          docker run --rm --read-only opengranter:test > missing.log 2>&1
+          status=$?
+          set -e
+          test "$status" -eq 1
+          grep -q "Gateway configuration invalid" missing.log
+      - name: Start disposable gateway and terminate gracefully
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture=$(mktemp -d)
+          chmod 755 "$fixture"
+          trap 'docker rm -f opengranter-smoke >/dev/null 2>&1 || true; rm -rf "$fixture"' EXIT
+          cat > "$fixture/bootstrap.mjs" <<'MODULE'
+          import { createPostgresConnection } from "/app/src/storage/postgres-connection.ts";
+          export function createGatewayPorts() {
+            return {
+              openConnection: () => createPostgresConnection({ connectionString: "postgresql://postgres@127.0.0.1:5432/postgres" }),
+              checkLimit: async () => false,
+              resolveSecret: async () => { throw new Error("No provider credentials in smoke test"); }
+            };
+          }
+          MODULE
+          chmod 644 "$fixture/bootstrap.mjs"
+          docker run -d --name opengranter-smoke --read-only --cap-drop ALL \
+            --security-opt no-new-privileges --network host \
+            --mount "type=bind,src=$fixture,dst=/bootstrap,readonly" \
+            -e OPENGRANTER_BOOTSTRAP_MODULE=/bootstrap/bootstrap.mjs \
+            -e OPENGRANTER_PORT=18080 -e OPENGRANTER_SHUTDOWN_MS=30000 opengranter:test
+          for attempt in $(seq 1 60); do
+            if docker logs opengranter-smoke 2>&1 | grep -q "Gateway listening"; then break; fi
+            sleep 1
+          done
+          docker logs opengranter-smoke 2>&1 | grep -q "Gateway listening"
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18080/api/v1/models)" = 401
+          docker stop --time 40 opengranter-smoke
+          test "$(docker inspect --format '{{.State.ExitCode}}' opengranter-smoke)" = 0

@@ -1,0 +1,10 @@
+**
+!Dockerfile
+!package.json
+!package-lock.json
+!src/
+!src/**
+!migrations/
+!migrations/**
+!scripts/
+!scripts/start-gateway.ts
