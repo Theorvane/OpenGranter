@@ -33,6 +33,7 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
             'items',
             'prefixItems',
             'enum',
+            'format',
             'minimum',
             'maximum',
             'minItems',
@@ -41,6 +42,11 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
       ) ||
       (node.title !== undefined && typeof node.title !== 'string') ||
       (node.description !== undefined && typeof node.description !== 'string')
+    )
+      invalid();
+    if (
+      Object.hasOwn(node, 'format') &&
+      (node.type !== 'string' || typeof node.format !== 'string' || node.format.length > 256)
     )
       invalid();
     if (Object.hasOwn(node, 'anyOf')) {
