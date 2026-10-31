@@ -1682,3 +1682,7 @@ An opt-in hardened systemd unit launches the existing gateway directly as a dedi
 ## Bounded Gemini schema transport (#572)
 
 Both chat bases and actual OpenAI SDK sockets accept the documented explicit non-strict object schema; native text streams share the same exact captured configuration. Mutation during credential resolution cannot change schema bytes. Unsupported keywords/types/strict values/tool composition reject before secret lookup. IAM/limits deny before dispatch and required usage/outcome-audit failures withhold success; operational records exclude schema contents. No live provider, output-schema enforcement or complete compatibility is certified. See [plan](plans/572-gemini-response-schema.md).
+
+## Gemini numeric schema transport (#576)
+
+The bounded non-strict object-root subset additionally transports finite minimum/maximum on explicit number/integer nodes without rounding fractional bounds. Ordered/equal/one-sided bounds retain captured JSON values; malformed/inappropriate/reversed bounds reject before secrets. Both bases, installed SDK sockets, native text streams, immutable capture, IAM/limits/persistence and privacy are covered by regressions. This does not enforce generated outputs, certify satisfiability/live-model compatibility or complete #116/#7. See [plan](plans/576-gemini-numeric-schema.md) and [contract](../contracts/client-response-formats.md).
