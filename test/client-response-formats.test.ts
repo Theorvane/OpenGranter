@@ -1983,3 +1983,236 @@ test('Gemini anyOf shares recursive depth and retains explicit object-root restr
     ),
   );
 });
+
+function googlePrefixItemsFormat() {
+  const base = googleSchemaFormat();
+  return {
+    ...base,
+    json_schema: {
+      ...base.json_schema,
+      schema: {
+        type: 'object',
+        properties: {
+          values: {
+            type: 'array',
+            prefixItems: [
+              { type: 'string', enum: ['a', 'b'] },
+              { anyOf: [{ type: 'null' }, { type: 'number', minimum: 0 }] },
+              { type: 'array', prefixItems: [{ type: 'boolean' }] },
+            ],
+            items: { type: 'integer' },
+            minItems: 1,
+            maxItems: 8,
+            description: 'private prefixItems-schema literal',
+          },
+        },
+        required: ['values'],
+        additionalProperties: false,
+      },
+    },
+  };
+}
+test('Gemini prefixItems schemas forward exact immutable schemas on both bases', async () => {
+  for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
+    const format = googlePrefixItemsFormat();
+    const expected = structuredClone(format.json_schema.schema);
+    const f = httpFixture('google', {
+      mutate: () => {
+        format.json_schema.schema.properties.values.prefixItems[0] = {
+          type: 'string',
+          enum: ['mutated'],
+        };
+      },
+    });
+    const req = request(path, format);
+    Object.defineProperty(req, 'json', { value: async () => input(format) });
+    assert.equal((await f.handler(req)).status, 200);
+    assert.deepEqual(
+      (f.sent[0]?.generationConfig as Record<string, unknown> | undefined)?.responseJsonSchema,
+      expected,
+    );
+    assert.equal(f.secrets(), 1);
+    assert.equal(f.usage.length, 1);
+    assert.doesNotMatch(
+      JSON.stringify([f.audits, f.usage]),
+      /private prefixItems-schema|fixture-key/u,
+    );
+  }
+});
+test('Gemini prefixItems-schema schemas retain IAM limits and persistence failure boundaries', async () => {
+  for (const path of ['/v1/chat/completions', '/api/v1/chat/completions'])
+    for (const [options, status, dispatched] of [
+      [{ auth: true }, 401, false],
+      [{ deny: true }, 403, false],
+      [{ explicitDeny: true }, 403, false],
+      [{ limit: true }, 429, false],
+      [{ audit: true }, 503, false],
+      [{ usageFail: true }, 503, true],
+      [{ outcomeFail: true }, 503, true],
+      [{ fail: true }, 502, true],
+    ] as const) {
+      const f = httpFixture('google', options);
+      const response = await f.handler(request(path, googlePrefixItemsFormat()));
+      assert.equal(response.status, status);
+      assert.equal(f.sent.length, dispatched ? 1 : 0);
+      assert.equal(f.secrets(), dispatched ? 1 : 0);
+      assert.doesNotMatch(await response.text(), /private|fixture-key/u);
+    }
+});
+test('Gemini prefixItems-schema schemas work through actual OpenAI SDK sockets on both bases', async () => {
+  const f = httpFixture('google');
+  const server = createNodeRequestServer(f.handler);
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  try {
+    const address = server.address();
+    assert.ok(address && typeof address === 'object');
+    for (const base of ['/v1', '/api/v1']) {
+      const sdk = new OpenAI({
+        apiKey: 'fixture',
+        baseURL: `http://127.0.0.1:${address.port}${base}`,
+        maxRetries: 0,
+      });
+      const result = await sdk.chat.completions.create(
+        input(googlePrefixItemsFormat()) as OpenAI.ChatCompletionCreateParamsNonStreaming,
+      );
+      assert.equal(result.choices[0]?.message.content, '{"ok":true}');
+      const config = f.sent.at(-1)?.generationConfig as Record<string, unknown>;
+      assert.deepEqual(config.responseJsonSchema, googlePrefixItemsFormat().json_schema.schema);
+    }
+  } finally {
+    server.closeAllConnections();
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
+  }
+});
+
+test('Gemini prefixItems-schema schemas use the same captured native text-stream transport', async () => {
+  const { createDirectGoogleTextStreamInvoker } = await import(
+    '../src/providers/direct-google-stream.ts'
+  );
+  const sent: Record<string, unknown>[] = [];
+  const format = googlePrefixItemsFormat();
+  const expected = structuredClone(format.json_schema.schema);
+  const invoke = createDirectGoogleTextStreamInvoker({
+    registrations: [{ providerId: 'provider', kind: 'google', credentialRef: 'secret/reference' }],
+    resolveSecret: async () => {
+      format.json_schema.schema.properties.values.prefixItems[0] = {
+        type: 'string',
+        enum: ['mutated'],
+      };
+      return 'fixture-key';
+    },
+    fetcher: async (_, init) => {
+      sent.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+      return new Response(
+        'data: ' +
+          JSON.stringify({
+            responseId: 'response',
+            modelVersion: 'model',
+            candidates: [
+              {
+                index: 0,
+                content: { role: 'model', parts: [{ text: '{"ok":true}' }] },
+                finishReason: 'STOP',
+              },
+            ],
+            usageMetadata: { promptTokenCount: 2, candidatesTokenCount: 1, totalTokenCount: 3 },
+          }) +
+          '\n\n',
+        { headers: { 'content-type': 'text/event-stream' } },
+      );
+    },
+  });
+  const seen: unknown[] = [];
+  const result = await invoke(
+    { id: 'candidate', kind: 'managed', providerId: 'provider', upstreamModelId: 'model' },
+    { ...input(format), stream: true } as unknown as ChatRequest,
+    (delta) => {
+      seen.push(delta);
+    },
+  );
+  assert.equal(result.finishReason, 'stop');
+  assert.equal(result.usage?.total_tokens, 3);
+  assert.ok(JSON.stringify(seen).includes('ok'));
+  assert.deepEqual(
+    (sent[0]?.generationConfig as Record<string, unknown> | undefined)?.responseJsonSchema,
+    expected,
+  );
+});
+
+test('Gemini prefixItems rejects malformed lists and children before secrets', async () => {
+  const nodes: unknown[] = [
+    ...[
+      null,
+      false,
+      {},
+      'private',
+      [],
+      Array.from({ length: 17 }, () => ({ type: 'string' })),
+      [{}],
+      [false],
+      [{ type: 'string', pattern: 'private' }],
+      [{ type: 'array' }],
+      [{ type: 'integer', enum: [0.5] }],
+    ].map((prefixItems) => ({ type: 'array', prefixItems })),
+    { type: 'string', prefixItems: [{ type: 'string' }] },
+    { prefixItems: [{ type: 'string' }] },
+    { type: 'array', prefixItems: [{ type: 'string' }], items: false },
+    { type: 'array', prefixItems: [{ type: 'string' }], minItems: 2, maxItems: 1 },
+  ];
+  for (const node of nodes) {
+    const format = {
+      type: 'json_schema',
+      json_schema: {
+        name: 'result',
+        strict: false,
+        schema: { type: 'object', properties: { label: node } },
+      },
+    };
+    const f = adapter('google');
+    await assert.rejects(() => f.call(input(format) as unknown as ChatRequest));
+    assert.equal(f.secrets(), 0);
+    assert.equal(f.sent.length, 0);
+    for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
+      const h = httpFixture('google');
+      const response = await h.handler(request(path, format));
+      assert.equal(response.status, 502);
+      assert.equal(h.secrets(), 0);
+      assert.equal(h.sent.length, 0);
+      assert.doesNotMatch(await response.text(), /private|fixture-key/u);
+    }
+  }
+});
+test('Gemini prefixItems shares recursive depth, supports bounded prefix-only arrays and retains root restrictions', async () => {
+  const { validateGoogleResponseSchema: validate } = await import(
+    '../src/providers/google-response-schema.ts'
+  );
+  const format = (schema: Record<string, unknown>) =>
+    ({ type: 'json_schema', json_schema: { name: 'result', strict: false, schema } }) as const;
+  for (const depth of [16, 17]) {
+    let node: Record<string, unknown> = { type: 'string' };
+    for (let i = 1; i < depth; i++) node = { type: 'array', prefixItems: [node] };
+    const schema = { type: 'object', properties: { label: node } };
+    if (depth === 16) assert.doesNotThrow(() => validate(format(schema)));
+    else assert.throws(() => validate(format(schema)));
+  }
+  assert.throws(() => validate(format({ type: 'array', prefixItems: [{ type: 'string' }] })));
+  assert.throws(() => validate(format({ type: 'object', prefixItems: [{ type: 'string' }] })));
+  assert.throws(() =>
+    validate(format({ type: 'object', properties: { label: { type: 'array' } } })),
+  );
+  assert.doesNotThrow(() =>
+    validate(
+      format({
+        type: 'object',
+        properties: {
+          label: {
+            type: 'array',
+            prefixItems: Array.from({ length: 16 }, () => ({ type: 'string' })),
+          },
+        },
+      }),
+    ),
+  );
+});
