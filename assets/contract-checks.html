@@ -1,0 +1,25 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>OpenGranter local contract verification</title><style>*{box-sizing:border-box}body{margin:0;padding:32px;background:#0b1225;color:#dbeafe;font-family:monospace}.window{border:1px solid #334155;border-radius:16px;background:#111c30;overflow:hidden}.bar{padding:18px 24px;background:#1e2b43;color:#cbd5e1;font:16px Arial}.dots{color:#818cf8;letter-spacing:5px;margin-right:20px}.body{padding:24px 30px}h1{margin:0 0 10px;font:600 23px Arial;color:#f8fafc}.note{color:#94a3b8;font:15px Arial;margin-bottom:24px}.command{color:#a5b4fc;white-space:pre-wrap;font-size:16px;line-height:1.5}pre{font-size:16px;line-height:1.55;margin-bottom:0;color:#99f6e4}.footer{font:14px Arial;color:#94a3b8;margin-top:20px}</style><div class="window"><div class="bar"><span class="dots">● ● ●</span>OpenGranter / local verification</div><div class="body"><h1>Policy &amp; routing contracts</h1><div class="note">Actual local output · Node.js 22.23.4 · 2026-10-31 · no live providers</div><div class="command">$ node --experimental-strip-types --test --test-reporter=spec \
+  test/policy.contract.test.ts test/route.contract.test.ts</div><pre>✔ policy contract: default-deny (2.929638ms)
+✔ policy contract: direct-allow (0.689846ms)
+✔ policy contract: role-allow-user-deny (0.079668ms)
+✔ policy contract: unrelated-deny (0.160711ms)
+✔ policy contract: inactive-principal (0.079877ms)
+✔ policy contract: action-mismatch (0.051834ms)
+✔ policy contract: provider-explicit-deny (0.155461ms)
+✔ policy contract: provider-allow (0.052542ms)
+✔ route contract: model-deny-blocks-all-routes (1.441985ms)
+✔ route contract: provider-deny-removes-only-that-candidate (0.268713ms)
+✔ route contract: delegated-provider-only-is-authorized-set (0.158086ms)
+✔ route contract: fallback-stays-in-original-kind (0.145544ms)
+✔ route contract: delegated-models-keep-separate-provider-bounds (0.114836ms)
+✔ route contract: inactive-principal-has-no-candidates (0.055167ms)
+✔ route contract: missing-provider-allow-has-no-candidates (0.119002ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1195.653132
+</pre></div></div><div class="footer">Terminal-style rendering of the accompanying unedited transcript. Not a product dashboard.</div></html>
