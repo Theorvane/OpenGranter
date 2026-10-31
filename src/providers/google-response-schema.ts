@@ -14,12 +14,16 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
   if (strict !== false || !schema || schema.type !== 'object') invalid();
   const visit = (node: unknown, depth: number): void => {
     if (!record(node) || depth > 16) invalid();
+    let type = node.type;
+    if (Array.isArray(type)) {
+      if (type.length !== 2 || !type.includes('null') || type[0] === type[1]) invalid();
+      type = type.find((member: unknown) => member !== 'null');
+      if (type === undefined || type === 'null') invalid();
+    }
     if (
-      (node.type !== undefined &&
-        (typeof node.type !== 'string' ||
-          !['object', 'array', 'string', 'number', 'integer', 'boolean', 'null'].includes(
-            node.type,
-          ))) ||
+      (type !== undefined &&
+        (typeof type !== 'string' ||
+          !['object', 'array', 'string', 'number', 'integer', 'boolean', 'null'].includes(type))) ||
       Object.keys(node).some(
         (key) =>
           ![
@@ -47,7 +51,7 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
       invalid();
     if (
       Object.hasOwn(node, 'format') &&
-      (node.type !== 'string' || typeof node.format !== 'string' || node.format.length > 256)
+      (type !== 'string' || typeof node.format !== 'string' || node.format.length > 256)
     )
       invalid();
     if (Object.hasOwn(node, 'anyOf')) {
@@ -55,7 +59,7 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
         invalid();
       for (const branch of node.anyOf) visit(branch, depth + 1);
     }
-    if (node.type === undefined) {
+    if (type === undefined) {
       if (
         !Object.hasOwn(node, 'anyOf') ||
         Object.keys(node).some((key) => !['anyOf', 'title', 'description'].includes(key))
@@ -66,7 +70,7 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
     for (const key of ['minimum', 'maximum']) {
       if (
         Object.hasOwn(node, key) &&
-        (!['number', 'integer'].includes(node.type) ||
+        (!['number', 'integer'].includes(type) ||
           typeof node[key] !== 'number' ||
           !Number.isFinite(node[key]))
       )
@@ -81,7 +85,7 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
     for (const key of ['minItems', 'maxItems']) {
       if (
         Object.hasOwn(node, key) &&
-        (node.type !== 'array' ||
+        (type !== 'array' ||
           typeof node[key] !== 'number' ||
           !Number.isSafeInteger(node[key]) ||
           node[key] < 0)
@@ -96,7 +100,7 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
       invalid();
     if (Object.hasOwn(node, 'prefixItems')) {
       if (
-        node.type !== 'array' ||
+        type !== 'array' ||
         !Array.isArray(node.prefixItems) ||
         node.prefixItems.length === 0 ||
         node.prefixItems.length > 16
@@ -107,22 +111,22 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
     if (Object.hasOwn(node, 'enum')) {
       const values = node.enum;
       if (
-        !['string', 'number', 'integer'].includes(node.type) ||
+        !['string', 'number', 'integer'].includes(type) ||
         !Array.isArray(values) ||
         values.length === 0 ||
         values.length > 128 ||
         new Set(values).size !== values.length ||
         values.some((value: unknown) =>
-          node.type === 'string'
+          type === 'string'
             ? typeof value !== 'string'
             : typeof value !== 'number' ||
               !Number.isFinite(value) ||
-              (node.type === 'integer' && !Number.isInteger(value)),
+              (type === 'integer' && !Number.isInteger(value)),
         )
       )
         invalid();
     }
-    if (node.type === 'object') {
+    if (type === 'object') {
       if (node.items !== undefined) invalid();
       if (node.properties !== undefined && !record(node.properties)) invalid();
       const properties = node.properties ?? {};
@@ -160,7 +164,7 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
         node.additionalProperties !== undefined
       )
         invalid();
-      if (node.type === 'array') {
+      if (type === 'array') {
         if (Object.hasOwn(node, 'items') || !Object.hasOwn(node, 'prefixItems'))
           visit(node.items, depth + 1);
       } else if (node.items !== undefined) invalid();

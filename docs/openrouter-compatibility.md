@@ -1254,3 +1254,8 @@ The strict:false explicitly object-root subset accepts format only on explicitly
 ## Bounded Gemini property ordering (#588)
 
 The strict:false explicitly object-root subset accepts non-standard propertyOrdering only on explicitly typed objects: exact ordered lists of 0..128 unique strings naming own declared properties, including partial/empty lists and exact empty/prototype-like names when declared. Count, uniqueness and membership rules are local restrictions. Existing recursive depth/capture bounds apply; malformed/wrong-type/unknown/duplicate/oversized lists reject before credentials. This is immutable annotation transport on nonstream/native text streams, not generated-output ordering enforcement, satisfiability or live-model certification. IAM/limits/persistence/accounting/privacy remain unchanged. responseJsonSchema is deprecated upstream; full #116 and unresolved #7 remain open. See [plan](plans/588-gemini-property-ordering.md).
+
+
+## Bounded Gemini nullable type pairs (#590)
+
+Nested schemas accept exact two-member type arrays containing one supported non-null type and null in either order. Root must remain literal object and strict:false; malformed/duplicate/unknown/larger arrays and wrong-type keywords reject before credentials. Exact immutable nonstream/native-stream transport retains existing recursive/capture limits, non-null enum restrictions and IAM/accounting/privacy. This is nullable annotation transport, not output validation or live-model certification; deprecated responseJsonSchema, full #116 and unresolved #7 remain open. See [plan](plans/590-gemini-nullable-types.md).
