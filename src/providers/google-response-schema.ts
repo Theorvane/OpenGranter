@@ -27,12 +27,31 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
             'required',
             'additionalProperties',
             'items',
+            'enum',
           ].includes(key),
       ) ||
       (node.title !== undefined && typeof node.title !== 'string') ||
       (node.description !== undefined && typeof node.description !== 'string')
     )
       invalid();
+    if (Object.hasOwn(node, 'enum')) {
+      const values = node.enum;
+      if (
+        !['string', 'number', 'integer'].includes(node.type) ||
+        !Array.isArray(values) ||
+        values.length === 0 ||
+        values.length > 128 ||
+        new Set(values).size !== values.length ||
+        values.some((value: unknown) =>
+          node.type === 'string'
+            ? typeof value !== 'string'
+            : typeof value !== 'number' ||
+              !Number.isFinite(value) ||
+              (node.type === 'integer' && !Number.isInteger(value)),
+        )
+      )
+        invalid();
+    }
     if (node.type === 'object') {
       if (node.items !== undefined) invalid();
       if (node.properties !== undefined && !record(node.properties)) invalid();
