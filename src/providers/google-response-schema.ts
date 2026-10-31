@@ -30,6 +30,8 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
             'enum',
             'minimum',
             'maximum',
+            'minItems',
+            'maxItems',
           ].includes(key),
       ) ||
       (node.title !== undefined && typeof node.title !== 'string') ||
@@ -49,6 +51,22 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
       typeof node.minimum === 'number' &&
       typeof node.maximum === 'number' &&
       node.minimum > node.maximum
+    )
+      invalid();
+    for (const key of ['minItems', 'maxItems']) {
+      if (
+        Object.hasOwn(node, key) &&
+        (node.type !== 'array' ||
+          typeof node[key] !== 'number' ||
+          !Number.isSafeInteger(node[key]) ||
+          node[key] < 0)
+      )
+        invalid();
+    }
+    if (
+      typeof node.minItems === 'number' &&
+      typeof node.maxItems === 'number' &&
+      node.minItems > node.maxItems
     )
       invalid();
     if (Object.hasOwn(node, 'enum')) {

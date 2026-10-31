@@ -1686,3 +1686,8 @@ Both chat bases and actual OpenAI SDK sockets accept the documented explicit non
 ## Gemini numeric schema transport (#576)
 
 The bounded non-strict object-root subset additionally transports finite minimum/maximum on explicit number/integer nodes without rounding fractional bounds. Ordered/equal/one-sided bounds retain captured JSON values; malformed/inappropriate/reversed bounds reject before secrets. Both bases, installed SDK sockets, native text streams, immutable capture, IAM/limits/persistence and privacy are covered by regressions. This does not enforce generated outputs, certify satisfiability/live-model compatibility or complete #116/#7. See [plan](plans/576-gemini-numeric-schema.md) and [contract](../contracts/client-response-formats.md).
+
+
+## Bounded Gemini array lengths (#578)
+
+The strict:false object-root Gemini subset additionally transports minItems/maxItems only on explicitly typed arrays with an items schema. Lengths must be nonnegative safe integers; pairs must be ordered, with equality and one-sided bounds allowed. Nested lengths and captured values are preserved on nonstream/text streams. Wrong-type, negative, fractional, unsafe, nonfinite and reversed bounds reject before credentials. This is not generated-output enforcement or satisfiability certification. All existing IAM/limits/persistence/privacy and tool/strict/root restrictions remain; #116/#7 stay open. See [plan](plans/578-gemini-array-lengths.md).
