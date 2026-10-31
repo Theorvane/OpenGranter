@@ -12,8 +12,39 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
   if (format.type !== 'json_schema') return;
   const { schema, strict } = format.json_schema;
   if (strict !== false || !schema || schema.type !== 'object') invalid();
+  const definitions = schema.$defs;
+  if (
+    definitions !== undefined &&
+    (!record(definitions) ||
+      Object.keys(definitions).length === 0 ||
+      Object.keys(definitions).length > 128 ||
+      Object.keys(definitions).some((key) => !/^[A-Za-z_][A-Za-z0-9_-]{0,63}$/.test(key)))
+  )
+    invalid();
+  let visits = 0;
+  const activeReferences = new Set<string>();
   const visit = (node: unknown, depth: number): void => {
-    if (!record(node) || depth > 16) invalid();
+    if (!record(node) || depth > 16 || ++visits > 20_000) invalid();
+    if (Object.hasOwn(node, '$defs') && node !== schema) invalid();
+    if (Object.hasOwn(node, '$ref')) {
+      const ref = node.$ref;
+      if (
+        Object.keys(node).length !== 1 ||
+        typeof ref !== 'string' ||
+        !/^#\/\$defs\/[A-Za-z_][A-Za-z0-9_-]{0,63}$/.test(ref) ||
+        !record(definitions)
+      )
+        invalid();
+      const name = ref.slice(8);
+      if (!Object.hasOwn(definitions, name) || activeReferences.has(name)) invalid();
+      activeReferences.add(name);
+      try {
+        visit(definitions[name], depth + 1);
+      } finally {
+        activeReferences.delete(name);
+      }
+      return;
+    }
     let type = node.type;
     if (Array.isArray(type)) {
       if (type.length !== 2 || !type.includes('null') || type[0] === type[1]) invalid();
@@ -27,6 +58,7 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
       Object.keys(node).some(
         (key) =>
           ![
+            '$defs',
             'anyOf',
             'oneOf',
             'type',
@@ -173,5 +205,8 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
       } else if (node.items !== undefined) invalid();
     }
   };
+  if (record(definitions)) {
+    for (const child of Object.values(definitions)) visit(child, 1);
+  }
   visit(schema, 0);
 }

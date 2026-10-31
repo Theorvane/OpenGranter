@@ -1,0 +1,19 @@
+# Bounded Gemini local schema references
+
+Issue #594, refs #116 and native mapping gap in [plan552](552-ai-sdk-structured-output.md).
+
+## Scope and design
+
+On explicit strict:false object-root schemas, accept root-only $defs with 1..128 simple ASCII identifier names (letter/underscore followed by letters/digits/underscore/hyphen, max64), and sole-key $ref nodes of the form #/$defs/name. Every definition and reference target must satisfy the existing subset. Preserve the captured schema unchanged; no URL resolution, inlining, normalization or generated-output validation. Definitions share depth<=16; resolved references count as another level. A shared 20,000 visit budget bounds repeated expansion. Reject cycles, dangling/external/escaped refs, siblings, nested $defs, $id/$anchor and unsupported syntax before credentials. Empty definitions rejected locally. Strict/tools/Anthropic and literal object-root requirement stay unchanged.
+
+Official GenerationConfig inspected 2026-11-01 KST: https://ai.google.dev/api/generate-content?hl=en#v1beta.GenerationConfig lists $defs/$ref and reference-sibling restrictions. Cyclic references supported upstream in limited circumstances are deliberately excluded here. responseJsonSchema remains deprecated. No live-provider, satisfiability, JSON Schema equivalence or full compatibility claim.
+
+## TDD and delivery
+
+Plan written in actual checkout before tests/code. Add red immutable forwarding, installed SDK sockets, native text-stream, admission/accounting/privacy probes; malformed/reference/depth/budget/cycle and pre-secret negatives. Implement minimal validator changes, run focused and standard full npm run check without weakened assertions or deadlines. Record resource failures honestly. Update contracts and delivery docs. Ready PR requires independent exact-HEAD formal approval and all CI success before normal merge. No pins/dependencies/storage/#561 changes; full #116 and unresolved Jev #7 remain open. No local Docker/bridge/systemd/live-provider certification.
+
+## Verification evidence
+
+- Meaningful red before production edits:100 passed /4 expected failures (both-base immutable transport, persistence boundaries, actual OpenAI SDK and native text stream). Minimal validator edit made104 pass. Added malformed/cyclic/unused/external/dangling/reference-sibling/count/name/depth/budget, strict and native pre-secret probes; final format/provider/native stream/AI SDK structured selection:210 passed, zero failed. Includes legal bounded repeated expansion and own prototype-like definition names.
+- Standard full npm run check on two CPU affinity and 2GiB cgroup FAILED:8,165 passed,19 file SIGKILL failures, one optional external PostgreSQL skip (~197seconds). No assertion failures reported. Failing files: model-pricing-adjustments; postgres-anthropic-function-stream; postgres-anthropic-stream; postgres-gateway-runtime; postgres-gateway; postgres-google-function-stream; postgres-iam-snapshots; postgres-migrations; postgres-model-catalog; postgres-policy-simulator; postgres-sso-management-http; postgres-sso-management-runtime; postgres-token-management; postgres-usage-reader; proxy-token-lifecycle; proxy-token-lifetime-caps; sso-identity-binding-storage; sso-identity-bindings; sso-token-management. NOT a local full pass. This attempted gate preceded the final additional negative/budget/prototype-name probes and wording edits; production source unchanged since the attempt. No full-suite retry, concurrency/assertion/deadline weakening. Existing local resource failures remain visible; exact-head full CI still required.
+- Typecheck and lint passed with existing42warnings66infos. Planning/link/contract/fixture-secret and all six offline pin integrity checks passed; final rerun below before PR. Logs /tmp/opengranter-594-{red,green,negatives,focused,full,type,format,docs,pins}.log. No local Docker/bridge/systemd/live-provider or complete #116/#7 certification.
