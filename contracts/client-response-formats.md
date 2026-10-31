@@ -74,3 +74,8 @@ The strict:false explicitly object-root subset accepts non-standard propertyOrde
 ## Bounded Gemini nullable type pairs (#590)
 
 On strict:false explicitly object-root schemas, nested type arrays accept exactly one supported non-null type plus null, in either order. Exact immutable schema and array order are forwarded on nonstream/native text streams. Existing keyword restrictions apply to the non-null type, with depth<=16 and capture budgets unchanged. Malformed/duplicate/unknown/larger and root-nullable arrays reject before credentials. Enums retain their existing non-null string/number restrictions. This transports nullability, not generated-output validation, satisfiability or live-model certification. Deprecated responseJsonSchema, IAM/limits/accounting/persistence/privacy and other native restrictions remain unchanged. See [plan](../docs/plans/590-gemini-nullable-types.md); full #116 and unresolved #7 stay open.
+
+
+## Bounded Gemini oneOf transport (#592)
+
+On strict:false explicitly object-root schemas, nested oneOf transports1..16 recursively supported branches unchanged on nonstream/native text streams. Gemini officially interprets oneOf as anyOf: exclusive matching is NOT guaranteed. This subset is immutable transport, not generated-output validation, satisfiability or JSON Schema equivalence. Same-node anyOf plus oneOf is locally rejected; malformed/count/depth/root/strict/keyword errors fail before secrets. Existing IAM/limits/persistence/accounting/privacy and capture bounds remain. Deprecated responseJsonSchema, unsupported references/tools/Anthropic, full #116 and unresolved #7 stay open. See [plan](../docs/plans/592-gemini-oneof.md) and [inventory](../docs/openrouter-compatibility.md).

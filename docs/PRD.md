@@ -1153,3 +1153,8 @@ The existing gateway executable has an optional non-root Node22 image with locke
 ## Optional Linux service supervision (#570)
 
 An opt-in hardened systemd unit launches the existing gateway directly as a dedicated non-root account with a required deployment-owned environment file/bootstrap, loopback defaults, read-only system paths and no automatic restart/replay. The default40-second supervisor stop grace exceeds the application30-second deadline. Static unit verification is not running-host or production acceptance; secret/limit/database integrations, host permissions, readiness, recovery and SSO lifecycle remain explicit operator work. No HTTP, IAM, usage or audit behavior changes. See the [systemd guide](guides/systemd.md) and [plan](plans/570-systemd-service.md).
+
+
+## Bounded Gemini oneOf transport (#592)
+
+On strict:false explicitly object-root schemas, nested oneOf transports1..16 recursively supported branches unchanged on nonstream/native text streams. Gemini officially interprets oneOf as anyOf: exclusive matching is NOT guaranteed. This subset is immutable transport, not generated-output validation, satisfiability or JSON Schema equivalence. Same-node anyOf plus oneOf is locally rejected; malformed/count/depth/root/strict/keyword errors fail before secrets. Existing IAM/limits/persistence/accounting/privacy and capture bounds remain. Deprecated responseJsonSchema, unsupported references/tools/Anthropic, full #116 and unresolved #7 stay open. See [plan](plans/592-gemini-oneof.md) and [contract](../contracts/client-response-formats.md).
