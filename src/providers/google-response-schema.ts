@@ -11,7 +11,8 @@ function record(value: unknown): value is Readonly<Record<string, unknown>> {
 export function validateGoogleResponseSchema(format: ResponseFormat): void {
   if (format.type !== 'json_schema') return;
   const { schema, strict } = format.json_schema;
-  if (strict !== false || !schema || schema.type !== 'object') invalid();
+  if (strict !== false || !schema || (schema.type !== 'object' && schema.type !== 'array'))
+    invalid();
   const definitions = schema.$defs;
   if (
     definitions !== undefined &&

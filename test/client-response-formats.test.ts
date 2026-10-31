@@ -10,18 +10,18 @@ import { createOpenRouterTextStreamInvoker } from '../src/providers/openrouter-s
 
 const kinds = ['openai', 'anthropic', 'google', 'openrouter'] as const;
 type Kind = (typeof kinds)[number];
-function body(kind: Kind) {
+function body(kind: Kind, output = '{"ok":true}') {
   if (kind === 'anthropic')
     return {
       id: 'completion',
-      content: [{ type: 'text', text: '{"ok":true}' }],
+      content: [{ type: 'text', text: output }],
       stop_reason: 'end_turn',
       usage: { input_tokens: 2, output_tokens: 1 },
     };
   if (kind === 'google')
     return {
       responseId: 'completion',
-      candidates: [{ content: { parts: [{ text: '{"ok":true}' }] }, finishReason: 'STOP' }],
+      candidates: [{ content: { parts: [{ text: output }] }, finishReason: 'STOP' }],
       usageMetadata: { promptTokenCount: 2, candidatesTokenCount: 1 },
     };
   return {
@@ -29,13 +29,17 @@ function body(kind: Kind) {
     created: 1,
     model: 'model',
     system_fingerprint: 'fp_fixture',
-    choices: [
-      { index: 0, message: { role: 'assistant', content: '{"ok":true}' }, finish_reason: 'stop' },
-    ],
+    choices: [{ index: 0, message: { role: 'assistant', content: output }, finish_reason: 'stop' }],
     usage: { prompt_tokens: 2, completion_tokens: 1 },
   };
 }
-function adapter(kind: Kind, cap?: number, mutate?: () => void, transportFails = false) {
+function adapter(
+  kind: Kind,
+  cap?: number,
+  mutate?: () => void,
+  transportFails = false,
+  output?: string,
+) {
   const sent: Record<string, unknown>[] = [];
   let secrets = 0;
   const resolveSecret = async () => {
@@ -68,7 +72,7 @@ function adapter(kind: Kind, cap?: number, mutate?: () => void, transportFails =
     }
     return transportFails
       ? new Response('private fixture unsupported top_p error', { status: 400 })
-      : Response.json(body(kind));
+      : Response.json(body(kind, output));
   };
   const candidate = {
     id: 'candidate',
@@ -127,9 +131,10 @@ function httpFixture(
     audit?: boolean;
     fail?: boolean;
     mutate?: () => void;
+    output?: string;
   } = {},
 ) {
-  const f = adapter(kind, undefined, options.mutate, options.fail);
+  const f = adapter(kind, undefined, options.mutate, options.fail, options.output);
   const audits: unknown[] = [];
   const usage: unknown[] = [];
   let routes = 0;
@@ -782,7 +787,7 @@ test('Gemini unsupported schema semantics and tool composition reject before sec
       { ...schema, required: ['missing'] },
       { ...schema, required: ['ok', 'ok'] },
       { ...schema, additionalProperties: { type: 'string', pattern: 'unsupported' } },
-      { type: 'array', items: { type: 'string' } },
+      { type: 'array', items: { type: 'string', pattern: 'unsupported' } },
       { type: 'object', properties: { a: { type: 'array' } } },
       { type: 'object', properties: { a: { type: 'string', pattern: 'private' } } },
       { type: 'object', properties: { a: { type: 'string', properties: {} } } },
@@ -2197,7 +2202,7 @@ test('Gemini prefixItems shares recursive depth, supports bounded prefix-only ar
     if (depth === 16) assert.doesNotThrow(() => validate(format(schema)));
     else assert.throws(() => validate(format(schema)));
   }
-  assert.throws(() => validate(format({ type: 'array', prefixItems: [{ type: 'string' }] })));
+  assert.doesNotThrow(() => validate(format({ type: 'array', prefixItems: [{ type: 'string' }] })));
   assert.throws(() => validate(format({ type: 'object', prefixItems: [{ type: 'string' }] })));
   assert.throws(() =>
     validate(format({ type: 'object', properties: { label: { type: 'array' } } })),
@@ -2694,7 +2699,7 @@ test('Gemini property-ordering retains depth count own-key root and strict bound
     if (depth === 16) assert.doesNotThrow(() => validate(wrap(schema)));
     else assert.throws(() => validate(wrap(schema)));
   }
-  assert.throws(() =>
+  assert.doesNotThrow(() =>
     validate(wrap({ type: 'array', items: { type: 'object', propertyOrdering: [] } })),
   );
   assert.throws(() =>
@@ -3593,4 +3598,234 @@ test('Gemini local refs enforce expanded depth, traversal budget and exact count
       >[0]),
     );
   }
+});
+
+function googleArrayRootFormat() {
+  return {
+    type: 'json_schema',
+    json_schema: {
+      name: 'result',
+      strict: false,
+      schema: {
+        type: 'array',
+        description: 'private array-root-schema literal',
+        $defs: { Label: { type: 'string', enum: ['a', 'b'] } },
+        items: { $ref: '#/$defs/Label' },
+        prefixItems: [{ type: 'string', enum: ['a', 'b'] }],
+        minItems: 1,
+        maxItems: 4,
+      },
+    },
+  };
+}
+test('Gemini array-root schemas forward exact immutable schemas on both bases', async () => {
+  for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
+    const format = googleArrayRootFormat();
+    const expected = structuredClone(format.json_schema.schema);
+    const f = httpFixture('google', {
+      output: '["a"]',
+      mutate: () => {
+        format.json_schema.schema.$defs.Label.enum[0] = 'mutated';
+      },
+    });
+    const req = request(path, format);
+    Object.defineProperty(req, 'json', { value: async () => input(format) });
+    assert.equal((await f.handler(req)).status, 200);
+    assert.deepEqual(
+      (f.sent[0]?.generationConfig as Record<string, unknown> | undefined)?.responseJsonSchema,
+      expected,
+    );
+    assert.equal(f.secrets(), 1);
+    assert.equal(f.usage.length, 1);
+    assert.doesNotMatch(
+      JSON.stringify([f.audits, f.usage]),
+      /private array-root-schema|fixture-key/u,
+    );
+  }
+});
+test('Gemini array-root-schema schemas retain IAM limits and persistence failure boundaries', async () => {
+  for (const path of ['/v1/chat/completions', '/api/v1/chat/completions'])
+    for (const [options, status, dispatched] of [
+      [{ auth: true }, 401, false],
+      [{ deny: true }, 403, false],
+      [{ explicitDeny: true }, 403, false],
+      [{ limit: true }, 429, false],
+      [{ audit: true }, 503, false],
+      [{ usageFail: true }, 503, true],
+      [{ outcomeFail: true }, 503, true],
+      [{ fail: true }, 502, true],
+    ] as const) {
+      const f = httpFixture('google', options);
+      const response = await f.handler(request(path, googleArrayRootFormat()));
+      assert.equal(response.status, status);
+      assert.equal(f.sent.length, dispatched ? 1 : 0);
+      assert.equal(f.secrets(), dispatched ? 1 : 0);
+      assert.doesNotMatch(await response.text(), /private|fixture-key/u);
+    }
+});
+test('Gemini array-root-schema schemas work through actual OpenAI SDK sockets on both bases', async () => {
+  const f = httpFixture('google', { output: '["a"]' });
+  const server = createNodeRequestServer(f.handler);
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  try {
+    const address = server.address();
+    assert.ok(address && typeof address === 'object');
+    for (const base of ['/v1', '/api/v1']) {
+      const sdk = new OpenAI({
+        apiKey: 'fixture',
+        baseURL: `http://127.0.0.1:${address.port}${base}`,
+        maxRetries: 0,
+      });
+      const result = await sdk.chat.completions.create(
+        input(googleArrayRootFormat()) as OpenAI.ChatCompletionCreateParamsNonStreaming,
+      );
+      assert.equal(result.choices[0]?.message.content, '["a"]');
+      const config = f.sent.at(-1)?.generationConfig as Record<string, unknown>;
+      assert.deepEqual(config.responseJsonSchema, googleArrayRootFormat().json_schema.schema);
+    }
+  } finally {
+    server.closeAllConnections();
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
+  }
+});
+
+test('Gemini array-root-schema schemas use the same captured native text-stream transport', async () => {
+  const { createDirectGoogleTextStreamInvoker } = await import(
+    '../src/providers/direct-google-stream.ts'
+  );
+  const sent: Record<string, unknown>[] = [];
+  const format = googleArrayRootFormat();
+  const expected = structuredClone(format.json_schema.schema);
+  const invoke = createDirectGoogleTextStreamInvoker({
+    registrations: [{ providerId: 'provider', kind: 'google', credentialRef: 'secret/reference' }],
+    resolveSecret: async () => {
+      format.json_schema.schema.$defs.Label.enum[0] = 'mutated';
+      return 'fixture-key';
+    },
+    fetcher: async (_, init) => {
+      sent.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+      return new Response(
+        'data: ' +
+          JSON.stringify({
+            responseId: 'response',
+            modelVersion: 'model',
+            candidates: [
+              {
+                index: 0,
+                content: { role: 'model', parts: [{ text: '["a"]' }] },
+                finishReason: 'STOP',
+              },
+            ],
+            usageMetadata: { promptTokenCount: 2, candidatesTokenCount: 1, totalTokenCount: 3 },
+          }) +
+          '\n\n',
+        { headers: { 'content-type': 'text/event-stream' } },
+      );
+    },
+  });
+  const seen: unknown[] = [];
+  const result = await invoke(
+    { id: 'candidate', kind: 'managed', providerId: 'provider', upstreamModelId: 'model' },
+    { ...input(format), stream: true } as unknown as ChatRequest,
+    (delta) => {
+      seen.push(delta);
+    },
+  );
+  assert.equal(result.finishReason, 'stop');
+  assert.equal(result.usage?.total_tokens, 3);
+  assert.ok(JSON.stringify(seen).includes('a'));
+  assert.deepEqual(
+    (sent[0]?.generationConfig as Record<string, unknown> | undefined)?.responseJsonSchema,
+    expected,
+  );
+});
+
+test('Gemini array roots retain literal root, keyword, reference and depth boundaries', async () => {
+  const { validateGoogleResponseSchema: validate } = await import(
+    '../src/providers/google-response-schema.ts'
+  );
+  const wrap = (schema: Record<string, unknown>) =>
+    ({ type: 'json_schema', json_schema: { name: 'result', strict: false, schema } }) as const;
+  for (const depth of [16, 17]) {
+    let schema: Record<string, unknown> = { type: 'string' };
+    for (let i = 0; i < depth; i++) schema = { type: 'array', items: schema };
+    if (depth === 16) assert.doesNotThrow(() => validate(wrap(schema)));
+    else assert.throws(() => validate(wrap(schema)));
+  }
+  for (const schema of [
+    { type: 'array', items: { type: 'integer' } },
+    { type: 'array', prefixItems: [{ type: 'string' }] },
+    { type: 'array', items: { anyOf: [{ type: 'string' }, { type: 'null' }] } },
+  ])
+    assert.doesNotThrow(() => validate(wrap(schema)));
+  const bad = [
+    { type: 'array' },
+    { type: 'array', items: false },
+    { type: 'array', items: {} },
+    { type: 'array', prefixItems: [] },
+    { type: 'array', items: { type: 'string' }, properties: {} },
+    { type: 'array', items: { type: 'string' }, propertyOrdering: [] },
+    { type: 'array', items: { type: 'string' }, minItems: 2, maxItems: 1 },
+    { type: 'array', items: { $ref: 'https://private.invalid/schema' } },
+    { type: 'array', $defs: { A: { $ref: '#/$defs/A' } }, items: { $ref: '#/$defs/A' } },
+    { type: 'array', items: { type: 'object', $defs: { A: { type: 'string' } } } },
+    { type: ['array', 'null'], items: { type: 'string' } },
+    { type: ['array'], items: { type: 'string' } },
+    { anyOf: [{ type: 'array', items: { type: 'string' } }] },
+    { type: 'string' },
+    { type: 'number' },
+    { type: 'integer' },
+    { type: 'boolean' },
+    { type: 'null' },
+  ];
+  const { createDirectGoogleTextStreamInvoker } = await import(
+    '../src/providers/direct-google-stream.ts'
+  );
+  let secrets = 0;
+  let fetches = 0;
+  const invoke = createDirectGoogleTextStreamInvoker({
+    registrations: [{ providerId: 'provider', kind: 'google', credentialRef: 'fixture' }],
+    resolveSecret: async () => {
+      secrets++;
+      return 'fixture-key';
+    },
+    fetcher: async () => {
+      fetches++;
+      throw new Error('must not fetch');
+    },
+  });
+  for (const schema of bad) {
+    assert.throws(() => validate(wrap(schema)));
+    const f = adapter('google');
+    await assert.rejects(() => f.call(input(wrap(schema)) as unknown as ChatRequest));
+    assert.equal(f.secrets(), 0);
+    assert.equal(f.sent.length, 0);
+    await assert.rejects(() =>
+      invoke(
+        { id: 'candidate', kind: 'managed', providerId: 'provider', upstreamModelId: 'model' },
+        { ...input(wrap(schema)), stream: true } as unknown as ChatRequest,
+        () => {},
+      ),
+    );
+  }
+  assert.equal(secrets, 0);
+  assert.equal(fetches, 0);
+  for (const kind of ['google', 'anthropic'] as const)
+    for (const controls of [
+      {},
+      { tool_choice: 'none' },
+      { parallel_tool_calls: true },
+      { tools: [] },
+    ]) {
+      const f = adapter(kind);
+      const format = googleArrayRootFormat();
+      if (kind === 'google' && Object.keys(controls).length === 0) format.json_schema.strict = true;
+      await assert.rejects(() =>
+        f.call({ ...input(format), ...controls } as unknown as ChatRequest),
+      );
+      assert.equal(f.secrets(), 0);
+      assert.equal(f.sent.length, 0);
+    }
 });
