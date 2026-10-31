@@ -1,6 +1,10 @@
 # OpenGranter agent handoff
 
-## Current continuation checkpoint (#566)
+## Current continuation checkpoint (#568)
+
+PR #567 received GitHub approval on f30cd50e9902b94a5a81ccd61c17189c8535f730 with all five checks successful and merged as 6798ed0e729c5cedbd326747c5d4c1498b08a979. Issue #566 is closed. Issue #568 closes the documented bridge networking CI gap while retaining host-mode coverage. Read [plan](plans/568-container-bridge-smoke.md). Require fresh exact-head CI and GitHub approval before merge. Docker is unavailable locally. #561 remains separately owned; full #116 and unresolved #7 remain open.
+
+## Previous continuation checkpoint (#566)
 
 PR #565 was approved at ef66dc730f253f15a3d710caf9e7ebafe456498d with all three checks successful and merged as 78ef184f0bbb87d7156ab7b484f54a19f3df490b. Issue #564 is closed. Issue #566 adds optional non-root container packaging without a permissive bootstrap, new API or production-completeness claim. Read [plan](plans/566-container-packaging.md) and [container guide](guides/container.md). Refresh its exact-head approval and CI before merge. PR #561 was separately open at this checkpoint and was not merged as part of #565. Full #116 and unresolved Jev #7 remain open.
 

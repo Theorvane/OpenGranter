@@ -41,6 +41,8 @@ The read-only filesystem and dropped capabilities are deployment flags, not prot
 
 ## Validation and recovery
 
-The Container workflow builds the image, checks uid/runtime dependencies/migrations and absence of development files, verifies failure without bootstrap, then starts a disposable PostgreSQL-backed gateway using test-only deny-all ports on a read-only filesystem. An unauthenticated compatible model request must return401; SIGTERM must exit0 before the external stop deadline. This does not test real credentials, authorized provider calls, external exposure, readiness, quota correctness, load or recovery.
+The Container workflow builds the image, checks uid/runtime dependencies/migrations and absence of development files, verifies failure without bootstrap, then starts a disposable PostgreSQL-backed gateway using test-only deny-all ports on a read-only filesystem. Independent host and bridge matrix cases exercise the loopback default and explicit wildcard listener with host-loopback port publication respectively; the bridge case connects to the disposable database on its Docker network. An unauthenticated compatible model request must return401; SIGTERM must exit0 before the external stop deadline. This does not test real credentials, authorized provider calls, external exposure, readiness, quota correctness, load or recovery.
 
 Stop with docker stop; do not replay possibly billed requests after forced termination. Reverting an image does not revert committed database migrations. Back up and test restore using your database procedures before production changes. See [contract](../../contracts/gateway-service.md) and [implementation plan](../plans/566-container-packaging.md).
+
+Bridge CI follow-up: [plan](../plans/568-container-bridge-smoke.md). Local Docker verification is not claimed; inspect exact-head CI results before deployment.
