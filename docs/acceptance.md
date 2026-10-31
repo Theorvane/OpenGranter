@@ -1678,3 +1678,7 @@ The existing gateway executable has an optional non-root Node22 image with locke
 ## Optional Linux service supervision (#570)
 
 An opt-in hardened systemd unit launches the existing gateway directly as a dedicated non-root account with a required deployment-owned environment file/bootstrap, loopback defaults, read-only system paths and no automatic restart/replay. The default40-second supervisor stop grace exceeds the application30-second deadline. Static unit verification is not running-host or production acceptance; secret/limit/database integrations, host permissions, readiness, recovery and SSO lifecycle remain explicit operator work. No HTTP, IAM, usage or audit behavior changes. See the [systemd guide](guides/systemd.md) and [plan](plans/570-systemd-service.md).
+
+## Bounded Gemini schema transport (#572)
+
+Both chat bases and actual OpenAI SDK sockets accept the documented explicit non-strict object schema; native text streams share the same exact captured configuration. Mutation during credential resolution cannot change schema bytes. Unsupported keywords/types/strict values/tool composition reject before secret lookup. IAM/limits deny before dispatch and required usage/outcome-audit failures withhold success; operational records exclude schema contents. No live provider, output-schema enforcement or complete compatibility is certified. See [plan](plans/572-gemini-response-schema.md).
