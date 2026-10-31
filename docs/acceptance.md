@@ -1695,3 +1695,8 @@ The strict:false object-root Gemini subset additionally transports minItems/maxI
 ## Bounded Gemini additional property schemas (#580)
 
 The strict:false object-root subset additionally transports schema-valued additionalProperties on explicit object nodes, recursively applying the same type/keyword and depth<=16 restrictions as properties/items. Boolean values retain existing behavior. Typed nested object/array/scalar schemas are captured and forwarded unchanged in nonstream and native text streams; untyped, malformed, unsupported or excessive-depth schemas fail before credentials. This supersedes the earlier boolean-only limitation, not unsupported union/reference/strict/tool behavior. No generated-output enforcement, satisfiability or live-model certification follows. IAM, limits, audit/usage and privacy boundaries remain covered; #116/#7 remain open. See [plan](plans/580-gemini-property-schemas.md).
+
+
+## Bounded Gemini oneOf transport (#592)
+
+On strict:false explicitly object-root schemas, nested oneOf transports1..16 recursively supported branches unchanged on nonstream/native text streams. Gemini officially interprets oneOf as anyOf: exclusive matching is NOT guaranteed. This subset is immutable transport, not generated-output validation, satisfiability or JSON Schema equivalence. Same-node anyOf plus oneOf is locally rejected; malformed/count/depth/root/strict/keyword errors fail before secrets. Existing IAM/limits/persistence/accounting/privacy and capture bounds remain. Deprecated responseJsonSchema, unsupported references/tools/Anthropic, full #116 and unresolved #7 stay open. See [plan](plans/592-gemini-oneof.md) and [contract](../contracts/client-response-formats.md).

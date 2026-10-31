@@ -28,6 +28,7 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
         (key) =>
           ![
             'anyOf',
+            'oneOf',
             'type',
             'title',
             'description',
@@ -54,15 +55,17 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
       (type !== 'string' || typeof node.format !== 'string' || node.format.length > 256)
     )
       invalid();
-    if (Object.hasOwn(node, 'anyOf')) {
-      if (!Array.isArray(node.anyOf) || node.anyOf.length === 0 || node.anyOf.length > 16)
-        invalid();
-      for (const branch of node.anyOf) visit(branch, depth + 1);
+    if (Object.hasOwn(node, 'anyOf') && Object.hasOwn(node, 'oneOf')) invalid();
+    for (const key of ['anyOf', 'oneOf']) {
+      if (!Object.hasOwn(node, key)) continue;
+      const branches = node[key];
+      if (!Array.isArray(branches) || branches.length === 0 || branches.length > 16) invalid();
+      for (const branch of branches) visit(branch, depth + 1);
     }
     if (type === undefined) {
       if (
-        !Object.hasOwn(node, 'anyOf') ||
-        Object.keys(node).some((key) => !['anyOf', 'title', 'description'].includes(key))
+        (!Object.hasOwn(node, 'anyOf') && !Object.hasOwn(node, 'oneOf')) ||
+        Object.keys(node).some((key) => !['anyOf', 'oneOf', 'title', 'description'].includes(key))
       )
         invalid();
       return;
