@@ -11,11 +11,13 @@ function record(value: unknown): value is Readonly<Record<string, unknown>> {
 export function validateGoogleResponseSchema(format: ResponseFormat): void {
   if (format.type !== 'json_schema') return;
   const { schema, strict } = format.json_schema;
+  if (strict !== false || !schema) invalid();
+  const rootType = Array.isArray(schema.type)
+    ? schema.type.find((member: unknown) => member !== 'null')
+    : schema.type;
   if (
-    strict !== false ||
-    !schema ||
-    typeof schema.type !== 'string' ||
-    !['object', 'array', 'string', 'number', 'integer', 'boolean'].includes(schema.type)
+    typeof rootType !== 'string' ||
+    !['object', 'array', 'string', 'number', 'integer', 'boolean'].includes(rootType)
   )
     invalid();
   const definitions = schema.$defs;
