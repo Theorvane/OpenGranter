@@ -15,11 +15,15 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
   const visit = (node: unknown, depth: number): void => {
     if (!record(node) || depth > 16) invalid();
     if (
-      typeof node.type !== 'string' ||
-      !['object', 'array', 'string', 'number', 'integer', 'boolean', 'null'].includes(node.type) ||
+      (node.type !== undefined &&
+        (typeof node.type !== 'string' ||
+          !['object', 'array', 'string', 'number', 'integer', 'boolean', 'null'].includes(
+            node.type,
+          ))) ||
       Object.keys(node).some(
         (key) =>
           ![
+            'anyOf',
             'type',
             'title',
             'description',
@@ -38,6 +42,19 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
       (node.description !== undefined && typeof node.description !== 'string')
     )
       invalid();
+    if (Object.hasOwn(node, 'anyOf')) {
+      if (!Array.isArray(node.anyOf) || node.anyOf.length === 0 || node.anyOf.length > 16)
+        invalid();
+      for (const branch of node.anyOf) visit(branch, depth + 1);
+    }
+    if (node.type === undefined) {
+      if (
+        !Object.hasOwn(node, 'anyOf') ||
+        Object.keys(node).some((key) => !['anyOf', 'title', 'description'].includes(key))
+      )
+        invalid();
+      return;
+    }
     for (const key of ['minimum', 'maximum']) {
       if (
         Object.hasOwn(node, key) &&
