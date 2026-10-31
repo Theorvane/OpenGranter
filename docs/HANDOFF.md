@@ -1,6 +1,10 @@
 # OpenGranter agent handoff
 
-## Current continuation checkpoint (#568)
+## Current continuation checkpoint (#570)
+
+PR #569 received GitHub approval on 9752216b5a47977705d2a890c513ec89bb4f473e with all seven checks successful, including host and bridge smoke, and merged as d7ba0554b542be78924a82b5c9206b09c1b18758. Issue #568 is closed. Issue #570 adds the optional system-service packaging from plan #566; see [plan](plans/570-systemd-service.md) and [guide](guides/systemd.md). Require exact-head full CI and GitHub approval. Local systemd and Docker execution are unavailable; static unit verification is not installed-host acceptance. #561 remains untouched; full #116 and unresolved #7 remain open.
+
+## Previous continuation checkpoint (#568)
 
 PR #567 received GitHub approval on f30cd50e9902b94a5a81ccd61c17189c8535f730 with all five checks successful and merged as 6798ed0e729c5cedbd326747c5d4c1498b08a979. Issue #566 is closed. Issue #568 closes the documented bridge networking CI gap while retaining host-mode coverage. Read [plan](plans/568-container-bridge-smoke.md). Require fresh exact-head CI and GitHub approval before merge. Docker is unavailable locally. #561 remains separately owned; full #116 and unresolved #7 remain open.
 

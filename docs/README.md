@@ -40,3 +40,5 @@ OpenGranter controls LLM access through current identity, model/provider policy,
 The [visual asset notes](../assets/README.md) distinguish original conceptual artwork from the actual local verification visualization and retain its raw transcript. The same organization's [TypeMCP](https://github.com/Theorvane/TypeMCP) inspired the documentation structure; its artwork and package/release claims are not reused.
 
 - [Gateway container deployment](guides/container.md): optional non-root packaging and explicit operational prerequisites.
+
+- [Optional Linux systemd supervision](guides/systemd.md): dedicated identity, read-only release and explicit bootstrap; no host-readiness certification.

@@ -46,3 +46,5 @@ Startup cleanup may not undo committed migrations. Never automatically replay po
 See [service contract](../../contracts/gateway-service.md) and [plan](../plans/564-service-entrypoint.md).
 
 An optional non-root image and explicit networking/mount/stop instructions are in the [container guide](container.md); packaging does not settle these remaining deployment requirements.
+
+For opt-in Linux supervision of this same executable, see the [systemd guide](systemd.md). It supplies no production bootstrap or operational acceptance.

@@ -28,5 +28,7 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - name: Verify optional systemd unit (static only)
+        run: systemd-analyze verify deploy/systemd/opengranter.service
       - run: npm ci
       - run: npm run check
