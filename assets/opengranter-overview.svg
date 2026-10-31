@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title desc">
+<title id="title">OpenGranter — policy before inference</title>
+<desc id="desc">Clients pass through identity, policy, and limits to approved OpenRouter-delegated or managed direct-provider routes. Audit and usage records accompany the gateway. Conceptual architecture, not a product screenshot.</desc>
+<defs>
+  <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#0b1225"/><stop offset="1" stop-color="#172440"/></linearGradient>
+  <linearGradient id="accent"><stop stop-color="#a5b4fc"/><stop offset="1" stop-color="#5eead4"/></linearGradient>
+  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#334155" stroke-opacity=".18"/></pattern>
+  <marker id="arrow" markerWidth="10" markerHeight="10" refX="7" refY="4" orient="auto"><path d="m0 0 8 4-8 4" fill="none" stroke="#5eead4" stroke-width="1.5"/></marker>
+</defs>
+<rect width="1280" height="640" rx="24" fill="url(#bg)"/>
+<rect width="1280" height="640" rx="24" fill="url(#grid)"/>
+<g font-family="Arial, Helvetica, sans-serif">
+  <rect x="56" y="44" width="204" height="30" rx="15" fill="#24314d"/>
+  <text x="74" y="64" font-size="12" font-weight="700" letter-spacing="2" fill="#a5b4fc">LLM ACCESS CONTROL</text>
+  <text x="56" y="140" font-size="58" font-weight="700" fill="#f8fafc">Policy before inference.</text>
+  <text x="58" y="183" font-size="21" fill="#b7c5db">One gateway. Approved destinations. Accountable attempts.</text>
+  <g fill="none" stroke="#5eead4" stroke-width="2" marker-end="url(#arrow)">
+    <path d="M274 352H352"/><path d="M734 352H790V302H850"/><path d="M790 352V402H850"/>
+    <path d="M544 428V481"/>
+  </g>
+  <rect x="56" y="284" width="216" height="136" rx="16" fill="#16223a" stroke="#3c4d69"/>
+  <text x="80" y="317" font-size="12" fill="#8fa8c8" letter-spacing="2">CLIENTS</text>
+  <text x="80" y="351" font-size="23" fill="#f8fafc" font-weight="700">Apps &amp; agents</text>
+  <text x="80" y="384" font-size="15" fill="#b7c5db">Compatible chat paths</text>
+  <rect x="354" y="256" width="380" height="172" rx="18" fill="#202d49" stroke="#818cf8" stroke-width="2"/>
+  <text x="382" y="293" font-size="13" fill="#b9bfff" letter-spacing="2">OPENGRANTER</text>
+  <text x="382" y="332" font-size="26" fill="#f8fafc" font-weight="700">Identity → Policy → Limits</text>
+  <text x="382" y="365" font-size="16" fill="#c4d2e7">Authorize model + final provider</text>
+  <rect x="380" y="385" width="151" height="24" rx="12" fill="#31436b"/>
+  <text x="394" y="402" font-size="12" fill="#dce4ff">DENY BY DEFAULT</text>
+  <rect x="852" y="256" width="372" height="92" rx="16" fill="#153139" stroke="#39746f"/>
+  <text x="877" y="291" font-size="21" fill="#ccfbf1" font-weight="700">OpenRouter-delegated</text>
+  <text x="877" y="322" font-size="15" fill="#a7c9c6">Registered upstream · bounded routing</text>
+  <rect x="852" y="366" width="372" height="92" rx="16" fill="#153139" stroke="#39746f"/>
+  <text x="877" y="401" font-size="21" fill="#ccfbf1" font-weight="700">Managed direct providers</text>
+  <text x="877" y="432" font-size="15" fill="#a7c9c6">OpenAI · Anthropic · Google Gemini</text>
+  <rect x="354" y="484" width="380" height="64" rx="14" fill="#192b41" stroke="#3c5572"/>
+  <text x="380" y="511" font-size="17" fill="#e2e8f0" font-weight="700">Audit + usage ledger</text>
+  <text x="380" y="534" font-size="13" fill="#9fb6d0">Attempt evidence, including supported failures</text>
+  <path d="M56 586H1224" stroke="#334155"/>
+  <text x="56" y="612" font-size="12" fill="#94a3b8" letter-spacing="1">CONCEPTUAL ARCHITECTURE · NOT A MANAGEMENT UI</text>
+  <text x="1224" y="612" text-anchor="end" font-size="12" fill="#94a3b8">IN DEVELOPMENT</text>
+</g>
+</svg>
