@@ -103,8 +103,10 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
         )
           invalid();
       }
-      if (node.additionalProperties !== undefined && typeof node.additionalProperties !== 'boolean')
-        invalid();
+      if (Object.hasOwn(node, 'additionalProperties')) {
+        if (typeof node.additionalProperties !== 'boolean')
+          visit(node.additionalProperties, depth + 1);
+      }
     } else {
       if (
         node.properties !== undefined ||
