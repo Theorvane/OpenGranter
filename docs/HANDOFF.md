@@ -1,6 +1,12 @@
 # OpenGranter agent handoff
 
-## Current continuation checkpoint (#558)
+## Current continuation checkpoint (#560)
+
+PR [#559](https://github.com/Theorvane/OpenGranter/pull/559) received approval on 4aa74d8281aa772c1f8d1a25de2c9c5359926e79 with all three checks successful and merged as 93e9e8e; issue #558 is closed. Issue [#560](https://github.com/Theorvane/OpenGranter/issues/560), branch feat/560-timeout-statuses, adds observed HTTP408/504 compatible JSON projection. Read [plan](plans/560-timeout-statuses.md) and [error contract](../contracts/openrouter-error-schema.md#observed-upstream-timeout-statuses-560), then refresh PR/review/CI before assuming merge.
+
+Initial red reproduced 60 expected collapsed-status failures among 144 cases, with 84 passes; minimal implementation made all 144 pass. Integrated focused regressions passed 1,067 tests including all 356 added cases and 144 actual SDK probes. Existing classification/billing/usage/IAM rules, no-response timeout502, legacy502, hint suppression for validated408/504, required persistence, post-frame generic errors and fallback isolation are covered. Final npm run check passed 8,568 tests with one optional external PostgreSQL skip, zero failures/cancellations and all six offline source-integrity checks (~258 seconds). No retry eligibility, source pin, dependency or storage changes. Broader errors/types/date/402, full #116 and unresolved Jev #7 remain open; earlier checkpoints below are historical.
+
+## Historical continuation checkpoint (#558)
 
 PR [#557](https://github.com/Theorvane/OpenGranter/pull/557) received approval on 59791e017c8bb728bfa2a9d34ef78db07a61ed53 with all three checks successful and merged as 491c3e8; issue #556 is closed. Issue [#558](https://github.com/Theorvane/OpenGranter/issues/558), branch feat/558-prestream-errors, adds bounded text/function pre-stream429/503 and retry hints. Read [plan](plans/558-prestream-errors.md) and [error contract](../contracts/openrouter-error-schema.md#pre-stream-observed-status-and-retry-hints-558), then refresh PR/review/CI before assuming merge.
 

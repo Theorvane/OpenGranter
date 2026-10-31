@@ -90,12 +90,14 @@ export class OpenRouterChatFailure extends Error {
     this.category = category;
     this.responseStarted = responseStarted;
     this.possiblyBilled = possiblyBilled;
+    const capturedStatus = snapshotUpstreamStatus(category, upstreamStatus);
     if (
+      capturedStatus !== 408 &&
+      capturedStatus !== 504 &&
       (category === 'rate-limit' || category === 'server-error') &&
       validRetryAfterSeconds(retryAfterSeconds)
     )
       this.retryAfterSeconds = retryAfterSeconds;
-    const capturedStatus = snapshotUpstreamStatus(category, upstreamStatus);
     if (responseStarted === true && capturedStatus !== undefined)
       this.upstreamStatus = capturedStatus;
   }
@@ -531,7 +533,7 @@ export function createOpenRouterChatInvoker(
           : undefined,
         response.status,
       );
-    if (!response.ok) fail('upstream', true, true);
+    if (!response.ok) fail('upstream', true, true, undefined, response.status);
     let body: unknown;
     try {
       body = (await response.json()) as unknown;
