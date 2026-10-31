@@ -40,3 +40,8 @@ The #572 subset additionally accepts enum only on explicitly typed string, numbe
 ## Bounded Gemini numeric constraints (#576)
 
 The strict:false object-root subset accepts finite numeric minimum/maximum on explicit number/integer nodes, including fractional bounds on integers without rounding. Pairs must be ordered; equality and one-sided bounds are allowed. Malformed, nonfinite, reversed and inappropriate-type bounds reject before credentials. Exact captured constraints pass through nonstream/text streams (JSON canonicalizes negative zero); no generated-output enforcement, enum intersection or integer-interval satisfiability check is performed. Exclusive bounds and other unsupported keywords remain rejected. All existing IAM/limits/persistence/privacy rules apply. See [plan](../docs/plans/576-gemini-numeric-schema.md).
+
+
+## Bounded Gemini array lengths (#578)
+
+The strict:false object-root Gemini subset additionally transports minItems/maxItems only on explicitly typed arrays with an items schema. Lengths must be nonnegative safe integers; pairs must be ordered, with equality and one-sided bounds allowed. Nested lengths and captured values are preserved on nonstream/text streams. Wrong-type, negative, fractional, unsafe, nonfinite and reversed bounds reject before credentials. This is not generated-output enforcement or satisfiability certification. All existing IAM/limits/persistence/privacy and tool/strict/root restrictions remain; #116/#7 stay open. See [plan](../docs/plans/578-gemini-array-lengths.md).
