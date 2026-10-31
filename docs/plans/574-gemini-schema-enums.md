@@ -23,3 +23,5 @@ Require exact-head full green CI and independent GitHub approval before merge. D
 - Typecheck and lint passed (existing unrelated diagnostics retained). Planning/link/contract/fixture-secret checks and all six offline pin integrity checks passed; dependencies/pins unchanged.
 - Standard full npm run check under two-CPU affinity and2GiB memory did NOT pass:8,125 passed,16 failed,1 optional skip. All16 failures were file SIGKILLs, not assertion failures; no deadlines/assertions were weakened. The standard local full gate is not claimed green. A sequential isolated recheck of exactly these16 files is recorded separately; exact-head full CI remains mandatory.
 - Logs: /tmp/opengranter-574-{red,green,focused,check,isolated}.log. No live-model, Docker, bridge or systemd execution in this slice.
+
+- Sequential isolated recheck:408 passed,3 file SIGKILL failures (postgres-gateway-runtime, postgres-sso-management-http, sso-token-management),0 skipped. It also is NOT a green gate and does not erase the standard full failure. No further local retry or unrelated production changes were made.
