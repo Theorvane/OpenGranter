@@ -12,3 +12,7 @@ Verification: [boundary tests](../test/gateway-service.test.ts), [actual process
 ## Optional container boundary (#566)
 
 The image installs locked production dependencies without lifecycle scripts and includes only runtime source, migrations, package metadata and the executable. It runs as non-root with root-owned application files and direct Node/SIGTERM ownership; no bootstrap, permissive limits, secret values, public bind or healthcheck is supplied. The operator mounts trusted configuration and sets networking/shutdown grace explicitly. Static [packaging tests](../test/container-packaging.test.ts) complement the actual Container workflow smoke test against disposable PostgreSQL. Read-only operation is validated by CI but must be requested by the operator. See [guide](../docs/guides/container.md).
+
+## Optional systemd packaging (#570)
+
+The optional unit preserves this executable contract: direct non-root Node, required external bootstrap, loopback defaults, SIGTERM with a greater supervisor stop grace, no automatic replay/restart, and read-only release paths. A simple service is not readiness. Static verification does not certify an installed host. See the [guide](../docs/guides/systemd.md).

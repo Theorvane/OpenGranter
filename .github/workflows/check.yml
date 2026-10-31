@@ -28,5 +28,12 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - name: Verify optional systemd unit (static only)
+        run: |
+          # setup-node uses a toolcache path; provision the unit path on this disposable runner.
+          if [ ! -e /usr/bin/node ]; then
+            command -v node | xargs -I{} sudo ln -s {} /usr/bin/node
+          fi
+          systemd-analyze verify deploy/systemd/opengranter.service
       - run: npm ci
       - run: npm run check
