@@ -899,3 +899,178 @@ test('Gemini non-strict schemas use the same captured native text-stream transpo
     expected,
   );
 });
+
+function googleEnumFormat() {
+  const format = googleSchemaFormat();
+  return {
+    ...format,
+    json_schema: {
+      ...format.json_schema,
+      schema: {
+        type: 'object',
+        properties: {
+          label: { type: 'string', enum: ['private enum literal', ''] },
+          score: { type: 'number', enum: [-0.5, 0, 1.25] },
+          values: { type: 'array', items: { type: 'integer', enum: [0, -1, 2] } },
+        },
+        required: ['label'],
+        additionalProperties: false,
+      },
+    },
+  };
+}
+test('Gemini enums forward exact immutable schemas on both bases', async () => {
+  for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
+    const format = googleEnumFormat();
+    const expected = structuredClone(format.json_schema.schema);
+    const f = httpFixture('google', {
+      mutate: () => {
+        format.json_schema.schema.properties.label.enum[0] = 'changed';
+      },
+    });
+    const req = request(path, format);
+    Object.defineProperty(req, 'json', { value: async () => input(format) });
+    assert.equal((await f.handler(req)).status, 200);
+    assert.deepEqual(
+      (f.sent[0]?.generationConfig as Record<string, unknown> | undefined)?.responseJsonSchema,
+      expected,
+    );
+    assert.equal(f.secrets(), 1);
+    assert.equal(f.usage.length, 1);
+    assert.doesNotMatch(JSON.stringify([f.audits, f.usage]), /private enum|fixture-key/u);
+  }
+});
+test('Gemini enum boundaries and malformed enums reject before credentials', async () => {
+  const valid = { type: 'string', enum: Array.from({ length: 128 }, (_, i) => String(i)) };
+  const f = adapter('google');
+  const format = (node: unknown) => ({
+    type: 'json_schema',
+    json_schema: {
+      name: 'result',
+      strict: false,
+      schema: { type: 'object', properties: { value: node } },
+    },
+  });
+  await f.call(input(format(valid)) as unknown as ChatRequest);
+  for (const node of [
+    { type: 'string', enum: [] },
+    { type: 'string', enum: ['x', 'x'] },
+    { type: 'string', enum: [1] },
+    { type: 'number', enum: ['1'] },
+    { type: 'number', enum: [1, 'x'] },
+    { type: 'integer', enum: [1.5] },
+    { type: 'boolean', enum: [true] },
+    { type: 'null', enum: [null] },
+    { type: 'object', enum: [{}] },
+    { type: 'array', items: { type: 'string' }, enum: [[]] },
+    { type: 'string', enum: 'x' },
+    { type: 'string', enum: null },
+    { type: 'string', enum: [...valid.enum, '129'] },
+    { type: 'number', enum: [0, -0] },
+    { type: 'number', enum: [Number.POSITIVE_INFINITY] },
+    { type: 'number', enum: [Number.NaN] },
+  ]) {
+    const denied = adapter('google');
+    await assert.rejects(() => denied.call(input(format(node)) as unknown as ChatRequest));
+    assert.equal(denied.secrets(), 0);
+    assert.equal(denied.sent.length, 0);
+  }
+});
+test('Gemini enum schemas retain IAM limits and persistence failure boundaries', async () => {
+  for (const path of ['/v1/chat/completions', '/api/v1/chat/completions'])
+    for (const [options, status, dispatched] of [
+      [{ auth: true }, 401, false],
+      [{ deny: true }, 403, false],
+      [{ explicitDeny: true }, 403, false],
+      [{ limit: true }, 429, false],
+      [{ audit: true }, 503, false],
+      [{ usageFail: true }, 503, true],
+      [{ outcomeFail: true }, 503, true],
+      [{ fail: true }, 502, true],
+    ] as const) {
+      const f = httpFixture('google', options);
+      const response = await f.handler(request(path, googleEnumFormat()));
+      assert.equal(response.status, status);
+      assert.equal(f.sent.length, dispatched ? 1 : 0);
+      assert.equal(f.secrets(), dispatched ? 1 : 0);
+      assert.doesNotMatch(await response.text(), /private|fixture-key/u);
+    }
+});
+test('Gemini enum schemas work through actual OpenAI SDK sockets on both bases', async () => {
+  const f = httpFixture('google');
+  const server = createNodeRequestServer(f.handler);
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  try {
+    const address = server.address();
+    assert.ok(address && typeof address === 'object');
+    for (const base of ['/v1', '/api/v1']) {
+      const sdk = new OpenAI({
+        apiKey: 'fixture',
+        baseURL: `http://127.0.0.1:${address.port}${base}`,
+        maxRetries: 0,
+      });
+      const result = await sdk.chat.completions.create(
+        input(googleEnumFormat()) as OpenAI.ChatCompletionCreateParamsNonStreaming,
+      );
+      assert.equal(result.choices[0]?.message.content, '{"ok":true}');
+      const config = f.sent.at(-1)?.generationConfig as Record<string, unknown>;
+      assert.deepEqual(config.responseJsonSchema, googleEnumFormat().json_schema.schema);
+    }
+  } finally {
+    server.closeAllConnections();
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
+  }
+});
+
+test('Gemini enum schemas use the same captured native text-stream transport', async () => {
+  const { createDirectGoogleTextStreamInvoker } = await import(
+    '../src/providers/direct-google-stream.ts'
+  );
+  const sent: Record<string, unknown>[] = [];
+  const format = googleEnumFormat();
+  const expected = structuredClone(format.json_schema.schema);
+  const invoke = createDirectGoogleTextStreamInvoker({
+    registrations: [{ providerId: 'provider', kind: 'google', credentialRef: 'secret/reference' }],
+    resolveSecret: async () => {
+      format.json_schema.schema.properties.label.enum[0] = 'changed';
+      return 'fixture-key';
+    },
+    fetcher: async (_, init) => {
+      sent.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+      return new Response(
+        'data: ' +
+          JSON.stringify({
+            responseId: 'response',
+            modelVersion: 'model',
+            candidates: [
+              {
+                index: 0,
+                content: { role: 'model', parts: [{ text: '{"ok":true}' }] },
+                finishReason: 'STOP',
+              },
+            ],
+            usageMetadata: { promptTokenCount: 2, candidatesTokenCount: 1, totalTokenCount: 3 },
+          }) +
+          '\n\n',
+        { headers: { 'content-type': 'text/event-stream' } },
+      );
+    },
+  });
+  const seen: unknown[] = [];
+  const result = await invoke(
+    { id: 'candidate', kind: 'managed', providerId: 'provider', upstreamModelId: 'model' },
+    { ...input(format), stream: true } as unknown as ChatRequest,
+    (delta) => {
+      seen.push(delta);
+    },
+  );
+  assert.equal(result.finishReason, 'stop');
+  assert.equal(result.usage?.total_tokens, 3);
+  assert.ok(JSON.stringify(seen).includes('ok'));
+  assert.deepEqual(
+    (sent[0]?.generationConfig as Record<string, unknown> | undefined)?.responseJsonSchema,
+    expected,
+  );
+});

@@ -1216,3 +1216,8 @@ The official listing example uses a root-relative links.details path. Compatible
 ## Bounded non-strict Gemini schema transport (#572)
 
 Superseding earlier blanket native-schema rejection only for this subset: direct Gemini text/nonstream accepts explicit strict:false with a supplied conservative object-root schema and no tool controls. It forwards exact captured JSON as responseJsonSchema with application/json MIME. Unknown keywords/references/unions and strict requests reject before credentials. Format labels do not become native instructions. Required persistence, IAM/limits, private operational records and usage boundaries remain shared; no local output validation, live model certification or complete #116 follows. Anthropic remains unsupported; AI SDK Output.object strict:true still rejects Gemini. See [plan](plans/572-gemini-response-schema.md) and [contract](../contracts/client-response-formats.md#bounded-direct-gemini-json-schemas-572).
+
+
+## Bounded Gemini schema enum transport (#574)
+
+Extends [#572](plans/572-gemini-response-schema.md) with exact captured string/finite-number/integer enums, restricted to1..128 unique matching scalars. Other enum node types and malformed lists reject before secrets. Native nonstream/text stream and installed OpenAI SDK sockets share transport; no output enforcement, strict equivalence or live-model certification follows. All prior security/accounting and unsupported-native restrictions remain. See [plan](plans/574-gemini-schema-enums.md) and [contract](../contracts/client-response-formats.md#bounded-gemini-string-and-numeric-enums-574). Full #116 and unresolved #7 stay open.
