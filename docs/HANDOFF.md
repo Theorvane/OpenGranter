@@ -1,6 +1,10 @@
 # OpenGranter agent handoff
 
-## Current continuation checkpoint (#558)
+## Current continuation checkpoint (#566)
+
+PR #565 was approved at ef66dc730f253f15a3d710caf9e7ebafe456498d with all three checks successful and merged as 78ef184f0bbb87d7156ab7b484f54a19f3df490b. Issue #564 is closed. Issue #566 adds optional non-root container packaging without a permissive bootstrap, new API or production-completeness claim. Read [plan](plans/566-container-packaging.md) and [container guide](guides/container.md). Refresh its exact-head approval and CI before merge. PR #561 was separately open at this checkpoint and was not merged as part of #565. Full #116 and unresolved Jev #7 remain open.
+
+## Previous continuation checkpoint (#558)
 
 PR [#557](https://github.com/Theorvane/OpenGranter/pull/557) received approval on 59791e017c8bb728bfa2a9d34ef78db07a61ed53 with all three checks successful and merged as 491c3e8; issue #556 is closed. Issue [#558](https://github.com/Theorvane/OpenGranter/issues/558), branch feat/558-prestream-errors, adds bounded text/function pre-stream429/503 and retry hints. Read [plan](plans/558-prestream-errors.md) and [error contract](../contracts/openrouter-error-schema.md#pre-stream-observed-status-and-retry-hints-558), then refresh PR/review/CI before assuming merge.
 

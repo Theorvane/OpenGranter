@@ -8,3 +8,7 @@
 - No new authorization bypass, permissive quota default, provider call on startup, storage schema, SSO listener or request compatibility change.
 
 Verification: [boundary tests](../test/gateway-service.test.ts), [actual process/socket tests](../test/gateway-service-cli.test.ts), [plan](../docs/plans/564-service-entrypoint.md). Deployment prerequisites and limitations are in the [service guide](../docs/guides/service.md).
+
+## Optional container boundary (#566)
+
+The image installs locked production dependencies without lifecycle scripts and includes only runtime source, migrations, package metadata and the executable. It runs as non-root with root-owned application files and direct Node/SIGTERM ownership; no bootstrap, permissive limits, secret values, public bind or healthcheck is supplied. The operator mounts trusted configuration and sets networking/shutdown grace explicitly. Static [packaging tests](../test/container-packaging.test.ts) complement the actual Container workflow smoke test against disposable PostgreSQL. Read-only operation is validated by CI but must be requested by the operator. See [guide](../docs/guides/container.md).

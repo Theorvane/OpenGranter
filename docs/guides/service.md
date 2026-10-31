@@ -1,6 +1,6 @@
 # Run the gateway service
 
-This execution adapter starts the persisted direct/OpenRouter chat runtime. It does not configure an organization, seed permissions, issue proxy tokens, enforce a built-in quota, expose SSO management, or provide production deployment manifests.
+This execution adapter starts the persisted direct/OpenRouter chat runtime. It does not configure an organization, seed permissions, issue proxy tokens, enforce a built-in quota, expose SSO management, or provide complete production deployment configuration.
 
 ## Prerequisites
 
@@ -41,6 +41,8 @@ SIGINT/SIGTERM records one shutdown intent. A signal during module loading or fa
 
 Success exits 0. Configuration/startup/close failure or deadline expiry exits 1 with fixed diagnostics; thrown objects, stacks, module paths and connection strings are not printed by the runner. Trusted bootstrap code can itself log or terminate the process and must follow the same secret rules. Deadline expiry forces process termination, can interrupt in-flight persistence, and does not prove successful cleanup. Supervisors should allow more than the configured deadline before sending SIGKILL. An unresponsive synchronous module blocks the event loop, so an external supervisor remains necessary.
 
-Startup cleanup may not undo committed migrations. Never automatically replay possibly billed requests after forced shutdown. Backup/restore, accounting recovery, readiness, vendor secret adapters, real quotas, manifests and the separate SSO lifecycle remain additional deployment work.
+Startup cleanup may not undo committed migrations. Never automatically replay possibly billed requests after forced shutdown. Backup/restore, accounting recovery, readiness, vendor secret adapters, real quotas and the separate SSO lifecycle remain additional deployment work.
 
 See [service contract](../../contracts/gateway-service.md) and [plan](../plans/564-service-entrypoint.md).
+
+An optional non-root image and explicit networking/mount/stop instructions are in the [container guide](container.md); packaging does not settle these remaining deployment requirements.

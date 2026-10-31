@@ -38,3 +38,5 @@ OpenGranter controls LLM access through current identity, model/provider policy,
 - **Production readiness** requires the operational and acceptance gates as well as tests. No management dashboard or one-command deployment is provided by these guides.
 
 The [visual asset notes](../assets/README.md) distinguish original conceptual artwork from the actual local verification visualization and retain its raw transcript. The same organization's [TypeMCP](https://github.com/Theorvane/TypeMCP) inspired the documentation structure; its artwork and package/release claims are not reused.
+
+- [Gateway container deployment](guides/container.md): optional non-root packaging and explicit operational prerequisites.
