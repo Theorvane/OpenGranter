@@ -3278,3 +3278,319 @@ test('Gemini oneOf and anyOf nest without rewriting overlapping branches', async
     assert.doesNotMatch(JSON.stringify([f.audits, f.usage]), /oneOf|anyOf|fixture-key/u);
   }
 });
+
+function googleLocalRefFormat() {
+  return {
+    type: 'json_schema',
+    json_schema: {
+      name: 'result',
+      strict: false,
+      schema: {
+        type: 'object',
+        $defs: {
+          Label: {
+            type: 'string',
+            enum: ['a', 'b'],
+            description: 'private local-ref-schema literal',
+          },
+          Box: { type: 'object', properties: { inner: { $ref: '#/$defs/Label' } } },
+        },
+        properties: {
+          label: { $ref: '#/$defs/Label' },
+          box: { $ref: '#/$defs/Box' },
+          list: { type: 'array', items: { $ref: '#/$defs/Label' } },
+          map: { type: 'object', additionalProperties: { $ref: '#/$defs/Label' } },
+          union: { anyOf: [{ $ref: '#/$defs/Label' }, { type: 'null' }] },
+        },
+        required: ['label'],
+        additionalProperties: false,
+      },
+    },
+  };
+}
+test('Gemini local-ref schemas forward exact immutable schemas on both bases', async () => {
+  for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
+    const format = googleLocalRefFormat();
+    const expected = structuredClone(format.json_schema.schema);
+    const f = httpFixture('google', {
+      mutate: () => {
+        format.json_schema.schema.$defs.Label.enum[0] = 'mutated';
+      },
+    });
+    const req = request(path, format);
+    Object.defineProperty(req, 'json', { value: async () => input(format) });
+    assert.equal((await f.handler(req)).status, 200);
+    assert.deepEqual(
+      (f.sent[0]?.generationConfig as Record<string, unknown> | undefined)?.responseJsonSchema,
+      expected,
+    );
+    assert.equal(f.secrets(), 1);
+    assert.equal(f.usage.length, 1);
+    assert.doesNotMatch(
+      JSON.stringify([f.audits, f.usage]),
+      /private local-ref-schema|fixture-key/u,
+    );
+  }
+});
+test('Gemini local-ref-schema schemas retain IAM limits and persistence failure boundaries', async () => {
+  for (const path of ['/v1/chat/completions', '/api/v1/chat/completions'])
+    for (const [options, status, dispatched] of [
+      [{ auth: true }, 401, false],
+      [{ deny: true }, 403, false],
+      [{ explicitDeny: true }, 403, false],
+      [{ limit: true }, 429, false],
+      [{ audit: true }, 503, false],
+      [{ usageFail: true }, 503, true],
+      [{ outcomeFail: true }, 503, true],
+      [{ fail: true }, 502, true],
+    ] as const) {
+      const f = httpFixture('google', options);
+      const response = await f.handler(request(path, googleLocalRefFormat()));
+      assert.equal(response.status, status);
+      assert.equal(f.sent.length, dispatched ? 1 : 0);
+      assert.equal(f.secrets(), dispatched ? 1 : 0);
+      assert.doesNotMatch(await response.text(), /private|fixture-key/u);
+    }
+});
+test('Gemini local-ref-schema schemas work through actual OpenAI SDK sockets on both bases', async () => {
+  const f = httpFixture('google');
+  const server = createNodeRequestServer(f.handler);
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  try {
+    const address = server.address();
+    assert.ok(address && typeof address === 'object');
+    for (const base of ['/v1', '/api/v1']) {
+      const sdk = new OpenAI({
+        apiKey: 'fixture',
+        baseURL: `http://127.0.0.1:${address.port}${base}`,
+        maxRetries: 0,
+      });
+      const result = await sdk.chat.completions.create(
+        input(googleLocalRefFormat()) as OpenAI.ChatCompletionCreateParamsNonStreaming,
+      );
+      assert.equal(result.choices[0]?.message.content, '{"ok":true}');
+      const config = f.sent.at(-1)?.generationConfig as Record<string, unknown>;
+      assert.deepEqual(config.responseJsonSchema, googleLocalRefFormat().json_schema.schema);
+    }
+  } finally {
+    server.closeAllConnections();
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
+  }
+});
+
+test('Gemini local-ref-schema schemas use the same captured native text-stream transport', async () => {
+  const { createDirectGoogleTextStreamInvoker } = await import(
+    '../src/providers/direct-google-stream.ts'
+  );
+  const sent: Record<string, unknown>[] = [];
+  const format = googleLocalRefFormat();
+  const expected = structuredClone(format.json_schema.schema);
+  const invoke = createDirectGoogleTextStreamInvoker({
+    registrations: [{ providerId: 'provider', kind: 'google', credentialRef: 'secret/reference' }],
+    resolveSecret: async () => {
+      format.json_schema.schema.$defs.Label.enum[0] = 'mutated';
+      return 'fixture-key';
+    },
+    fetcher: async (_, init) => {
+      sent.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+      return new Response(
+        'data: ' +
+          JSON.stringify({
+            responseId: 'response',
+            modelVersion: 'model',
+            candidates: [
+              {
+                index: 0,
+                content: { role: 'model', parts: [{ text: '{"ok":true}' }] },
+                finishReason: 'STOP',
+              },
+            ],
+            usageMetadata: { promptTokenCount: 2, candidatesTokenCount: 1, totalTokenCount: 3 },
+          }) +
+          '\n\n',
+        { headers: { 'content-type': 'text/event-stream' } },
+      );
+    },
+  });
+  const seen: unknown[] = [];
+  const result = await invoke(
+    { id: 'candidate', kind: 'managed', providerId: 'provider', upstreamModelId: 'model' },
+    { ...input(format), stream: true } as unknown as ChatRequest,
+    (delta) => {
+      seen.push(delta);
+    },
+  );
+  assert.equal(result.finishReason, 'stop');
+  assert.equal(result.usage?.total_tokens, 3);
+  assert.ok(JSON.stringify(seen).includes('ok'));
+  assert.deepEqual(
+    (sent[0]?.generationConfig as Record<string, unknown> | undefined)?.responseJsonSchema,
+    expected,
+  );
+});
+
+function invalidGoogleLocalRefSchemas(): Record<string, unknown>[] {
+  const root = { type: 'object' };
+  const validDefs = { Label: { type: 'string' } };
+  return [
+    ...[
+      null,
+      false,
+      [],
+      {},
+      { 'bad/name': { type: 'string' } },
+      { ['a'.repeat(65)]: { type: 'string' } },
+      Object.fromEntries(Array.from({ length: 129 }, (_, i) => [`d${i}`, { type: 'string' }])),
+      { Label: false },
+      { Label: { type: 'string', pattern: 'private' } },
+      { Label: { $ref: '#/$defs/Label' } },
+      { A: { $ref: '#/$defs/B' }, B: { $ref: '#/$defs/A' } },
+      { Unused: { $ref: '#/$defs/missing' } },
+    ].map(($defs) => ({ ...root, $defs })),
+    ...[
+      null,
+      false,
+      7,
+      '',
+      '#',
+      '#/$defs/missing',
+      'https://private.example/schema',
+      'other.json#/$defs/Label',
+      '#/$defs/Label/child',
+      '#/$defs/a~1b',
+      '#/$defs/%4cabel',
+      '#/$defs/constructor',
+    ].map(($ref) => ({ ...root, $defs: validDefs, properties: { label: { $ref } } })),
+    { ...root, properties: { label: { $ref: '#/$defs/Label' } } },
+    ...[
+      { $ref: '#/$defs/Label', type: 'string' },
+      { $ref: '#/$defs/Label', description: 'private' },
+      { $ref: '#/$defs/Label', $id: 'private' },
+      { type: 'object', $defs: validDefs },
+      { type: 'string', $anchor: 'private' },
+    ].map((label) => ({ ...root, $defs: validDefs, properties: { label } })),
+    { ...root, $defs: { A: { type: 'object', properties: { b: { $ref: '#/$defs/A' } } } } },
+    {
+      ...root,
+      $defs: Object.fromEntries(
+        Array.from({ length: 8 }, (_, i) => [
+          `d${i}`,
+          i === 0
+            ? { type: 'string' }
+            : { anyOf: Array.from({ length: 16 }, () => ({ $ref: `#/$defs/d${i - 1}` })) },
+        ]),
+      ),
+    },
+    { ...root, $defs: validDefs, $id: 'https://private.example/' },
+    { $defs: validDefs, $ref: '#/$defs/Label' },
+  ];
+}
+
+test('Gemini local refs reject malformed, cyclic, external and unused definitions before credentials', async () => {
+  const { createDirectGoogleTextStreamInvoker } = await import(
+    '../src/providers/direct-google-stream.ts'
+  );
+  let secrets = 0;
+  let dispatches = 0;
+  const invoke = createDirectGoogleTextStreamInvoker({
+    registrations: [{ providerId: 'provider', kind: 'google', credentialRef: 'secret/reference' }],
+    resolveSecret: async () => {
+      secrets++;
+      return 'fixture-key';
+    },
+    fetcher: async () => {
+      dispatches++;
+      throw new Error('must not dispatch');
+    },
+  });
+  for (const schema of invalidGoogleLocalRefSchemas()) {
+    const format = { type: 'json_schema', json_schema: { name: 'result', strict: false, schema } };
+    for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
+      const f = httpFixture('google');
+      assert.equal((await f.handler(request(path, format))).status, 502);
+      assert.equal(f.secrets(), 0);
+      assert.equal(f.sent.length, 0);
+    }
+    await assert.rejects(() =>
+      invoke(
+        { id: 'candidate', kind: 'managed', providerId: 'provider', upstreamModelId: 'model' },
+        { ...input(format), stream: true } as unknown as ChatRequest,
+        () => {
+          throw new Error('must not emit');
+        },
+      ),
+    );
+  }
+  assert.equal(secrets, 0);
+  assert.equal(dispatches, 0);
+});
+
+test('Gemini local refs enforce expanded depth, traversal budget and exact count limits', async () => {
+  const { validateGoogleResponseSchema: validate } = await import(
+    '../src/providers/google-response-schema.ts'
+  );
+  const format = (schema: Record<string, unknown>) =>
+    ({ type: 'json_schema', json_schema: { name: 'result', strict: false, schema } }) as const;
+  for (const depth of [14, 15]) {
+    const defs: Record<string, unknown> = { d0: { type: 'string' } };
+    for (let i = 1; i <= depth; i++) defs[`d${i}`] = { $ref: `#/$defs/d${i - 1}` };
+    const schema = {
+      type: 'object',
+      $defs: defs,
+      properties: { label: { $ref: `#/$defs/d${depth}` } },
+    };
+    if (depth === 14) assert.doesNotThrow(() => validate(format(schema)));
+    else assert.throws(() => validate(format(schema)));
+  }
+  const smallDefs: Record<string, unknown> = { d0: { type: 'string' } };
+  for (let i = 1; i <= 3; i++)
+    smallDefs[`d${i}`] = {
+      anyOf: Array.from({ length: 16 }, () => ({ $ref: `#/$defs/d${i - 1}` })),
+    };
+  assert.doesNotThrow(() => validate(format({ type: 'object', $defs: smallDefs })));
+  const specialDefs = Object.fromEntries(
+    ['__proto__', 'constructor', 'toString'].map((name) => [name, { type: 'string' }]),
+  );
+  assert.doesNotThrow(() =>
+    validate(
+      format({
+        type: 'object',
+        $defs: specialDefs,
+        properties: { label: { $ref: '#/$defs/__proto__' } },
+      }),
+    ),
+  );
+  const defs: Record<string, unknown> = { d0: { type: 'string' } };
+  for (let i = 1; i <= 7; i++)
+    defs[`d${i}`] = { anyOf: Array.from({ length: 16 }, () => ({ $ref: `#/$defs/d${i - 1}` })) };
+  assert.throws(() => validate(format({ type: 'object', $defs: defs })));
+  assert.doesNotThrow(() =>
+    validate(
+      format({
+        type: 'object',
+        $defs: Object.fromEntries(
+          Array.from({ length: 128 }, (_, i) => [`d${i}`, { type: 'string' }]),
+        ),
+      }),
+    ),
+  );
+  assert.doesNotThrow(() =>
+    validate(
+      format({
+        type: 'object',
+        $defs: { ['a'.repeat(64)]: { type: 'string' } },
+        properties: { x: { $ref: `#/$defs/${'a'.repeat(64)}` } },
+      }),
+    ),
+  );
+  for (const strict of [true, null, undefined]) {
+    const f = googleLocalRefFormat();
+    assert.throws(() =>
+      validate({ ...f, json_schema: { ...f.json_schema, strict } } as unknown as Parameters<
+        typeof validate
+      >[0]),
+    );
+  }
+});
