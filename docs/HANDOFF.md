@@ -274,3 +274,8 @@ The strict:false literal object-root subset additionally transports root-only $d
 ## Gemini array-root schema transport (#596)
 
 Explicit strict:false JSON schemas now also support literal array roots with the same immutable recursive transport, local reference/depth/visit and security/accounting boundaries. Scalar/nullable/untyped roots and strict/tool/Anthropic combinations remain unsupported. No output validation, array-output guarantee or live-model certification. See [plan](plans/596-gemini-array-root.md). Focused244pass; full local check FAILED8,198pass/10fileSIGKILL/oneoptionalPGskip: do not count as a full pass. Exact-head formal approval and all CI remain merge prerequisites. Full #116 and unresolved #7 remain open; #561 untouched. No local Docker/bridge/systemd/live-provider acceptance.
+
+
+## Bounded Gemini scalar-root schemas (#598)
+
+Explicit strict:false schemas additionally accept literal string, number, integer and boolean roots with unchanged recursive keyword/type/reference, expanded depth<=16 and shared20,000-visit bounds. Existing scalar enum/numeric/string-format restrictions apply at the root; schemas remain immutable on nonstream/native text streams. Root null, nullable/type-array and untyped union/reference roots, strict/tool/Anthropic combinations remain unsupported before credentials. This supersedes prior scalar-root-only rejection, not generated-output validation, scalar-output guarantees, satisfiability or live-model certification. IAM/limits/accounting/persistence/privacy and deprecated responseJsonSchema transport remain unchanged; full #116 and unresolved #7 stay open. See [plan](plans/598-gemini-scalar-root.md).
