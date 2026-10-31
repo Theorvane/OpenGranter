@@ -31,6 +31,7 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
             'required',
             'additionalProperties',
             'items',
+            'prefixItems',
             'enum',
             'minimum',
             'maximum',
@@ -86,6 +87,16 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
       node.minItems > node.maxItems
     )
       invalid();
+    if (Object.hasOwn(node, 'prefixItems')) {
+      if (
+        node.type !== 'array' ||
+        !Array.isArray(node.prefixItems) ||
+        node.prefixItems.length === 0 ||
+        node.prefixItems.length > 16
+      )
+        invalid();
+      for (const child of node.prefixItems) visit(child, depth + 1);
+    }
     if (Object.hasOwn(node, 'enum')) {
       const values = node.enum;
       if (
@@ -131,8 +142,10 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
         node.additionalProperties !== undefined
       )
         invalid();
-      if (node.type === 'array') visit(node.items, depth + 1);
-      else if (node.items !== undefined) invalid();
+      if (node.type === 'array') {
+        if (Object.hasOwn(node, 'items') || !Object.hasOwn(node, 'prefixItems'))
+          visit(node.items, depth + 1);
+      } else if (node.items !== undefined) invalid();
     }
   };
   visit(schema, 0);
