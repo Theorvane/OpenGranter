@@ -96,3 +96,7 @@ Continue with the [evaluation guide](docs/guides/evaluate.md) for PostgreSQL che
 Open an issue, write an English implementation plan, use an issue-numbered branch, and submit a pull request. Production-code changes follow red–green–refactor; documentation-only changes run applicable checks. Contributions require a human DCO sign-off and disclosure of material AI assistance. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Repository documentation is written in English. [CLAUDE.md](CLAUDE.md) links to [AGENTS.md](AGENTS.md). Planning interviews use the [grill-with-docs skill](skills/grill-with-docs/SKILL.md), with agreed terminology in [CONTEXT.md](CONTEXT.md); upstream skill licensing is preserved in [skills/LICENSE](skills/LICENSE).
+
+### Service process adapter
+
+For an explicit deployment-owned bootstrap, validated listener settings and bounded signal shutdown, see [running the gateway service](docs/guides/service.md). This is not a turnkey deployment or a built-in quota/secret-manager implementation.
