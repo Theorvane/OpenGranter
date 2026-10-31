@@ -28,10 +28,27 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
             'additionalProperties',
             'items',
             'enum',
+            'minimum',
+            'maximum',
           ].includes(key),
       ) ||
       (node.title !== undefined && typeof node.title !== 'string') ||
       (node.description !== undefined && typeof node.description !== 'string')
+    )
+      invalid();
+    for (const key of ['minimum', 'maximum']) {
+      if (
+        Object.hasOwn(node, key) &&
+        (!['number', 'integer'].includes(node.type) ||
+          typeof node[key] !== 'number' ||
+          !Number.isFinite(node[key]))
+      )
+        invalid();
+    }
+    if (
+      typeof node.minimum === 'number' &&
+      typeof node.maximum === 'number' &&
+      node.minimum > node.maximum
     )
       invalid();
     if (Object.hasOwn(node, 'enum')) {

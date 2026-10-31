@@ -1221,3 +1221,7 @@ Superseding earlier blanket native-schema rejection only for this subset: direct
 ## Bounded Gemini schema enum transport (#574)
 
 Extends [#572](plans/572-gemini-response-schema.md) with exact captured string/finite-number/integer enums, restricted to1..128 unique matching scalars. Other enum node types and malformed lists reject before secrets. Native nonstream/text stream and installed OpenAI SDK sockets share transport; no output enforcement, strict equivalence or live-model certification follows. All prior security/accounting and unsupported-native restrictions remain. See [plan](plans/574-gemini-schema-enums.md) and [contract](../contracts/client-response-formats.md#bounded-gemini-string-and-numeric-enums-574). Full #116 and unresolved #7 stay open.
+
+## Gemini numeric schema transport (#576)
+
+The bounded non-strict object-root subset additionally transports finite minimum/maximum on explicit number/integer nodes without rounding fractional bounds. Ordered/equal/one-sided bounds retain captured JSON values; malformed/inappropriate/reversed bounds reject before secrets. Both bases, installed SDK sockets, native text streams, immutable capture, IAM/limits/persistence and privacy are covered by regressions. This does not enforce generated outputs, certify satisfiability/live-model compatibility or complete #116/#7. See [plan](plans/576-gemini-numeric-schema.md) and [contract](../contracts/client-response-formats.md).
