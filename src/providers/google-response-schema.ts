@@ -28,6 +28,7 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
             'title',
             'description',
             'properties',
+            'propertyOrdering',
             'required',
             'additionalProperties',
             'items',
@@ -127,6 +128,16 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
       const properties = node.properties ?? {};
       if (!record(properties)) invalid();
       for (const child of Object.values(properties)) visit(child, depth + 1);
+      if (Object.hasOwn(node, 'propertyOrdering')) {
+        const order = node.propertyOrdering;
+        if (
+          !Array.isArray(order) ||
+          order.length > 128 ||
+          new Set(order).size !== order.length ||
+          order.some((key: unknown) => typeof key !== 'string' || !Object.hasOwn(properties, key))
+        )
+          invalid();
+      }
       if (node.required !== undefined) {
         if (
           !Array.isArray(node.required) ||
@@ -143,6 +154,7 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
       }
     } else {
       if (
+        Object.hasOwn(node, 'propertyOrdering') ||
         node.properties !== undefined ||
         node.required !== undefined ||
         node.additionalProperties !== undefined
