@@ -8,6 +8,10 @@ jobs:
   container:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        network: [host, bridge]
     services:
       postgres:
         image: postgres:17
@@ -47,6 +51,9 @@ jobs:
           grep -q "Gateway configuration invalid" missing.log
       - name: Start disposable gateway and terminate gracefully
         shell: bash
+        env:
+          CONTAINER_NETWORK_MODE: ${{ matrix.network }}
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
         run: |
           set -euo pipefail
           fixture=$(mktemp -d)
@@ -56,15 +63,24 @@ jobs:
           import { createPostgresConnection } from "/app/src/storage/postgres-connection.ts";
           export function createGatewayPorts() {
             return {
-              openConnection: () => createPostgresConnection({ connectionString: "postgresql://postgres@127.0.0.1:5432/postgres" }),
+              openConnection: () => createPostgresConnection({ connectionString: "postgresql://postgres@" + process.env.PGHOST + ":5432/postgres" }),
               checkLimit: async () => false,
               resolveSecret: async () => { throw new Error("No provider credentials in smoke test"); }
             };
           }
           MODULE
           chmod 644 "$fixture/bootstrap.mjs"
+          network_args=(--network host)
+          pg_host=127.0.0.1
+          if [[ "$CONTAINER_NETWORK_MODE" == bridge ]]; then
+            network=$(docker inspect --format '{{range $name, $config := .NetworkSettings.Networks}}{{$name}}{{end}}' "$POSTGRES_CONTAINER")
+            pg_host=$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$POSTGRES_CONTAINER")
+            test -n "$network"
+            test -n "$pg_host"
+            network_args=(--network "$network" --publish 127.0.0.1:18080:18080 -e OPENGRANTER_HOST=0.0.0.0)
+          fi
           docker run -d --name opengranter-smoke --read-only --cap-drop ALL \
-            --security-opt no-new-privileges --network host \
+            --security-opt no-new-privileges "${network_args[@]}" -e PGHOST="$pg_host" \
             --mount "type=bind,src=$fixture,dst=/bootstrap,readonly" \
             -e OPENGRANTER_BOOTSTRAP_MODULE=/bootstrap/bootstrap.mjs \
             -e OPENGRANTER_PORT=18080 -e OPENGRANTER_SHUTDOWN_MS=30000 opengranter:test
