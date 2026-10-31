@@ -1663,3 +1663,10 @@ See [plan](plans/556-ai-sdk-image-tools.md), [contract](../contracts/ai-sdk-clie
 - Actual pinned OpenAI/OpenRouter/AI SDK clients on both bases/all four routes/text-function modes receive the expected JSON status/header with retries disabled and one provider attempt. No new retry/sleep, exact provider cause/date/402 parity, pin/dependency/storage change or complete #116 claim; Jev #7 stays unresolved.
 
 See [plan](plans/558-prestream-errors.md) and [contract](../contracts/openrouter-error-schema.md#pre-stream-observed-status-and-retry-hints-558).
+
+## Gateway service entrypoint (#564)
+
+- Validate configuration before import; reject missing factories or required connection/secret/limit ports with fixed diagnostics.
+- Start the persisted dual-route socket with unchanged authentication; signal-triggered draining closes the database. Override executable-owned listener/clock/IDs after bootstrap.
+- Signals during bootstrap/startup stop subsequent work where possible; late runtimes close once. Repeated signals do not reset the deadline. Hung startup/close exits nonzero at deadline with no raw errors.
+- No permissive quota default, SSO listener or production-readiness claim. See [plan](plans/564-service-entrypoint.md) and [contract](../contracts/gateway-service.md).
