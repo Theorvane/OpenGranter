@@ -19,10 +19,11 @@ export function parseRetryAfterSeconds(value: string | null, now = Date.now()): 
     const currentYear = cutoff.getUTCFullYear();
     if (currentYear < 1601 || currentYear > 9999) return undefined;
     cutoff.setUTCFullYear(currentYear + 50);
+    const weekday = value.slice(0, 3);
     const tail = value.slice(value.indexOf(',') + 2);
     let year = Math.floor((currentYear + 50) / 100) * 100 + Number(tail.slice(7, 9));
     const canonical = (resolvedYear: number) =>
-      `${value.slice(0, 3)}, ${tail.slice(0, 2)} ${tail.slice(3, 6)} ${resolvedYear} ${tail.slice(10)}`;
+      `${weekday}, ${tail.slice(0, 2)} ${tail.slice(3, 6)} ${resolvedYear} ${tail.slice(10)}`;
     if (Date.parse(canonical(year)) > cutoff.getTime()) year -= 100;
     if (year < 1601 || year > 9999) return undefined;
     value = canonical(year);
