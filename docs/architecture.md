@@ -1398,3 +1398,7 @@ Explicit strict:false transport additionally accepts $anchor on direct root-$def
 ### Canonical HTTP-date retry capture (#620)
 
 The shared retry parser optionally receives a millisecond wall-clock instant (default Date.now), shape-checks canonical IMF-fixdate, requires exact UTC round-trip and converts to nonnegative ceiling-rounded seconds. All adapters retain existing observed429/503 capture and coordinator revalidation. Delay is not recalculated after persistence; upstream Date never overrides the local clock. Numeric validation, status/usage/audit/IAM/privacy and post-frame isolation remain unchanged. No new dependency, storage field, retry or irreversible domain decision. See [plan](plans/620-http-date-retry.md).
+
+## Asctime normalization (#622)
+
+The shared Retry-After parser recognizes the fixed24-character RFC9110 asctime grammar, converts its implicit UTC and either permitted day form to IMF-fixdate, then reuses exact weekday/calendar/year1601..9999 validation and capture-time ceiling normalization. No generic local-time parse, upstream Date skew correction, new status/fallback/retry behavior, persistence fields, dependencies or source pins. RFC850 and full HTTP-date remain unsupported. Existing privacy, required handoffs and post-frame isolation are unchanged. See [plan](plans/622-asctime-retry.md).

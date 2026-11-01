@@ -1,5 +1,12 @@
 # OpenGranter agent handoff
 
+## Execution update: 2026-11-01 16:00 KST
+
+Reverified #567 MERGED at6798ed0e729c5cedbd326747c5d4c1498b08a979 with exact-head approval/all five CI successes; #566 is closed. #621 exact770c34e1397f77d92078d169430bc63ae551737f received formal sjungwon03-ai approval and all seven CI successes, then normal match-head squash merged at2026-11-01T07:00:15Z as9b13cdb9572dda085b994be841607d884c8209d7; #620 is CLOSED. Author-side #620 typecheck termination remains a failure, not overwritten by independent review/CI success.
+
+Next bounded #116 slice is #622 asctime retry hints, from the explicitly remaining HTTP-date gap, not new routing/product scope. See [plan](plans/622-asctime-retry.md). Issue/plan preceded tests/source; new red79cases21PASS58FAIL, focused425PASS0FAIL0SKIP. Standard local check FAILED137 during typecheck (Killed), not a local typecheck/full-check pass; separate lint/docs/sixpins/diffcheck passed. Exact-head approval/all CI required before merge. Default gh identity and #561 are untouched. Full #116, unresolved #7 and local Docker/bridge/systemd/live-provider acceptance remain open.
+
+
 ## Current continuation checkpoint (#620)
 
 PR #619 received exact-head GitHub approval on1aa232b00d66d946d8192270513f97c6ec10606a and all seven CI successes, then merged as fe9812813870156b2c79eda4ab6e0988454245e3; #618 is closed. Issue #620 implements the existing #116 canonical HTTP-date retry-hint gap, not speculative Gemini partial argument APIs. See [plan](plans/620-http-date-retry.md). New date/hint/status/SDK tests pass566 cases; the standard full local check was killed during typecheck and is NOT a pass. Require exact-head CI and formal GitHub approval. Shared default gh identity and #561 remain untouched; local deployment/live-provider acceptance, full #116 and unresolved #7 remain open.

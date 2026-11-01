@@ -1,9 +1,20 @@
-/** Bounded delta-seconds or canonical IMF-fixdate, normalized at rejection capture. */
+/** Bounded delta-seconds, IMF-fixdate or asctime HTTP-date, normalized at rejection capture. */
 export function parseRetryAfterSeconds(value: string | null, now = Date.now()): number | undefined {
   if (value === null) return undefined;
   if (value.length <= 16 && /^[0-9]+$/u.test(value)) {
     const seconds = Number(value);
     return validRetryAfterSeconds(seconds) ? seconds : undefined;
+  }
+  // RFC9110 asctime-date has an implicit UTC zone and a fixed 24-character shape.
+  // Normalize only that grammar; the shared round-trip below still validates its calendar.
+  if (
+    value.length === 24 &&
+    /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) ([0-9]{2}| [0-9]) [0-9]{2}:[0-9]{2}:[0-9]{2} [0-9]{4}$/u.test(
+      value,
+    )
+  ) {
+    const day = value.slice(8, 10).replace(' ', '0');
+    value = `${value.slice(0, 3)}, ${day} ${value.slice(4, 7)} ${value.slice(20)} ${value.slice(11, 19)} GMT`;
   }
   if (
     value.length !== 29 ||
