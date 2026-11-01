@@ -44,7 +44,7 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
       const anchor = node.$anchor;
       if (
         typeof anchor !== 'string' ||
-        !/^[A-Za-z_][A-Za-z0-9_-]{0,63}$/.test(anchor) ||
+        !/^[A-Za-z_][A-Za-z0-9_.-]{0,63}$/.test(anchor) ||
         anchors.has(anchor)
       )
         invalid();
@@ -67,7 +67,7 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
             !(key === '$defs' && node === schema),
         ) ||
         typeof ref !== 'string' ||
-        !/^#(?:\/\$defs\/)?[A-Za-z_][A-Za-z0-9_-]{0,63}$/.test(ref) ||
+        !/^#(?:\/\$defs\/[A-Za-z_][A-Za-z0-9_-]{0,63}|[A-Za-z_][A-Za-z0-9_.-]{0,63})$/.test(ref) ||
         !record(definitions)
       )
         invalid();

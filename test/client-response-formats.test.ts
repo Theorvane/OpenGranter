@@ -5587,18 +5587,26 @@ test('Gemini null-root transport does not validate or force generated null outpu
   }
 });
 
-function googleAnchorFormat(_type: string, chained = false, alias = false) {
+function googleAnchorFormat(
+  _type: string,
+  chained = false,
+  mode: boolean | 'dotted' | 'dottedAlias' = false,
+) {
+  const dotted = typeof mode === 'string';
+  const alias = mode === true || mode === 'dottedAlias';
+  const answer = dotted ? 'Answer.v1' : 'Answer';
+  const aliasName = dotted ? 'Alias.v1' : 'Alias';
   const schema = {
-    $ref: chained ? '#/$defs/Wrapper' : alias ? '#Alias' : '#Answer',
+    $ref: chained ? '#/$defs/Wrapper' : alias ? '#' + aliasName : '#' + answer,
     $defs: {
       Payload: {
-        $anchor: 'Answer',
+        $anchor: answer,
         type: 'object',
         properties: { ok: { type: 'boolean' } },
         required: ['ok'],
       },
-      ...(alias ? { AliasDef: { $anchor: 'Alias', $ref: '#Answer' } } : {}),
-      ...(chained ? { Wrapper: { $ref: alias ? '#Alias' : '#Answer' } } : {}),
+      ...(alias ? { AliasDef: { $anchor: aliasName, $ref: '#' + answer } } : {}),
+      ...(chained ? { Wrapper: { $ref: alias ? '#' + aliasName : '#' + answer } } : {}),
     },
   };
   return { type: 'json_schema', json_schema: { name: 'result', strict: false, schema } } as const;
@@ -5606,7 +5614,7 @@ function googleAnchorFormat(_type: string, chained = false, alias = false) {
 function anchorOutput(_type: string, _chained: boolean) {
   return '{"ok":true}';
 }
-for (const alias of [false, true])
+for (const alias of [false, true, 'dotted', 'dottedAlias'] as const)
   for (const withDefs of [false, true])
     for (const type of ['object']) {
       test(
@@ -6172,6 +6180,125 @@ test('Gemini anchored aliases retain canonical cycles, unused checks and exact d
         );
     }
   }
+  assert.equal(secrets, 0);
+  assert.equal(sends, 0);
+});
+
+test('Gemini dotted anchors retain literal identity, canonical cycles and bounded pre-secret rejection', async () => {
+  const { validateGoogleResponseSchema: validate } = await import(
+    '../src/providers/google-response-schema.ts'
+  );
+  const { createDirectGoogleTextStreamInvoker } = await import(
+    '../src/providers/direct-google-stream.ts'
+  );
+  const wrap = (schema: Record<string, unknown>) =>
+    ({ type: 'json_schema', json_schema: { name: 'result', strict: false, schema } }) as const;
+  for (const name of ['a.b', 'a..b', 'a.', '_' + '.'.repeat(63)]) {
+    assert.doesNotThrow(() =>
+      validate(wrap({ $ref: '#' + name, $defs: { Target: { $anchor: name, type: 'null' } } })),
+    );
+  }
+  assert.doesNotThrow(() =>
+    validate(
+      wrap({
+        type: 'array',
+        items: { anyOf: [{ $ref: '#a.b' }, { $ref: '#a_b' }] },
+        $defs: { A: { $anchor: 'a.b', type: 'null' }, B: { $anchor: 'a_b', type: 'string' } },
+      }),
+    ),
+  );
+  const invalid = [
+    ...[
+      '.a',
+      'a' + '.'.repeat(64),
+      'a/b',
+      'a%2Eb',
+      'a:b',
+      'a#b',
+      'a b',
+      'a~b',
+      'aé',
+      '',
+      null,
+      1,
+    ].map(($anchor) => ({ type: 'null', $defs: { A: { $anchor, type: 'null' } } })),
+    { $ref: '#a.b', $defs: { A: { $anchor: 'a_b', type: 'null' } } },
+    { $ref: '#a%2Eb', $defs: { A: { $anchor: 'a.b', type: 'null' } } },
+    { $ref: '#/$defs/a.b', $defs: { 'a.b': { type: 'null' } } },
+    {
+      type: 'null',
+      $defs: { A: { $anchor: 'a.b', type: 'null' }, B: { $anchor: 'a.b', type: 'string' } },
+    },
+    { type: 'null', $defs: { A: { $anchor: 'a.b', $ref: '#a.b' } } },
+    { type: 'null', $defs: { A: { $anchor: 'a.b', $ref: '#/$defs/B' }, B: { $ref: '#a.b' } } },
+    { type: 'null', $anchor: 'a.b' },
+    { type: 'array', items: { $anchor: 'a.b', type: 'null' } },
+  ];
+  let secrets = 0;
+  let sends = 0;
+  const stream = createDirectGoogleTextStreamInvoker({
+    registrations: [{ providerId: 'provider', kind: 'google', credentialRef: 'secret/reference' }],
+    resolveSecret: async () => {
+      secrets++;
+      return 'fixture-key';
+    },
+    fetcher: async () => {
+      sends++;
+      throw new Error('unexpected');
+    },
+  });
+  const candidate = {
+    id: 'candidate',
+    kind: 'managed',
+    providerId: 'provider',
+    upstreamModelId: 'model',
+  } as const;
+  for (const schema of invalid) {
+    const format = wrap(schema);
+    assert.throws(() => validate(format));
+    for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
+      const f = httpFixture('google');
+      const response = await f.handler(request(path, format));
+      assert.equal(response.status, 502);
+      assert.equal(f.secrets(), 0);
+      assert.equal(f.sent.length, 0);
+      assert.equal(f.usage.length, 0);
+      assert.doesNotMatch(
+        JSON.stringify([await response.text(), f.audits]),
+        /fixture-key|a%2Eb|a\.b/u,
+      );
+    }
+    await assert.rejects(
+      stream(candidate, { ...input(format), stream: true } as unknown as ChatRequest, () => {}),
+    );
+  }
+  for (const mode of ['dotted', 'dottedAlias'] as const)
+    for (const controls of [
+      { strict: true },
+      { strict: null },
+      { strict: undefined },
+      { tools: [] },
+      { tool_choice: 'none' },
+      { parallel_tool_calls: true },
+    ]) {
+      const base = googleAnchorFormat('object', true, mode);
+      const format = Object.hasOwn(controls, 'strict')
+        ? { ...base, json_schema: { ...base.json_schema, strict: controls.strict } }
+        : base;
+      for (const kind of ['google', 'anthropic'] as const) {
+        const a = adapter(kind);
+        await assert.rejects(a.call({ ...input(format), ...controls } as unknown as ChatRequest));
+        assert.equal(a.secrets(), 0);
+        assert.equal(a.sent.length, 0);
+      }
+      await assert.rejects(
+        stream(
+          candidate,
+          { ...input(format), ...controls, stream: true } as unknown as ChatRequest,
+          () => {},
+        ),
+      );
+    }
   assert.equal(secrets, 0);
   assert.equal(sends, 0);
 });
