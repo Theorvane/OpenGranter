@@ -6899,3 +6899,128 @@ test('Gemini numeric definition names retain literal identity and bounded pre-se
   assert.equal(secrets, 0);
   assert.equal(sends, 0);
 });
+
+const schemaLineTerminators = [
+  ['LF', '\n'],
+  ['CR', '\r'],
+  ['CRLF', '\r\n'],
+  ['line separator', '\u2028'],
+  ['paragraph separator', '\u2029'],
+] as const;
+for (const [label, suffix] of schemaLineTerminators) {
+  const name = 'PrivateIdentifier' + suffix;
+  const schemas: Record<string, Record<string, unknown>> = {
+    'root anchor': { type: 'null', $anchor: name },
+    'definition anchor': { type: 'null', $defs: { Entry: { type: 'null', $anchor: name } } },
+    'alias anchor': {
+      type: 'null',
+      $defs: { Alias: { $anchor: name, $ref: '#/$defs/Entry' }, Entry: { type: 'null' } },
+    },
+    'unused definition key': { type: 'null', $defs: { [name]: { type: 'null' } } },
+    'overlength definition key': {
+      type: 'null',
+      $defs: { ['A'.repeat(64) + suffix]: { type: 'null' } },
+    },
+    'pointer reference': {
+      $ref: '#/$defs/' + name,
+      $defs: { PrivateIdentifier: { type: 'null' } },
+    },
+    'anchor reference': {
+      $ref: '#' + name,
+      $defs: { Entry: { type: 'null', $anchor: 'PrivateIdentifier' } },
+    },
+    'matching key and pointer': { $ref: '#/$defs/' + name, $defs: { [name]: { type: 'null' } } },
+    'matching anchor and reference': {
+      $ref: '#' + name,
+      $defs: { Entry: { type: 'null', $anchor: name } },
+    },
+  };
+  for (const [position, schema] of Object.entries(schemas))
+    test(`Gemini exact identifier boundary rejects ${label} in ${position}`, async () => {
+      const { validateGoogleResponseSchema: validate } = await import(
+        '../src/providers/google-response-schema.ts'
+      );
+      const { createDirectGoogleTextStreamInvoker } = await import(
+        '../src/providers/direct-google-stream.ts'
+      );
+      const format = {
+        type: 'json_schema',
+        json_schema: { name: 'result', strict: false, schema },
+      } as const;
+      const before = structuredClone(format);
+      assert.throws(() => validate(format));
+      for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
+        const f = httpFixture('google');
+        const response = await f.handler(request(path, format));
+        assert.equal(response.status, 502);
+        assert.equal(f.secrets(), 0);
+        assert.equal(f.sent.length, 0);
+        assert.equal(f.usage.length, 0);
+        assert.doesNotMatch(
+          JSON.stringify([await response.text(), f.audits]),
+          /PrivateIdentifier|fixture-key/u,
+        );
+      }
+      let secrets = 0;
+      let sends = 0;
+      const invoke = createDirectGoogleTextStreamInvoker({
+        registrations: [
+          { providerId: 'provider', kind: 'google', credentialRef: 'secret/reference' },
+        ],
+        resolveSecret: async () => {
+          secrets++;
+          return 'fixture-key';
+        },
+        fetcher: async () => {
+          sends++;
+          throw new Error('Unexpected transport');
+        },
+      });
+      await assert.rejects(
+        invoke(
+          { id: 'candidate', kind: 'managed', providerId: 'provider', upstreamModelId: 'model' },
+          { ...input(format), stream: true } as unknown as ChatRequest,
+          () => {},
+        ),
+      );
+      assert.equal(secrets, 0);
+      assert.equal(sends, 0);
+      assert.deepEqual(format, before);
+    });
+}
+
+test('Gemini exact identifier boundary accepts immutable 64-character controls', async () => {
+  const { validateGoogleResponseSchema: validate } = await import(
+    '../src/providers/google-response-schema.ts'
+  );
+  const name = 'A'.repeat(64);
+  for (const schema of [
+    { type: 'null', $anchor: name },
+    { type: 'null', $defs: { Entry: { type: 'null', $anchor: name } } },
+    { type: 'null', $defs: { [name]: { type: 'null' } } },
+    { $ref: '#/$defs/' + name, $defs: { [name]: { type: 'null' } } },
+    { $ref: '#' + name, $defs: { Entry: { type: 'null', $anchor: name } } },
+    {
+      $ref: '#' + name,
+      $defs: { Alias: { $anchor: name, $ref: '#/$defs/Entry' }, Entry: { type: 'null' } },
+    },
+  ]) {
+    const format = {
+      type: 'json_schema',
+      json_schema: { name: 'result', strict: false, schema },
+    } as const;
+    const before = structuredClone(format);
+    validate(format);
+    for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
+      const f = httpFixture('google');
+      assert.equal((await f.handler(request(path, format))).status, 200);
+      assert.equal(f.secrets(), 1);
+      assert.equal(f.usage.length, 1);
+      assert.deepEqual(
+        (f.sent[0]?.generationConfig as Record<string, unknown> | undefined)?.responseJsonSchema,
+        schema,
+      );
+    }
+    assert.deepEqual(format, before);
+  }
+});
