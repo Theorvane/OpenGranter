@@ -1167,3 +1167,8 @@ The strict:false literal object-root subset additionally transports root-only $d
 ## Bounded Gemini literal null-root transport (#606)
 
 Explicit strict:false response schemas may use literal type:null roots, retaining existing recursive keyword restrictions, root-only definition validation, local-reference/depth/shared-budget bounds and immutable capture. No output validation or forced-null output is performed. Strict/tool/Anthropic combinations remain pre-secret unsupported; full #116 and unresolved #7 stay open. No live-provider or operational certification. See [plan](plans/606-gemini-null-root.md) and [contract](../contracts/client-response-formats.md).
+
+
+## Bounded Gemini definition-local anchors (#608)
+
+Explicit strict:false transport additionally accepts unique 1..64 ASCII $anchor names only on direct root-$defs entries and local #name references to those entries. Pointer and anchor references share canonical definition identity for cycle checks. All unused definitions, expanded depth<=16, shared20,000-visit and 128-definition bounds remain enforced; captured schemas pass unchanged on nonstream/native text streams. Root/nested anchors, anchors on reference nodes, $id, malformed/duplicate/dangling/external/escaped references and strict/tool/Anthropic combinations remain pre-secret failures. No URI fetching, generated-output validation, satisfiability, equivalence or live-model certification. IAM/limits/accounting/persistence/privacy and deprecated responseJsonSchema transport remain unchanged. This supersedes only earlier anchor-only exclusions; full #116 and unresolved #7 remain open. See [plan](plans/608-gemini-definition-anchors.md).
