@@ -1177,3 +1177,7 @@ Explicit strict:false transport additionally accepts unique 1..64 ASCII $anchor 
 ## Bounded Gemini anchored definition aliases (#610)
 
 Explicit strict:false transport additionally accepts $anchor on direct root-$defs entries containing $ref, enabling named local aliases through existing pointer/anchor resolution. Canonical mixed-alias cycle detection, all unused definitions and expanded depth<=16/shared20,000-visit/128-definition bounds remain enforced. Captured schemas pass unchanged on nonstream/native text streams. Arbitrary reference siblings, root/nested anchors, $id, remote/dangling/malformed references and strict/tool/Anthropic combinations remain pre-secret failures. This supersedes only reference-entry-anchor rejection, not generated-output validation, satisfiability, equivalence or live-provider certification. IAM/limits/accounting/persistence/privacy and deprecated responseJsonSchema transport remain unchanged; full #116 and unresolved #7 stay open. See [plan](plans/610-gemini-anchored-aliases.md).
+
+### Canonical retry date transport (#620)
+
+For existing eligible upstream429/503 failures, normalize canonical IMF-fixdate Retry-After to advisory nonnegative integer seconds at rejection capture using the local wall clock. Preserve existing numeric hints and all required persistence/security/no-replay gates. No retries, upstream clock correction, raw date forwarding, obsolete-date/full-RFC or complete compatibility claim. See [plan](plans/620-http-date-retry.md).
