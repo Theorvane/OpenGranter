@@ -1,5 +1,12 @@
 # OpenGranter agent handoff
 
+## Limited release checkpoint (#633)
+
+PR #632 exact5b409bf4fc241ef69aa4e4e0551540ee17209cf5 received formal approval and all seven CI successes, then normal match-head squash merged as6a81b64bb977f9e5d2da71248de2f180a53c0195; #631 is closed. #567/#566 remain merged/closed. The user limited remaining work to one bridge deployment and one real-client/provider acceptance, IAM/limits/privacy/audit/usage checks and an honest support/handoff table. No broader provider, systemd or Jev scope is added.
+
+Issue #633 addresses the missing gateway restart/persisted catalog/history CI check and adds the [operator acceptance checklist](guides/limited-bridge-acceptance.md); see [plan](plans/633-bridge-restart-acceptance.md). Local Docker is unavailable; no live provider credentials are saved. CI startup/restart is not installed-host, database-volume recovery, authorized readiness or live E2E certification. Require exact-head CI and independent formal approval; overall task/routine remain open. #561 stays untouched.
+
+
 ## Execution update: 2026-11-01 16:00 KST
 
 Reverified #567 MERGED at6798ed0e729c5cedbd326747c5d4c1498b08a979 with exact-head approval/all five CI successes; #566 is closed. #621 exact770c34e1397f77d92078d169430bc63ae551737f received formal sjungwon03-ai approval and all seven CI successes, then normal match-head squash merged at2026-11-01T07:00:15Z as9b13cdb9572dda085b994be841607d884c8209d7; #620 is CLOSED. Author-side #620 typecheck termination remains a failure, not overwritten by independent review/CI success.

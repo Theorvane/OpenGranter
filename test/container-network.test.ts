@@ -19,3 +19,21 @@ test('container CI covers host and explicit bridge networking', async () => {
   ])
     assert.ok(text.includes(value), value);
 });
+
+test('container CI checks persisted catalog and migration history across restart', async () => {
+  const text = await readFile(
+    new URL('../.github/workflows/container.yml', import.meta.url),
+    'utf8',
+  );
+  for (const value of [
+    'INSERT INTO catalog_models',
+    'restart-probe',
+    'schema_migrations ORDER BY version',
+    'migration_history_before',
+    'migration_history_after',
+    'docker start opengranter-smoke',
+    'for phase in initial restarted',
+    'persisted_model',
+  ])
+    assert.ok(text.includes(value), value);
+});
