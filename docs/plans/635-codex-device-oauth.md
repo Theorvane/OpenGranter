@@ -69,3 +69,9 @@ Observed RED: the asynchronous-validation cancellation regression rejected the o
 3. Record RED, minimally check both personal-default paths, then run focused tests, lint and planning checks. Fresh exact-head CI and independent approval remain mandatory.
 
 Observed RED: with disposable process HOME and a differing API env.HOME, login unexpectedly succeeded and launched the fixture (12 pass / 1 fail). Added one process-home denial check while retaining supplied-home denial. GREEN: 13/13 focused tests on Node22.23.4; focused Biome (two informational style suggestions), planning and diff checks pass. Logs: /tmp/og-0430-codex-red.log and /tmp/og-0430-codex-green.log. No real credentials touched. Full local resource failures and live-acceptance gaps above remain; new exact-head CI and formal approval are pending.
+
+## Main integration (2026-11-02 05:00 Asia/Seoul)
+
+1. GitHub reported DIRTY after main advanced through #649; merge-tree reproduced one acceptance-addenda conflict.
+2. Merge main without changing either runtime implementation. Retain both the Codex authentication-only addendum and the management presentation/DOM addenda; do not certify session, inference or installed acceptance.
+3. Rerun auth, boundary/native-browser and packaging regressions, planning validation and whitespace checks, then require fresh exact-head full CI and independent formal approval. Prior b683ca8 CI passed all 8927 tests but is not evidence for the integrated HEAD.
