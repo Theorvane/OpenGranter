@@ -3444,7 +3444,7 @@ function invalidGoogleLocalRefSchemas(): Record<string, unknown>[] {
       false,
       [],
       {},
-      { 'bad/name': { type: 'string' } },
+      { 'bad%name': { type: 'string' } },
       { ['a'.repeat(65)]: { type: 'string' } },
       Object.fromEntries(Array.from({ length: 129 }, (_, i) => [`d${i}`, { type: 'string' }])),
       { Label: false },
@@ -5587,11 +5587,20 @@ function googleAnchorFormat(
     | 'dottedKey'
     | 'dottedKeyAlias'
     | 'rootId'
+    | 'escapedKey'
+    | 'escapedKeyAlias'
     | 'rootAnchor' = false,
 ) {
   const dotted = typeof mode === 'string';
-  const alias = mode === true || mode === 'dottedAlias' || mode === 'dottedKeyAlias';
-  const dottedKey = mode === 'dottedKey' || mode === 'dottedKeyAlias';
+  const alias =
+    mode === true ||
+    mode === 'dottedAlias' ||
+    mode === 'dottedKeyAlias' ||
+    mode === 'escapedKeyAlias';
+  const escapedKey = mode === 'escapedKey' || mode === 'escapedKeyAlias';
+  const dottedKey = mode === 'dottedKey' || mode === 'dottedKeyAlias' || escapedKey;
+  const definitionKey = escapedKey ? 'Payload/~v1' : 'Payload.v1';
+  const pointer = escapedKey ? '#/$defs/Payload~1~0v1' : '#/$defs/Payload.v1';
   const answer = dotted ? 'Answer.v1' : 'Answer';
   const aliasName = dotted ? 'Alias.v1' : 'Alias';
   const schema = {
@@ -5602,7 +5611,7 @@ function googleAnchorFormat(
       : alias
         ? '#' + aliasName
         : dottedKey
-          ? '#/$defs/Payload.v1'
+          ? pointer
           : '#' + answer,
     $defs: {
       Payload: {
@@ -5611,16 +5620,16 @@ function googleAnchorFormat(
         properties: { ok: { type: 'boolean' } },
         required: ['ok'],
       },
-      ...(dottedKey ? { 'Payload.v1': { $ref: '#' + answer } } : {}),
+      ...(dottedKey ? { [definitionKey]: { $ref: '#' + answer } } : {}),
       ...(alias
         ? {
-            AliasDef: { $anchor: aliasName, $ref: dottedKey ? '#/$defs/Payload.v1' : '#' + answer },
+            AliasDef: { $anchor: aliasName, $ref: dottedKey ? pointer : '#' + answer },
           }
         : {}),
       ...(chained
         ? {
             Wrapper: {
-              $ref: alias ? '#' + aliasName : dottedKey ? '#/$defs/Payload.v1' : '#' + answer,
+              $ref: alias ? '#' + aliasName : dottedKey ? pointer : '#' + answer,
             },
           }
         : {}),
@@ -5640,6 +5649,8 @@ for (const alias of [
   'dottedKeyAlias',
   'rootId',
   'rootAnchor',
+  'escapedKey',
+  'escapedKeyAlias',
 ] as const)
   for (const withDefs of [false, true])
     for (const type of ['object']) {
@@ -6300,6 +6311,8 @@ test('Gemini dotted anchors retain literal identity, canonical cycles and bounde
     'dottedKeyAlias',
     'rootId',
     'rootAnchor',
+    'escapedKey',
+    'escapedKeyAlias',
   ] as const)
     for (const controls of [
       { strict: true },
@@ -6373,7 +6386,7 @@ test('Gemini dotted definition keys retain literal pointers, canonical cycles an
   expansion['d.5'] = { anyOf: Array.from({ length: 8 }, () => ({ $ref: '#/$defs/d.4' })) };
   assert.throws(() => validate(wrap({ type: 'null', $defs: expansion })));
   const invalid: Record<string, unknown>[] = [
-    ...['.a', '1.a', 'a' + '.'.repeat(64), 'a/b', 'a~b', 'a%2Eb', 'a b', 'aé', ''].map((name) => ({
+    ...['.a', '1.a', 'a' + '.'.repeat(64), '/ab', '~ab', 'a%2Eb', 'a b', 'aé', ''].map((name) => ({
       type: 'null',
       $defs: { [name]: { type: 'null' } },
     })),
@@ -6654,4 +6667,118 @@ test('Gemini root anchors preserve bounded immutable metadata without recursive 
   validate(wrap({ $anchor: 'Root', type: 'null', $defs: expansion }));
   expansion.d5 = { anyOf: Array.from({ length: 8 }, () => ({ $ref: '#/$defs/d4' })) };
   assert.throws(() => validate(wrap({ $anchor: 'Root', type: 'null', $defs: expansion })));
+});
+
+test('Gemini escaped definition pointers decode once with canonical cycles and bounded resources', async () => {
+  const { validateGoogleResponseSchema: validate } = await import(
+    '../src/providers/google-response-schema.ts'
+  );
+  const wrap = (schema: Record<string, unknown>) =>
+    ({ type: 'json_schema', json_schema: { name: 'result', strict: false, schema } }) as const;
+  const encode = (name: string) => name.replaceAll('~', '~0').replaceAll('/', '~1');
+  for (const name of [
+    'a/b',
+    'a~b',
+    'a/~b',
+    'a~1b',
+    'a~01b',
+    'a//b',
+    'a' + '/'.repeat(63),
+    'a' + '~'.repeat(63),
+  ]) {
+    const schema = { $ref: '#/$defs/' + encode(name), $defs: { [name]: { type: 'null' } } };
+    const before = structuredClone(schema);
+    validate(wrap(schema));
+    assert.deepEqual(schema, before);
+    validate(wrap({ $ref: '#Alias', $defs: { [name]: { $anchor: 'Alias', type: 'string' } } }));
+  }
+  validate(wrap({ $ref: '#/$defs/a~01b', $defs: { 'a~1b': { type: 'null' } } }));
+  validate(
+    wrap({ $ref: '#/$defs/a~1b', $defs: { 'a/b': { type: 'null' }, 'a~1b': { type: 'string' } } }),
+  );
+  const chain = (count: number) => {
+    const defs: Record<string, unknown> = { 'd/0': { type: 'null' } };
+    for (let i = 1; i < count; i++) defs['d/' + i] = { $ref: '#/$defs/d~1' + (i - 1) };
+    return wrap({ $ref: '#/$defs/d~1' + (count - 1), $defs: defs });
+  };
+  validate(chain(16));
+  assert.throws(() => validate(chain(17)));
+  const expansion: Record<string, unknown> = { 'd/0': { type: 'null' } };
+  for (let i = 1; i < 5; i++)
+    expansion['d/' + i] = {
+      anyOf: Array.from({ length: 8 }, () => ({ $ref: '#/$defs/d~1' + (i - 1) })),
+    };
+  validate(wrap({ type: 'null', $defs: expansion }));
+  expansion['d/5'] = { anyOf: Array.from({ length: 8 }, () => ({ $ref: '#/$defs/d~14' })) };
+  assert.throws(() => validate(wrap({ type: 'null', $defs: expansion })));
+  for (const count of [128, 129]) {
+    const schema = wrap({
+      type: 'null',
+      $defs: Object.fromEntries(
+        Array.from({ length: count }, (_, i) => ['d/' + i, { type: 'null' }]),
+      ),
+    });
+    if (count === 128) validate(schema);
+    else assert.throws(() => validate(schema));
+  }
+  const invalid: Record<string, unknown>[] = [
+    ...['a/b', 'a~b', 'a~2b', 'a~', 'a%2Fb', 'a~1b/child', 'a~1missing'].map((token) => ({
+      $ref: '#/$defs/' + token,
+      $defs: { 'a/b': { type: 'null' } },
+    })),
+    ...['/a', '~a', 'a' + '/'.repeat(64), 'a%2Fb', 'a b', 'aé'].map((name) => ({
+      type: 'null',
+      $defs: { [name]: { type: 'null' } },
+    })),
+    { $ref: '#/$defs/a~01b', $defs: { 'a/b': { type: 'null' } } },
+    { type: 'null', $defs: { 'a/b': { $anchor: 'Alias', $ref: '#/$defs/a~1b' } } },
+    {
+      type: 'null',
+      $defs: { 'a/b': { $anchor: 'Alias', $ref: '#/$defs/a~0b' }, 'a~b': { $ref: '#Alias' } },
+    },
+    { type: 'null', $defs: { 'a/b': { type: 'string', pattern: 'private' } } },
+    { type: 'null', $defs: { 'a/b': { $ref: '#/$defs/missing' } } },
+    { type: 'null', $defs: { 'a/b': { type: 'null', $defs: { nested: { type: 'null' } } } } },
+    { $ref: 'https://example.invalid/#/$defs/a~1b', $defs: { 'a/b': { type: 'null' } } },
+  ];
+  const { createDirectGoogleTextStreamInvoker } = await import(
+    '../src/providers/direct-google-stream.ts'
+  );
+  let secrets = 0;
+  let sends = 0;
+  const stream = createDirectGoogleTextStreamInvoker({
+    registrations: [{ providerId: 'provider', kind: 'google', credentialRef: 'secret/reference' }],
+    resolveSecret: async () => {
+      secrets++;
+      return 'fixture-key';
+    },
+    fetcher: async () => {
+      sends++;
+      throw new Error('unexpected');
+    },
+  });
+  for (const schema of invalid) {
+    assert.throws(() => validate(wrap(schema)));
+    for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
+      const f = httpFixture('google');
+      const response = await f.handler(request(path, wrap(schema)));
+      assert.equal(response.status, 502);
+      assert.equal(f.secrets(), 0);
+      assert.equal(f.sent.length, 0);
+      assert.equal(f.usage.length, 0);
+      assert.doesNotMatch(
+        JSON.stringify([await response.text(), f.audits]),
+        /fixture-key|a~1b|a\/b/u,
+      );
+    }
+    await assert.rejects(
+      stream(
+        { id: 'candidate', kind: 'managed', providerId: 'provider', upstreamModelId: 'model' },
+        { ...input(wrap(schema)), stream: true } as unknown as ChatRequest,
+        () => {},
+      ),
+    );
+  }
+  assert.equal(secrets, 0);
+  assert.equal(sends, 0);
 });

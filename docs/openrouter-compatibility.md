@@ -1335,3 +1335,8 @@ Exact24-character asctime-date now joins canonical IMF-fixdate and numeric Retry
 ## Bounded RFC850 retry capture (#624)
 
 Exact RFC850 joins numeric, IMF-fixdate and asctime retry hints; full weekday/calendar validation and capture-clock rolling50-UTC-calendar-year resolution precede safe seconds on existing429/503 nonstream/pre-stream paths. Supported capture-clock UTC years are1601..9999 for RFC850. Noncanonical syntax/leap seconds and out-of-range dates remain rejected. Actual pinned OpenAI/OpenRouter/AI SDK socket tests disable retries; no automatic-backoff, live provider, full HTTP-date tolerance or complete #116 claim. Prior RFC850-only exclusions are superseded. See [plan](plans/624-rfc850-retry.md).
+
+
+## Bounded Gemini escaped definition pointers (#626)
+
+Explicit strict:false Gemini schema transport accepts ASCII slash/tilde after the initial letter/underscore in root-$defs keys (decoded length1..64), with exact RFC6901 ~1/~0 escapes in a single local pointer token. Resolution decodes once; literal a~1b and a/b stay distinct. Captured schemas transport unchanged through both bases, actual OpenAI SDK sockets and native text streams. Named anchors and escaped pointers share canonical cycle identity. All unused definitions, depth16/shared20,000 visits/128 definitions, IAM/limits/accounting/privacy and existing strict/tool/Anthropic exclusions remain enforced. Raw pointer path separators, malformed escapes, URI decoding, fetching and nested definitions remain unsupported. No generated-output validation, equivalence, live-provider or operational certification. This supersedes only prior slash/tilde-key and escaped-token exclusions; full #116 and unresolved #7 remain open. See [plan](plans/626-escaped-definition-pointers.md).

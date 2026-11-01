@@ -335,3 +335,8 @@ Root-only canonical HTTPS $id metadata now survives immutable Gemini nonstream/n
 ## Bounded RFC850 retry hints (#624)
 
 Exact full-weekday RFC850 parsing resolves two-digit years against trusted capture +50 UTC calendar years before canonical calendar/weekday validation. Public headers remain safe integer seconds on existing upstream429/503 nonstream/pre-stream paths. Supersedes prior RFC850 exclusions; numeric/IMF/asctime, IAM/privacy/persistence/status/post-frame boundaries remain. No local Docker/bridge/systemd/live certification or full #116/#7 completion. See [plan](plans/624-rfc850-retry.md).
+
+
+## Bounded Gemini escaped definition pointers (#626)
+
+Explicit strict:false Gemini schema transport accepts ASCII slash/tilde after the initial letter/underscore in root-$defs keys (decoded length1..64), with exact RFC6901 ~1/~0 escapes in a single local pointer token. Resolution decodes once; literal a~1b and a/b stay distinct. Captured schemas transport unchanged through both bases, actual OpenAI SDK sockets and native text streams. Named anchors and escaped pointers share canonical cycle identity. All unused definitions, depth16/shared20,000 visits/128 definitions, IAM/limits/accounting/privacy and existing strict/tool/Anthropic exclusions remain enforced. Raw pointer path separators, malformed escapes, URI decoding, fetching and nested definitions remain unsupported. No generated-output validation, equivalence, live-provider or operational certification. This supersedes only prior slash/tilde-key and escaped-token exclusions; full #116 and unresolved #7 remain open. See [plan](plans/626-escaped-definition-pointers.md).
