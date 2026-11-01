@@ -16,8 +16,12 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
     ? schema.type.find((member: unknown) => member !== 'null')
     : schema.type;
   if (
-    typeof rootType !== 'string' ||
-    !['object', 'array', 'string', 'number', 'integer', 'boolean'].includes(rootType)
+    !(
+      rootType === undefined &&
+      (Object.hasOwn(schema, 'anyOf') || Object.hasOwn(schema, 'oneOf'))
+    ) &&
+    (typeof rootType !== 'string' ||
+      !['object', 'array', 'string', 'number', 'integer', 'boolean'].includes(rootType))
   )
     invalid();
   const definitions = schema.$defs;
@@ -105,7 +109,11 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
     if (type === undefined) {
       if (
         (!Object.hasOwn(node, 'anyOf') && !Object.hasOwn(node, 'oneOf')) ||
-        Object.keys(node).some((key) => !['anyOf', 'oneOf', 'title', 'description'].includes(key))
+        Object.keys(node).some(
+          (key) =>
+            !['anyOf', 'oneOf', 'title', 'description'].includes(key) &&
+            !(key === '$defs' && node === schema),
+        )
       )
         invalid();
       return;
