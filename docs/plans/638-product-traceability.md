@@ -21,3 +21,7 @@ Documentation-only R0: no runtime RED/GREEN claim. Run `python3 scripts/check.py
 ## Delivery
 
 Obtain independent backend/architecture review before R0 closure. Record exact-head CI and approval separately. No runtime/dependency/schema/permission changes or installed acceptance claim. Rollback is a documentation revert.
+
+## Review revision
+
+Address backend, architecture and code-review findings on initial head 98d242b: inventory management listener composition, PRD section 6 release gates, pricing/reconciliation implementation versus live gaps, and administrator bootstrap/freshness contracts. Documentation only: no security option approved, runtime RED/GREEN or installed acceptance claimed. Request independent review of the new exact head; prior-head approval is not new-head approval.
