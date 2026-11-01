@@ -1,12 +1,29 @@
 # OpenGranter agent handoff
 
-## Current continuation checkpoint (#560)
+## Current integration checkpoint (PR #561, 2026-11-01)
+
+PR #561 is being refreshed onto main 70a624adaa15c3bbd27aa3696e25cf2542ff6e31 at the user's request. The merge conflicts were limited to this handoff, PRD, acceptance and architecture documents; both timeout-status requirements and the newer service/container/Gemini documentation are retained. Runtime and timeout regression changes keep their original scope. Earlier validation numbers below describe the original branch, not the refreshed integration. Require fresh exact-head CI and formal approval before merge. Full #116 and unresolved #7 remain open; no Docker, systemd or live-provider certification is implied.
+
+## Historical implementation checkpoint (#560)
 
 PR [#559](https://github.com/Theorvane/OpenGranter/pull/559) received approval on 4aa74d8281aa772c1f8d1a25de2c9c5359926e79 with all three checks successful and merged as 93e9e8e; issue #558 is closed. Issue [#560](https://github.com/Theorvane/OpenGranter/issues/560), branch feat/560-timeout-statuses, adds observed HTTP408/504 compatible JSON projection. Read [plan](plans/560-timeout-statuses.md) and [error contract](../contracts/openrouter-error-schema.md#observed-upstream-timeout-statuses-560), then refresh PR/review/CI before assuming merge.
 
 Initial red reproduced 60 expected collapsed-status failures among 144 cases, with 84 passes; minimal implementation made all 144 pass. Integrated focused regressions passed 1,067 tests including all 356 added cases and 144 actual SDK probes. Existing classification/billing/usage/IAM rules, no-response timeout502, legacy502, hint suppression for validated408/504, required persistence, post-frame generic errors and fallback isolation are covered. Final npm run check passed 8,568 tests with one optional external PostgreSQL skip, zero failures/cancellations and all six offline source-integrity checks (~258 seconds). No retry eligibility, source pin, dependency or storage changes. Broader errors/types/date/402, full #116 and unresolved Jev #7 remain open; earlier checkpoints below are historical.
 
-## Historical continuation checkpoint (#558)
+
+## Previous continuation checkpoint (#570)
+
+PR #569 received GitHub approval on 9752216b5a47977705d2a890c513ec89bb4f473e with all seven checks successful, including host and bridge smoke, and merged as d7ba0554b542be78924a82b5c9206b09c1b18758. Issue #568 is closed. Issue #570 adds the optional system-service packaging from plan #566; see [plan](plans/570-systemd-service.md) and [guide](guides/systemd.md). Require exact-head full CI and GitHub approval. Local systemd and Docker execution are unavailable; static unit verification is not installed-host acceptance. #561 remains untouched; full #116 and unresolved #7 remain open.
+
+## Previous continuation checkpoint (#568)
+
+PR #567 received GitHub approval on f30cd50e9902b94a5a81ccd61c17189c8535f730 with all five checks successful and merged as 6798ed0e729c5cedbd326747c5d4c1498b08a979. Issue #566 is closed. Issue #568 closes the documented bridge networking CI gap while retaining host-mode coverage. Read [plan](plans/568-container-bridge-smoke.md). Require fresh exact-head CI and GitHub approval before merge. Docker is unavailable locally. #561 remains separately owned; full #116 and unresolved #7 remain open.
+
+## Previous continuation checkpoint (#566)
+
+PR #565 was approved at ef66dc730f253f15a3d710caf9e7ebafe456498d with all three checks successful and merged as 78ef184f0bbb87d7156ab7b484f54a19f3df490b. Issue #564 is closed. Issue #566 adds optional non-root container packaging without a permissive bootstrap, new API or production-completeness claim. Read [plan](plans/566-container-packaging.md) and [container guide](guides/container.md). Refresh its exact-head approval and CI before merge. PR #561 was separately open at this checkpoint and was not merged as part of #565. Full #116 and unresolved Jev #7 remain open.
+
+## Previous continuation checkpoint (#558)
 
 PR [#557](https://github.com/Theorvane/OpenGranter/pull/557) received approval on 59791e017c8bb728bfa2a9d34ef78db07a61ed53 with all three checks successful and merged as 491c3e8; issue #556 is closed. Issue [#558](https://github.com/Theorvane/OpenGranter/issues/558), branch feat/558-prestream-errors, adds bounded text/function pre-stream429/503 and retry hints. Read [plan](plans/558-prestream-errors.md) and [error contract](../contracts/openrouter-error-schema.md#pre-stream-observed-status-and-retry-hints-558), then refresh PR/review/CI before assuming merge.
 
@@ -255,3 +272,61 @@ gh pr view <number> --repo Theorvane/OpenGranter \
 ```
 
 First reconcile this documentation PR's status and any newer review feedback. Then inventory a concrete remaining #116 workflow against current code, open its implementation issue, create the plan and a new branch, reproduce the gap with a failing test and continue through the required review gates. Ask for the unresolved #7 decisions only if the next chosen slice actually depends on them.
+
+
+## Bounded Gemini oneOf transport (#592)
+
+On strict:false explicitly object-root schemas, nested oneOf transports1..16 recursively supported branches unchanged on nonstream/native text streams. Gemini officially interprets oneOf as anyOf: exclusive matching is NOT guaranteed. This subset is immutable transport, not generated-output validation, satisfiability or JSON Schema equivalence. Same-node anyOf plus oneOf is locally rejected; malformed/count/depth/root/strict/keyword errors fail before secrets. Existing IAM/limits/persistence/accounting/privacy and capture bounds remain. Deprecated responseJsonSchema, unsupported references/tools/Anthropic, full #116 and unresolved #7 stay open. See [plan](plans/592-gemini-oneof.md) and [contract](../contracts/client-response-formats.md).
+
+## Bounded Gemini local schema references (#594)
+
+The strict:false literal object-root subset additionally transports root-only $defs (1..128 simple ASCII identifier names, max64) and sole-key #/$defs/name references without rewriting. All definitions, including unused ones, and every resolved use are checked against the subset, expanded depth<=16 and shared 20,000-visit budget. Cyclic/dangling/external/escaped refs, reference siblings, nested $defs, $id/$anchor and unsupported schema keywords reject before secrets. No URL is fetched. This is immutable schema transport, not generated-output validation, recursive-reference support, satisfiability or live-model certification. Deprecated responseJsonSchema and strict/tool/Anthropic limitations remain; full #116 and unresolved #7 stay open. See [plan](plans/594-gemini-local-refs.md).
+
+## Gemini array-root schema transport (#596)
+
+Explicit strict:false JSON schemas now also support literal array roots with the same immutable recursive transport, local reference/depth/visit and security/accounting boundaries. Scalar/nullable/untyped roots and strict/tool/Anthropic combinations remain unsupported. No output validation, array-output guarantee or live-model certification. See [plan](plans/596-gemini-array-root.md). Focused244pass; full local check FAILED8,198pass/10fileSIGKILL/oneoptionalPGskip: do not count as a full pass. Exact-head formal approval and all CI remain merge prerequisites. Full #116 and unresolved #7 remain open; #561 untouched. No local Docker/bridge/systemd/live-provider acceptance.
+
+
+## Bounded Gemini scalar-root schemas (#598)
+
+Explicit strict:false schemas additionally accept literal string, number, integer and boolean roots with unchanged recursive keyword/type/reference, expanded depth<=16 and shared20,000-visit bounds. Existing scalar enum/numeric/string-format restrictions apply at the root; schemas remain immutable on nonstream/native text streams. Root null, nullable/type-array and untyped union/reference roots, strict/tool/Anthropic combinations remain unsupported before credentials. This supersedes prior scalar-root-only rejection, not generated-output validation, scalar-output guarantees, satisfiability or live-model certification. IAM/limits/accounting/persistence/privacy and deprecated responseJsonSchema transport remain unchanged; full #116 and unresolved #7 stay open. See [plan](plans/598-gemini-scalar-root.md).
+
+
+## Bounded Gemini nullable-root schemas (#600)
+
+Explicit strict:false transport additionally accepts two-member type-array roots with null plus one supported concrete type (object, array, string, number, integer or boolean), in either order. Recursive type/keyword/local-reference/expanded-depth<=16/shared20,000-visit bounds still apply; captured schemas remain unchanged on nonstream and native text streams. Root null, malformed type arrays, untyped union/reference roots and strict/tool/Anthropic combinations remain unsupported before credentials. This supersedes prior nullable-root-only rejection, not generated-output validation, null-output guarantees, satisfiability, schema equivalence or live-model certification. IAM/limits/accounting/persistence/privacy and deprecated responseJsonSchema transport remain unchanged; full #116 and unresolved #7 stay open. See [plan](plans/600-gemini-nullable-root.md).
+
+
+## Bounded Gemini union-root schemas (#602)
+
+Explicit strict:false transport additionally accepts untyped anyOf/oneOf roots with 1..16 recursively validated branches and optional root-only $defs. Existing local-reference, expanded-depth<=16 and shared20,000-visit bounds apply across definitions and branch expansion; captured schemas remain unchanged on nonstream/native text streams. Root references, literal root null, malformed/dual unions, nested definitions and strict/tool/Anthropic combinations remain unsupported before credentials. This supersedes prior untyped-union-root rejection, not output validation, satisfiability, oneOf exclusivity (upstream treats it as anyOf), schema equivalence or live-model certification. IAM/limits/accounting/persistence/privacy and deprecated responseJsonSchema transport remain unchanged; pinned AI SDK strict:true native rejection is unchanged. Full #116 and unresolved #7 stay open. See [plan](plans/602-gemini-union-root.md).
+
+
+## Bounded Gemini root local references (#604)
+
+Explicit strict:false transport additionally accepts root $ref plus root-only $defs, without other reference siblings. Simple local names and all definitions (including unused ones), resolved targets, cycles, expanded depth<=16 and shared20,000-visit budget retain the existing recursive subset checks. Captured schemas remain unchanged on nonstream/native text streams; no URL fetching, inlining, output validation, satisfiability, equivalence or live-model certification. Resolved targets can use the existing scalar/object/array/nullable/union/null subset; literal root null remains unsupported. Malformed/dangling/external/escaped references, nested definitions, other siblings and strict/tool/Anthropic combinations fail before secrets. IAM/limits/accounting/persistence/privacy and deprecated responseJsonSchema transport remain unchanged; actual AI SDK strict:true native rejection remains. This supersedes only earlier root-reference exclusions; full #116 and unresolved #7 remain open. See [plan](plans/604-gemini-root-local-ref.md).
+
+
+## Bounded Gemini literal null-root schemas (#606)
+
+Explicit strict:false transport additionally accepts literal type:null roots with existing annotations and optional root-only definitions. All unused definitions, local-reference/cycle checks, expanded depth<=16, shared20,000-visit budget and wrong-type keyword restrictions remain enforced before credentials. Captured schemas pass unchanged on nonstream and native text streams. Null enums, malformed type arrays, nested definitions and strict/tool/Anthropic combinations remain unsupported; actual AI SDK strict:true rejection is unchanged. This supersedes earlier literal-root-null-only exclusions, not generated-output validation, forced-null output, satisfiability, equivalence or live-model certification. IAM/limits/accounting/persistence/privacy and deprecated responseJsonSchema transport remain unchanged. Full #116 and unresolved #7 stay open. See [plan](plans/606-gemini-null-root.md).
+
+
+## Bounded Gemini definition-local anchors (#608)
+
+Explicit strict:false transport additionally accepts unique 1..64 ASCII $anchor names only on direct root-$defs entries and local #name references to those entries. Pointer and anchor references share canonical definition identity for cycle checks. All unused definitions, expanded depth<=16, shared20,000-visit and 128-definition bounds remain enforced; captured schemas pass unchanged on nonstream/native text streams. Root/nested anchors, anchors on reference nodes, $id, malformed/duplicate/dangling/external/escaped references and strict/tool/Anthropic combinations remain pre-secret failures. No URI fetching, generated-output validation, satisfiability, equivalence or live-model certification. IAM/limits/accounting/persistence/privacy and deprecated responseJsonSchema transport remain unchanged. This supersedes only earlier anchor-only exclusions; full #116 and unresolved #7 remain open. See [plan](plans/608-gemini-definition-anchors.md).
+
+
+## Bounded Gemini anchored definition aliases (#610)
+
+Explicit strict:false transport additionally accepts $anchor on direct root-$defs entries containing $ref, enabling named local aliases through existing pointer/anchor resolution. Canonical mixed-alias cycle detection, all unused definitions and expanded depth<=16/shared20,000-visit/128-definition bounds remain enforced. Captured schemas pass unchanged on nonstream/native text streams. Arbitrary reference siblings, root/nested anchors, $id, remote/dangling/malformed references and strict/tool/Anthropic combinations remain pre-secret failures. This supersedes only reference-entry-anchor rejection, not generated-output validation, satisfiability, equivalence or live-provider certification. IAM/limits/accounting/persistence/privacy and deprecated responseJsonSchema transport remain unchanged; full #116 and unresolved #7 stay open. See [plan](plans/610-gemini-anchored-aliases.md).
+
+
+## Gemini dotted definition keys (#614)
+
+Bounded literal dotted root-$defs keys and #/$defs/name pointers now transport with the unchanged canonical cycle/resource/IAM/privacy boundaries. See [plan](plans/614-gemini-dotted-definition-keys.md). No output validation or live/operational certification; #116 and #7 remain open.
+
+
+## Bounded Gemini root identity (#616)
+
+Root-only canonical HTTPS $id metadata now survives immutable Gemini nonstream/native-stream transport with unchanged local-only references and resource/IAM/privacy boundaries. Actual OpenAI SDK sockets on both bases preserve captured schema identity. No network resolution, nested base changes, generated-output validation or live/operational certification. See [plan](plans/616-gemini-root-schema-id.md); full #116 and unresolved #7 remain open.

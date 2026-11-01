@@ -1364,3 +1364,39 @@ The shared HTTP streaming adapter carries optional bounded metadata only for ups
 Extend the pure status allowlist to observed408 with other/upstream classification and504 with server-error. Nonstream adapters supply rejected HTTP status; text/function consumers supply their known response status through the same constructor allowlist. Keep responseStarted:true/possiblyBilled:true and existing classification without converting transport timeout categories into protocol evidence. Route projection still revalidates observed matching metadata after required accounting/audit; no HTTP handler/status-format expansion is needed beyond the existing scalar union.
 
 Keep Retry-After parsing limited to429/503 and suppress contradictory hints for validated408/504 in both constructors and terminal route projection, so legacy502 cannot inherit them. Existing unknown-status behavior, generic started-stream errors/interruption audit, safe local/persistence errors, cancellation and fallback eligibility remain. No new route authority, schema, dependency or pin. See [plan](plans/560-timeout-statuses.md) and [contract](../contracts/openrouter-error-schema.md#observed-upstream-timeout-statuses-560).
+
+## Executable service adapter (#564)
+
+The npm start command composes the persisted dual-route runtime through an explicit trusted deployment bootstrap module. The executable validates environment configuration, owns listener/clock/request IDs and handles process signals with a single bounded drain. No secret-manager or limits policy is silently supplied. Readiness, manifests, secret adapters, quotas, SSO listener lifecycle and recovery remain separate. See the [service guide](guides/service.md) and [contract](../contracts/gateway-service.md).
+
+## Optional container packaging (#566)
+
+The existing gateway executable has an optional non-root Node22 image with locked production dependencies, bundled migrations, root-owned application files and direct SIGTERM ownership. Bootstrap, database, secrets and real limits remain explicit deployment ports; no authorization, usage, audit or HTTP contract changes. A context allowlist excludes local configuration and development files. The [container guide](guides/container.md) describes explicit bridge binding, read-only mounts and external shutdown grace. The Container workflow must validate actual image build, missing-bootstrap denial, runtime files/dependencies, disposable PostgreSQL startup, unauthenticated401 and clean SIGTERM exit on a read-only filesystem. This is packaging, not complete operational readiness: production credentials, load, readiness, SSO and backup/recovery acceptance remain outstanding. See [plan](plans/566-container-packaging.md).
+
+## Optional Linux service supervision (#570)
+
+An opt-in hardened systemd unit launches the existing gateway directly as a dedicated non-root account with a required deployment-owned environment file/bootstrap, loopback defaults, read-only system paths and no automatic restart/replay. The default40-second supervisor stop grace exceeds the application30-second deadline. Static unit verification is not running-host or production acceptance; secret/limit/database integrations, host permissions, readiness, recovery and SSO lifecycle remain explicit operator work. No HTTP, IAM, usage or audit behavior changes. See the [systemd guide](guides/systemd.md) and [plan](plans/570-systemd-service.md).
+
+
+## Bounded Gemini oneOf transport (#592)
+
+On strict:false explicitly object-root schemas, nested oneOf transports1..16 recursively supported branches unchanged on nonstream/native text streams. Gemini officially interprets oneOf as anyOf: exclusive matching is NOT guaranteed. This subset is immutable transport, not generated-output validation, satisfiability or JSON Schema equivalence. Same-node anyOf plus oneOf is locally rejected; malformed/count/depth/root/strict/keyword errors fail before secrets. Existing IAM/limits/persistence/accounting/privacy and capture bounds remain. Deprecated responseJsonSchema, unsupported references/tools/Anthropic, full #116 and unresolved #7 stay open. See [plan](plans/592-gemini-oneof.md) and [contract](../contracts/client-response-formats.md).
+
+## Bounded Gemini local schema references (#594)
+
+The strict:false literal object-root subset additionally transports root-only $defs (1..128 simple ASCII identifier names, max64) and sole-key #/$defs/name references without rewriting. All definitions, including unused ones, and every resolved use are checked against the subset, expanded depth<=16 and shared 20,000-visit budget. Cyclic/dangling/external/escaped refs, reference siblings, nested $defs, $id/$anchor and unsupported schema keywords reject before secrets. No URL is fetched. This is immutable schema transport, not generated-output validation, recursive-reference support, satisfiability or live-model certification. Deprecated responseJsonSchema and strict/tool/Anthropic limitations remain; full #116 and unresolved #7 stay open. See [plan](plans/594-gemini-local-refs.md).
+
+
+## Bounded Gemini literal null-root transport (#606)
+
+Explicit strict:false response schemas may use literal type:null roots, retaining existing recursive keyword restrictions, root-only definition validation, local-reference/depth/shared-budget bounds and immutable capture. No output validation or forced-null output is performed. Strict/tool/Anthropic combinations remain pre-secret unsupported; full #116 and unresolved #7 stay open. No live-provider or operational certification. See [plan](plans/606-gemini-null-root.md) and [contract](../contracts/client-response-formats.md).
+
+
+## Bounded Gemini definition-local anchors (#608)
+
+Explicit strict:false transport additionally accepts unique 1..64 ASCII $anchor names only on direct root-$defs entries and local #name references to those entries. Pointer and anchor references share canonical definition identity for cycle checks. All unused definitions, expanded depth<=16, shared20,000-visit and 128-definition bounds remain enforced; captured schemas pass unchanged on nonstream/native text streams. Root/nested anchors, anchors on reference nodes, $id, malformed/duplicate/dangling/external/escaped references and strict/tool/Anthropic combinations remain pre-secret failures. No URI fetching, generated-output validation, satisfiability, equivalence or live-model certification. IAM/limits/accounting/persistence/privacy and deprecated responseJsonSchema transport remain unchanged. This supersedes only earlier anchor-only exclusions; full #116 and unresolved #7 remain open. See [plan](plans/608-gemini-definition-anchors.md).
+
+
+## Bounded Gemini anchored definition aliases (#610)
+
+Explicit strict:false transport additionally accepts $anchor on direct root-$defs entries containing $ref, enabling named local aliases through existing pointer/anchor resolution. Canonical mixed-alias cycle detection, all unused definitions and expanded depth<=16/shared20,000-visit/128-definition bounds remain enforced. Captured schemas pass unchanged on nonstream/native text streams. Arbitrary reference siblings, root/nested anchors, $id, remote/dangling/malformed references and strict/tool/Anthropic combinations remain pre-secret failures. This supersedes only reference-entry-anchor rejection, not generated-output validation, satisfiability, equivalence or live-provider certification. IAM/limits/accounting/persistence/privacy and deprecated responseJsonSchema transport remain unchanged; full #116 and unresolved #7 stay open. See [plan](plans/610-gemini-anchored-aliases.md).

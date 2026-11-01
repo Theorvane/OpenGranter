@@ -145,3 +145,22 @@ Combine the inline-PNG messages example above with application-owned tools and s
 Fresh authentication failure, implicit/model/provider Deny or limit exhaustion after tool execution prevents a second provider/secret access. First- or second-request required usage/outcome-audit faults withhold completion acknowledgment; on streams inspect actual error/final usage/DONE frames separately from SDK events and already-delivered content. Completed local tools and provider work cannot be undone by a later error. Each successful request retains a distinct ledger request ID, existing counters and operational content/credential privacy. Client summaries still recompute nonstream totals; they are not authoritative accounting or billed cost.
 
 These fixtures need no credentials or live inference and run in the standard npm run check. They certify one canonical inline PNG combined with ordinary functions only; signed Gemini, broader media/controls, remote downloads, other tools/versions/endpoints and live vision support remain separate. Production code, dependencies, six source pins and storage are unchanged. Full #116 and Jev #7 remain open. See [plan](plans/556-ai-sdk-image-tools.md) and [contract](../contracts/ai-sdk-client-workflows.md#inline-image-tool-continuations-556).
+
+## Native Gemini schema limitation update (#572)
+
+Direct Gemini now has a bounded explicit strict:false schema transport subset with no tool controls (see [contract](../contracts/client-response-formats.md#bounded-direct-gemini-json-schemas-572)). The pinned AI SDK Output.object emits strict:true, so its existing native-Gemini pre-secret rejection is unchanged. Do not treat this transport addition as AI SDK native structured-output certification.
+
+
+## Bounded Gemini literal null-root schemas (#606)
+
+Explicit strict:false transport additionally accepts literal type:null roots with existing annotations and optional root-only definitions. All unused definitions, local-reference/cycle checks, expanded depth<=16, shared20,000-visit budget and wrong-type keyword restrictions remain enforced before credentials. Captured schemas pass unchanged on nonstream and native text streams. Null enums, malformed type arrays, nested definitions and strict/tool/Anthropic combinations remain unsupported; actual AI SDK strict:true rejection is unchanged. This supersedes earlier literal-root-null-only exclusions, not generated-output validation, forced-null output, satisfiability, equivalence or live-model certification. IAM/limits/accounting/persistence/privacy and deprecated responseJsonSchema transport remain unchanged. Full #116 and unresolved #7 stay open. See [plan](plans/606-gemini-null-root.md).
+
+
+## Bounded Gemini dotted definition keys (#614)
+
+Explicit strict:false transport accepts literal ASCII dots after the initial letter/underscore in root-$defs keys and matching #/$defs/name references, retaining 1..64 characters. Direct pointers and named anchor aliases transport unchanged through both HTTP bases, actual OpenAI SDK sockets and native text streams. Dots are literal: no percent decoding, path normalization, JSON Pointer escaping or remote fetching. Canonical mixed cycles, unused definitions, depth16/shared20,000 visits/128 definitions, strict/tool/Anthropic pre-secret rejection and IAM/limits/accounting/persistence/privacy remain enforced. No generated-output validation, equivalence, live-model or operational certification. This supersedes only the earlier dotted-definition-key exclusion; full #116 and unresolved #7 remain open. See [plan](plans/614-gemini-dotted-definition-keys.md).
+
+
+## Bounded Gemini root identity (#616)
+
+Root-only canonical HTTPS $id metadata now survives immutable Gemini nonstream/native-stream transport with unchanged local-only references and resource/IAM/privacy boundaries. Actual OpenAI SDK sockets on both bases preserve captured schema identity. No network resolution, nested base changes, generated-output validation or live/operational certification. See [plan](plans/616-gemini-root-schema-id.md); full #116 and unresolved #7 remain open.

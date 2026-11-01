@@ -1,0 +1,18 @@
+# Bounded Gemini anchored definition aliases
+
+Issue #610, refs #116 and [plan552](552-ai-sdk-structured-output.md).
+
+## Scope and design
+
+Extend explicit strict:false transport to $anchor on direct root-$defs reference entries, enabling local named aliases. The primary GenerationConfig source https://ai.google.dev/api/generate-content?hl=en states that reference nodes may have dollar-prefixed siblings. Only the already registered definition-local $anchor is newly accepted; no arbitrary dollar keywords, root/nested anchors, $id, URI fetching, inlining or remote references. Reference and anchor namespaces stay distinct, canonical definition identity detects mixed alias cycles, all unused definitions are validated, and expanded depth<=16/shared20,000 visits/128 definitions remain enforced. Captured schemas pass unchanged on nonstream/native text streams. No generated-output validation, satisfiability, equivalence, live-provider certification, pins/dependencies/storage/#561 edits. Full #116 and unresolved #7 remain open.
+
+## TDD and delivery
+
+Write plan before tests/source; reproduce alias transport with both chat bases, actual OpenAI SDK sockets, immutable capture and native stream fixtures. Retain IAM/limits/accounting/persistence/privacy, malformed/duplicate/dangling/unused/cyclic alias rejection and strict/tool/Anthropic pre-secret controls. Meaningful red before minimal production change. Run focused tests, types/lint/docs/contracts/pins and standard taskset-c0,1 npm run check without relaxing assertions, deadlines or concurrency. Record failures honestly; exact-head independent formal approval plus all CI success before normal merge. No local Docker/bridge/systemd or live certification.
+
+## Verification evidence
+
+- Plan written and verified in actual checkout before tests/source. Extended existing immutable HTTP/actual OpenAI SDK/native-stream and IAM/limit/persistence fixtures to alias and pointer-chain variants. Meaningful red:240passed,8expected alias failures. Minimal7-line validator delta:248passed. Added malformed/duplicate/dangling/remote/reference-sibling/root/nested/unused and mixed-cycle alias rejection, all concrete/nullable/union targets, prototype-like64-character names and exact expanded depth16accept/17reject. Final focused format/native-stream-invoker/native-stream/AI SDK structured selection362passed, zero failures.
+- Standard taskset-c0,1 npm run check FAILED:8,430passed,3file-level SIGKILL failures,1optional external PostgreSQL skip (~259seconds). Failed files:model-descriptive-metadata,postgres-google-signature-streams,sso-token-management. No reported assertion failures; NOT a local full pass. No full retry or assertion/deadline/concurrency changes. An isolated diagnostic run of exactly these three files passed139tests, not a substitute for the full gate. The2GiB cgroup and cumulative oom_kill329 are consistent with resource pressure, not per-process causation proof.
+- Full-gate types/lint passed with42warnings77infos; separate typecheck, planning/link/contracts/fixture-secret scan, all six offline schema-integrity checks and whitespace scan passed. Source/tests unchanged after full run; only this evidence appended afterward. Logs:/tmp/opengranter-610-{red,green,format,focused,final-focused,full,types,docs,pins,sigkill-investigation}.log. The earlier297-test selection did not include the misspelled native-stream filename; the final362-test selection used verified existing files.
+- No local Docker/bridge/systemd/live-provider certification. Exact-head independent formal approval and all CI success remain required before merge. #561 unchanged and untouched.

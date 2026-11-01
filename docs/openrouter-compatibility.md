@@ -1218,3 +1218,108 @@ Compatible discovery supports six inclusive min/max Artificial Analysis index bo
 ## Root-relative model details links (#504)
 
 The official listing example uses a root-relative links.details path. Compatible rich discovery and PostgreSQL metadata readers now preserve such safe links, including path/query/fragment text, alongside credential-free absolute HTTPS links. Single-slash, raw character and 2,048-unit restrictions remain local. Installed OpenRouter/OpenAI SDK sockets consume the strings on managed/delegated catalogs with current IAM and private audit; links are never followed, fetched or made into upstream destinations. The referenced endpoint is not implemented by this extension. Source pins/migrations/queries are unchanged; complete endpoint/client conformance #116 and unresolved #7 remain open. See [plan](plans/504-relative-model-links.md), [contract](../contracts/model-details-links.md) and [official example](https://openrouter.ai/docs/api/api-reference/models/list-all-models-and-their-properties).
+
+## Bounded non-strict Gemini schema transport (#572)
+
+Superseding earlier blanket native-schema rejection only for this subset: direct Gemini text/nonstream accepts explicit strict:false with a supplied conservative object-root schema and no tool controls. It forwards exact captured JSON as responseJsonSchema with application/json MIME. Unknown keywords/references/unions and strict requests reject before credentials. Format labels do not become native instructions. Required persistence, IAM/limits, private operational records and usage boundaries remain shared; no local output validation, live model certification or complete #116 follows. Anthropic remains unsupported; AI SDK Output.object strict:true still rejects Gemini. See [plan](plans/572-gemini-response-schema.md) and [contract](../contracts/client-response-formats.md#bounded-direct-gemini-json-schemas-572).
+
+
+## Bounded Gemini schema enum transport (#574)
+
+Extends [#572](plans/572-gemini-response-schema.md) with exact captured string/finite-number/integer enums, restricted to1..128 unique matching scalars. Other enum node types and malformed lists reject before secrets. Native nonstream/text stream and installed OpenAI SDK sockets share transport; no output enforcement, strict equivalence or live-model certification follows. All prior security/accounting and unsupported-native restrictions remain. See [plan](plans/574-gemini-schema-enums.md) and [contract](../contracts/client-response-formats.md#bounded-gemini-string-and-numeric-enums-574). Full #116 and unresolved #7 stay open.
+
+## Gemini numeric schema transport (#576)
+
+The bounded non-strict object-root subset additionally transports finite minimum/maximum on explicit number/integer nodes without rounding fractional bounds. Ordered/equal/one-sided bounds retain captured JSON values; malformed/inappropriate/reversed bounds reject before secrets. Both bases, installed SDK sockets, native text streams, immutable capture, IAM/limits/persistence and privacy are covered by regressions. This does not enforce generated outputs, certify satisfiability/live-model compatibility or complete #116/#7. See [plan](plans/576-gemini-numeric-schema.md) and [contract](../contracts/client-response-formats.md).
+
+
+## Bounded Gemini array lengths (#578)
+
+The strict:false object-root Gemini subset additionally transports minItems/maxItems only on explicitly typed arrays with an items schema. Lengths must be nonnegative safe integers; pairs must be ordered, with equality and one-sided bounds allowed. Nested lengths and captured values are preserved on nonstream/text streams. Wrong-type, negative, fractional, unsafe, nonfinite and reversed bounds reject before credentials. This is not generated-output enforcement or satisfiability certification. All existing IAM/limits/persistence/privacy and tool/strict/root restrictions remain; #116/#7 stay open. See [plan](plans/578-gemini-array-lengths.md).
+
+## Bounded Gemini additional property schemas (#580)
+
+The strict:false object-root subset additionally transports schema-valued additionalProperties on explicit object nodes, recursively applying the same type/keyword and depth<=16 restrictions as properties/items. Boolean values retain existing behavior. Typed nested object/array/scalar schemas are captured and forwarded unchanged in nonstream and native text streams; untyped, malformed, unsupported or excessive-depth schemas fail before credentials. This supersedes the earlier boolean-only limitation, not unsupported union/reference/strict/tool behavior. No generated-output enforcement, satisfiability or live-model certification follows. IAM, limits, audit/usage and privacy boundaries remain covered; #116/#7 remain open. See [plan](plans/580-gemini-property-schemas.md).
+
+
+## Bounded Gemini nested anyOf (#582)
+
+The strict:false explicitly object-root responseJsonSchema subset additionally accepts nested anyOf lists of 1..16 recursively validated branches. AnyOf-only nodes may contain title/description; explicitly typed nodes retain all type-specific rules. Branches share the depth<=16 boundary with properties/items/additionalProperties. Capture and transport remain immutable on nonstream and native text streams. Malformed/empty/oversized lists, unsupported branch keywords and excessive depth reject before secrets. Untyped root unions, oneOf/references, strict/tool composition remain unsupported. This is transport only, not output enforcement, satisfiability or live-model certification. The transport remains deprecated in the upstream API; full #116 and unresolved #7 stay open. See [plan](plans/582-gemini-anyof.md).
+
+
+## Bounded Gemini prefixItems (#584)
+
+The strict:false explicitly object-root subset additionally transports prefixItems only on typed arrays, with 1..16 recursively validated schemas and optional supported items schema. Prefix-only arrays are allowed; arrays without prefixItems still require items. Prefix children/items share depth<=16 and all existing type/keyword restrictions. Empty prefixes, boolean items/children and oversized/malformed lists reject before credentials. Local bounds and boolean-schema restrictions are explicit compatibility limitations, not tuple/output enforcement or satisfiability certification. Immutable nonstream/native text-stream capture, IAM/limits/persistence/accounting/privacy remain unchanged. Deprecated responseJsonSchema transport does not certify live-model compatibility, full #116 or unresolved #7. See [plan](plans/584-gemini-prefix-items.md).
+
+
+## Bounded Gemini string format annotations (#586)
+
+The strict:false explicitly object-root subset accepts format only on explicitly typed string nodes, preserving exact 0..256 UTF-16 units including empty, whitespace and unknown names under all supported recursive nodes. Wrong-type, oversized and untyped annotations reject before credentials. The string-only and length bounds are local restrictions; official GenerationConfig lists format without a name enum. This is opaque annotation transport, not output validation, format enforcement, type conversion, satisfiability or live-model certification. Immutable nonstream/native text-stream capture, installed SDK sockets, IAM/limits/persistence/accounting/privacy retain existing boundaries. The responseJsonSchema transport is deprecated upstream; full #116 and unresolved #7 stay open. See [plan](plans/586-gemini-string-format.md).
+
+
+## Bounded Gemini property ordering (#588)
+
+The strict:false explicitly object-root subset accepts non-standard propertyOrdering only on explicitly typed objects: exact ordered lists of 0..128 unique strings naming own declared properties, including partial/empty lists and exact empty/prototype-like names when declared. Count, uniqueness and membership rules are local restrictions. Existing recursive depth/capture bounds apply; malformed/wrong-type/unknown/duplicate/oversized lists reject before credentials. This is immutable annotation transport on nonstream/native text streams, not generated-output ordering enforcement, satisfiability or live-model certification. IAM/limits/persistence/accounting/privacy remain unchanged. responseJsonSchema is deprecated upstream; full #116 and unresolved #7 remain open. See [plan](plans/588-gemini-property-ordering.md).
+
+
+## Bounded Gemini nullable type pairs (#590)
+
+Nested schemas accept exact two-member type arrays containing one supported non-null type and null in either order. Root must remain literal object and strict:false; malformed/duplicate/unknown/larger arrays and wrong-type keywords reject before credentials. Exact immutable nonstream/native-stream transport retains existing recursive/capture limits, non-null enum restrictions and IAM/accounting/privacy. This is nullable annotation transport, not output validation or live-model certification; deprecated responseJsonSchema, full #116 and unresolved #7 remain open. See [plan](plans/590-gemini-nullable-types.md).
+
+
+## Bounded Gemini oneOf transport (#592)
+
+On strict:false explicitly object-root schemas, nested oneOf transports1..16 recursively supported branches unchanged on nonstream/native text streams. Gemini officially interprets oneOf as anyOf: exclusive matching is NOT guaranteed. This subset is immutable transport, not generated-output validation, satisfiability or JSON Schema equivalence. Same-node anyOf plus oneOf is locally rejected; malformed/count/depth/root/strict/keyword errors fail before secrets. Existing IAM/limits/persistence/accounting/privacy and capture bounds remain. Deprecated responseJsonSchema, unsupported references/tools/Anthropic, full #116 and unresolved #7 stay open. See [plan](plans/592-gemini-oneof.md) and [contract](../contracts/client-response-formats.md).
+
+## Bounded Gemini local schema references (#594)
+
+The strict:false literal object-root subset additionally transports root-only $defs (1..128 simple ASCII identifier names, max64) and sole-key #/$defs/name references without rewriting. All definitions, including unused ones, and every resolved use are checked against the subset, expanded depth<=16 and shared 20,000-visit budget. Cyclic/dangling/external/escaped refs, reference siblings, nested $defs, $id/$anchor and unsupported schema keywords reject before secrets. No URL is fetched. This is immutable schema transport, not generated-output validation, recursive-reference support, satisfiability or live-model certification. Deprecated responseJsonSchema and strict/tool/Anthropic limitations remain; full #116 and unresolved #7 stay open. See [plan](plans/594-gemini-local-refs.md).
+
+## Bounded Gemini array-root schemas (#596)
+
+Explicit strict:false schemas additionally accept literal array roots with the same recursive keyword, depth<=16 and shared20,000-visit bounds as object roots. Items/prefixItems, min/maxItems and root-only local definitions/references are transported unchanged on nonstream/native text streams. Root scalar, nullable/type-array and untyped union/reference roots remain unsupported before credentials, as do strict/tool/Anthropic combinations. This supersedes the prior object-only root limitation, not generated-output validation, array-output guarantees, satisfiability or live-model certification. IAM/limits/accounting/persistence/privacy and deprecated responseJsonSchema transport remain unchanged; full #116 and unresolved #7 stay open. See [plan](plans/596-gemini-array-root.md) and [contract](../contracts/client-response-formats.md).
+
+
+## Bounded Gemini scalar-root schemas (#598)
+
+Explicit strict:false schemas additionally accept literal string, number, integer and boolean roots with unchanged recursive keyword/type/reference, expanded depth<=16 and shared20,000-visit bounds. Existing scalar enum/numeric/string-format restrictions apply at the root; schemas remain immutable on nonstream/native text streams. Root null, nullable/type-array and untyped union/reference roots, strict/tool/Anthropic combinations remain unsupported before credentials. This supersedes prior scalar-root-only rejection, not generated-output validation, scalar-output guarantees, satisfiability or live-model certification. IAM/limits/accounting/persistence/privacy and deprecated responseJsonSchema transport remain unchanged; full #116 and unresolved #7 stay open. See [plan](plans/598-gemini-scalar-root.md).
+
+
+## Bounded Gemini nullable-root schemas (#600)
+
+Explicit strict:false transport additionally accepts two-member type-array roots with null plus one supported concrete type (object, array, string, number, integer or boolean), in either order. Recursive type/keyword/local-reference/expanded-depth<=16/shared20,000-visit bounds still apply; captured schemas remain unchanged on nonstream and native text streams. Root null, malformed type arrays, untyped union/reference roots and strict/tool/Anthropic combinations remain unsupported before credentials. This supersedes prior nullable-root-only rejection, not generated-output validation, null-output guarantees, satisfiability, schema equivalence or live-model certification. IAM/limits/accounting/persistence/privacy and deprecated responseJsonSchema transport remain unchanged; full #116 and unresolved #7 stay open. See [plan](plans/600-gemini-nullable-root.md).
+
+
+## Bounded Gemini union-root schemas (#602)
+
+Explicit strict:false transport additionally accepts untyped anyOf/oneOf roots with 1..16 recursively validated branches and optional root-only $defs. Existing local-reference, expanded-depth<=16 and shared20,000-visit bounds apply across definitions and branch expansion; captured schemas remain unchanged on nonstream/native text streams. Root references, literal root null, malformed/dual unions, nested definitions and strict/tool/Anthropic combinations remain unsupported before credentials. This supersedes prior untyped-union-root rejection, not output validation, satisfiability, oneOf exclusivity (upstream treats it as anyOf), schema equivalence or live-model certification. IAM/limits/accounting/persistence/privacy and deprecated responseJsonSchema transport remain unchanged; pinned AI SDK strict:true native rejection is unchanged. Full #116 and unresolved #7 stay open. See [plan](plans/602-gemini-union-root.md).
+
+
+## Bounded Gemini root local references (#604)
+
+Explicit strict:false transport additionally accepts root $ref plus root-only $defs, without other reference siblings. Simple local names and all definitions (including unused ones), resolved targets, cycles, expanded depth<=16 and shared20,000-visit budget retain the existing recursive subset checks. Captured schemas remain unchanged on nonstream/native text streams; no URL fetching, inlining, output validation, satisfiability, equivalence or live-model certification. Resolved targets can use the existing scalar/object/array/nullable/union/null subset; literal root null remains unsupported. Malformed/dangling/external/escaped references, nested definitions, other siblings and strict/tool/Anthropic combinations fail before secrets. IAM/limits/accounting/persistence/privacy and deprecated responseJsonSchema transport remain unchanged; actual AI SDK strict:true native rejection remains. This supersedes only earlier root-reference exclusions; full #116 and unresolved #7 remain open. See [plan](plans/604-gemini-root-local-ref.md).
+
+
+## Bounded Gemini literal null-root schemas (#606)
+
+Explicit strict:false transport additionally accepts literal type:null roots with existing annotations and optional root-only definitions. All unused definitions, local-reference/cycle checks, expanded depth<=16, shared20,000-visit budget and wrong-type keyword restrictions remain enforced before credentials. Captured schemas pass unchanged on nonstream and native text streams. Null enums, malformed type arrays, nested definitions and strict/tool/Anthropic combinations remain unsupported; actual AI SDK strict:true rejection is unchanged. This supersedes earlier literal-root-null-only exclusions, not generated-output validation, forced-null output, satisfiability, equivalence or live-model certification. IAM/limits/accounting/persistence/privacy and deprecated responseJsonSchema transport remain unchanged. Full #116 and unresolved #7 stay open. See [plan](plans/606-gemini-null-root.md).
+
+
+## Bounded Gemini definition-local anchors (#608)
+
+Explicit strict:false transport additionally accepts unique 1..64 ASCII $anchor names only on direct root-$defs entries and local #name references to those entries. Pointer and anchor references share canonical definition identity for cycle checks. All unused definitions, expanded depth<=16, shared20,000-visit and 128-definition bounds remain enforced; captured schemas pass unchanged on nonstream/native text streams. Root/nested anchors, anchors on reference nodes, $id, malformed/duplicate/dangling/external/escaped references and strict/tool/Anthropic combinations remain pre-secret failures. No URI fetching, generated-output validation, satisfiability, equivalence or live-model certification. IAM/limits/accounting/persistence/privacy and deprecated responseJsonSchema transport remain unchanged. This supersedes only earlier anchor-only exclusions; full #116 and unresolved #7 remain open. See [plan](plans/608-gemini-definition-anchors.md).
+
+
+## Bounded Gemini anchored definition aliases (#610)
+
+Explicit strict:false transport additionally accepts $anchor on direct root-$defs entries containing $ref, enabling named local aliases through existing pointer/anchor resolution. Canonical mixed-alias cycle detection, all unused definitions and expanded depth<=16/shared20,000-visit/128-definition bounds remain enforced. Captured schemas pass unchanged on nonstream/native text streams. Arbitrary reference siblings, root/nested anchors, $id, remote/dangling/malformed references and strict/tool/Anthropic combinations remain pre-secret failures. This supersedes only reference-entry-anchor rejection, not generated-output validation, satisfiability, equivalence or live-provider certification. IAM/limits/accounting/persistence/privacy and deprecated responseJsonSchema transport remain unchanged; full #116 and unresolved #7 stay open. See [plan](plans/610-gemini-anchored-aliases.md).
+
+
+## Bounded Gemini dotted definition keys (#614)
+
+Explicit strict:false transport accepts literal ASCII dots after the initial letter/underscore in root-$defs keys and matching #/$defs/name references, retaining 1..64 characters. Direct pointers and named anchor aliases transport unchanged through both HTTP bases, actual OpenAI SDK sockets and native text streams. Dots are literal: no percent decoding, path normalization, JSON Pointer escaping or remote fetching. Canonical mixed cycles, unused definitions, depth16/shared20,000 visits/128 definitions, strict/tool/Anthropic pre-secret rejection and IAM/limits/accounting/persistence/privacy remain enforced. No generated-output validation, equivalence, live-model or operational certification. This supersedes only the earlier dotted-definition-key exclusion; full #116 and unresolved #7 remain open. See [plan](plans/614-gemini-dotted-definition-keys.md).
+
+
+## Bounded Gemini root identity (#616)
+
+Root-only canonical HTTPS $id metadata now survives immutable Gemini nonstream/native-stream transport with unchanged local-only references and resource/IAM/privacy boundaries. Actual OpenAI SDK sockets on both bases preserve captured schema identity. No network resolution, nested base changes, generated-output validation or live/operational certification. See [plan](plans/616-gemini-root-schema-id.md); full #116 and unresolved #7 remain open.

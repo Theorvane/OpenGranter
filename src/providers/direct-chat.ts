@@ -58,6 +58,7 @@ import {
   prepareGoogleFunctions,
   prepareGoogleMessages,
 } from './google-client-functions.ts';
+import { validateGoogleResponseSchema } from './google-response-schema.ts';
 import { parseRetryAfterSeconds } from './retry-after.ts';
 
 export interface DirectProviderRegistration {
@@ -551,6 +552,9 @@ function prepare(
                 : {
                     responseMimeType:
                       responseFormat.type === 'text' ? 'text/plain' : 'application/json',
+                    ...(responseFormat.type === 'json_schema'
+                      ? { responseJsonSchema: responseFormat.json_schema.schema }
+                      : {}),
                   }),
               ...(n === undefined ? {} : { candidateCount: n }),
               ...(topP === undefined ? {} : { topP }),
@@ -716,7 +720,9 @@ export function createDirectChatTransport(
       fail('other');
     }
     if (registration.kind === 'anthropic' && responseFormat?.type === 'json_object') fail('other');
-    if (registration.kind !== 'openai' && responseFormat?.type === 'json_schema') fail('other');
+    if (registration.kind === 'anthropic' && responseFormat?.type === 'json_schema') fail('other');
+    if (registration.kind === 'google' && responseFormat)
+      validateGoogleResponseSchema(responseFormat);
     let logitBias: ReturnType<typeof snapshotLogitBias>;
     try {
       logitBias = snapshotLogitBias(request.logit_bias);
@@ -731,6 +737,12 @@ export function createDirectChatTransport(
       tools = snapshotFunctionTools(request.tools);
       toolChoice = snapshotToolChoice(request.tool_choice);
       parallelToolCalls = snapshotParallelToolCalls(request.parallel_tool_calls);
+      if (
+        registration.kind === 'google' &&
+        responseFormat?.type === 'json_schema' &&
+        (tools !== undefined || toolChoice !== undefined || parallelToolCalls !== undefined)
+      )
+        fail('other');
     } catch {
       fail('other');
     }
