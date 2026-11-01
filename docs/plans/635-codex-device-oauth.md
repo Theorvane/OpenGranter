@@ -45,3 +45,11 @@
 - Separate sequential full tests: 8777 tests, 8749 pass, 27 failures, 1 optional PostgreSQL skip. 26 file processes received SIGKILL; one service CLI readiness test timed out. These failures are not waived or presented as a passing suite; CI/adequate-host validation remains required.
 - Independent read-only reviews found process-tree cleanup and documentation gaps; fixed with regression coverage. Final auth-only scoped review found no remaining blocker, but does not substitute for repository approval.
 - No live authorization, account login, CLI installation, provider call, subscription entitlement test, VM deployment or gateway inference registration performed.
+
+## Pre-cancelled operation regression (2026-11-02 Asia/Seoul)
+
+1. Existing cancellation contract: reject an already-aborted operation before any credential-directory creation or child execution.
+2. Add a login regression with a pre-aborted signal and absent home; require sanitized rejection and no home creation (RED before implementation).
+3. Add the smallest early cancellation guard, then run focused auth tests, lint and planning checks. No OAuth, inference or installed acceptance is implied; exact-head CI and independent approval remain required.
+
+Observed: RED rejected the command but stat(home) unexpectedly succeeded, proving cancelled login created storage. GREEN: all 11 auth tests pass on Node22.23.4, focused Biome/planning/diff checks pass. Full local typecheck/test suite and live OAuth/inference were not rerun; new exact-head CI/review are pending.

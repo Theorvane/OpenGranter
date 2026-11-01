@@ -181,3 +181,14 @@ for (const reason of ['timeout', 'abort'] as const)
         await assert.rejects(stat(join(home, '.opengranter-auth.lock')));
       }),
   );
+
+test('pre-cancelled login does not create credential storage', () =>
+  fixture(async (_, binary, home) => {
+    const controller = new AbortController();
+    controller.abort();
+    await assert.rejects(
+      runCodexAuth({ action: 'login', binary, home, env: {}, signal: controller.signal }),
+      { message: 'Codex authentication command failed' },
+    );
+    await assert.rejects(stat(home), { code: 'ENOENT' });
+  }));

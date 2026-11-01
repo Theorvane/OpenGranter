@@ -131,6 +131,7 @@ export async function runCodexAuth(options: CodexAuthOptions): Promise<void> {
   let failed = false;
   try {
     if (
+      options.signal?.aborted ||
       !['login', 'status', 'logout'].includes(options.action) ||
       !isAbsolute(options.binary) ||
       !Number.isSafeInteger(timeoutMs) ||
