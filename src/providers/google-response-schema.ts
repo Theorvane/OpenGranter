@@ -18,7 +18,9 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
   if (
     !(
       rootType === undefined &&
-      (Object.hasOwn(schema, 'anyOf') || Object.hasOwn(schema, 'oneOf'))
+      (Object.hasOwn(schema, 'anyOf') ||
+        Object.hasOwn(schema, 'oneOf') ||
+        Object.hasOwn(schema, '$ref'))
     ) &&
     (typeof rootType !== 'string' ||
       !['object', 'array', 'string', 'number', 'integer', 'boolean'].includes(rootType))
@@ -41,7 +43,7 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
     if (Object.hasOwn(node, '$ref')) {
       const ref = node.$ref;
       if (
-        Object.keys(node).length !== 1 ||
+        Object.keys(node).some((key) => key !== '$ref' && !(key === '$defs' && node === schema)) ||
         typeof ref !== 'string' ||
         !/^#\/\$defs\/[A-Za-z_][A-Za-z0-9_-]{0,63}$/.test(ref) ||
         !record(definitions)
