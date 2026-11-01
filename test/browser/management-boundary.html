@@ -37,6 +37,25 @@ try {
     check(outside.isConnected && outside.textContent === "Caller-owned adjacent content");
     results.push("PASS " + state + " native replacement and attributes");
   }
+  for (const [from] of cases) {
+    for (const [to, heading] of cases) {
+      mount(root, from);
+      const stale = root.firstElementChild;
+      mount(root, to);
+      check(!stale.isConnected && root.children.length === 1);
+      check(root.querySelector("h1").textContent === heading);
+    }
+  }
+  results.push("PASS all 25 ordered state transitions");
+  const hostileProxy = new Proxy({}, { get() { throw new Error("accessed"); } });
+  const revoked = Proxy.revocable({}, {}); revoked.revoke();
+  for (const unknown of [Symbol("private"), 0n, NaN, hostileProxy, revoked.proxy]) {
+    mount(root, unknown);
+    check(root.querySelector("h1").textContent === "Management unavailable");
+    mount(root, "loading");
+    check(root.querySelector("h1").textContent === "Checking your session");
+  }
+  results.push("PASS hostile unknown inputs and recovery");
   const prior = root.firstElementChild;
   mount(root, "loading");
   check(!prior.isConnected && root.querySelector("h1").textContent === cases[0][1]);
@@ -49,7 +68,7 @@ try {
     check(!coerced && !root.textContent.includes("private"));
   }
   results.push("PASS unknown inputs fail closed without coercion");
-  document.getElementById("result").textContent = results.join("\n") + "\nPASS 7/7 component cases";
+  document.getElementById("result").textContent = results.join("\n") + "\nPASS 9/9 expanded component cases";
   document.documentElement.dataset.result = "pass";
 } catch {
   document.getElementById("result").textContent = "FAIL: native DOM component assertion or module load";
