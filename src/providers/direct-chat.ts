@@ -962,7 +962,7 @@ export function createDirectChatInvoker(
           : undefined,
         response.status,
       );
-    if (!response.ok) fail('other', true, true);
+    if (!response.ok) fail('other', true, true, undefined, response.status);
     let body: unknown;
     try {
       body = await response.json();

@@ -1,6 +1,17 @@
 # OpenGranter agent handoff
 
-## Current continuation checkpoint (#570)
+## Current integration checkpoint (PR #561, 2026-11-01)
+
+PR #561 is being refreshed onto main 70a624adaa15c3bbd27aa3696e25cf2542ff6e31 at the user's request. The merge conflicts were limited to this handoff, PRD, acceptance and architecture documents; both timeout-status requirements and the newer service/container/Gemini documentation are retained. Runtime and timeout regression changes keep their original scope. Earlier validation numbers below describe the original branch, not the refreshed integration. Require fresh exact-head CI and formal approval before merge. Full #116 and unresolved #7 remain open; no Docker, systemd or live-provider certification is implied.
+
+## Historical implementation checkpoint (#560)
+
+PR [#559](https://github.com/Theorvane/OpenGranter/pull/559) received approval on 4aa74d8281aa772c1f8d1a25de2c9c5359926e79 with all three checks successful and merged as 93e9e8e; issue #558 is closed. Issue [#560](https://github.com/Theorvane/OpenGranter/issues/560), branch feat/560-timeout-statuses, adds observed HTTP408/504 compatible JSON projection. Read [plan](plans/560-timeout-statuses.md) and [error contract](../contracts/openrouter-error-schema.md#observed-upstream-timeout-statuses-560), then refresh PR/review/CI before assuming merge.
+
+Initial red reproduced 60 expected collapsed-status failures among 144 cases, with 84 passes; minimal implementation made all 144 pass. Integrated focused regressions passed 1,067 tests including all 356 added cases and 144 actual SDK probes. Existing classification/billing/usage/IAM rules, no-response timeout502, legacy502, hint suppression for validated408/504, required persistence, post-frame generic errors and fallback isolation are covered. Final npm run check passed 8,568 tests with one optional external PostgreSQL skip, zero failures/cancellations and all six offline source-integrity checks (~258 seconds). No retry eligibility, source pin, dependency or storage changes. Broader errors/types/date/402, full #116 and unresolved Jev #7 remain open; earlier checkpoints below are historical.
+
+
+## Previous continuation checkpoint (#570)
 
 PR #569 received GitHub approval on 9752216b5a47977705d2a890c513ec89bb4f473e with all seven checks successful, including host and bridge smoke, and merged as d7ba0554b542be78924a82b5c9206b09c1b18758. Issue #568 is closed. Issue #570 adds the optional system-service packaging from plan #566; see [plan](plans/570-systemd-service.md) and [guide](guides/systemd.md). Require exact-head full CI and GitHub approval. Local systemd and Docker execution are unavailable; static unit verification is not installed-host acceptance. #561 remains untouched; full #116 and unresolved #7 remain open.
 
