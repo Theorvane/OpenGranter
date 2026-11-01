@@ -5,7 +5,7 @@ Public boundary: `npm run codex:auth -- login|status|logout` with administrator-
 | Case | Expected outcome |
 | --- | --- |
 | Login in a new canonical dedicated home under an existing parent | Create owned 0700 home, run official CLI device authorization without a shell, force ChatGPT/file storage; operator terminal handles authorization |
-| Existing insecure, foreign-owned, personal default, or symlink home | Fail before launching CLI; do not repair permissions |
+| Existing insecure, foreign-owned, personal default (process home or supplied env.HOME), or symlink home | Fail before launching CLI; do not repair permissions |
 | Unknown action, extra arguments, non-absolute paths, missing executable | Fail without launching another command |
 | Status/logout | Require existing private home, invoke only login status/logout, discard child output and sanitize errors |
 | Successful status | Report CLI status success only, never assert subscription entitlement, token validity or inference readiness |

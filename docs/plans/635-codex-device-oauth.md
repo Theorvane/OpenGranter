@@ -61,3 +61,11 @@ Observed: RED rejected the command but stat(home) unexpectedly succeeded, provin
 3. Run focused tests, lint and planning validation; require fresh exact-head CI and independent approval. No live OAuth, inference or deployment claim.
 
 Observed RED: the asynchronous-validation cancellation regression rejected the operation but still created home (11 pass / 1 fail). A cancellation check immediately before mkdir restores GREEN (12/12 on Node22.23.4); focused Biome, planning scan and diff checks pass. Logs: /tmp/og-0330-codex-{red,green}.log. Prior HEAD 4e1de0f CI run 41334463220 passed typecheck/full check and all 8925 tests; this is not evidence for the new HEAD or live acceptance. Full local resource failures remain recorded above; no new full local suite run.
+
+## Personal home mismatch regression (2026-11-02 Asia/Seoul)
+
+1. Preserve the existing personal-default-home denial contract even when API env.HOME differs from the process home.
+2. Reproduce through the public API in a subprocess whose HOME is a disposable fixture; never access real personal credentials. Require sanitized rejection before storage creation for login/status/logout.
+3. Record RED, minimally check both personal-default paths, then run focused tests, lint and planning checks. Fresh exact-head CI and independent approval remain mandatory.
+
+Observed RED: with disposable process HOME and a differing API env.HOME, login unexpectedly succeeded and launched the fixture (12 pass / 1 fail). Added one process-home denial check while retaining supplied-home denial. GREEN: 13/13 focused tests on Node22.23.4; focused Biome (two informational style suggestions), planning and diff checks pass. Logs: /tmp/og-0430-codex-red.log and /tmp/og-0430-codex-green.log. No real credentials touched. Full local resource failures and live-acceptance gaps above remain; new exact-head CI and formal approval are pending.

@@ -25,6 +25,7 @@ async function prepareHome(options: CodexAuthOptions): Promise<void> {
     !process.getuid ||
     !isAbsolute(home) ||
     resolve(home) !== home ||
+    home === join(homedir(), '.codex') ||
     home === join(env.HOME ?? homedir(), '.codex') ||
     (await realpath(dirname(home))) !== dirname(home)
   )

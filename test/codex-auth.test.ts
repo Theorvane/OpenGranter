@@ -207,3 +207,28 @@ test('login cancelled during executable validation does not create storage', () 
     await assert.rejects(operation, { message: 'Codex authentication command failed' });
     await assert.rejects(stat(home), { code: 'ENOENT' });
   }));
+
+test('API env override cannot permit the process personal credential home', () =>
+  fixture(async (root, binary) => {
+    const source = [
+      "import assert from 'node:assert/strict';",
+      "import { stat } from 'node:fs/promises';",
+      'import { runCodexAuth } from ' + JSON.stringify(resolve('src/identity/codex-auth.ts')) + ';',
+      'const home = ' + JSON.stringify(join(root, '.codex')) + ';',
+      "for (const action of ['login', 'status', 'logout']) {",
+      'await assert.rejects(runCodexAuth({ action, binary: ' +
+        JSON.stringify(binary) +
+        ', home, env: { HOME: ' +
+        JSON.stringify(join(root, 'override')) +
+        " } }), { message: 'Codex authentication command failed' });",
+      "await assert.rejects(stat(home), { code: 'ENOENT' });",
+      '}',
+    ].join('\n');
+    await execute(
+      process.execPath,
+      ['--experimental-strip-types', '--input-type=module', '--eval', source],
+      {
+        env: { HOME: root },
+      },
+    );
+  }));
