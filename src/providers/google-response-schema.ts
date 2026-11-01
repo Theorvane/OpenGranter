@@ -26,6 +26,27 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
       !['object', 'array', 'string', 'number', 'integer', 'boolean', 'null'].includes(rootType))
   )
     invalid();
+  if (Object.hasOwn(schema, '$id')) {
+    const id = schema.$id;
+    if (typeof id !== 'string' || id.length > 2048) invalid();
+    try {
+      const url = new URL(id);
+      if (
+        url.protocol !== 'https:' ||
+        !url.hostname ||
+        url.username ||
+        url.password ||
+        url.search ||
+        url.hash ||
+        url.href !== id ||
+        id.includes('?') ||
+        id.includes('#')
+      )
+        invalid();
+    } catch {
+      invalid();
+    }
+  }
   const definitions = schema.$defs;
   if (
     definitions !== undefined &&
@@ -55,7 +76,7 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
   const activeReferences = new Set<string>();
   const visit = (node: unknown, depth: number): void => {
     if (!record(node) || depth > 16 || ++visits > 20_000) invalid();
-    if (Object.hasOwn(node, '$defs') && node !== schema) invalid();
+    if ((Object.hasOwn(node, '$defs') || Object.hasOwn(node, '$id')) && node !== schema) invalid();
     if (Object.hasOwn(node, '$anchor') && !definitionNodes.has(node)) invalid();
     if (Object.hasOwn(node, '$ref')) {
       const ref = node.$ref;
@@ -64,7 +85,7 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
           (key) =>
             key !== '$ref' &&
             !(key === '$anchor' && definitionNodes.has(node)) &&
-            !(key === '$defs' && node === schema),
+            !((key === '$defs' || key === '$id') && node === schema),
         ) ||
         typeof ref !== 'string' ||
         !/^#(?:\/\$defs\/[A-Za-z_][A-Za-z0-9_.-]{0,63}|[A-Za-z_][A-Za-z0-9_.-]{0,63})$/.test(ref) ||
@@ -96,6 +117,7 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
         (key) =>
           ![
             '$defs',
+            '$id',
             '$anchor',
             'anyOf',
             'oneOf',
@@ -138,7 +160,7 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
         Object.keys(node).some(
           (key) =>
             !['anyOf', 'oneOf', 'title', 'description', '$anchor'].includes(key) &&
-            !(key === '$defs' && node === schema),
+            !((key === '$defs' || key === '$id') && node === schema),
         )
       )
         invalid();

@@ -3487,7 +3487,6 @@ function invalidGoogleLocalRefSchemas(): Record<string, unknown>[] {
         ]),
       ),
     },
-    { ...root, $defs: validDefs, $id: 'https://private.example/' },
     { $defs: validDefs, $ref: '#/$defs/Missing' },
   ];
 }
@@ -5590,7 +5589,7 @@ test('Gemini null-root transport does not validate or force generated null outpu
 function googleAnchorFormat(
   _type: string,
   chained = false,
-  mode: boolean | 'dotted' | 'dottedAlias' | 'dottedKey' | 'dottedKeyAlias' = false,
+  mode: boolean | 'dotted' | 'dottedAlias' | 'dottedKey' | 'dottedKeyAlias' | 'rootId' = false,
 ) {
   const dotted = typeof mode === 'string';
   const alias = mode === true || mode === 'dottedAlias' || mode === 'dottedKeyAlias';
@@ -5598,6 +5597,7 @@ function googleAnchorFormat(
   const answer = dotted ? 'Answer.v1' : 'Answer';
   const aliasName = dotted ? 'Alias.v1' : 'Alias';
   const schema = {
+    ...(mode === 'rootId' ? { $id: 'https://schemas.example.test/private-schema/root.json' } : {}),
     $ref: chained
       ? '#/$defs/Wrapper'
       : alias
@@ -5632,7 +5632,15 @@ function googleAnchorFormat(
 function anchorOutput(_type: string, _chained: boolean) {
   return '{"ok":true}';
 }
-for (const alias of [false, true, 'dotted', 'dottedAlias', 'dottedKey', 'dottedKeyAlias'] as const)
+for (const alias of [
+  false,
+  true,
+  'dotted',
+  'dottedAlias',
+  'dottedKey',
+  'dottedKeyAlias',
+  'rootId',
+] as const)
   for (const withDefs of [false, true])
     for (const type of ['object']) {
       test(
@@ -5649,6 +5657,8 @@ for (const alias of [false, true, 'dotted', 'dottedAlias', 'dottedKey', 'dottedK
               output: anchorOutput(type, withDefs),
               mutate: () => {
                 format.json_schema.schema.$defs.Payload.$anchor = 'mutated';
+                if (alias === 'rootId')
+                  Reflect.set(format.json_schema.schema, '$id', 'https://mutated.example/');
               },
             });
             const req = request(path, format);
@@ -5663,7 +5673,7 @@ for (const alias of [false, true, 'dotted', 'dottedAlias', 'dottedKey', 'dottedK
             assert.equal(f.usage.length, 1);
             assert.doesNotMatch(
               JSON.stringify([f.audits, f.usage]),
-              /Payload|Answer|AliasDef|private definition-anchor-schema|fixture-key/u,
+              /Payload|Answer|AliasDef|private definition-anchor-schema|private-schema|schemas.example|fixture-key/u,
             );
           }
         },
@@ -5885,7 +5895,6 @@ test('Gemini definition anchors reject malformed schemas and unsupported control
       $ref,
     })),
     { ...base, $anchor: 'Root' },
-    { ...base, $id: 'https://example.invalid/private' },
     {
       type: 'null',
       $defs: { A: { type: 'string', $anchor: 'Same' }, B: { type: 'null', $anchor: 'Same' } },
@@ -6289,7 +6298,7 @@ test('Gemini dotted anchors retain literal identity, canonical cycles and bounde
       stream(candidate, { ...input(format), stream: true } as unknown as ChatRequest, () => {}),
     );
   }
-  for (const mode of ['dotted', 'dottedAlias', 'dottedKey', 'dottedKeyAlias'] as const)
+  for (const mode of ['dotted', 'dottedAlias', 'dottedKey', 'dottedKeyAlias', 'rootId'] as const)
     for (const controls of [
       { strict: true },
       { strict: null },
@@ -6417,6 +6426,125 @@ test('Gemini dotted definition keys retain literal pointers, canonical cycles an
         { ...input(format), stream: true } as unknown as ChatRequest,
         () => {},
       ),
+    );
+  }
+  assert.equal(secrets, 0);
+  assert.equal(sends, 0);
+});
+
+test('Gemini root IDs remain bounded metadata with local-only resolution and pre-secret rejection', async () => {
+  const { validateGoogleResponseSchema: validate } = await import(
+    '../src/providers/google-response-schema.ts'
+  );
+  const { createDirectGoogleTextStreamInvoker } = await import(
+    '../src/providers/direct-google-stream.ts'
+  );
+  const wrap = (schema: Record<string, unknown>) =>
+    ({ type: 'json_schema', json_schema: { name: 'result', strict: false, schema } }) as const;
+  const id = 'https://schemas.example.test/private-schema/root.json';
+  const maxId = 'https://schemas.example.test/'.padEnd(2048, 'a');
+  const identified = (schema: Record<string, unknown>) => ({ $id: id, ...schema });
+  for (const schema of [
+    identified({ type: 'null' }),
+    identified({ type: ['string', 'null'] }),
+    identified({ anyOf: [{ type: 'string' }, { type: 'null' }] }),
+    identified({ oneOf: [{ type: 'string' }, { type: 'null' }] }),
+    identified({ $ref: '#/$defs/A', $defs: { A: { type: 'null' } } }),
+    identified({ $ref: '#anchor', $defs: { A: { $anchor: 'anchor', type: 'null' } } }),
+    { $id: maxId, type: 'null' },
+  ])
+    assert.doesNotThrow(() => validate(wrap(schema)));
+  const nested = (depth: number): Record<string, unknown> =>
+    depth === 0 ? { type: 'string' } : { type: 'array', items: nested(depth - 1) };
+  validate(wrap(identified(nested(16))));
+  const defs = (count: number) =>
+    identified({
+      type: 'null',
+      $defs: Object.fromEntries(
+        Array.from({ length: count }, (_, i) => ['D' + i, { type: 'null' }]),
+      ),
+    });
+  validate(wrap(defs(128)));
+  const fanout = (width: number) => {
+    const $defs: Record<string, unknown> = { D0: { type: 'null' } };
+    for (let i = 1; i <= 5; i++)
+      $defs['D' + i] = {
+        anyOf: Array.from({ length: width }, () => ({ $ref: '#/$defs/D' + (i - 1) })),
+      };
+    return identified({ $ref: '#/$defs/D5', $defs });
+  };
+  validate(wrap(fanout(2)));
+  const invalid: Record<string, unknown>[] = [
+    ...[
+      null,
+      1,
+      {},
+      '',
+      'relative.json',
+      'http://schemas.example.test/root',
+      'file:///root',
+      'data:text/plain,foo',
+      'https://user:pass@schemas.example.test/root',
+      id + '?secret=value',
+      id + '#anchor',
+      id + '#',
+      id + '?',
+      ' HTTPS://schemas.example.test/root',
+      'https://SCHEMAS.example.test/root',
+      'https://schemas.example.test:443/root',
+      'https://schemas.example.test/a/../root',
+      maxId + 'a',
+    ].map(($id) => ({ $id, type: 'null' })),
+    identified({ type: 'array', items: { $id: id, type: 'null' } }),
+    identified({ type: 'null', $defs: { Unused: { $id: id, type: 'null' } } }),
+    identified({ type: 'null', $defs: { Unused: { unsupported: true } } }),
+    identified({ $ref: id + '#/$defs/A', $defs: { A: { type: 'null' } } }),
+    identified({ $ref: '#/$defs/Missing', $defs: { A: { type: 'null' } } }),
+    identified({
+      $ref: '#/$defs/A',
+      $defs: { A: { $anchor: 'anchor', $ref: '#/$defs/B' }, B: { $ref: '#anchor' } },
+    }),
+    identified({ $ref: '#/$defs/A', title: 'unsupported sibling', $defs: { A: { type: 'null' } } }),
+    identified(nested(17)),
+    defs(129),
+    fanout(8),
+  ];
+  let secrets = 0;
+  let sends = 0;
+  const stream = createDirectGoogleTextStreamInvoker({
+    registrations: [{ providerId: 'provider', kind: 'google', credentialRef: 'secret/reference' }],
+    resolveSecret: async () => {
+      secrets++;
+      return 'fixture-key';
+    },
+    fetcher: async () => {
+      sends++;
+      throw new Error('unexpected');
+    },
+  });
+  const candidate = {
+    id: 'candidate',
+    kind: 'managed',
+    providerId: 'provider',
+    upstreamModelId: 'model',
+  } as const;
+  for (const schema of invalid) {
+    const format = wrap(schema);
+    assert.throws(() => validate(format));
+    for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
+      const f = httpFixture('google');
+      const response = await f.handler(request(path, format));
+      assert.equal(response.status, 502);
+      assert.equal(f.secrets(), 0);
+      assert.equal(f.sent.length, 0);
+      assert.equal(f.usage.length, 0);
+      assert.doesNotMatch(
+        JSON.stringify([await response.text(), f.audits]),
+        /private-schema|schemas.example|fixture-key|secret=value/u,
+      );
+    }
+    await assert.rejects(
+      stream(candidate, { ...input(format), stream: true } as unknown as ChatRequest, () => {}),
     );
   }
   assert.equal(secrets, 0);

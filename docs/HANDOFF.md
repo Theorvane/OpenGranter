@@ -314,3 +314,8 @@ Explicit strict:false transport additionally accepts $anchor on direct root-$def
 ## Gemini dotted definition keys (#614)
 
 Bounded literal dotted root-$defs keys and #/$defs/name pointers now transport with the unchanged canonical cycle/resource/IAM/privacy boundaries. See [plan](plans/614-gemini-dotted-definition-keys.md). No output validation or live/operational certification; #116 and #7 remain open.
+
+
+## Bounded Gemini root identity (#616)
+
+Root-only canonical HTTPS $id metadata now survives immutable Gemini nonstream/native-stream transport with unchanged local-only references and resource/IAM/privacy boundaries. Actual OpenAI SDK sockets on both bases preserve captured schema identity. No network resolution, nested base changes, generated-output validation or live/operational certification. See [plan](plans/616-gemini-root-schema-id.md); full #116 and unresolved #7 remain open.
