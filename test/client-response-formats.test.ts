@@ -3772,7 +3772,7 @@ test('Gemini array roots retain literal root, keyword, reference and depth bound
     { type: 'array', items: { type: 'object', $defs: { A: { type: 'string' } } } },
     { type: ['array'], items: { type: 'string' } },
     { anyOf: [{ type: 'array', items: false }] },
-    { type: 'null' },
+    { type: 'null', enum: [null] },
   ];
   const { createDirectGoogleTextStreamInvoker } = await import(
     '../src/providers/direct-google-stream.ts'
@@ -4011,7 +4011,7 @@ test('Gemini scalar roots retain recursive constraints and pre-secret rejection'
     },
   });
   for (const schema of [
-    { type: 'null' },
+    { type: 'null', enum: [null] },
     { type: ['string'] },
     { anyOf: [{ type: 'string', pattern: 'private' }] },
     { $ref: '#/$defs/A', $defs: { A: { type: 'string', pattern: 'private' } } },
@@ -4302,7 +4302,7 @@ test('Gemini nullable roots retain recursive constraints and pre-secret rejectio
       ['string', 'null', 'number'],
       ['null', 'string', 'null'],
     ].map((type) => ({ type })),
-    { type: 'null' },
+    { type: 'null', enum: [null] },
     { anyOf: [{ type: 'string' }, false] },
     ...[
       { type: 'string', pattern: 'private' },
@@ -5071,7 +5071,7 @@ test('Gemini root local refs reject malformed schemas and unsupported controls b
       'pattern',
     ].map((key) => ({ ...base, [key]: 'private' })),
     { ...base, $defs: { ['a'.repeat(65)]: { type: 'string' } } },
-    { type: 'null' },
+    { type: 'null', enum: [null] },
   ];
   for (const schema of invalidSchemas) {
     assert.throws(() => validate(wrap(schema)));
@@ -5191,4 +5191,398 @@ test('Gemini root refs keep strict tool and Anthropic rejection pre-secret for n
   }
   assert.equal(secrets, 0);
   assert.equal(sends, 0);
+});
+
+function googleNullRootFormat(_type: string, withDefs = false) {
+  const schema = {
+    type: 'null',
+    title: 'private null-root-schema title',
+    description: 'private null-root-schema literal',
+    ...(withDefs ? { $defs: { Answer: { type: 'null' } } } : {}),
+  };
+  return { type: 'json_schema', json_schema: { name: 'result', strict: false, schema } } as const;
+}
+function nullRootOutput(_type: string, _withDefs: boolean) {
+  return 'null';
+}
+for (const withDefs of [false, true])
+  for (const type of ['null']) {
+    test(
+      'Gemini null-root schemas forward exact immutable schemas on both bases' +
+        ' ' +
+        type +
+        String(withDefs),
+      async () => {
+        for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
+          const format = googleNullRootFormat(type, withDefs);
+          const expected = structuredClone(format.json_schema.schema);
+          const f = httpFixture('google', {
+            output: nullRootOutput(type, withDefs),
+            mutate: () => {
+              format.json_schema.schema.description = 'mutated';
+            },
+          });
+          const req = request(path, format);
+          Object.defineProperty(req, 'json', { value: async () => input(format) });
+          assert.equal((await f.handler(req)).status, 200);
+          assert.deepEqual(
+            (f.sent[0]?.generationConfig as Record<string, unknown> | undefined)
+              ?.responseJsonSchema,
+            expected,
+          );
+          assert.equal(f.secrets(), 1);
+          assert.equal(f.usage.length, 1);
+          assert.doesNotMatch(
+            JSON.stringify([f.audits, f.usage]),
+            /private null-root-schema|fixture-key/u,
+          );
+        }
+      },
+    );
+    test(
+      'Gemini null-root-schema schemas retain IAM limits and persistence failure boundaries' +
+        ' ' +
+        type +
+        String(withDefs),
+      async () => {
+        for (const path of ['/v1/chat/completions', '/api/v1/chat/completions'])
+          for (const [options, status, dispatched] of [
+            [{ auth: true }, 401, false],
+            [{ deny: true }, 403, false],
+            [{ explicitDeny: true }, 403, false],
+            [{ limit: true }, 429, false],
+            [{ audit: true }, 503, false],
+            [{ usageFail: true }, 503, true],
+            [{ outcomeFail: true }, 503, true],
+            [{ fail: true }, 502, true],
+          ] as const) {
+            const f = httpFixture('google', options);
+            const response = await f.handler(request(path, googleNullRootFormat(type, withDefs)));
+            assert.equal(response.status, status);
+            assert.equal(f.sent.length, dispatched ? 1 : 0);
+            assert.equal(f.secrets(), dispatched ? 1 : 0);
+            assert.doesNotMatch(await response.text(), /private|fixture-key/u);
+          }
+      },
+    );
+    test(
+      'Gemini null-root-schema schemas work through actual OpenAI SDK sockets on both bases' +
+        ' ' +
+        type +
+        String(withDefs),
+      async () => {
+        const f = httpFixture('google', { output: nullRootOutput(type, withDefs) });
+        const server = createNodeRequestServer(f.handler);
+        await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+        try {
+          const address = server.address();
+          assert.ok(address && typeof address === 'object');
+          for (const base of ['/v1', '/api/v1']) {
+            const sdk = new OpenAI({
+              apiKey: 'fixture',
+              baseURL: `http://127.0.0.1:${address.port}${base}`,
+              maxRetries: 0,
+            });
+            const result = await sdk.chat.completions.create(
+              input(
+                googleNullRootFormat(type, withDefs),
+              ) as OpenAI.ChatCompletionCreateParamsNonStreaming,
+            );
+            assert.equal(result.choices[0]?.message.content, nullRootOutput(type, withDefs));
+            const config = f.sent.at(-1)?.generationConfig as Record<string, unknown>;
+            assert.deepEqual(
+              config.responseJsonSchema,
+              googleNullRootFormat(type, withDefs).json_schema.schema,
+            );
+          }
+        } finally {
+          server.closeAllConnections();
+          await new Promise<void>((resolve, reject) =>
+            server.close((error) => (error ? reject(error) : resolve())),
+          );
+        }
+      },
+    );
+
+    test(
+      'Gemini null-root-schema schemas use the same captured native text-stream transport' +
+        ' ' +
+        type +
+        String(withDefs),
+      async () => {
+        const { createDirectGoogleTextStreamInvoker } = await import(
+          '../src/providers/direct-google-stream.ts'
+        );
+        const sent: Record<string, unknown>[] = [];
+        const format = googleNullRootFormat(type, withDefs);
+        const expected = structuredClone(format.json_schema.schema);
+        const invoke = createDirectGoogleTextStreamInvoker({
+          registrations: [
+            { providerId: 'provider', kind: 'google', credentialRef: 'secret/reference' },
+          ],
+          resolveSecret: async () => {
+            format.json_schema.schema.description = 'mutated';
+            return 'fixture-key';
+          },
+          fetcher: async (_, init) => {
+            sent.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+            return new Response(
+              'data: ' +
+                JSON.stringify({
+                  responseId: 'response',
+                  modelVersion: 'model',
+                  candidates: [
+                    {
+                      index: 0,
+                      content: {
+                        role: 'model',
+                        parts: [{ text: nullRootOutput(type, withDefs) }],
+                      },
+                      finishReason: 'STOP',
+                    },
+                  ],
+                  usageMetadata: {
+                    promptTokenCount: 2,
+                    candidatesTokenCount: 1,
+                    totalTokenCount: 3,
+                  },
+                }) +
+                '\n\n',
+              { headers: { 'content-type': 'text/event-stream' } },
+            );
+          },
+        });
+        const seen: unknown[] = [];
+        const result = await invoke(
+          { id: 'candidate', kind: 'managed', providerId: 'provider', upstreamModelId: 'model' },
+          { ...input(format), stream: true } as unknown as ChatRequest,
+          (delta) => {
+            seen.push(delta);
+          },
+        );
+        assert.equal(result.finishReason, 'stop');
+        assert.equal(result.usage?.total_tokens, 3);
+        assert.ok(
+          JSON.stringify(seen).includes(
+            JSON.stringify(nullRootOutput(type, withDefs)).slice(1, -1),
+          ),
+        );
+        assert.deepEqual(
+          (sent[0]?.generationConfig as Record<string, unknown> | undefined)?.responseJsonSchema,
+          expected,
+        );
+      },
+    );
+  }
+
+test('Gemini null roots retain expanded depth, shared budget and definition/name bounds', async () => {
+  const { validateGoogleResponseSchema: validate } = await import(
+    '../src/providers/google-response-schema.ts'
+  );
+  const wrap = (schema: Record<string, unknown>) =>
+    ({ type: 'json_schema', json_schema: { name: 'result', strict: false, schema } }) as const;
+  assert.doesNotThrow(() => validate(wrap({ type: 'null' })));
+  for (const depth of [15, 16]) {
+    const defs: Record<string, unknown> = { d0: { type: 'string' } };
+    for (let i = 1; i <= depth; i++) defs[`d${i}`] = { $ref: `#/$defs/d${i - 1}` };
+    const schema = { type: 'null', $defs: defs };
+    if (depth === 15) assert.doesNotThrow(() => validate(wrap(schema)));
+    else assert.throws(() => validate(wrap(schema)));
+  }
+  for (const levels of [3, 7]) {
+    const defs: Record<string, unknown> = { d0: { type: 'string' } };
+    for (let i = 1; i <= levels; i++)
+      defs[`d${i}`] = { anyOf: Array.from({ length: 16 }, () => ({ $ref: `#/$defs/d${i - 1}` })) };
+    const schema = { type: 'null', $defs: defs };
+    if (levels === 3) assert.doesNotThrow(() => validate(wrap(schema)));
+    else assert.throws(() => validate(wrap(schema)));
+  }
+  for (const count of [128, 129]) {
+    const schema = {
+      type: 'null',
+      $defs: Object.fromEntries(
+        Array.from({ length: count }, (_, i) => [`d${i}`, { type: 'string' }]),
+      ),
+    };
+    if (count === 128) assert.doesNotThrow(() => validate(wrap(schema)));
+    else assert.throws(() => validate(wrap(schema)));
+  }
+  for (const name of ['__proto__', 'constructor', 'toString', 'a'.repeat(64)])
+    assert.doesNotThrow(() =>
+      validate(wrap({ type: 'null', $defs: Object.fromEntries([[name, { type: 'string' }]]) })),
+    );
+});
+
+test('Gemini null roots keep strict tool and Anthropic rejection pre-secret for nonstream and Google stream', async () => {
+  const { createDirectGoogleTextStreamInvoker } = await import(
+    '../src/providers/direct-google-stream.ts'
+  );
+  let secrets = 0;
+  let sends = 0;
+  const stream = createDirectGoogleTextStreamInvoker({
+    registrations: [{ providerId: 'provider', kind: 'google', credentialRef: 'secret/reference' }],
+    resolveSecret: async () => {
+      secrets++;
+      return 'fixture-key';
+    },
+    fetcher: async () => {
+      sends++;
+      throw new Error('unexpected');
+    },
+  });
+  const candidate = {
+    id: 'candidate',
+    kind: 'managed',
+    providerId: 'provider',
+    upstreamModelId: 'model',
+  } as const;
+  for (const kind of ['google', 'anthropic'] as const)
+    for (const controls of [
+      {},
+      { tool_choice: 'none' },
+      { tools: [] },
+      { parallel_tool_calls: true },
+    ]) {
+      const base = googleNullRootFormat('object', true);
+      const format =
+        kind === 'google' && Object.keys(controls).length === 0
+          ? { ...base, json_schema: { ...base.json_schema, strict: true } }
+          : base;
+      const f = adapter(kind);
+      const req = { ...input(format), ...controls } as unknown as ChatRequest;
+      await assert.rejects(() => f.call(req));
+      assert.equal(f.secrets(), 0);
+      assert.equal(f.sent.length, 0);
+      if (kind === 'google')
+        await assert.rejects(() =>
+          stream(candidate, { ...req, stream: true } as unknown as ChatRequest, () => {}),
+        );
+    }
+  for (const strict of [null, undefined]) {
+    const format = googleNullRootFormat('object');
+    const req = input({
+      ...format,
+      json_schema: { ...format.json_schema, strict },
+    }) as unknown as ChatRequest;
+    await assert.rejects(() =>
+      stream(candidate, { ...req, stream: true } as unknown as ChatRequest, () => {}),
+    );
+  }
+  assert.equal(secrets, 0);
+  assert.equal(sends, 0);
+});
+
+test('Gemini null roots reject malformed schemas and unsupported controls before credentials', async () => {
+  const { validateGoogleResponseSchema: validate } = await import(
+    '../src/providers/google-response-schema.ts'
+  );
+  const wrap = (schema: Record<string, unknown>) =>
+    ({ type: 'json_schema', json_schema: { name: 'private', strict: false, schema } }) as const;
+  const base = { type: 'null' };
+  const invalidSchemas: Record<string, unknown>[] = [
+    ...[
+      'properties',
+      'required',
+      'additionalProperties',
+      'items',
+      'prefixItems',
+      'format',
+      'minimum',
+      'maximum',
+      'minItems',
+      'maxItems',
+      'enum',
+      'propertyOrdering',
+      'pattern',
+      'const',
+      '$id',
+      '$anchor',
+    ].map((key) => ({ ...base, [key]: 'private' })),
+    ...[[], ['null'], ['null', 'null'], ['null', 1], ['null', 'null', 'string']].map((type) => ({
+      type,
+    })),
+    { ...base, title: 1 },
+    { ...base, description: null },
+    { ...base, $defs: {} },
+    { ...base, $defs: [] },
+    { ...base, $defs: null },
+    { ...base, $defs: { A: { type: 'string', pattern: 'private' } } },
+    { ...base, $defs: { A: { $ref: '#/$defs/A' } } },
+    { ...base, $defs: { A: { $ref: '#/$defs/Missing' } } },
+    { ...base, $defs: { A: { $ref: 'https://example.invalid/private' } } },
+    { ...base, $defs: { A: { type: 'null', $defs: { B: { type: 'string' } } } } },
+    { ...base, $defs: { ['a'.repeat(65)]: { type: 'string' } } },
+    { ...base, enum: [null] },
+  ];
+  for (const schema of invalidSchemas) {
+    assert.throws(() => validate(wrap(schema)));
+    for (const kind of ['google', 'anthropic'] as const) {
+      const a = adapter(kind);
+      await assert.rejects(a.call(input(wrap(schema)) as unknown as ChatRequest));
+      assert.equal(a.secrets(), 0);
+      assert.equal(a.sent.length, 0);
+    }
+    for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
+      const f = httpFixture('google');
+      const response = await f.handler(request(path, wrap(schema)));
+      assert.equal(response.status, 502);
+      assert.equal(f.secrets(), 0);
+      assert.equal(f.sent.length, 0);
+      assert.equal(f.usage.length, 0);
+      assert.doesNotMatch(
+        JSON.stringify([await response.text(), f.audits]),
+        /private|fixture-key/u,
+      );
+    }
+  }
+  for (const strict of [true, null, undefined]) {
+    const format = { ...wrap(base), json_schema: { ...wrap(base).json_schema, strict } };
+    for (const kind of ['google', 'anthropic'] as const) {
+      const a = adapter(kind);
+      await assert.rejects(a.call(input(format) as unknown as ChatRequest));
+      assert.equal(a.secrets(), 0);
+      assert.equal(a.sent.length, 0);
+    }
+  }
+  const { createDirectGoogleTextStreamInvoker } = await import(
+    '../src/providers/direct-google-stream.ts'
+  );
+  for (const schema of invalidSchemas) {
+    let secrets = 0;
+    let sends = 0;
+    const invoke = createDirectGoogleTextStreamInvoker({
+      registrations: [
+        { providerId: 'provider', kind: 'google', credentialRef: 'secret/reference' },
+      ],
+      resolveSecret: async () => {
+        secrets++;
+        return 'fixture-key';
+      },
+      fetcher: async () => {
+        sends++;
+        throw new Error('unexpected');
+      },
+    });
+    await assert.rejects(
+      invoke(
+        { id: 'candidate', kind: 'managed', providerId: 'provider', upstreamModelId: 'model' },
+        { ...input(wrap(schema)), stream: true } as unknown as ChatRequest,
+        () => {},
+      ),
+    );
+    assert.equal(secrets, 0);
+    assert.equal(sends, 0);
+  }
+});
+
+test('Gemini null-root transport does not validate or force generated null output', async () => {
+  for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
+    const output = JSON.stringify({ label: 'not-null' });
+    const f = httpFixture('google', { output });
+    const response = await f.handler(request(path, googleNullRootFormat('null')));
+    assert.equal(response.status, 200);
+    const body = (await response.json()) as { choices: { message: { content: string } }[] };
+    assert.equal(body.choices[0]?.message.content, output);
+    assert.equal(f.usage.length, 1);
+  }
 });
