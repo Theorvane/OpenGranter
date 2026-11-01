@@ -60,7 +60,12 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
     if (Object.hasOwn(node, '$ref')) {
       const ref = node.$ref;
       if (
-        Object.keys(node).some((key) => key !== '$ref' && !(key === '$defs' && node === schema)) ||
+        Object.keys(node).some(
+          (key) =>
+            key !== '$ref' &&
+            !(key === '$anchor' && definitionNodes.has(node)) &&
+            !(key === '$defs' && node === schema),
+        ) ||
         typeof ref !== 'string' ||
         !/^#(?:\/\$defs\/)?[A-Za-z_][A-Za-z0-9_-]{0,63}$/.test(ref) ||
         !record(definitions)
