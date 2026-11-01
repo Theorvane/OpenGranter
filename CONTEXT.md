@@ -87,3 +87,8 @@ An administrator-approved association between a company SSO issuer and subject i
 **SSO management access token**:
 A company SSO token intended to identify a human caller of the OpenGranter management API before policy evaluation.
 _Avoid_: Proxy API token
+
+
+## Bounded Gemini root anchor metadata (#618)
+
+Explicit strict:false Gemini schemas may carry root $anchor using the existing 1..64-character ASCII anchor grammar. Root anchors coexist with optional root $id and typed/nullable/union/local-reference roots; duplicate root/definition names reject before credentials. Named root references remain invalid recursive schemas; existing local root-$defs resolution is unchanged, with no fetching or nested-base changes. Immutable both-base HTTP, actual OpenAI SDK sockets and native captured streams retain the metadata. Nested non-definition anchors, malformed/dangling/cyclic refs, unused invalid definitions and strict/tool/Anthropic exclusions remain pre-secret failures. Depth16/shared20,000 visits/128 definitions and IAM/limits/accounting/persistence/privacy bounds remain. This supersedes earlier root-anchor exclusions only, not generated-output validation, equivalence or live/operational certification. Full #116 and unresolved #7 remain open. See [plan](docs/plans/618-gemini-root-anchor.md).
