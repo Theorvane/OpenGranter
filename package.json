@@ -15,7 +15,8 @@
     "compatibility:check": "node --experimental-strip-types scripts/check-openrouter-schema.ts",
     "compatibility:drift": "node --experimental-strip-types scripts/check-openrouter-schema.ts --live",
     "compatibility:opencode": "node --experimental-strip-types scripts/conformance-opencode.ts",
-    "start": "node --experimental-strip-types scripts/start-gateway.ts"
+    "start": "node --experimental-strip-types scripts/start-gateway.ts",
+    "codex:auth": "node --experimental-strip-types scripts/codex-auth.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",

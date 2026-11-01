@@ -1787,6 +1787,11 @@ Explicit strict:false Gemini schema transport additionally permits ASCII digits 
 
 Existing bounded identifier validation rejects trailing LF, CR, CRLF and Unicode line/paragraph separators in root/definition/alias anchors, unused definition keys and local pointer/anchor references, including matching malformed pairs. Public validator, both chat bases and native stream preparation reject before credentials or transport; valid exact64-character controls preserve immutable HTTP schema transport. Investigation #630 found no production defect; this is regression coverage only, not a runtime fix or new feature. Full #116/#7 and local Docker/bridge/systemd/live-provider certification remain open. See [plan](plans/631-schema-identifier-boundaries.md).
 
+
+## Codex operator OAuth first slice (#635)
+
+The operator command adds isolated official-CLI device login, status and logout only. It does not register a subscription-backed inference provider, change OpenRouter/OpenAI-compatible APIs, or bypass IAM, limits, audit or usage. Success does not establish model entitlement or live acceptance. A separate app-server/Responses adapter and authenticated streaming/tool-call E2E remain pending. See the [operator guide](guides/codex-oauth.md), [contract](../contracts/codex-oauth.md), and [plan](plans/635-codex-device-oauth.md).
+
 ## Management boundary presentation sub-slice (#639)
 
 The pure boundary renderer distinguishes loading, absent session, expired session, denial and unavailability with a main landmark and status/alert text. It accepts no protected data and renders no active links, forms or scripts. Unknown input displays unavailability without reflection. These renderer tests do not establish trusted session state, authentication, browser login/logout or installed UI acceptance. Session integration and protected navigation remain gated by the [product inventory](product-traceability.md) and [sub-slice plan](plans/639-management-boundary-view.md).

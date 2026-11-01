@@ -100,3 +100,8 @@ Repository documentation is written in English. [CLAUDE.md](CLAUDE.md) links to 
 ### Service process adapter
 
 For an explicit deployment-owned bootstrap, validated listener settings and bounded signal shutdown, see [running the gateway service](docs/guides/service.md). This is not a turnkey deployment or a built-in quota/secret-manager implementation.
+
+
+### Codex device OAuth (operator authentication only)
+
+See [Codex OAuth setup](docs/guides/codex-oauth.md) for isolated official-CLI login/status/logout. Subscription-backed model inference through the gateway is not implemented by this command.
