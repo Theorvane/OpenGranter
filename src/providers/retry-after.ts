@@ -1,9 +1,32 @@
-/** Bounded delta-seconds, IMF-fixdate or asctime HTTP-date, normalized at rejection capture. */
+/** Bounded delta-seconds, canonical IMF-fixdate, asctime or RFC850 HTTP-date, normalized at rejection capture. */
 export function parseRetryAfterSeconds(value: string | null, now = Date.now()): number | undefined {
   if (value === null) return undefined;
   if (value.length <= 16 && /^[0-9]+$/u.test(value)) {
     const seconds = Number(value);
     return validRetryAfterSeconds(seconds) ? seconds : undefined;
+  }
+  // RFC9110 two-digit years use a rolling 50-calendar-year UTC window.
+  // Match only RFC850 grammar, then reuse the canonical calendar/weekday check.
+  if (
+    value.length >= 30 &&
+    value.length <= 33 &&
+    /^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday), [0-9]{2}-(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2} GMT$/u.test(
+      value,
+    )
+  ) {
+    if (!Number.isFinite(now) || Math.abs(now) > 8.64e15) return undefined;
+    const cutoff = new Date(now);
+    const currentYear = cutoff.getUTCFullYear();
+    if (currentYear < 1601 || currentYear > 9999) return undefined;
+    cutoff.setUTCFullYear(currentYear + 50);
+    const weekday = value.slice(0, 3);
+    const tail = value.slice(value.indexOf(',') + 2);
+    let year = Math.floor((currentYear + 50) / 100) * 100 + Number(tail.slice(7, 9));
+    const canonical = (resolvedYear: number) =>
+      `${weekday}, ${tail.slice(0, 2)} ${tail.slice(3, 6)} ${resolvedYear} ${tail.slice(10)}`;
+    if (Date.parse(canonical(year)) > cutoff.getTime()) year -= 100;
+    if (year < 1601 || year > 9999) return undefined;
+    value = canonical(year);
   }
   // RFC9110 asctime-date has an implicit UTC zone and a fixed 24-character shape.
   // Normalize only that grammar; the shared round-trip below still validates its calendar.

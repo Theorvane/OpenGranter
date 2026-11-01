@@ -1402,3 +1402,8 @@ The shared retry parser optionally receives a millisecond wall-clock instant (de
 ## Asctime normalization (#622)
 
 The shared Retry-After parser recognizes the fixed24-character RFC9110 asctime grammar, converts its implicit UTC and either permitted day form to IMF-fixdate, then reuses exact weekday/calendar/year1601..9999 validation and capture-time ceiling normalization. No generic local-time parse, upstream Date skew correction, new status/fallback/retry behavior, persistence fields, dependencies or source pins. RFC850 and full HTTP-date remain unsupported. Existing privacy, required handoffs and post-frame isolation are unchanged. See [plan](plans/622-asctime-retry.md).
+
+
+### RFC850 retry capture (#624)
+
+The shared parser recognizes only exact full-weekday RFC850 grammar and normalizes to IMF-fixdate. A finite capture clock with UTC year1601..9999 sets a cutoff via UTC full-year +50 (February29 overflow follows UTC calendar normalization to March1). Select the latest matching two-digit year not later than that cutoff, then apply existing canonical calendar/weekday/year checks and safe ceiling seconds. Numeric/IMF/asctime retain their previous behavior. No Date-header trust, dependency, storage, retry/status or streaming changes. Supersedes earlier RFC850 exclusion only; liberal HTTP-date parsing remains unsupported. See [plan](plans/624-rfc850-retry.md).
