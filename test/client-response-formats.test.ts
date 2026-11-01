@@ -5590,14 +5590,21 @@ test('Gemini null-root transport does not validate or force generated null outpu
 function googleAnchorFormat(
   _type: string,
   chained = false,
-  mode: boolean | 'dotted' | 'dottedAlias' = false,
+  mode: boolean | 'dotted' | 'dottedAlias' | 'dottedKey' | 'dottedKeyAlias' = false,
 ) {
   const dotted = typeof mode === 'string';
-  const alias = mode === true || mode === 'dottedAlias';
+  const alias = mode === true || mode === 'dottedAlias' || mode === 'dottedKeyAlias';
+  const dottedKey = mode === 'dottedKey' || mode === 'dottedKeyAlias';
   const answer = dotted ? 'Answer.v1' : 'Answer';
   const aliasName = dotted ? 'Alias.v1' : 'Alias';
   const schema = {
-    $ref: chained ? '#/$defs/Wrapper' : alias ? '#' + aliasName : '#' + answer,
+    $ref: chained
+      ? '#/$defs/Wrapper'
+      : alias
+        ? '#' + aliasName
+        : dottedKey
+          ? '#/$defs/Payload.v1'
+          : '#' + answer,
     $defs: {
       Payload: {
         $anchor: answer,
@@ -5605,8 +5612,19 @@ function googleAnchorFormat(
         properties: { ok: { type: 'boolean' } },
         required: ['ok'],
       },
-      ...(alias ? { AliasDef: { $anchor: aliasName, $ref: '#' + answer } } : {}),
-      ...(chained ? { Wrapper: { $ref: alias ? '#' + aliasName : '#' + answer } } : {}),
+      ...(dottedKey ? { 'Payload.v1': { $ref: '#' + answer } } : {}),
+      ...(alias
+        ? {
+            AliasDef: { $anchor: aliasName, $ref: dottedKey ? '#/$defs/Payload.v1' : '#' + answer },
+          }
+        : {}),
+      ...(chained
+        ? {
+            Wrapper: {
+              $ref: alias ? '#' + aliasName : dottedKey ? '#/$defs/Payload.v1' : '#' + answer,
+            },
+          }
+        : {}),
     },
   };
   return { type: 'json_schema', json_schema: { name: 'result', strict: false, schema } } as const;
@@ -5614,7 +5632,7 @@ function googleAnchorFormat(
 function anchorOutput(_type: string, _chained: boolean) {
   return '{"ok":true}';
 }
-for (const alias of [false, true, 'dotted', 'dottedAlias'] as const)
+for (const alias of [false, true, 'dotted', 'dottedAlias', 'dottedKey', 'dottedKeyAlias'] as const)
   for (const withDefs of [false, true])
     for (const type of ['object']) {
       test(
@@ -6224,7 +6242,6 @@ test('Gemini dotted anchors retain literal identity, canonical cycles and bounde
     ].map(($anchor) => ({ type: 'null', $defs: { A: { $anchor, type: 'null' } } })),
     { $ref: '#a.b', $defs: { A: { $anchor: 'a_b', type: 'null' } } },
     { $ref: '#a%2Eb', $defs: { A: { $anchor: 'a.b', type: 'null' } } },
-    { $ref: '#/$defs/a.b', $defs: { 'a.b': { type: 'null' } } },
     {
       type: 'null',
       $defs: { A: { $anchor: 'a.b', type: 'null' }, B: { $anchor: 'a.b', type: 'string' } },
@@ -6272,7 +6289,7 @@ test('Gemini dotted anchors retain literal identity, canonical cycles and bounde
       stream(candidate, { ...input(format), stream: true } as unknown as ChatRequest, () => {}),
     );
   }
-  for (const mode of ['dotted', 'dottedAlias'] as const)
+  for (const mode of ['dotted', 'dottedAlias', 'dottedKey', 'dottedKeyAlias'] as const)
     for (const controls of [
       { strict: true },
       { strict: null },
@@ -6299,6 +6316,109 @@ test('Gemini dotted anchors retain literal identity, canonical cycles and bounde
         ),
       );
     }
+  assert.equal(secrets, 0);
+  assert.equal(sends, 0);
+});
+
+test('Gemini dotted definition keys retain literal pointers, canonical cycles and resource bounds', async () => {
+  const { validateGoogleResponseSchema: validate } = await import(
+    '../src/providers/google-response-schema.ts'
+  );
+  const { createDirectGoogleTextStreamInvoker } = await import(
+    '../src/providers/direct-google-stream.ts'
+  );
+  const wrap = (schema: Record<string, unknown>) =>
+    ({ type: 'json_schema', json_schema: { name: 'result', strict: false, schema } }) as const;
+  for (const name of ['a.b', 'a..b', 'a.', '_v.1', 'a' + '.'.repeat(63)]) {
+    validate(wrap({ $ref: '#/$defs/' + name, $defs: { [name]: { type: 'null' } } }));
+    validate(wrap({ $ref: '#Alias', $defs: { [name]: { $anchor: 'Alias', type: 'string' } } }));
+    validate(wrap({ type: 'null', $defs: { [name]: { type: 'null' } } }));
+  }
+  validate(
+    wrap({ $ref: '#/$defs/a.b', $defs: { 'a.b': { type: 'null' }, a_b: { type: 'string' } } }),
+  );
+  const chain = (count: number) => {
+    const defs: Record<string, unknown> = { 'd.0': { type: 'null' } };
+    for (let i = 1; i < count; i++) defs['d.' + i] = { $ref: '#/$defs/d.' + (i - 1) };
+    return wrap({ $ref: '#/$defs/d.' + (count - 1), $defs: defs });
+  };
+  validate(chain(16));
+  assert.throws(() => validate(chain(17)));
+  const definitions = (count: number) =>
+    wrap({
+      type: 'null',
+      $defs: Object.fromEntries(
+        Array.from({ length: count }, (_, i) => ['d.' + i, { type: 'null' }]),
+      ),
+    });
+  validate(definitions(128));
+  assert.throws(() => validate(definitions(129)));
+  const expansion: Record<string, unknown> = { 'd.0': { type: 'null' } };
+  for (let i = 1; i < 5; i++)
+    expansion['d.' + i] = {
+      anyOf: Array.from({ length: 8 }, () => ({ $ref: '#/$defs/d.' + (i - 1) })),
+    };
+  validate(wrap({ type: 'null', $defs: expansion }));
+  expansion['d.5'] = { anyOf: Array.from({ length: 8 }, () => ({ $ref: '#/$defs/d.4' })) };
+  assert.throws(() => validate(wrap({ type: 'null', $defs: expansion })));
+  const invalid: Record<string, unknown>[] = [
+    ...['.a', '1.a', 'a' + '.'.repeat(64), 'a/b', 'a~b', 'a%2Eb', 'a b', 'aé', ''].map((name) => ({
+      type: 'null',
+      $defs: { [name]: { type: 'null' } },
+    })),
+    { $ref: '#/$defs/a%2Eb', $defs: { 'a.b': { type: 'null' } } },
+    { $ref: '#/$defs/a~1b', $defs: { 'a.b': { type: 'null' } } },
+    { $ref: '#/$defs/a.b', $defs: { a_b: { type: 'null' } } },
+    { $ref: '#/$defs/a.b/x', $defs: { 'a.b': { type: 'null' } } },
+    { $ref: '#/$defs/a.b', $defs: { 'a.b': { $ref: '#/$defs/a.b' } } },
+    {
+      type: 'null',
+      $defs: {
+        'a.b': { $anchor: 'Alias', $ref: '#/$defs/other.v1' },
+        'other.v1': { $ref: '#Alias' },
+      },
+    },
+    { type: 'null', $defs: { 'a.b': { type: 'string', pattern: 'private' } } },
+    { type: 'null', $defs: { 'a.b': { $ref: '#/$defs/missing.v1' } } },
+    { type: 'null', $defs: { 'a.b': { $defs: { Nested: { type: 'null' } }, type: 'null' } } },
+    { $ref: 'https://example.invalid/#/$defs/a.b', $defs: { 'a.b': { type: 'null' } } },
+  ];
+  let secrets = 0;
+  let sends = 0;
+  const stream = createDirectGoogleTextStreamInvoker({
+    registrations: [{ providerId: 'provider', kind: 'google', credentialRef: 'secret/reference' }],
+    resolveSecret: async () => {
+      secrets++;
+      return 'fixture-key';
+    },
+    fetcher: async () => {
+      sends++;
+      throw new Error('unexpected');
+    },
+  });
+  for (const schema of invalid) {
+    const format = wrap(schema);
+    assert.throws(() => validate(format));
+    for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
+      const f = httpFixture('google');
+      const response = await f.handler(request(path, format));
+      assert.equal(response.status, 502);
+      assert.equal(f.secrets(), 0);
+      assert.equal(f.sent.length, 0);
+      assert.equal(f.usage.length, 0);
+      assert.doesNotMatch(
+        JSON.stringify([await response.text(), f.audits]),
+        /private|fixture-key|a%2Eb/u,
+      );
+    }
+    await assert.rejects(
+      stream(
+        { id: 'candidate', kind: 'managed', providerId: 'provider', upstreamModelId: 'model' },
+        { ...input(format), stream: true } as unknown as ChatRequest,
+        () => {},
+      ),
+    );
+  }
   assert.equal(secrets, 0);
   assert.equal(sends, 0);
 });
