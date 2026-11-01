@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { execFile } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import { chmod, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -232,3 +232,52 @@ test('API env override cannot permit the process personal credential home', () =
       },
     );
   }));
+
+for (const signal of ['SIGINT', 'SIGTERM'] as const)
+  test('public CLI cancellation releases storage lock: ' + signal, { timeout: 10_000 }, () =>
+    fixture(async (_, binary, home) => {
+      await mkdir(home, { mode: 0o700 });
+      await writeFile(
+        binary,
+        '#!/bin/sh\ntrap "" TERM\nprintf ready > "$CODEX_HOME/ready"\nwhile :; do :; done\n',
+      );
+      const child = spawn(process.execPath, ['--experimental-strip-types', entrypoint, 'status'], {
+        env: { ...parentEnv, OPENGRANTER_CODEX_BIN: binary, OPENGRANTER_CODEX_HOME: home },
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+      let output = '';
+      child.stdout.on('data', (chunk) => {
+        output += String(chunk);
+      });
+      child.stderr.on('data', (chunk) => {
+        output += String(chunk);
+      });
+      const closed = new Promise<{ code: number | null; signal: NodeJS.Signals | null }>(
+        (resolve, reject) => {
+          child.once('error', reject);
+          child.once('close', (code, signal) => resolve({ code, signal }));
+        },
+      );
+      try {
+        let ready = false;
+        for (let attempt = 0; attempt < 200; attempt++) {
+          try {
+            ready = (await readFile(join(home, 'ready'), 'utf8')) === 'ready';
+          } catch {}
+          if (ready) break;
+          await new Promise((resolve) => setTimeout(resolve, 10));
+        }
+        assert.equal(ready, true, 'fixture must be running before cancellation');
+        assert.equal(child.kill(signal), true);
+        assert.deepEqual(await closed, { code: 130, signal: null });
+        assert.match(output, /Codex authentication command failed/);
+        assert.doesNotMatch(output, /fixture-secret|fixture-proxy/);
+        await assert.rejects(stat(join(home, '.opengranter-auth.lock')), { code: 'ENOENT' });
+        await writeFile(binary, '#!/bin/sh\nexit 0\n');
+        await cli(binary, home, ['status']);
+      } finally {
+        child.kill('SIGTERM');
+        await closed;
+      }
+    }),
+  );

@@ -75,3 +75,11 @@ Observed RED: with disposable process HOME and a differing API env.HOME, login u
 1. GitHub reported DIRTY after main advanced through #649; merge-tree reproduced one acceptance-addenda conflict.
 2. Merge main without changing either runtime implementation. Retain both the Codex authentication-only addendum and the management presentation/DOM addenda; do not certify session, inference or installed acceptance.
 3. Rerun auth, boundary/native-browser and packaging regressions, planning validation and whitespace checks, then require fresh exact-head full CI and independent formal approval. Prior b683ca8 CI passed all 8927 tests but is not evidence for the integrated HEAD.
+
+## Public command cancellation verification (2026-11-02 06:30 Asia/Seoul)
+
+- Existing cancellation acceptance was tested through the API, but public command signal handlers and exit/lock-reuse lacked end-to-end coverage.
+- Add fixture-only SIGINT/SIGTERM command regressions: wait for readiness, cancel the wrapper, require sanitized nonzero exit, lock removal, and successful subsequent status. Never authorize an account or read credentials.
+- This verifies shipped behavior, not inference or deployment. Use a disposable negative control to prove detection of incorrect cancellation exit status, then restore production code and run focused tests and static checks. Exact-head CI and independent approval remain required.
+
+Observed: all 15 auth tests passed on Node22.23.4 (0 fail/skip), including both public-command signal cases. A temporary exit-code mutation produced 2/2 expected assertion failures; production command restored byte-for-byte before committing. Focused Biome has informational template suggestions only; planning/link/fixture-secret scan and whitespace checks pass. Logs: /tmp/og-0630-cancel-green.log and /tmp/og-0630-cancel-negative.log. Full local suite/typecheck not rerun; earlier resource-limited failures remain recorded above. No installed official CLI, OAuth, inference, Docker or VM acceptance implied.
