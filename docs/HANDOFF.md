@@ -309,3 +309,8 @@ Explicit strict:false transport additionally accepts unique 1..64 ASCII $anchor 
 ## Bounded Gemini anchored definition aliases (#610)
 
 Explicit strict:false transport additionally accepts $anchor on direct root-$defs entries containing $ref, enabling named local aliases through existing pointer/anchor resolution. Canonical mixed-alias cycle detection, all unused definitions and expanded depth<=16/shared20,000-visit/128-definition bounds remain enforced. Captured schemas pass unchanged on nonstream/native text streams. Arbitrary reference siblings, root/nested anchors, $id, remote/dangling/malformed references and strict/tool/Anthropic combinations remain pre-secret failures. This supersedes only reference-entry-anchor rejection, not generated-output validation, satisfiability, equivalence or live-provider certification. IAM/limits/accounting/persistence/privacy and deprecated responseJsonSchema transport remain unchanged; full #116 and unresolved #7 stay open. See [plan](plans/610-gemini-anchored-aliases.md).
+
+
+## Gemini dotted definition keys (#614)
+
+Bounded literal dotted root-$defs keys and #/$defs/name pointers now transport with the unchanged canonical cycle/resource/IAM/privacy boundaries. See [plan](plans/614-gemini-dotted-definition-keys.md). No output validation or live/operational certification; #116 and #7 remain open.
