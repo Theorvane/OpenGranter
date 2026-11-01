@@ -192,3 +192,18 @@ test('pre-cancelled login does not create credential storage', () =>
     );
     await assert.rejects(stat(home), { code: 'ENOENT' });
   }));
+
+test('login cancelled during executable validation does not create storage', () =>
+  fixture(async (_, binary, home) => {
+    const controller = new AbortController();
+    const operation = runCodexAuth({
+      action: 'login',
+      binary,
+      home,
+      env: {},
+      signal: controller.signal,
+    });
+    controller.abort();
+    await assert.rejects(operation, { message: 'Codex authentication command failed' });
+    await assert.rejects(stat(home), { code: 'ENOENT' });
+  }));

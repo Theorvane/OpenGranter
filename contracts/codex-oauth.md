@@ -12,6 +12,7 @@ Public boundary: `npm run codex:auth -- login|status|logout` with administrator-
 | Provider credentials/config inherited by parent | Not present in child; HOME/CODEX_HOME/XDG locations isolated |
 | Concurrent wrapper operation | Fail closed; never remove another operation's lock |
 | Nonzero/spawn failure | Generic wrapper error, no OS paths, tokens or captured provider diagnostics |
+| Cancellation observed before storage creation, including during asynchronous validation | Reject without creating the credential home or launching the CLI |
 | Timeout or cancellation | Terminate owned process group with bounded grace period before releasing own lock; never affect unrelated processes |
 | Wrapper success | No model call, API-key fallback, provider registration, model discovery, gateway endpoint or host deployment |
 

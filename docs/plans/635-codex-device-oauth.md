@@ -53,3 +53,11 @@
 3. Add the smallest early cancellation guard, then run focused auth tests, lint and planning checks. No OAuth, inference or installed acceptance is implied; exact-head CI and independent approval remain required.
 
 Observed: RED rejected the command but stat(home) unexpectedly succeeded, proving cancelled login created storage. GREEN: all 11 auth tests pass on Node22.23.4, focused Biome/planning/diff checks pass. Full local typecheck/test suite and live OAuth/inference were not rerun; new exact-head CI/review are pending.
+
+## Cancellation during validation regression (2026-11-02 Asia/Seoul)
+
+1. Cancel immediately after invocation while asynchronous executable validation is pending; the command must not proceed to create credential storage or launch a child.
+2. Add the public API regression first and record RED, then observe cancellation immediately before storage creation. Existing cancellation and lock/process cleanup semantics remain unchanged.
+3. Run focused tests, lint and planning validation; require fresh exact-head CI and independent approval. No live OAuth, inference or deployment claim.
+
+Observed RED: the asynchronous-validation cancellation regression rejected the operation but still created home (11 pass / 1 fail). A cancellation check immediately before mkdir restores GREEN (12/12 on Node22.23.4); focused Biome, planning scan and diff checks pass. Logs: /tmp/og-0330-codex-{red,green}.log. Prior HEAD 4e1de0f CI run 41334463220 passed typecheck/full check and all 8925 tests; this is not evidence for the new HEAD or live acceptance. Full local resource failures remain recorded above; no new full local suite run.

@@ -29,6 +29,7 @@ async function prepareHome(options: CodexAuthOptions): Promise<void> {
     (await realpath(dirname(home))) !== dirname(home)
   )
     throw failure();
+  if (options.signal?.aborted) throw failure();
   try {
     if (options.action === 'login') await mkdir(home, { mode: 0o700 });
   } catch (error) {
