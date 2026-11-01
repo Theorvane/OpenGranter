@@ -23,7 +23,7 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
         Object.hasOwn(schema, '$ref'))
     ) &&
     (typeof rootType !== 'string' ||
-      !['object', 'array', 'string', 'number', 'integer', 'boolean'].includes(rootType))
+      !['object', 'array', 'string', 'number', 'integer', 'boolean', 'null'].includes(rootType))
   )
     invalid();
   const definitions = schema.$defs;

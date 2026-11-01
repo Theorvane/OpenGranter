@@ -149,3 +149,8 @@ These fixtures need no credentials or live inference and run in the standard npm
 ## Native Gemini schema limitation update (#572)
 
 Direct Gemini now has a bounded explicit strict:false schema transport subset with no tool controls (see [contract](../contracts/client-response-formats.md#bounded-direct-gemini-json-schemas-572)). The pinned AI SDK Output.object emits strict:true, so its existing native-Gemini pre-secret rejection is unchanged. Do not treat this transport addition as AI SDK native structured-output certification.
+
+
+## Bounded Gemini literal null-root schemas (#606)
+
+Explicit strict:false transport additionally accepts literal type:null roots with existing annotations and optional root-only definitions. All unused definitions, local-reference/cycle checks, expanded depth<=16, shared20,000-visit budget and wrong-type keyword restrictions remain enforced before credentials. Captured schemas pass unchanged on nonstream and native text streams. Null enums, malformed type arrays, nested definitions and strict/tool/Anthropic combinations remain unsupported; actual AI SDK strict:true rejection is unchanged. This supersedes earlier literal-root-null-only exclusions, not generated-output validation, forced-null output, satisfiability, equivalence or live-model certification. IAM/limits/accounting/persistence/privacy and deprecated responseJsonSchema transport remain unchanged. Full #116 and unresolved #7 stay open. See [plan](plans/606-gemini-null-root.md).

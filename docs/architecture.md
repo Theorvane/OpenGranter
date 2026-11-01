@@ -1379,3 +1379,8 @@ On strict:false explicitly object-root schemas, nested oneOf transports1..16 rec
 ## Bounded Gemini local schema references (#594)
 
 The strict:false literal object-root subset additionally transports root-only $defs (1..128 simple ASCII identifier names, max64) and sole-key #/$defs/name references without rewriting. All definitions, including unused ones, and every resolved use are checked against the subset, expanded depth<=16 and shared 20,000-visit budget. Cyclic/dangling/external/escaped refs, reference siblings, nested $defs, $id/$anchor and unsupported schema keywords reject before secrets. No URL is fetched. This is immutable schema transport, not generated-output validation, recursive-reference support, satisfiability or live-model certification. Deprecated responseJsonSchema and strict/tool/Anthropic limitations remain; full #116 and unresolved #7 stay open. See [plan](plans/594-gemini-local-refs.md).
+
+
+## Bounded Gemini literal null-root transport (#606)
+
+Explicit strict:false response schemas may use literal type:null roots, retaining existing recursive keyword restrictions, root-only definition validation, local-reference/depth/shared-budget bounds and immutable capture. No output validation or forced-null output is performed. Strict/tool/Anthropic combinations remain pre-secret unsupported; full #116 and unresolved #7 stay open. No live-provider or operational certification. See [plan](plans/606-gemini-null-root.md) and [contract](../contracts/client-response-formats.md).
