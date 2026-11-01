@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>OpenGranter boundary component smoke</title>
+<h1>Boundary native DOM smoke</h1>
+<p>Component only. No login, session or installed acceptance.</p>
+<pre id="result">FAIL: tests have not completed</pre>
+<div id="outside">Caller-owned adjacent content</div>
+<div id="root"></div>
+<script type="module">
+try {
+  const { mountManagementBoundaryView: mount } = await import("__BOUNDARY_MODULE_URL__");
+  const root = document.getElementById("root");
+  const outside = document.getElementById("outside");
+  const cases = [
+    ["loading", "Checking your session", "status"],
+    ["unauthenticated", "Sign-in required", "status"],
+    ["expired", "Session expired", "alert"],
+    ["denied", "Access denied", "alert"],
+    ["unavailable", "Management unavailable", "alert"],
+  ];
+  const results = [];
+  function check(value) { if (!value) throw new Error("assertion"); }
+  for (const [state, heading, role] of cases) {
+    const stale = document.createElement("button");
+    stale.textContent = "Private token controls";
+    root.replaceChildren(stale);
+    mount(root, state);
+    check(!stale.isConnected && !root.contains(stale));
+    check(root.children.length === 1 && root.firstElementChild.tagName === "MAIN");
+    check(root.querySelector("h1").textContent === heading);
+    const message = root.querySelector("p");
+    check(message.getAttribute("role") === role);
+    check(message.getAttribute("aria-live") === (state === "loading" ? "polite" : null));
+    check(root.querySelectorAll("button,input,a,script,iframe,form").length === 0);
+    check(!root.textContent.includes("Private"));
+    check(outside.isConnected && outside.textContent === "Caller-owned adjacent content");
+    results.push("PASS " + state + " native replacement and attributes");
+  }
+  const prior = root.firstElementChild;
+  mount(root, "loading");
+  check(!prior.isConnected && root.querySelector("h1").textContent === cases[0][1]);
+  results.push("PASS repeated transition removes previous nodes");
+  let coerced = false;
+  const hostile = { toString() { coerced = true; throw new Error("coercion"); } };
+  for (const input of [hostile, null, undefined, ["loading"], "<img src=x onerror=alert(1)>", "ready"]) {
+    mount(root, input);
+    check(root.querySelector("h1").textContent === "Management unavailable");
+    check(!coerced && !root.textContent.includes("private"));
+  }
+  results.push("PASS unknown inputs fail closed without coercion");
+  document.getElementById("result").textContent = results.join("\n") + "\nPASS 7/7 component cases";
+  document.documentElement.dataset.result = "pass";
+} catch {
+  document.getElementById("result").textContent = "FAIL: native DOM component assertion or module load";
+  document.documentElement.dataset.result = "fail";
+}
+</script>
+</html>
