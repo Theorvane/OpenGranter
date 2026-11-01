@@ -1,6 +1,10 @@
 # OpenGranter agent handoff
 
-## Current continuation checkpoint (#570)
+## Current continuation checkpoint (#620)
+
+PR #619 received exact-head GitHub approval on1aa232b00d66d946d8192270513f97c6ec10606a and all seven CI successes, then merged as fe9812813870156b2c79eda4ab6e0988454245e3; #618 is closed. Issue #620 implements the existing #116 canonical HTTP-date retry-hint gap, not speculative Gemini partial argument APIs. See [plan](plans/620-http-date-retry.md). New date/hint/status/SDK tests pass566 cases; the standard full local check was killed during typecheck and is NOT a pass. Require exact-head CI and formal GitHub approval. Shared default gh identity and #561 remain untouched; local deployment/live-provider acceptance, full #116 and unresolved #7 remain open.
+
+## Previous continuation checkpoint (#570)
 
 PR #569 received GitHub approval on 9752216b5a47977705d2a890c513ec89bb4f473e with all seven checks successful, including host and bridge smoke, and merged as d7ba0554b542be78924a82b5c9206b09c1b18758. Issue #568 is closed. Issue #570 adds the optional system-service packaging from plan #566; see [plan](plans/570-systemd-service.md) and [guide](guides/systemd.md). Require exact-head full CI and GitHub approval. Local systemd and Docker execution are unavailable; static unit verification is not installed-host acceptance. #561 remains untouched; full #116 and unresolved #7 remain open.
 

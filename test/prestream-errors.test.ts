@@ -72,7 +72,7 @@ for (const base of ['/v1', '/api/v1'] as const)
         for (const status of [429, 503, 200, 400, 401, 402, 403, 404, 408, 500, 502, 504])
           for (const hint of [
             'private fixture-provider-key',
-            'Thu, 29 Oct 2026 12:00:00 GMT',
+            'Fri, 29 Oct 2026 12:00:00 GMT',
             '7, 8',
             '-1',
             '1.5',
