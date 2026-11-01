@@ -5058,17 +5058,9 @@ test('Gemini root local refs reject malformed schemas and unsupported controls b
     { ...base, $defs: { A: { type: 'object', properties: { a: { $ref: '#/$defs/A' } } } } },
     { ...base, $defs: { A: { $ref: '#/$defs/B', $defs: { B: { type: 'string' } } } } },
     { ...base, $defs: { A: { $ref: '#/$defs/B', title: 'private' }, B: { type: 'string' } } },
-    ...[
-      'type',
-      'title',
-      'description',
-      'properties',
-      'anyOf',
-      'oneOf',
-      '$id',
-      '$anchor',
-      'pattern',
-    ].map((key) => ({ ...base, [key]: 'private' })),
+    ...['type', 'title', 'description', 'properties', 'anyOf', 'oneOf', '$id', 'pattern'].map(
+      (key) => ({ ...base, [key]: 'private' }),
+    ),
     { ...base, $defs: { ['a'.repeat(65)]: { type: 'string' } } },
     { type: 'null', enum: [null] },
   ];
@@ -5495,7 +5487,6 @@ test('Gemini null roots reject malformed schemas and unsupported controls before
       'pattern',
       'const',
       '$id',
-      '$anchor',
     ].map((key) => ({ ...base, [key]: 'private' })),
     ...[[], ['null'], ['null', 'null'], ['null', 1], ['null', 'null', 'string']].map((type) => ({
       type,
@@ -5589,7 +5580,14 @@ test('Gemini null-root transport does not validate or force generated null outpu
 function googleAnchorFormat(
   _type: string,
   chained = false,
-  mode: boolean | 'dotted' | 'dottedAlias' | 'dottedKey' | 'dottedKeyAlias' | 'rootId' = false,
+  mode:
+    | boolean
+    | 'dotted'
+    | 'dottedAlias'
+    | 'dottedKey'
+    | 'dottedKeyAlias'
+    | 'rootId'
+    | 'rootAnchor' = false,
 ) {
   const dotted = typeof mode === 'string';
   const alias = mode === true || mode === 'dottedAlias' || mode === 'dottedKeyAlias';
@@ -5597,6 +5595,7 @@ function googleAnchorFormat(
   const answer = dotted ? 'Answer.v1' : 'Answer';
   const aliasName = dotted ? 'Alias.v1' : 'Alias';
   const schema = {
+    ...(mode === 'rootAnchor' ? { $anchor: 'Root.v1' } : {}),
     ...(mode === 'rootId' ? { $id: 'https://schemas.example.test/private-schema/root.json' } : {}),
     $ref: chained
       ? '#/$defs/Wrapper'
@@ -5640,6 +5639,7 @@ for (const alias of [
   'dottedKey',
   'dottedKeyAlias',
   'rootId',
+  'rootAnchor',
 ] as const)
   for (const withDefs of [false, true])
     for (const type of ['object']) {
@@ -5657,6 +5657,8 @@ for (const alias of [
               output: anchorOutput(type, withDefs),
               mutate: () => {
                 format.json_schema.schema.$defs.Payload.$anchor = 'mutated';
+                if (alias === 'rootAnchor')
+                  Reflect.set(format.json_schema.schema, '$anchor', 'Mutated');
                 if (alias === 'rootId')
                   Reflect.set(format.json_schema.schema, '$id', 'https://mutated.example/');
               },
@@ -5894,7 +5896,6 @@ test('Gemini definition anchors reject malformed schemas and unsupported control
       ...base,
       $ref,
     })),
-    { ...base, $anchor: 'Root' },
     {
       type: 'null',
       $defs: { A: { type: 'string', $anchor: 'Same' }, B: { type: 'null', $anchor: 'Same' } },
@@ -6132,11 +6133,6 @@ test('Gemini anchored aliases retain canonical cycles, unused checks and exact d
       $defs: { A: { $anchor: 'A', $ref: '#/$defs/B', [key]: 'private' }, B: { type: 'null' } },
     })),
     {
-      $anchor: 'Root',
-      $ref: '#A',
-      $defs: { A: { $anchor: 'A', $ref: '#/$defs/B' }, B: { type: 'null' } },
-    },
-    {
       type: 'object',
       properties: { value: { $anchor: 'Nested', $ref: '#A' } },
       $defs: { A: { $anchor: 'A', type: 'null' } },
@@ -6257,7 +6253,6 @@ test('Gemini dotted anchors retain literal identity, canonical cycles and bounde
     },
     { type: 'null', $defs: { A: { $anchor: 'a.b', $ref: '#a.b' } } },
     { type: 'null', $defs: { A: { $anchor: 'a.b', $ref: '#/$defs/B' }, B: { $ref: '#a.b' } } },
-    { type: 'null', $anchor: 'a.b' },
     { type: 'array', items: { $anchor: 'a.b', type: 'null' } },
   ];
   let secrets = 0;
@@ -6298,7 +6293,14 @@ test('Gemini dotted anchors retain literal identity, canonical cycles and bounde
       stream(candidate, { ...input(format), stream: true } as unknown as ChatRequest, () => {}),
     );
   }
-  for (const mode of ['dotted', 'dottedAlias', 'dottedKey', 'dottedKeyAlias', 'rootId'] as const)
+  for (const mode of [
+    'dotted',
+    'dottedAlias',
+    'dottedKey',
+    'dottedKeyAlias',
+    'rootId',
+    'rootAnchor',
+  ] as const)
     for (const controls of [
       { strict: true },
       { strict: null },
@@ -6549,4 +6551,107 @@ test('Gemini root IDs remain bounded metadata with local-only resolution and pre
   }
   assert.equal(secrets, 0);
   assert.equal(sends, 0);
+});
+
+test('Gemini root anchors preserve bounded immutable metadata without recursive resolution', async () => {
+  const { validateGoogleResponseSchema: validate } = await import(
+    '../src/providers/google-response-schema.ts'
+  );
+  const wrap = (schema: Record<string, unknown>) =>
+    ({ type: 'json_schema', json_schema: { name: 'result', strict: false, schema } }) as const;
+  const shapes = [
+    { type: 'object', properties: { ok: { type: 'boolean' } } },
+    { type: ['null', 'string'] },
+    { type: 'null' },
+    { anyOf: [{ type: 'string' }, { type: 'null' }] },
+    { $ref: '#Leaf', $defs: { leaf: { $anchor: 'Leaf', type: 'string' } } },
+  ];
+  for (const $anchor of ['Root', '_Root.v1-', 'a'.repeat(64)]) {
+    for (const shape of shapes) {
+      const schema = { ...shape, $anchor, $id: 'https://schemas.example.test/root.json' };
+      const before = structuredClone(schema);
+      validate(wrap(schema));
+      assert.deepEqual(schema, before);
+    }
+  }
+  const { createDirectGoogleTextStreamInvoker } = await import(
+    '../src/providers/direct-google-stream.ts'
+  );
+  let secrets = 0;
+  let sends = 0;
+  const stream = createDirectGoogleTextStreamInvoker({
+    registrations: [{ providerId: 'provider', kind: 'google', credentialRef: 'secret/reference' }],
+    resolveSecret: async () => {
+      secrets++;
+      return 'fixture-key';
+    },
+    fetcher: async () => {
+      sends++;
+      throw new Error('unexpected');
+    },
+  });
+  const candidate = {
+    id: 'candidate',
+    kind: 'managed',
+    providerId: 'provider',
+    upstreamModelId: 'model',
+  } as const;
+  for (const schema of [
+    ...[null, 1, '', '1root', 'a/b', 'a%b', 'a b', 'é', 'a'.repeat(65)].map(($anchor) => ({
+      type: 'null',
+      $anchor,
+    })),
+    { type: 'null', $anchor: 'Root', $defs: { unused: { $anchor: 'Root', type: 'null' } } },
+    { type: 'object', $anchor: 'Root', properties: { child: { $anchor: 'Nested', type: 'null' } } },
+    { type: 'object', $anchor: 'Root', properties: { child: { $ref: '#Root' } } },
+    { $ref: '#Root', $anchor: 'Root' },
+    { $ref: '#Root', $anchor: 'Root', $defs: { leaf: { type: 'null' } } },
+    { type: 'null', $anchor: 'Root', $defs: { unused: { $ref: '#Root' } } },
+    { type: 'null', $anchor: 'Root', $defs: { unused: { type: 'invalid' } } },
+  ]) {
+    const format = wrap(schema);
+    assert.throws(() => validate(format));
+    for (const kind of ['google', 'anthropic'] as const) {
+      const a = adapter(kind);
+      await assert.rejects(a.call(input(format) as unknown as ChatRequest));
+      assert.equal(a.secrets(), 0);
+      assert.equal(a.sent.length, 0);
+    }
+    for (const path of ['/v1/chat/completions', '/api/v1/chat/completions']) {
+      const f = httpFixture('google');
+      assert.equal((await f.handler(request(path, format))).status, 502);
+      assert.equal(f.secrets(), 0);
+      assert.equal(f.sent.length, 0);
+    }
+    await assert.rejects(
+      stream(candidate, { ...input(format), stream: true } as unknown as ChatRequest, () => {}),
+    );
+  }
+  assert.equal(secrets, 0);
+  assert.equal(sends, 0);
+  const chain = (count: number) => {
+    const $defs: Record<string, unknown> = { d0: { type: 'null' } };
+    for (let i = 1; i < count; i++) $defs['d' + i] = { $ref: '#/$defs/d' + (i - 1) };
+    return wrap({ $anchor: 'Root', $ref: '#/$defs/d' + (count - 1), $defs });
+  };
+  validate(chain(16));
+  assert.throws(() => validate(chain(17)));
+  const defs = (count: number) =>
+    wrap({
+      $anchor: 'Root',
+      type: 'null',
+      $defs: Object.fromEntries(
+        Array.from({ length: count }, (_, i) => ['d' + i, { type: 'null' }]),
+      ),
+    });
+  validate(defs(128));
+  assert.throws(() => validate(defs(129)));
+  const expansion: Record<string, unknown> = { d0: { type: 'null' } };
+  for (let i = 1; i < 5; i++)
+    expansion['d' + i] = {
+      anyOf: Array.from({ length: 8 }, () => ({ $ref: '#/$defs/d' + (i - 1) })),
+    };
+  validate(wrap({ $anchor: 'Root', type: 'null', $defs: expansion }));
+  expansion.d5 = { anyOf: Array.from({ length: 8 }, () => ({ $ref: '#/$defs/d4' })) };
+  assert.throws(() => validate(wrap({ $anchor: 'Root', type: 'null', $defs: expansion })));
 });
