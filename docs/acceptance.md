@@ -1766,3 +1766,8 @@ On both chat bases/all four registered adapters, upstream429/503 before client d
 ## Asctime retry hints (#622)
 
 On both bases/all four registered adapters/nonstream/text/function pre-stream paths, observed429/503 asctime hints deliver canonical seconds after required usage/outcome audit. Deterministic tests cover future/fractional/exact/past, both day forms, earliest/latest years and leap dates, invalid clocks/weekdays/calendars/case/spacing/duplicates and one-attempt private missing/possibly-billed accounting. Actual pinned OpenAI/OpenRouter/AI SDK sockets disable retries and assert normalized headers. Numeric and IMF-fixdate plus persistence/status/post-frame/authorization boundaries remain regression gates. Supersedes only earlier asctime rejections; RFC850/full RFC/live deployments remain unverified. See [plan](plans/622-asctime-retry.md).
+
+
+## Bounded RFC850 retry hints (#624)
+
+Both bases/all four adapters/nonstream/text/function pre-stream upstream429/503 paths normalize exact RFC850 hints. Cover rounding, past/exact/future, century rollover, leap calendar, exactly50 years and one-second-over with resolved-year weekday, bounded clocks, malformed spacing/case/duplicate/timezone/calendar/size rejection, numeric/IMF/asctime regressions and unchanged required persistence/status/post-frame/privacy boundaries. Pinned OpenAI/OpenRouter/AI SDK sockets receive seconds with retries disabled. No live/operational or full #116 certification. Supersedes only previous RFC850 rejection. See [plan](plans/624-rfc850-retry.md).

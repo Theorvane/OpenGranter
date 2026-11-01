@@ -330,3 +330,8 @@ Bounded literal dotted root-$defs keys and #/$defs/name pointers now transport w
 ## Bounded Gemini root identity (#616)
 
 Root-only canonical HTTPS $id metadata now survives immutable Gemini nonstream/native-stream transport with unchanged local-only references and resource/IAM/privacy boundaries. Actual OpenAI SDK sockets on both bases preserve captured schema identity. No network resolution, nested base changes, generated-output validation or live/operational certification. See [plan](plans/616-gemini-root-schema-id.md); full #116 and unresolved #7 remain open.
+
+
+## Bounded RFC850 retry hints (#624)
+
+Exact full-weekday RFC850 parsing resolves two-digit years against trusted capture +50 UTC calendar years before canonical calendar/weekday validation. Public headers remain safe integer seconds on existing upstream429/503 nonstream/pre-stream paths. Supersedes prior RFC850 exclusions; numeric/IMF/asctime, IAM/privacy/persistence/status/post-frame boundaries remain. No local Docker/bridge/systemd/live certification or full #116/#7 completion. See [plan](plans/624-rfc850-retry.md).

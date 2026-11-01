@@ -67,3 +67,8 @@ The normalized delay is advisory and captured before persistence, not recalculat
 ## Asctime Retry-After (#622)
 
 In addition to #620 IMF-fixdate, the shared parser accepts exact24-character RFC9110 asctime-date. Both grammar-permitted day forms normalize to the same UTC calendar; invalid calendar/weekday/year outside1601..9999 or noncanonical whitespace/case rejects. Reuse max(0, ceil((timestamp-captureNow)/1000)) and safe-integer validation. Numeric hints do not depend on a valid clock. Status eligibility, required persistence, fallback, pre-stream/post-frame boundaries and privacy remain unchanged. RFC850 is still unsupported; this is not full HTTP-date or #116 conformance. Supersedes only prior asctime exclusions. See [plan](../docs/plans/622-asctime-retry.md).
+
+
+## Bounded RFC850 Retry-After (#624)
+
+Exact RFC850 full English weekday, DD-Mon-YY HH:mm:ss GMT additionally normalizes at rejection capture. RFC9110 section5.6.7 year resolution chooses the latest matching year not more than50 UTC calendar years after capture; UTC year1601..9999 is required for capture and resolved date. Cutoff uses UTC year +50, including normal February29 overflow to March1. The resolved weekday/calendar must round-trip exactly. Existing integer seconds,429/503 eligibility, required audit/usage, failure privacy and post-frame exclusion remain. Numeric/IMF/asctime behavior is unchanged. This supersedes earlier RFC850 exclusions only, not strict whitespace/calendar/leap-second rejection. No upstream Date skew trust or client retry promise. See [plan](../docs/plans/624-rfc850-retry.md).
