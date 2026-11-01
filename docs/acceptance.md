@@ -1790,3 +1790,7 @@ Existing bounded identifier validation rejects trailing LF, CR, CRLF and Unicode
 ## Management boundary presentation sub-slice (#639)
 
 The pure boundary renderer distinguishes loading, absent session, expired session, denial and unavailability with a main landmark and status/alert text. It accepts no protected data and renders no active links, forms or scripts. Unknown input displays unavailability without reflection. These renderer tests do not establish trusted session state, authentication, browser login/logout or installed UI acceptance. Session integration and protected navigation remain gated by the [product inventory](product-traceability.md) and [sub-slice plan](plans/639-management-boundary-view.md).
+
+## Management boundary DOM replacement (#639)
+
+The unused mount adapter builds fixed detached main/heading/status nodes with textContent and synchronously replaces all children of the caller-owned root. Structural fixture tests cover stale subtree removal, repeated state changes, five accessible states and unknown inputs without coercion/reflection. This is not a browser test, session detector, authorization revocation or memory/resource cleanup. Callers must own the root and dispose external listeners/resources. No session or endpoint integration is installed. See [plan](plans/639-management-boundary-mount.md).

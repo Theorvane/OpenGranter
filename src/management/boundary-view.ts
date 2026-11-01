@@ -24,15 +24,7 @@ const views = {
 
 /** Never interpolate caller data, credentials, error details or protected content. */
 export function renderManagementBoundaryView(state: unknown): string {
-  const selected: ManagementBoundaryState =
-    state === 'loading' ||
-    state === 'unauthenticated' ||
-    state === 'expired' ||
-    state === 'denied' ||
-    state === 'unavailable'
-      ? state
-      : 'unavailable';
-  const [heading, description, role] = views[selected];
+  const { selected, heading, description, role } = boundaryContent(state);
   const live = selected === 'loading' ? ' aria-live="polite"' : '';
   return `<!doctype html>
 <html lang="en">
@@ -48,4 +40,40 @@ export function renderManagementBoundaryView(state: unknown): string {
 </main>
 </body>
 </html>`;
+}
+
+function boundaryContent(state: unknown) {
+  const selected: ManagementBoundaryState =
+    state === 'loading' ||
+    state === 'unauthenticated' ||
+    state === 'expired' ||
+    state === 'denied' ||
+    state === 'unavailable'
+      ? state
+      : 'unavailable';
+  const [heading, description, role] = views[selected];
+  return { selected, heading, description, role };
+}
+
+/** Narrow structural DOM port; compatible with an owned HTMLElement root. */
+export interface ManagementBoundaryElement {
+  textContent: string | null;
+  ownerDocument: { createElement(tag: string): ManagementBoundaryElement };
+  setAttribute(name: string, value: string): void;
+  append(...nodes: ManagementBoundaryElement[]): void;
+  replaceChildren(...nodes: ManagementBoundaryElement[]): void;
+}
+
+/** Presentation only: caller selects trusted state and owns resource cleanup. */
+export function mountManagementBoundaryView(root: ManagementBoundaryElement, state: unknown): void {
+  const { selected, heading, description, role } = boundaryContent(state);
+  const main = root.ownerDocument.createElement('main');
+  const title = root.ownerDocument.createElement('h1');
+  const message = root.ownerDocument.createElement('p');
+  title.textContent = heading;
+  message.textContent = description;
+  message.setAttribute('role', role);
+  if (selected === 'loading') message.setAttribute('aria-live', 'polite');
+  main.append(title, message);
+  root.replaceChildren(main);
 }
