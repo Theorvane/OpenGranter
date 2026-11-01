@@ -31,7 +31,7 @@ for (const value of [
   'Sun, 1 Nov 2026 06:30:10 GMT',
   'Sun, 01 Nov 2026 06:30:10 UTC',
   'Sunday, 01-Nov-26 06:30:10 GMT',
-  'Sun Nov  1 06:30:10 2026',
+  'Mon Nov  1 06:30:10 2026',
   `${date}, ${date}`,
   ` ${date}`,
   `${date} `,

@@ -1181,3 +1181,7 @@ Explicit strict:false transport additionally accepts $anchor on direct root-$def
 ### Canonical retry date transport (#620)
 
 For existing eligible upstream429/503 failures, normalize canonical IMF-fixdate Retry-After to advisory nonnegative integer seconds at rejection capture using the local wall clock. Preserve existing numeric hints and all required persistence/security/no-replay gates. No retries, upstream clock correction, raw date forwarding, obsolete-date/full-RFC or complete compatibility claim. See [plan](plans/620-http-date-retry.md).
+
+## Bounded asctime retry hints (#622)
+
+Continue the existing #116 HTTP-date error gap with exact asctime-date syntax from RFC9110. Existing upstream429/503 nonstream/pre-stream paths normalize the implicit-UTC calendar to nonnegative capture-time ceiling seconds, preserving numeric and IMF-fixdate behavior and all IAM/limits/required persistence/privacy gates. This supersedes only the prior asctime exclusion. RFC850, complete error parity, live providers and overall #116/#7 remain open. See [plan](plans/622-asctime-retry.md).
