@@ -33,3 +33,23 @@ The administrator must provision the organization, principal, token, route, prov
 ## Rollback and handoff
 
 Keep the prior approved image and configuration references. Reverting an image does not undo committed migrations; use the database owner's tested recovery procedure. Stop paid tests when the approved budget is reached. Hand over unsupported paths, unresolved findings and operator ownership without opening unrelated feature work. Only after every agreed gate has verified evidence may the overall execution task and its repeating routine be closed.
+
+## Offline handoff metadata check
+
+Run `node --experimental-strip-types scripts/check-deployment-handoff.ts /protected/redacted-manifest.json` to check results-table metadata. This command does not open referenced evidence or make deployment/network/provider calls. Exit 0 means complete PASS **claims**, not verified acceptance; exit 2 means structurally valid FAIL/BLOCKED claims; exit 1 means invalid/unreadable metadata or invocation. An operator must still verify every claim against actual evidence. Never close the release task from this exit code alone.
+
+The JSON object has exactly `revision` (40 lowercase hex characters), `imageDigest` and `baseDigest` (`sha256:` plus 64 lowercase hex characters), `configRef`, and `gates`. Use immutable installation references, not a branch or image tag. `gates` contains exactly one entry for each ordered check above:
+
+| Check | Gate ID |
+| --- | --- |
+| 1 | `installation` |
+| 2 | `discovery` |
+| 3 | `requests` |
+| 4 | `controls` |
+| 5 | `records` |
+| 6 | `restart` |
+| 7 | `handoff` |
+
+Each entry has exactly `id`, `status` (`PASS`, `FAIL`, or `BLOCKED`), `timestamp` (UTC ISO date with milliseconds, such as `2026-11-02T12:00:00.000Z`), `owner`, and `evidenceRef`. Record observation time, not an inferred CI timestamp. A blocked gate references a redacted blocker report. References/owners are at most 200 characters: slash-separated identifiers beginning with an ASCII letter/digit, followed by letters/digits/dot/underscore/hyphen. Absolute paths, dot segments, URLs, query strings and blank fields are invalid. These are opaque identifiers, never files the validator follows. Unknown fields are rejected to discourage accidental inclusion of raw evidence or credentials. This is not a secret scanner: protect and redact the manifest itself, and never place secret values or content in identifiers.
+
+The seven rows aggregate the existing ordered checks; they do not certify broader R6 UI/TLS/SSO, rollback or recovery requirements. Preserve those evidence sets separately under #643. See the [implementation plan](../plans/664-handoff-evidence.md).
