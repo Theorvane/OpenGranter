@@ -181,7 +181,44 @@ test('container CI reconstructs lost public schema before gateway startup', asyn
     'test "$migration_history_before" = "$migration_history_after"',
     'docker stop --time 40 opengranter-smoke',
   ];
-  assert.ok(text.includes('database_restarted recreated schema_restored; do'));
+  assert.ok(text.includes('database_restarted recreated schema_restored database_restored; do'));
+  let cursor = -1;
+  for (const token of tokens) {
+    const next = text.indexOf(token, cursor + 1);
+    assert.ok(next > cursor, `missing or out of order: ${token}`);
+    cursor = next;
+  }
+});
+
+test('container CI restores into a recreated database before gateway startup', async () => {
+  const text = await readFile(
+    new URL('../.github/workflows/container.yml', import.meta.url),
+    'utf8',
+  );
+  assert.ok(text.includes('schema_restored database_restored; do'));
+  const tokens = [
+    'if [[ "$phase" == database_restored ]]',
+    `test "$(docker inspect --format '{{.State.Running}}' opengranter-smoke)" = false`,
+    'pg_dump -U postgres --format=custom --no-owner --no-privileges postgres',
+    'test -s "$fixture/database-recovery.dump"',
+    'chmod 600 "$fixture/database-recovery.dump"',
+    'psql -U postgres -d template1 -v ON_ERROR_STOP=1',
+    'DROP DATABASE postgres',
+    "SELECT count(*) FROM pg_database WHERE datname = 'postgres'",
+    'test "$database_absent" = 0',
+    'CREATE DATABASE postgres TEMPLATE template0',
+    "SELECT to_regclass('public.catalog_models') IS NULL AND to_regclass('public.schema_migrations') IS NULL",
+    'test "$database_tables_absent" = t',
+    'pg_restore -U postgres --exit-on-error --clean --if-exists --no-owner --no-privileges -d postgres < "$fixture/database-recovery.dump"',
+    'test "$database_restored_model" = "restart-probe|f"',
+    'test "$migration_history_before" = "$database_restored_history"',
+    'if [[ "$phase" == recreated ]]',
+    'docker start opengranter-smoke',
+    'test "$status" = 401',
+    'test "$persisted_model" = "restart-probe|f"',
+    'test "$migration_history_before" = "$migration_history_after"',
+    'docker stop --time 40 opengranter-smoke',
+  ];
   let cursor = -1;
   for (const token of tokens) {
     const next = text.indexOf(token, cursor + 1);

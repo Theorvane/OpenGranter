@@ -98,7 +98,7 @@ jobs:
           migration_history_before=$(docker exec "$POSTGRES_CONTAINER" psql -U postgres -At -v ON_ERROR_STOP=1 -c \
             "SELECT version, checksum, applied_at_ms FROM schema_migrations ORDER BY version")
           test -n "$migration_history_before"
-          for phase in initial restarted restored database_restarted recreated schema_restored; do
+          for phase in initial restarted restored database_restarted recreated schema_restored database_restored; do
             if [[ "$phase" == restored ]]; then
               # Cold logical backup/restore of disposable CI data only.
               test "$(docker inspect --format '{{.State.Running}}' opengranter-smoke)" = false
@@ -164,6 +164,31 @@ jobs:
               schema_restored_history=$(docker exec "$POSTGRES_CONTAINER" psql -U postgres -At -v ON_ERROR_STOP=1 -c \
                 "SELECT version, checksum, applied_at_ms FROM schema_migrations ORDER BY version")
               test "$migration_history_before" = "$schema_restored_history"
+            fi
+            if [[ "$phase" == database_restored ]]; then
+              # Logical database loss in this disposable CI server only.
+              test "$(docker inspect --format '{{.State.Running}}' opengranter-smoke)" = false
+              (umask 077; docker exec "$POSTGRES_CONTAINER" pg_dump -U postgres --format=custom --no-owner --no-privileges postgres > "$fixture/database-recovery.dump")
+              test -s "$fixture/database-recovery.dump"
+              chmod 600 "$fixture/database-recovery.dump"
+              docker exec "$POSTGRES_CONTAINER" psql -U postgres -d template1 -v ON_ERROR_STOP=1 -c \
+                "DROP DATABASE postgres"
+              database_absent=$(docker exec "$POSTGRES_CONTAINER" psql -U postgres -d template1 -At -v ON_ERROR_STOP=1 -c \
+                "SELECT count(*) FROM pg_database WHERE datname = 'postgres'")
+              test "$database_absent" = 0
+              docker exec "$POSTGRES_CONTAINER" psql -U postgres -d template1 -v ON_ERROR_STOP=1 -c \
+                "CREATE DATABASE postgres TEMPLATE template0"
+              database_tables_absent=$(docker exec "$POSTGRES_CONTAINER" psql -U postgres -At -v ON_ERROR_STOP=1 -c \
+                "SELECT to_regclass('public.catalog_models') IS NULL AND to_regclass('public.schema_migrations') IS NULL")
+              test "$database_tables_absent" = t
+              docker exec -i "$POSTGRES_CONTAINER" pg_restore -U postgres --exit-on-error --clean --if-exists --no-owner --no-privileges -d postgres < "$fixture/database-recovery.dump"
+              # Verify before gateway migrations or seeding can repair anything.
+              database_restored_model=$(docker exec "$POSTGRES_CONTAINER" psql -U postgres -At -v ON_ERROR_STOP=1 -c \
+                "SELECT alias, enabled FROM catalog_models WHERE alias = 'restart-probe'")
+              test "$database_restored_model" = "restart-probe|f"
+              database_restored_history=$(docker exec "$POSTGRES_CONTAINER" psql -U postgres -At -v ON_ERROR_STOP=1 -c \
+                "SELECT version, checksum, applied_at_ms FROM schema_migrations ORDER BY version")
+              test "$migration_history_before" = "$database_restored_history"
             fi
             if [[ "$phase" == recreated ]]; then
               # Replace only the stopped gateway; retain the same database and image.
