@@ -79,11 +79,14 @@ jobs:
             test -n "$pg_host"
             network_args=(--network "$network" --publish 127.0.0.1:18080:18080 -e OPENGRANTER_HOST=0.0.0.0)
           fi
-          docker run -d --name opengranter-smoke --read-only --cap-drop ALL \
-            --security-opt no-new-privileges "${network_args[@]}" -e PGHOST="$pg_host" \
-            --mount "type=bind,src=$fixture,dst=/bootstrap,readonly" \
-            -e OPENGRANTER_BOOTSTRAP_MODULE=/bootstrap/bootstrap.mjs \
-            -e OPENGRANTER_PORT=18080 -e OPENGRANTER_SHUTDOWN_MS=30000 opengranter:test
+          launch_gateway() {
+            docker run -d --name opengranter-smoke --read-only --cap-drop ALL \
+              --security-opt no-new-privileges "${network_args[@]}" -e PGHOST="$pg_host" \
+              --mount "type=bind,src=$fixture,dst=/bootstrap,readonly" \
+              -e OPENGRANTER_BOOTSTRAP_MODULE=/bootstrap/bootstrap.mjs \
+              -e OPENGRANTER_PORT=18080 -e OPENGRANTER_SHUTDOWN_MS=30000 opengranter:test
+          }
+          launch_gateway
           for attempt in $(seq 1 60); do
             if docker logs opengranter-smoke 2>&1 | grep -q "Gateway listening"; then break; fi
             sleep 1
@@ -95,7 +98,7 @@ jobs:
           migration_history_before=$(docker exec "$POSTGRES_CONTAINER" psql -U postgres -At -v ON_ERROR_STOP=1 -c \
             "SELECT version, checksum, applied_at_ms FROM schema_migrations ORDER BY version")
           test -n "$migration_history_before"
-          for phase in initial restarted restored database_restarted; do
+          for phase in initial restarted restored database_restarted recreated; do
             if [[ "$phase" == restored ]]; then
               # Cold logical backup/restore of disposable CI data only.
               test "$(docker inspect --format '{{.State.Running}}' opengranter-smoke)" = false
@@ -139,7 +142,24 @@ jobs:
                 "SELECT version, checksum, applied_at_ms FROM schema_migrations ORDER BY version")
               test "$migration_history_before" = "$restarted_history"
             fi
-            if test "$phase" != initial; then
+            if [[ "$phase" == recreated ]]; then
+              # Replace only the stopped gateway; retain the same database and image.
+              test "$(docker inspect --format '{{.State.Running}}' opengranter-smoke)" = false
+              old_gateway_id=$(docker inspect --format '{{.Id}}' opengranter-smoke)
+              test -n "$old_gateway_id"
+              docker rm opengranter-smoke
+              # Verify before replacement startup can migrate or seed anything.
+              replacement_model=$(docker exec "$POSTGRES_CONTAINER" psql -U postgres -At -v ON_ERROR_STOP=1 -c \
+                "SELECT alias, enabled FROM catalog_models WHERE alias = 'restart-probe'")
+              test "$replacement_model" = "restart-probe|f"
+              replacement_history=$(docker exec "$POSTGRES_CONTAINER" psql -U postgres -At -v ON_ERROR_STOP=1 -c \
+                "SELECT version, checksum, applied_at_ms FROM schema_migrations ORDER BY version")
+              test "$migration_history_before" = "$replacement_history"
+              launch_gateway
+              new_gateway_id=$(docker inspect --format '{{.Id}}' opengranter-smoke)
+              test -n "$new_gateway_id"
+              test "$old_gateway_id" != "$new_gateway_id"
+            elif test "$phase" != initial; then
               docker start opengranter-smoke
             fi
             # Poll HTTP, not the listening log retained from the previous process.
