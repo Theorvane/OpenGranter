@@ -26,7 +26,7 @@ const invalid = [
   '9007199254740992',
   '0'.repeat(17),
   'private fixture-provider-key',
-  'Wed, 28 Oct 2026 12:00:00 GMT',
+  'Thu, 28 Oct 2026 12:00:00 GMT',
 ];
 function upstreamResponse(kind: ProbabilityKind, status: number, header?: string) {
   const headers = {

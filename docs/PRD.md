@@ -1183,3 +1183,31 @@ Explicit strict:false transport additionally accepts unique 1..64 ASCII $anchor 
 ## Bounded Gemini anchored definition aliases (#610)
 
 Explicit strict:false transport additionally accepts $anchor on direct root-$defs entries containing $ref, enabling named local aliases through existing pointer/anchor resolution. Canonical mixed-alias cycle detection, all unused definitions and expanded depth<=16/shared20,000-visit/128-definition bounds remain enforced. Captured schemas pass unchanged on nonstream/native text streams. Arbitrary reference siblings, root/nested anchors, $id, remote/dangling/malformed references and strict/tool/Anthropic combinations remain pre-secret failures. This supersedes only reference-entry-anchor rejection, not generated-output validation, satisfiability, equivalence or live-provider certification. IAM/limits/accounting/persistence/privacy and deprecated responseJsonSchema transport remain unchanged; full #116 and unresolved #7 stay open. See [plan](plans/610-gemini-anchored-aliases.md).
+
+### Canonical retry date transport (#620)
+
+For existing eligible upstream429/503 failures, normalize canonical IMF-fixdate Retry-After to advisory nonnegative integer seconds at rejection capture using the local wall clock. Preserve existing numeric hints and all required persistence/security/no-replay gates. No retries, upstream clock correction, raw date forwarding, obsolete-date/full-RFC or complete compatibility claim. See [plan](plans/620-http-date-retry.md).
+
+## Bounded asctime retry hints (#622)
+
+Continue the existing #116 HTTP-date error gap with exact asctime-date syntax from RFC9110. Existing upstream429/503 nonstream/pre-stream paths normalize the implicit-UTC calendar to nonnegative capture-time ceiling seconds, preserving numeric and IMF-fixdate behavior and all IAM/limits/required persistence/privacy gates. This supersedes only the prior asctime exclusion. RFC850, complete error parity, live providers and overall #116/#7 remain open. See [plan](plans/622-asctime-retry.md).
+
+
+## Bounded RFC850 retry hints (#624)
+
+The remaining exact RFC850 HTTP-date grammar now normalizes upstream429/503 Retry-After at capture, using the trusted clock and RFC9110 rolling50-calendar-year rule for two-digit years. Full weekday/calendar validation, year1601..9999, public safe integer seconds, existing IAM/limits/audit/usage and pre-stream/privacy boundaries remain. No new retries, statuses, arbitrary date syntax or live/operational certification. Supersedes only prior RFC850 exclusion; #116/#7 remain incomplete. See [plan](plans/624-rfc850-retry.md).
+
+
+## Bounded Gemini escaped definition pointers (#626)
+
+Explicit strict:false Gemini schema transport accepts ASCII slash/tilde after the initial letter/underscore in root-$defs keys (decoded length1..64), with exact RFC6901 ~1/~0 escapes in a single local pointer token. Resolution decodes once; literal a~1b and a/b stay distinct. Captured schemas transport unchanged through both bases, actual OpenAI SDK sockets and native text streams. Named anchors and escaped pointers share canonical cycle identity. All unused definitions, depth16/shared20,000 visits/128 definitions, IAM/limits/accounting/privacy and existing strict/tool/Anthropic exclusions remain enforced. Raw pointer path separators, malformed escapes, URI decoding, fetching and nested definitions remain unsupported. No generated-output validation, equivalence, live-provider or operational certification. This supersedes only prior slash/tilde-key and escaped-token exclusions; full #116 and unresolved #7 remain open. See [plan](plans/626-escaped-definition-pointers.md).
+
+
+## Bounded Gemini numeric-leading definition names (#628)
+
+Explicit strict:false Gemini schema transport additionally permits ASCII digits as the initial character of root-$defs keys and their single local pointer token. Names retain decoded length1..64 and existing subsequent character/escaping bounds. Object member names remain literal: 0 and 00 are distinct, never integer-normalized. Captured schemas pass unchanged through both chat bases, actual OpenAI SDK sockets and native text streams. Anchors still start with a letter/underscore. Canonical mixed cycles, unused definitions, depth16/shared20,000 visits/128 definitions, pre-secret strict/tool/Anthropic rejection, IAM/limits/accounting/privacy remain enforced. No URI decoding, fetching, arbitrary paths, output enforcement, live-provider or operational certification. This supersedes only the earlier initial-digit definition-name exclusion; full #116 and unresolved #7 remain open. See [plan](plans/628-numeric-definition-names.md).
+
+
+## Codex operator OAuth first slice (#635)
+
+The operator command adds isolated official-CLI device login, status and logout only. It does not register a subscription-backed inference provider, change OpenRouter/OpenAI-compatible APIs, or bypass IAM, limits, audit or usage. Success does not establish model entitlement or live acceptance. A separate app-server/Responses adapter and authenticated streaming/tool-call E2E remain pending. See the [operator guide](guides/codex-oauth.md), [contract](../contracts/codex-oauth.md), and [plan](plans/635-codex-device-oauth.md).

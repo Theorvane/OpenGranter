@@ -1,8 +1,8 @@
 # OpenGranter agent handoff
 
-## Current integration checkpoint (PR #561, 2026-11-01)
+## Current integration checkpoint (PR #561, 2026-11-02)
 
-PR #561 is being refreshed onto main 70a624adaa15c3bbd27aa3696e25cf2542ff6e31 at the user's request. The merge conflicts were limited to this handoff, PRD, acceptance and architecture documents; both timeout-status requirements and the newer service/container/Gemini documentation are retained. Runtime and timeout regression changes keep their original scope. Earlier validation numbers below describe the original branch, not the refreshed integration. Require fresh exact-head CI and formal approval before merge. Full #116 and unresolved #7 remain open; no Docker, systemd or live-provider certification is implied.
+PR #561 integrates main d5e006a7c1dafce448ea91140bfb1a7f638e4196 at the user's request. Conflicts are limited to this handoff, the error contract and the compatibility table. Both observed408/504 requirements and main's bounded429/503 HTTP-date retry-hint contracts are retained; no runtime scope is added. Automatic test merges require fresh regression verification. Earlier validation counts describe earlier heads, not this integration. GitHub approval existed before this refresh; fresh exact-head checks and repository merge rules still apply. Full #116 and unresolved #7 remain open; this integration does not certify deployment or live-provider behavior.
 
 ## Historical implementation checkpoint (#560)
 
@@ -10,6 +10,23 @@ PR [#559](https://github.com/Theorvane/OpenGranter/pull/559) received approval o
 
 Initial red reproduced 60 expected collapsed-status failures among 144 cases, with 84 passes; minimal implementation made all 144 pass. Integrated focused regressions passed 1,067 tests including all 356 added cases and 144 actual SDK probes. Existing classification/billing/usage/IAM rules, no-response timeout502, legacy502, hint suppression for validated408/504, required persistence, post-frame generic errors and fallback isolation are covered. Final npm run check passed 8,568 tests with one optional external PostgreSQL skip, zero failures/cancellations and all six offline source-integrity checks (~258 seconds). No retry eligibility, source pin, dependency or storage changes. Broader errors/types/date/402, full #116 and unresolved Jev #7 remain open; earlier checkpoints below are historical.
 
+## Limited release checkpoint (#633)
+
+PR #632 exact5b409bf4fc241ef69aa4e4e0551540ee17209cf5 received formal approval and all seven CI successes, then normal match-head squash merged as6a81b64bb977f9e5d2da71248de2f180a53c0195; #631 is closed. #567/#566 remain merged/closed. The user limited remaining work to one bridge deployment and one real-client/provider acceptance, IAM/limits/privacy/audit/usage checks and an honest support/handoff table. No broader provider, systemd or Jev scope is added.
+
+Issue #633 addresses the missing gateway restart/persisted catalog/history CI check and adds the [operator acceptance checklist](guides/limited-bridge-acceptance.md); see [plan](plans/633-bridge-restart-acceptance.md). Local Docker is unavailable; no live provider credentials are saved. CI startup/restart is not installed-host, database-volume recovery, authorized readiness or live E2E certification. Require exact-head CI and independent formal approval; overall task/routine remain open. #561 stays untouched.
+
+
+## Execution update: 2026-11-01 16:00 KST
+
+Reverified #567 MERGED at6798ed0e729c5cedbd326747c5d4c1498b08a979 with exact-head approval/all five CI successes; #566 is closed. #621 exact770c34e1397f77d92078d169430bc63ae551737f received formal sjungwon03-ai approval and all seven CI successes, then normal match-head squash merged at2026-11-01T07:00:15Z as9b13cdb9572dda085b994be841607d884c8209d7; #620 is CLOSED. Author-side #620 typecheck termination remains a failure, not overwritten by independent review/CI success.
+
+Next bounded #116 slice is #622 asctime retry hints, from the explicitly remaining HTTP-date gap, not new routing/product scope. See [plan](plans/622-asctime-retry.md). Issue/plan preceded tests/source; new red79cases21PASS58FAIL, focused425PASS0FAIL0SKIP. Standard local check FAILED137 during typecheck (Killed), not a local typecheck/full-check pass; separate lint/docs/sixpins/diffcheck passed. Exact-head approval/all CI required before merge. Default gh identity and #561 are untouched. Full #116, unresolved #7 and local Docker/bridge/systemd/live-provider acceptance remain open.
+
+
+## Current continuation checkpoint (#620)
+
+PR #619 received exact-head GitHub approval on1aa232b00d66d946d8192270513f97c6ec10606a and all seven CI successes, then merged as fe9812813870156b2c79eda4ab6e0988454245e3; #618 is closed. Issue #620 implements the existing #116 canonical HTTP-date retry-hint gap, not speculative Gemini partial argument APIs. See [plan](plans/620-http-date-retry.md). New date/hint/status/SDK tests pass566 cases; the standard full local check was killed during typecheck and is NOT a pass. Require exact-head CI and formal GitHub approval. Shared default gh identity and #561 remain untouched; local deployment/live-provider acceptance, full #116 and unresolved #7 remain open.
 
 ## Previous continuation checkpoint (#570)
 
@@ -330,3 +347,23 @@ Bounded literal dotted root-$defs keys and #/$defs/name pointers now transport w
 ## Bounded Gemini root identity (#616)
 
 Root-only canonical HTTPS $id metadata now survives immutable Gemini nonstream/native-stream transport with unchanged local-only references and resource/IAM/privacy boundaries. Actual OpenAI SDK sockets on both bases preserve captured schema identity. No network resolution, nested base changes, generated-output validation or live/operational certification. See [plan](plans/616-gemini-root-schema-id.md); full #116 and unresolved #7 remain open.
+
+
+## Bounded RFC850 retry hints (#624)
+
+Exact full-weekday RFC850 parsing resolves two-digit years against trusted capture +50 UTC calendar years before canonical calendar/weekday validation. Public headers remain safe integer seconds on existing upstream429/503 nonstream/pre-stream paths. Supersedes prior RFC850 exclusions; numeric/IMF/asctime, IAM/privacy/persistence/status/post-frame boundaries remain. No local Docker/bridge/systemd/live certification or full #116/#7 completion. See [plan](plans/624-rfc850-retry.md).
+
+
+## Bounded Gemini escaped definition pointers (#626)
+
+Explicit strict:false Gemini schema transport accepts ASCII slash/tilde after the initial letter/underscore in root-$defs keys (decoded length1..64), with exact RFC6901 ~1/~0 escapes in a single local pointer token. Resolution decodes once; literal a~1b and a/b stay distinct. Captured schemas transport unchanged through both bases, actual OpenAI SDK sockets and native text streams. Named anchors and escaped pointers share canonical cycle identity. All unused definitions, depth16/shared20,000 visits/128 definitions, IAM/limits/accounting/privacy and existing strict/tool/Anthropic exclusions remain enforced. Raw pointer path separators, malformed escapes, URI decoding, fetching and nested definitions remain unsupported. No generated-output validation, equivalence, live-provider or operational certification. This supersedes only prior slash/tilde-key and escaped-token exclusions; full #116 and unresolved #7 remain open. See [plan](plans/626-escaped-definition-pointers.md).
+
+
+## Bounded Gemini numeric-leading definition names (#628)
+
+Explicit strict:false Gemini schema transport additionally permits ASCII digits as the initial character of root-$defs keys and their single local pointer token. Names retain decoded length1..64 and existing subsequent character/escaping bounds. Object member names remain literal: 0 and 00 are distinct, never integer-normalized. Captured schemas pass unchanged through both chat bases, actual OpenAI SDK sockets and native text streams. Anchors still start with a letter/underscore. Canonical mixed cycles, unused definitions, depth16/shared20,000 visits/128 definitions, pre-secret strict/tool/Anthropic rejection, IAM/limits/accounting/privacy remain enforced. No URI decoding, fetching, arbitrary paths, output enforcement, live-provider or operational certification. This supersedes only the earlier initial-digit definition-name exclusion; full #116 and unresolved #7 remain open. See [plan](plans/628-numeric-definition-names.md).
+
+
+## Exact Gemini identifier regression coverage (#631)
+
+Existing bounded identifier validation rejects trailing LF, CR, CRLF and Unicode line/paragraph separators in root/definition/alias anchors, unused definition keys and local pointer/anchor references, including matching malformed pairs. Public validator, both chat bases and native stream preparation reject before credentials or transport; valid exact64-character controls preserve immutable HTTP schema transport. Investigation #630 found no production defect; this is regression coverage only, not a runtime fix or new feature. Full #116/#7 and local Docker/bridge/systemd/live-provider certification remain open. See [plan](plans/631-schema-identifier-boundaries.md).

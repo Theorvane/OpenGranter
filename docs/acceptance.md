@@ -1764,3 +1764,49 @@ Explicit strict:false transport accepts literal ASCII dots after the initial let
 ## Bounded Gemini root identity (#616)
 
 Root-only canonical HTTPS $id metadata now survives immutable Gemini nonstream/native-stream transport with unchanged local-only references and resource/IAM/privacy boundaries. Actual OpenAI SDK sockets on both bases preserve captured schema identity. No network resolution, nested base changes, generated-output validation or live/operational certification. See [plan](plans/616-gemini-root-schema-id.md); full #116 and unresolved #7 remain open.
+
+
+## Bounded Gemini root anchor metadata (#618)
+
+Explicit strict:false Gemini schemas may carry root $anchor using the existing 1..64-character ASCII anchor grammar. Root anchors coexist with optional root $id and typed/nullable/union/local-reference roots; duplicate root/definition names reject before credentials. Named root references remain invalid recursive schemas; existing local root-$defs resolution is unchanged, with no fetching or nested-base changes. Immutable both-base HTTP, actual OpenAI SDK sockets and native captured streams retain the metadata. Nested non-definition anchors, malformed/dangling/cyclic refs, unused invalid definitions and strict/tool/Anthropic exclusions remain pre-secret failures. Depth16/shared20,000 visits/128 definitions and IAM/limits/accounting/persistence/privacy bounds remain. This supersedes earlier root-anchor exclusions only, not generated-output validation, equivalence or live/operational certification. Full #116 and unresolved #7 remain open. See [plan](plans/618-gemini-root-anchor.md).
+
+## Canonical HTTP-date retry hints (#620)
+
+On both chat bases/all four registered adapters, upstream429/503 before client delivery accepts exact canonical IMF-fixdate and returns only nonnegative ceiling-rounded capture-time seconds after required usage/outcome audit. Cover nonstream/text/function streams, past/future/fractional clock boundaries, valid leap day, weekday/calendar/clock rejection, unchanged numeric hints, one provider attempt and private missing/possibly-billed accounting. Untrusted upstream Date does not set the clock; malformed/obsolete/repeated dates remain rejected. Existing persistence failures, unrelated statuses, post-frame failures and authorization gates cannot inherit hints. This bounded acceptance does not certify full RFC9110, live provider or full #116 behavior. See [plan](plans/620-http-date-retry.md).
+
+## Asctime retry hints (#622)
+
+On both bases/all four registered adapters/nonstream/text/function pre-stream paths, observed429/503 asctime hints deliver canonical seconds after required usage/outcome audit. Deterministic tests cover future/fractional/exact/past, both day forms, earliest/latest years and leap dates, invalid clocks/weekdays/calendars/case/spacing/duplicates and one-attempt private missing/possibly-billed accounting. Actual pinned OpenAI/OpenRouter/AI SDK sockets disable retries and assert normalized headers. Numeric and IMF-fixdate plus persistence/status/post-frame/authorization boundaries remain regression gates. Supersedes only earlier asctime rejections; RFC850/full RFC/live deployments remain unverified. See [plan](plans/622-asctime-retry.md).
+
+
+## Bounded RFC850 retry hints (#624)
+
+Both bases/all four adapters/nonstream/text/function pre-stream upstream429/503 paths normalize exact RFC850 hints. Cover rounding, past/exact/future, century rollover, leap calendar, exactly50 years and one-second-over with resolved-year weekday, bounded clocks, malformed spacing/case/duplicate/timezone/calendar/size rejection, numeric/IMF/asctime regressions and unchanged required persistence/status/post-frame/privacy boundaries. Pinned OpenAI/OpenRouter/AI SDK sockets receive seconds with retries disabled. No live/operational or full #116 certification. Supersedes only previous RFC850 rejection. See [plan](plans/624-rfc850-retry.md).
+
+
+## Bounded Gemini escaped definition pointers (#626)
+
+Explicit strict:false Gemini schema transport accepts ASCII slash/tilde after the initial letter/underscore in root-$defs keys (decoded length1..64), with exact RFC6901 ~1/~0 escapes in a single local pointer token. Resolution decodes once; literal a~1b and a/b stay distinct. Captured schemas transport unchanged through both bases, actual OpenAI SDK sockets and native text streams. Named anchors and escaped pointers share canonical cycle identity. All unused definitions, depth16/shared20,000 visits/128 definitions, IAM/limits/accounting/privacy and existing strict/tool/Anthropic exclusions remain enforced. Raw pointer path separators, malformed escapes, URI decoding, fetching and nested definitions remain unsupported. No generated-output validation, equivalence, live-provider or operational certification. This supersedes only prior slash/tilde-key and escaped-token exclusions; full #116 and unresolved #7 remain open. See [plan](plans/626-escaped-definition-pointers.md).
+
+
+## Bounded Gemini numeric-leading definition names (#628)
+
+Explicit strict:false Gemini schema transport additionally permits ASCII digits as the initial character of root-$defs keys and their single local pointer token. Names retain decoded length1..64 and existing subsequent character/escaping bounds. Object member names remain literal: 0 and 00 are distinct, never integer-normalized. Captured schemas pass unchanged through both chat bases, actual OpenAI SDK sockets and native text streams. Anchors still start with a letter/underscore. Canonical mixed cycles, unused definitions, depth16/shared20,000 visits/128 definitions, pre-secret strict/tool/Anthropic rejection, IAM/limits/accounting/privacy remain enforced. No URI decoding, fetching, arbitrary paths, output enforcement, live-provider or operational certification. This supersedes only the earlier initial-digit definition-name exclusion; full #116 and unresolved #7 remain open. See [plan](plans/628-numeric-definition-names.md).
+
+
+## Exact Gemini identifier regression coverage (#631)
+
+Existing bounded identifier validation rejects trailing LF, CR, CRLF and Unicode line/paragraph separators in root/definition/alias anchors, unused definition keys and local pointer/anchor references, including matching malformed pairs. Public validator, both chat bases and native stream preparation reject before credentials or transport; valid exact64-character controls preserve immutable HTTP schema transport. Investigation #630 found no production defect; this is regression coverage only, not a runtime fix or new feature. Full #116/#7 and local Docker/bridge/systemd/live-provider certification remain open. See [plan](plans/631-schema-identifier-boundaries.md).
+
+
+## Codex operator OAuth first slice (#635)
+
+The operator command adds isolated official-CLI device login, status and logout only. It does not register a subscription-backed inference provider, change OpenRouter/OpenAI-compatible APIs, or bypass IAM, limits, audit or usage. Success does not establish model entitlement or live acceptance. A separate app-server/Responses adapter and authenticated streaming/tool-call E2E remain pending. See the [operator guide](guides/codex-oauth.md), [contract](../contracts/codex-oauth.md), and [plan](plans/635-codex-device-oauth.md).
+
+## Management boundary presentation sub-slice (#639)
+
+The pure boundary renderer distinguishes loading, absent session, expired session, denial and unavailability with a main landmark and status/alert text. It accepts no protected data and renders no active links, forms or scripts. Unknown input displays unavailability without reflection. These renderer tests do not establish trusted session state, authentication, browser login/logout or installed UI acceptance. Session integration and protected navigation remain gated by the [product inventory](product-traceability.md) and [sub-slice plan](plans/639-management-boundary-view.md).
+
+## Management boundary DOM replacement (#639)
+
+The unused mount adapter builds fixed detached main/heading/status nodes with textContent and synchronously replaces all children of the caller-owned root. Structural fixture tests cover stale subtree removal, repeated state changes, five accessible states and unknown inputs without coercion/reflection. This is not a browser test, session detector, authorization revocation or memory/resource cleanup. Callers must own the root and dispose external listeners/resources. No session or endpoint integration is installed. See [plan](plans/639-management-boundary-mount.md).

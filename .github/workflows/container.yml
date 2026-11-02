@@ -89,6 +89,30 @@ jobs:
             sleep 1
           done
           docker logs opengranter-smoke 2>&1 | grep -q "Gateway listening"
-          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18080/api/v1/models)" = 401
-          docker stop --time 40 opengranter-smoke
-          test "$(docker inspect --format '{{.State.ExitCode}}' opengranter-smoke)" = 0
+          # Seed only an inert application row; deny-all ports remain unchanged.
+          docker exec "$POSTGRES_CONTAINER" psql -U postgres -v ON_ERROR_STOP=1 -c \
+            "INSERT INTO catalog_models (alias, created_at_seconds, enabled) VALUES ('restart-probe', 0, false)"
+          migration_history_before=$(docker exec "$POSTGRES_CONTAINER" psql -U postgres -At -v ON_ERROR_STOP=1 -c \
+            "SELECT version, checksum, applied_at_ms FROM schema_migrations ORDER BY version")
+          test -n "$migration_history_before"
+          for phase in initial restarted; do
+            if [[ "$phase" == restarted ]]; then
+              docker start opengranter-smoke
+            fi
+            # Poll HTTP, not the listening log retained from the previous process.
+            status=000
+            for attempt in $(seq 1 60); do
+              status=$(curl --silent --max-time 2 --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18080/api/v1/models) || status=000
+              if [[ "$status" == 401 ]]; then break; fi
+              sleep 1
+            done
+            test "$status" = 401
+            persisted_model=$(docker exec "$POSTGRES_CONTAINER" psql -U postgres -At -v ON_ERROR_STOP=1 -c \
+              "SELECT alias, enabled FROM catalog_models WHERE alias = 'restart-probe'")
+            test "$persisted_model" = "restart-probe|f"
+            migration_history_after=$(docker exec "$POSTGRES_CONTAINER" psql -U postgres -At -v ON_ERROR_STOP=1 -c \
+              "SELECT version, checksum, applied_at_ms FROM schema_migrations ORDER BY version")
+            test "$migration_history_before" = "$migration_history_after"
+            docker stop --time 40 opengranter-smoke
+            test "$(docker inspect --format '{{.State.ExitCode}}' opengranter-smoke)" = 0
+          done

@@ -47,13 +47,20 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
       invalid();
     }
   }
+  if (Object.hasOwn(schema, '$anchor')) {
+    if (
+      typeof schema.$anchor !== 'string' ||
+      !/^[A-Za-z_][A-Za-z0-9_.-]{0,63}$/.test(schema.$anchor)
+    )
+      invalid();
+  }
   const definitions = schema.$defs;
   if (
     definitions !== undefined &&
     (!record(definitions) ||
       Object.keys(definitions).length === 0 ||
       Object.keys(definitions).length > 128 ||
-      Object.keys(definitions).some((key) => !/^[A-Za-z_][A-Za-z0-9_.-]{0,63}$/.test(key)))
+      Object.keys(definitions).some((key) => !/^[A-Za-z0-9_][A-Za-z0-9_./~-]{0,63}$/.test(key)))
   )
     invalid();
   const anchors = new Map<string, string>();
@@ -66,7 +73,8 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
       if (
         typeof anchor !== 'string' ||
         !/^[A-Za-z_][A-Za-z0-9_.-]{0,63}$/.test(anchor) ||
-        anchors.has(anchor)
+        anchors.has(anchor) ||
+        anchor === schema.$anchor
       )
         invalid();
       anchors.set(anchor, name);
@@ -77,22 +85,27 @@ export function validateGoogleResponseSchema(format: ResponseFormat): void {
   const visit = (node: unknown, depth: number): void => {
     if (!record(node) || depth > 16 || ++visits > 20_000) invalid();
     if ((Object.hasOwn(node, '$defs') || Object.hasOwn(node, '$id')) && node !== schema) invalid();
-    if (Object.hasOwn(node, '$anchor') && !definitionNodes.has(node)) invalid();
+    if (Object.hasOwn(node, '$anchor') && node !== schema && !definitionNodes.has(node)) invalid();
     if (Object.hasOwn(node, '$ref')) {
       const ref = node.$ref;
       if (
         Object.keys(node).some(
           (key) =>
             key !== '$ref' &&
-            !(key === '$anchor' && definitionNodes.has(node)) &&
+            !(key === '$anchor' && (node === schema || definitionNodes.has(node))) &&
             !((key === '$defs' || key === '$id') && node === schema),
         ) ||
         typeof ref !== 'string' ||
-        !/^#(?:\/\$defs\/[A-Za-z_][A-Za-z0-9_.-]{0,63}|[A-Za-z_][A-Za-z0-9_.-]{0,63})$/.test(ref) ||
+        !/^#(?:\/\$defs\/[A-Za-z0-9_](?:[A-Za-z0-9_.-]|~[01]){0,126}|[A-Za-z_][A-Za-z0-9_.-]{0,63})$/.test(
+          ref,
+        ) ||
         !record(definitions)
       )
         invalid();
-      const name = ref.startsWith('#/$defs/') ? ref.slice(8) : anchors.get(ref.slice(1));
+      // Decode a single JSON Pointer token once; anchor and pointer paths share identity.
+      const name = ref.startsWith('#/$defs/')
+        ? ref.slice(8).replace(/~[01]/g, (token) => (token === '~1' ? '/' : '~'))
+        : anchors.get(ref.slice(1));
       if (name === undefined) invalid();
       if (!Object.hasOwn(definitions, name) || activeReferences.has(name)) invalid();
       activeReferences.add(name);
