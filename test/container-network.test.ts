@@ -153,3 +153,37 @@ test('container CI replaces the stopped gateway without losing database state', 
     assert.ok(launch.includes(token), token);
   assert.equal((text.match(/docker run -d --name opengranter-smoke/g) ?? []).length, 1);
 });
+
+test('container CI reconstructs lost public schema before gateway startup', async () => {
+  const text = await readFile(
+    new URL('../.github/workflows/container.yml', import.meta.url),
+    'utf8',
+  );
+  const tokens = [
+    'if [[ "$phase" == schema_restored ]]',
+    `test "$(docker inspect --format '{{.State.Running}}' opengranter-smoke)" = false`,
+    'pg_dump -U postgres --format=custom --no-owner --no-privileges postgres',
+    'test -s "$fixture/schema-recovery.dump"',
+    'chmod 600 "$fixture/schema-recovery.dump"',
+    'DROP SCHEMA public CASCADE',
+    "SELECT to_regclass('public.catalog_models') IS NULL AND to_regclass('public.schema_migrations') IS NULL",
+    'test "$schema_absent" = t',
+    'pg_restore -U postgres --exit-on-error --clean --if-exists --no-owner --no-privileges -d postgres < "$fixture/schema-recovery.dump"',
+    'test "$schema_restored_model" = "restart-probe|f"',
+    'test "$migration_history_before" = "$schema_restored_history"',
+    'if [[ "$phase" == recreated ]]',
+    'elif test "$phase" != initial; then',
+    'docker start opengranter-smoke',
+    'test "$status" = 401',
+    'test "$persisted_model" = "restart-probe|f"',
+    'test "$migration_history_before" = "$migration_history_after"',
+    'docker stop --time 40 opengranter-smoke',
+  ];
+  assert.ok(text.includes('database_restarted recreated schema_restored; do'));
+  let cursor = -1;
+  for (const token of tokens) {
+    const next = text.indexOf(token, cursor + 1);
+    assert.ok(next > cursor, `missing or out of order: ${token}`);
+    cursor = next;
+  }
+});
