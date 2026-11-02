@@ -107,3 +107,49 @@ test('container CI verifies database server restart before gateway startup', asy
   assert.ok(text.includes('checkLimit: async () => false'));
   assert.ok(text.includes('No provider credentials in smoke test'));
 });
+
+test('container CI replaces the stopped gateway without losing database state', async () => {
+  const text = await readFile(
+    new URL('../.github/workflows/container.yml', import.meta.url),
+    'utf8',
+  );
+  const tokens = [
+    'for phase in initial restarted restored database_restarted recreated',
+    'if [[ "$phase" == recreated ]]',
+    `test "$(docker inspect --format '{{.State.Running}}' opengranter-smoke)" = false`,
+    `old_gateway_id=$(docker inspect --format '{{.Id}}' opengranter-smoke)`,
+    'test -n "$old_gateway_id"',
+    'docker rm opengranter-smoke',
+    'test "$replacement_model" = "restart-probe|f"',
+    'test "$migration_history_before" = "$replacement_history"',
+    'launch_gateway',
+    `new_gateway_id=$(docker inspect --format '{{.Id}}' opengranter-smoke)`,
+    'test -n "$new_gateway_id"',
+    'test "$old_gateway_id" != "$new_gateway_id"',
+    'elif test "$phase" != initial; then',
+    'docker start opengranter-smoke',
+    'test "$status" = 401',
+    'test "$persisted_model" = "restart-probe|f"',
+    'test "$migration_history_before" = "$migration_history_after"',
+    'docker stop --time 40 opengranter-smoke',
+  ];
+  let cursor = -1;
+  for (const token of tokens) {
+    const next = text.indexOf(token, cursor + 1);
+    assert.ok(next > cursor, `missing or out of order: ${token}`);
+    cursor = next;
+  }
+  const launch = text.slice(
+    text.indexOf('launch_gateway() {'),
+    text.indexOf('for attempt in $(seq 1 60); do'),
+  );
+  for (const token of [
+    '--read-only --cap-drop ALL',
+    '--security-opt no-new-privileges',
+    'readonly',
+    'OPENGRANTER_BOOTSTRAP_MODULE',
+    'PGHOST',
+  ])
+    assert.ok(launch.includes(token), token);
+  assert.equal((text.match(/docker run -d --name opengranter-smoke/g) ?? []).length, 1);
+});
