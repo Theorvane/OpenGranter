@@ -1200,3 +1200,8 @@ Explicit strict:false Gemini schema transport accepts ASCII slash/tilde after th
 ## Bounded Gemini numeric-leading definition names (#628)
 
 Explicit strict:false Gemini schema transport additionally permits ASCII digits as the initial character of root-$defs keys and their single local pointer token. Names retain decoded length1..64 and existing subsequent character/escaping bounds. Object member names remain literal: 0 and 00 are distinct, never integer-normalized. Captured schemas pass unchanged through both chat bases, actual OpenAI SDK sockets and native text streams. Anchors still start with a letter/underscore. Canonical mixed cycles, unused definitions, depth16/shared20,000 visits/128 definitions, pre-secret strict/tool/Anthropic rejection, IAM/limits/accounting/privacy remain enforced. No URI decoding, fetching, arbitrary paths, output enforcement, live-provider or operational certification. This supersedes only the earlier initial-digit definition-name exclusion; full #116 and unresolved #7 remain open. See [plan](plans/628-numeric-definition-names.md).
+
+
+## Codex operator OAuth first slice (#635)
+
+The operator command adds isolated official-CLI device login, status and logout only. It does not register a subscription-backed inference provider, change OpenRouter/OpenAI-compatible APIs, or bypass IAM, limits, audit or usage. Success does not establish model entitlement or live acceptance. A separate app-server/Responses adapter and authenticated streaming/tool-call E2E remain pending. See the [operator guide](guides/codex-oauth.md), [contract](../contracts/codex-oauth.md), and [plan](plans/635-codex-device-oauth.md).
