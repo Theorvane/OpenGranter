@@ -74,3 +74,36 @@ test('container CI restores a cold disposable PostgreSQL archive before reopenin
   assert.ok(text.indexOf('test "$status" = 401', reopen) > reopen);
   assert.ok(text.indexOf('docker stop --time 40 opengranter-smoke', reopen) > reopen);
 });
+
+test('container CI verifies database server restart before gateway startup', async () => {
+  const text = await readFile(
+    new URL('../.github/workflows/container.yml', import.meta.url),
+    'utf8',
+  );
+  const tokens = [
+    'for phase in initial restarted restored database_restarted',
+    'if [[ "$phase" == database_restarted ]]',
+    `test "$(docker inspect --format '{{.State.Running}}' opengranter-smoke)" = false`,
+    'docker stop --time 40 "$POSTGRES_CONTAINER"',
+    `test "$(docker inspect --format '{{.State.ExitCode}}' "$POSTGRES_CONTAINER")" = 0`,
+    'docker start "$POSTGRES_CONTAINER"',
+    'for attempt in $(seq 1 60); do',
+    'pg_isready -U postgres',
+    'test "$database_ready" = true',
+    'test "$restarted_model" = "restart-probe|f"',
+    'test "$migration_history_before" = "$restarted_history"',
+    'docker start opengranter-smoke',
+    'test "$status" = 401',
+    'test "$persisted_model" = "restart-probe|f"',
+    'test "$migration_history_before" = "$migration_history_after"',
+    'docker stop --time 40 opengranter-smoke',
+  ];
+  let cursor = -1;
+  for (const token of tokens) {
+    const next = text.indexOf(token, cursor + 1);
+    assert.ok(next > cursor, `missing or out of order: ${token}`);
+    cursor = next;
+  }
+  assert.ok(text.includes('checkLimit: async () => false'));
+  assert.ok(text.includes('No provider credentials in smoke test'));
+});
