@@ -19,3 +19,7 @@ This is logical public-schema recovery in the same disposable PostgreSQL instanc
 ## 5. Local checkpoint
 
 RED: unchanged workflow gives 5 pass and 1 expected failure for the absent schema-loss phase. GREEN: 9 focused networking/packaging tests pass with no skips. Three isolated mutations (schema drop, absence proof, pre-start migration history) are rejected. All three workflow Bash blocks, typecheck, documentation/contracts/fixture scan, pinned compatibility and whitespace checks pass. Biome focused formatting corrected before commit. Unchanged full check is running; exact-head CI and independent formal approval remain mandatory. Docker is unavailable locally. Initial full-check launch hit tool cwd remapping before execution; corrected to explicit shell cd, without repository or shared-tool changes.
+
+## 6. Exact-head CI correction
+
+Both network modes on 5ce20b0 failed because PostgreSQL 16 pg_dump omits the built-in public schema creation while its tables are archived. After proving table absence, explicitly recreate the empty public schema with ON_ERROR_STOP before pg_restore. Preserve all pre-start sentinel/history checks. Add an ordered regression that fails without schema creation, then rerun the focused and full checks and both exact-head CI modes. No approval or merge until the changed head passes independent formal review and all CI.

@@ -153,6 +153,9 @@ jobs:
               schema_absent=$(docker exec "$POSTGRES_CONTAINER" psql -U postgres -At -v ON_ERROR_STOP=1 -c \
                 "SELECT to_regclass('public.catalog_models') IS NULL AND to_regclass('public.schema_migrations') IS NULL")
               test "$schema_absent" = t
+              # pg_dump omits creation of the built-in public schema.
+              docker exec "$POSTGRES_CONTAINER" psql -U postgres -v ON_ERROR_STOP=1 -c \
+                "CREATE SCHEMA public"
               docker exec -i "$POSTGRES_CONTAINER" pg_restore -U postgres --exit-on-error --clean --if-exists --no-owner --no-privileges -d postgres < "$fixture/schema-recovery.dump"
               # Assert archive reconstruction before startup can recreate tables.
               schema_restored_model=$(docker exec "$POSTGRES_CONTAINER" psql -U postgres -At -v ON_ERROR_STOP=1 -c \

@@ -168,6 +168,8 @@ test('container CI reconstructs lost public schema before gateway startup', asyn
     'DROP SCHEMA public CASCADE',
     "SELECT to_regclass('public.catalog_models') IS NULL AND to_regclass('public.schema_migrations') IS NULL",
     'test "$schema_absent" = t',
+    'psql -U postgres -v ON_ERROR_STOP=1 -c \\',
+    'CREATE SCHEMA public',
     'pg_restore -U postgres --exit-on-error --clean --if-exists --no-owner --no-privileges -d postgres < "$fixture/schema-recovery.dump"',
     'test "$schema_restored_model" = "restart-probe|f"',
     'test "$migration_history_before" = "$schema_restored_history"',
