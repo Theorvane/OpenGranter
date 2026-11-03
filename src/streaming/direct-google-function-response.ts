@@ -32,7 +32,7 @@ function fail(response: Response, category: DirectProviderFailureCategory = 'oth
     true,
     true,
     rejected ? parseRetryAfterSeconds(response.headers.get('retry-after')) : undefined,
-    rejected ? response.status : undefined,
+    response.status,
   );
 }
 /** Consume the bounded native GenerateContent complete custom function subset through clean framed EOF. */

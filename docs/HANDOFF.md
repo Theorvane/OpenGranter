@@ -1,5 +1,15 @@
 # OpenGranter agent handoff
 
+## Current integration checkpoint (PR #561, 2026-11-02)
+
+PR #561 integrates main d5e006a7c1dafce448ea91140bfb1a7f638e4196 at the user's request. Conflicts are limited to this handoff, the error contract and the compatibility table. Both observed408/504 requirements and main's bounded429/503 HTTP-date retry-hint contracts are retained; no runtime scope is added. Automatic test merges require fresh regression verification. Earlier validation counts describe earlier heads, not this integration. GitHub approval existed before this refresh; fresh exact-head checks and repository merge rules still apply. Full #116 and unresolved #7 remain open; this integration does not certify deployment or live-provider behavior.
+
+## Historical implementation checkpoint (#560)
+
+PR [#559](https://github.com/Theorvane/OpenGranter/pull/559) received approval on 4aa74d8281aa772c1f8d1a25de2c9c5359926e79 with all three checks successful and merged as 93e9e8e; issue #558 is closed. Issue [#560](https://github.com/Theorvane/OpenGranter/issues/560), branch feat/560-timeout-statuses, adds observed HTTP408/504 compatible JSON projection. Read [plan](plans/560-timeout-statuses.md) and [error contract](../contracts/openrouter-error-schema.md#observed-upstream-timeout-statuses-560), then refresh PR/review/CI before assuming merge.
+
+Initial red reproduced 60 expected collapsed-status failures among 144 cases, with 84 passes; minimal implementation made all 144 pass. Integrated focused regressions passed 1,067 tests including all 356 added cases and 144 actual SDK probes. Existing classification/billing/usage/IAM rules, no-response timeout502, legacy502, hint suppression for validated408/504, required persistence, post-frame generic errors and fallback isolation are covered. Final npm run check passed 8,568 tests with one optional external PostgreSQL skip, zero failures/cancellations and all six offline source-integrity checks (~258 seconds). No retry eligibility, source pin, dependency or storage changes. Broader errors/types/date/402, full #116 and unresolved Jev #7 remain open; earlier checkpoints below are historical.
+
 ## Limited release checkpoint (#633)
 
 PR #632 exact5b409bf4fc241ef69aa4e4e0551540ee17209cf5 received formal approval and all seven CI successes, then normal match-head squash merged as6a81b64bb977f9e5d2da71248de2f180a53c0195; #631 is closed. #567/#566 remain merged/closed. The user limited remaining work to one bridge deployment and one real-client/provider acceptance, IAM/limits/privacy/audit/usage checks and an honest support/handoff table. No broader provider, systemd or Jev scope is added.

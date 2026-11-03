@@ -31,7 +31,7 @@ function fail(response: Response, category: DirectProviderFailureCategory = 'oth
     true,
     true,
     rejected ? parseRetryAfterSeconds(response.headers.get('retry-after')) : undefined,
-    rejected ? response.status : undefined,
+    response.status,
   );
 }
 /** Internal text-only Messages consumer. No response content is retained in its summary. */

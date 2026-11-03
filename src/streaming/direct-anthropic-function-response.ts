@@ -33,7 +33,7 @@ function fail(response: Response, category: DirectProviderFailureCategory = 'oth
     true,
     true,
     rejected ? parseRetryAfterSeconds(response.headers.get('retry-after')) : undefined,
-    rejected ? response.status : undefined,
+    response.status,
   );
 }
 /** Native Messages custom function consumer. Private call assembly is bounded and discarded on failure. */

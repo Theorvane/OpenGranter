@@ -44,12 +44,14 @@ export class DirectProviderFailure extends Error {
     this.category = category;
     this.responseStarted = responseStarted;
     this.possiblyBilled = possiblyBilled;
+    const capturedStatus = snapshotUpstreamStatus(category, upstreamStatus);
     if (
+      capturedStatus !== 408 &&
+      capturedStatus !== 504 &&
       (category === 'rate-limit' || category === 'server-error') &&
       validRetryAfterSeconds(retryAfterSeconds)
     )
       this.retryAfterSeconds = retryAfterSeconds;
-    const capturedStatus = snapshotUpstreamStatus(category, upstreamStatus);
     if (responseStarted === true && capturedStatus !== undefined)
       this.upstreamStatus = capturedStatus;
   }
@@ -297,6 +299,8 @@ export async function invokeManagedRoute<T>(
           reason: 'provider-failed',
           ...(upstreamStatus === undefined ? {} : { upstreamStatus }),
           ...(failure &&
+          upstreamStatus !== 408 &&
+          upstreamStatus !== 504 &&
           (failure.category === 'rate-limit' || failure.category === 'server-error') &&
           validRetryAfterSeconds(failure.retryAfterSeconds)
             ? { retryAfterSeconds: failure.retryAfterSeconds }

@@ -129,7 +129,14 @@ for (const base of ['/v1', '/api/v1'] as const)
           reply: () => upstreamResponse(kind, status, '7'),
         });
         const response = await f.handler(f.request(base));
-        assert.equal(response.status, status === 200 ? 200 : 502);
+        assert.equal(
+          response.status,
+          status === 200
+            ? 200
+            : base === '/api/v1' && (status === 408 || status === 504)
+              ? status
+              : 502,
+        );
         assert.equal(response.headers.get('retry-after'), null);
         assert.equal(response.headers.get('x-private-provider'), null);
         assertPrivate(f);

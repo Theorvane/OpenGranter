@@ -51,7 +51,7 @@ for (const base of ['/v1', '/api/v1'] as const)
           probabilityPrivacy(f);
           assert.doesNotMatch(JSON.stringify([f.records, f.audits]), /upstreamStatus|retryAfter/u);
         });
-    test(`upstream status ${base} ${kind}: other upstream codes remain generic`, async () => {
+    test(`upstream status ${base} ${kind}: other upstream codes follow the bounded status contract`, async () => {
       for (const status of [400, 401, 402, 403, 404, 408, 500, 502, 504]) {
         const f = probabilityFixture(kind, undefined, {
           reply: () =>
@@ -61,7 +61,10 @@ for (const base of ['/v1', '/api/v1'] as const)
             }),
         });
         const response = await f.handler(f.request(base));
-        assert.equal(response.status, 502);
+        assert.equal(
+          response.status,
+          base === '/api/v1' && (status === 408 || status === 504) ? status : 502,
+        );
         assert.equal(response.headers.get('retry-after'), null);
         probabilityPrivacy(f);
       }

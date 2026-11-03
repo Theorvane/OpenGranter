@@ -1664,6 +1664,17 @@ See [plan](plans/556-ai-sdk-image-tools.md), [contract](../contracts/ai-sdk-clie
 
 See [plan](plans/558-prestream-errors.md) and [contract](../contracts/openrouter-error-schema.md#pre-stream-observed-status-and-retry-hints-558).
 
+## Observed upstream timeout status boundaries (#560)
+
+- Both bases/all four adapters/nonstream and text/function pre-stream boundaries exercise actual HTTP408/504: /api/v1 preserves status/numeric error.code, legacy keeps502/symbolic upstream_failed, fixed messages/unmapped metadata/request IDs remain.
+- Known observed metadata requires responseStarted:true and existing matching classification (other/upstream408, server-error504). Missing/wrong-type/mismatched/unclassified/no-response metadata and actual transport TimeoutError retain502 without inferring a provider cause or zero billing.
+- No retry hint is captured for408/504. Constructors and route revalidation reject contradictory hints for validated408/504 on either base, including legacy502; prior429/503 behavior is retained.
+- Auth/implicit/model/provider/limit/selection denials prevent upstream/secret work. Failed/delayed required usage and outcome audit retain safe errors or prevent early completion. Preserve missing/possibly-billed records and operational prompt/credential/metadata privacy.
+- After streaming starts, both new codes still produce generic safe SSE errors under HTTP200, without hint/status overrides or final usage/DONE; interruption-audit failure retains its own error. Managed fallback success/generic/final-timeout outcomes cannot inherit earlier metadata; duplicate flags/eligibility remain.
+- Actual pinned OpenAI/OpenRouter/AI SDK clients receive JSON statuses without retry hints with retries disabled and one attempt across both bases/all adapters/three modes. No automatic policy/live-provider guarantee, source-pin/dependency/storage change or full #116 claim; Jev #7 stays unresolved.
+
+See [plan](plans/560-timeout-statuses.md) and [contract](../contracts/openrouter-error-schema.md#observed-upstream-timeout-statuses-560).
+
 ## Gateway service entrypoint (#564)
 
 - Validate configuration before import; reject missing factories or required connection/secret/limit ports with fixed diagnostics.
