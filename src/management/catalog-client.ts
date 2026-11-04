@@ -82,6 +82,18 @@ function project(row: CatalogModel): CatalogModel {
  * No cache, persistence, provider calls, response error text or token handling.
  */
 export function createManagementCatalogClient(request: CatalogRequest) {
+  return createCatalogClient(request, false);
+}
+
+/** Explicit SSO namespace, not a session/BFF or credential bridge.
+ * Caller owns fresh authentication; no proxy endpoint fallback is attempted.
+ */
+export function createSsoManagementCatalogClient(request: CatalogRequest) {
+  return createCatalogClient(request, true);
+}
+
+function createCatalogClient(request: CatalogRequest, sso: boolean) {
+  const base = sso ? '/management/v1/models' : '/api/v1/models';
   let revision = 0;
   let pending: AbortController | undefined;
   function invalidate() {
@@ -146,7 +158,7 @@ export function createManagementCatalogClient(request: CatalogRequest) {
   return {
     invalidate,
     list: () =>
-      read('/api/v1/models', (body): readonly CatalogModel[] | undefined => {
+      read(base, (body): readonly CatalogModel[] | undefined => {
         if (
           typeof body !== 'object' ||
           body === null ||
@@ -161,8 +173,7 @@ export function createManagementCatalogClient(request: CatalogRequest) {
       // Reserved compatible collection paths are not model detail operations.
       if (
         !id ||
-        id === 'count' ||
-        id === 'user' ||
+        (!sso && (id === 'count' || id === 'user')) ||
         id.length > 512 ||
         /[\s%\\?#]/u.test(id) ||
         Array.from(id).some((char) => {
@@ -181,7 +192,7 @@ export function createManagementCatalogClient(request: CatalogRequest) {
         invalidate();
         return Promise.resolve({ state: 'unavailable' });
       }
-      return read(`/api/v1/models/${encoded}`, (body) =>
+      return read(`${base}/${encoded}`, (body) =>
         model(body) && body.id === id ? project(body) : undefined,
       );
     },

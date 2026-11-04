@@ -18,3 +18,7 @@ This is a separate server-facing API namespace, not a change to proxy-token `/v1
 ## Optional durable PostgreSQL composition (#641)
 
 createPostgresSsoModelCatalogHandler and createPostgresSsoModelCatalogServer in src/gateway/postgres-sso-model-catalog-http.ts accept the registered SSO configuration, SQL client and trusted request-ID factory. They explicitly wire the dedicated PostgreSQL SSO audit store into the fresh-authentication catalog service. The same trusted clock timestamps audit. No caller audit callback or service override is accepted; extra object properties do not alter composition. Existing HTTP semantics and migrations apply. The server is unbound; migrations, listening/TLS, SQL lifecycle and cookie/session/runtime integration remain caller-owned. The primitive dependency-injected service/HTTP constructors remain available but are not a durable-audit certification.
+
+## Explicit transport client (#641)
+
+createSsoManagementCatalogClient targets only the fixed management namespace for list and encoded detail. It accepts an already-authorized request port; it never obtains or forwards a credential, creates a cookie/session, or falls back to proxy discovery. Unlike proxy discovery, SSO has no count/user collection routes, so those exact aliases are valid detail targets. Shared response byte bounds, timeout, cancellation and status-only failures remain unchanged. Browser session integration still requires the separately reviewed BFF contract.
