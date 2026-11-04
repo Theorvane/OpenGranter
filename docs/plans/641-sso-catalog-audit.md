@@ -18,3 +18,9 @@ Public adapter tests first; expected RED: missing module. GREEN: metadata persis
 
 ## Delivery
 Independent worktree; exact-head CI and independent formal approval required. Never rewrite applied migration bytes or automatically replay failed reads.
+
+## Review follow-up (2026-11-04)
+1. Reproduce the two full-suite migration-history regressions on Node 22 before editing.
+2. Extend the SSO bundle test to require migration 012 while retaining explicit migration 011 SQL validation.
+3. Extend the dual-route runtime expected history through 012; preserve its real route startup assertions.
+4. Rerun both regressions plus audit, migration and HTTP tests, then the complete check and exact-head independent review.
