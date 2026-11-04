@@ -96,3 +96,60 @@ test('a newer read supersedes a pending older read', async () => {
   resolve(Response.json({ data: [row] }));
   assert.deepEqual(await old, { state: 'cancelled' });
 });
+
+test('stalled transport settles unavailable at 30 seconds even if abort is ignored', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  let signal: AbortSignal | null | undefined;
+  const client = createManagementCatalogClient(async (_path, init) => {
+    signal = init.signal;
+    return new Promise<Response>(() => {});
+  });
+  const pending = client.list();
+  t.mock.timers.tick(30_000);
+  assert.equal(signal?.aborted, true);
+  assert.deepEqual(await pending, { state: 'unavailable' });
+});
+
+test('deadline includes stalled JSON decoding and ignores late private data', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  let finish!: (value: unknown) => void;
+  const response = Response.json({});
+  Object.defineProperty(response, 'json', {
+    value: () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  });
+  const client = createManagementCatalogClient(async () => response);
+  const pending = client.detail(row.id);
+  await Promise.resolve();
+  t.mock.timers.tick(30_000);
+  assert.deepEqual(await pending, { state: 'unavailable' });
+  finish(row);
+  await Promise.resolve();
+});
+
+test('superseded stalled reads cancel immediately without waiting for their deadline', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  let calls = 0;
+  const client = createManagementCatalogClient(async () => {
+    calls++;
+    return calls === 1 ? new Promise<Response>(() => {}) : Response.json(row);
+  });
+  const old = client.list();
+  assert.deepEqual(await client.detail(row.id), { state: 'ready', data: row });
+  assert.deepEqual(await old, { state: 'cancelled' });
+  t.mock.timers.tick(30_000);
+});
+
+test('successful read clears its deadline and never later aborts the transport', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  let signal: AbortSignal | null | undefined;
+  const client = createManagementCatalogClient(async (_path, init) => {
+    signal = init.signal;
+    return Response.json(row);
+  });
+  assert.deepEqual(await client.detail(row.id), { state: 'ready', data: row });
+  t.mock.timers.tick(30_000);
+  assert.equal(signal?.aborted, false);
+});

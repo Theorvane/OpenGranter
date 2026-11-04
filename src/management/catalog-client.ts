@@ -49,26 +49,44 @@ export function createManagementCatalogClient(request: CatalogRequest) {
     const controller = new AbortController();
     pending = controller;
     const stale = () => current !== revision || controller.signal.aborted;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let onAbort: (() => void) | undefined;
+    let timedOut = false;
+    const interrupted = new Promise<CatalogResult<T>>((resolve) => {
+      onAbort = () => resolve({ state: timedOut ? 'unavailable' : 'cancelled' });
+      controller.signal.addEventListener('abort', onAbort, { once: true });
+      timer = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+      }, 30_000);
+    });
+    const operation = async (): Promise<CatalogResult<T>> => {
+      try {
+        const response = await request(path, {
+          method: 'GET',
+          cache: 'no-store',
+          redirect: 'error',
+          headers: { accept: 'application/json' },
+          signal: controller.signal,
+        });
+        if (stale()) return { state: 'cancelled' };
+        if (response.status === 401) return { state: 'unauthenticated' };
+        if (response.status === 403) return { state: 'denied' };
+        if (response.status === 404) return { state: 'missing' };
+        if (response.status !== 200) return { state: 'unavailable' };
+        const body: unknown = await response.json();
+        if (stale()) return { state: 'cancelled' };
+        const data = decode(body);
+        return data === undefined ? { state: 'unavailable' } : { state: 'ready', data };
+      } catch {
+        return { state: stale() ? 'cancelled' : 'unavailable' };
+      }
+    };
     try {
-      const response = await request(path, {
-        method: 'GET',
-        cache: 'no-store',
-        redirect: 'error',
-        headers: { accept: 'application/json' },
-        signal: controller.signal,
-      });
-      if (stale()) return { state: 'cancelled' };
-      if (response.status === 401) return { state: 'unauthenticated' };
-      if (response.status === 403) return { state: 'denied' };
-      if (response.status === 404) return { state: 'missing' };
-      if (response.status !== 200) return { state: 'unavailable' };
-      const body: unknown = await response.json();
-      if (stale()) return { state: 'cancelled' };
-      const data = decode(body);
-      return data === undefined ? { state: 'unavailable' } : { state: 'ready', data };
-    } catch {
-      return { state: stale() ? 'cancelled' : 'unavailable' };
+      return await Promise.race([interrupted, operation()]);
     } finally {
+      clearTimeout(timer);
+      if (onAbort) controller.signal.removeEventListener('abort', onAbort);
       if (current === revision) pending = undefined;
     }
   }
