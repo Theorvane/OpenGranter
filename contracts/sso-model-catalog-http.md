@@ -22,3 +22,5 @@ createPostgresSsoModelCatalogHandler and createPostgresSsoModelCatalogServer in 
 ## Explicit transport client (#641)
 
 createSsoManagementCatalogClient targets only the fixed management namespace for list and encoded detail. It accepts an already-authorized request port; it never obtains or forwards a credential, creates a cookie/session, or falls back to proxy discovery. Unlike proxy discovery, SSO has no count/user collection routes, so those exact aliases are valid detail targets. Shared response byte bounds, timeout, cancellation and status-only failures remain unchanged. Browser session integration still requires the separately reviewed BFF contract.
+
+The explicit SSO transport rejects a whole list/detail success when a row violates the existing nonnegative safe-integer created or fixed OpenGranter ownership projection. The UI lifecycle clears prior content into retryable unavailable, without displaying malformed rows or private extras. Proxy transport decoding is unchanged.

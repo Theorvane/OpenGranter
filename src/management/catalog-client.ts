@@ -94,6 +94,12 @@ export function createSsoManagementCatalogClient(request: CatalogRequest) {
 
 function createCatalogClient(request: CatalogRequest, sso: boolean) {
   const base = sso ? '/management/v1/models' : '/api/v1/models';
+  const validModel = (value: unknown): value is CatalogModel =>
+    model(value) &&
+    (!sso ||
+      (Number.isSafeInteger(value.created) &&
+        value.created >= 0 &&
+        value.owned_by === 'opengranter'));
   let revision = 0;
   let pending: AbortController | undefined;
   function invalidate() {
@@ -164,7 +170,7 @@ function createCatalogClient(request: CatalogRequest, sso: boolean) {
           body === null ||
           !('data' in body) ||
           !Array.isArray(body.data) ||
-          !body.data.every(model)
+          !body.data.every(validModel)
         )
           return undefined;
         return body.data.map(project);
@@ -193,7 +199,7 @@ function createCatalogClient(request: CatalogRequest, sso: boolean) {
         return Promise.resolve({ state: 'unavailable' });
       }
       return read(`${base}/${encoded}`, (body) =>
-        model(body) && body.id === id ? project(body) : undefined,
+        validModel(body) && body.id === id ? project(body) : undefined,
       );
     },
   };

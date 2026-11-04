@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createSsoManagementCatalogSession } from '../src/management/catalog-session.ts';
 
-const row = { id: 'count', object: 'model', created: 0, owned_by: 'team' };
+const row = { id: 'count', object: 'model', created: 0, owned_by: 'opengranter' };
 
 test('SSO lifecycle loads list and reserved alias detail on management namespace', async () => {
   const paths: string[] = [];
@@ -68,4 +68,28 @@ test('SSO lifecycle locks on auth failures and retries safe service failures', a
     await session.list();
     assert.deepEqual(session.snapshot(), { state: 'disposed' });
   }
+});
+
+test('SSO invalid success clears previous data and permits a valid retry', async () => {
+  const session = createSsoManagementCatalogSession();
+  let valid = true;
+  session.authorize(async (path) => {
+    const data = valid ? row : { ...row, created: -1, secret: 'must-not-display' };
+    return Response.json(path.endsWith('/models') ? { data: [data] } : data);
+  });
+  await session.list();
+  assert.deepEqual(session.snapshot(), { state: 'list', models: [row] });
+  valid = false;
+  await session.detail(row.id);
+  assert.deepEqual(session.snapshot(), { state: 'unavailable' });
+  valid = true;
+  await session.detail(row.id);
+  assert.deepEqual(session.snapshot(), { state: 'detail', model: row });
+  valid = false;
+  await session.list();
+  assert.deepEqual(session.snapshot(), { state: 'unavailable' });
+  valid = true;
+  await session.list();
+  assert.deepEqual(session.snapshot(), { state: 'list', models: [row] });
+  session.dispose();
 });

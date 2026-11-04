@@ -48,3 +48,22 @@ test('SSO preserves safe states', async () => {
     assert.deepEqual(await client.list(), { state });
   }
 });
+
+test('SSO rejects invalid contract rows without changing proxy decoding', async () => {
+  const valid = { id: 'team/chat', object: 'model', created: 0, owned_by: 'opengranter' };
+  for (const patch of [
+    { created: -1 },
+    { created: 0.5 },
+    { created: Number.MAX_SAFE_INTEGER + 1 },
+    { owned_by: 'private-provider' },
+  ]) {
+    const invalid = { ...valid, ...patch };
+    const sso = createSsoManagementCatalogClient(async (path) =>
+      Response.json(path.endsWith('/models') ? { data: [valid, invalid] } : invalid),
+    );
+    assert.deepEqual(await sso.list(), { state: 'unavailable' });
+    assert.deepEqual(await sso.detail(valid.id), { state: 'unavailable' });
+    const proxy = createManagementCatalogClient(async () => Response.json(invalid));
+    assert.deepEqual(await proxy.detail(valid.id), { state: 'ready', data: invalid });
+  }
+});

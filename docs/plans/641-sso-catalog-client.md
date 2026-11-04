@@ -17,3 +17,10 @@
 4. Run both lifecycle and transport regressions; require typecheck/lint, exact-head CI and formal independent approval before merge.
 
 Follow-up RED: missing createSsoManagementCatalogSession export. GREEN: new SSO lifecycle 3/3, existing proxy lifecycle 8/8 and proxy/SSO clients 25/25, zero skips. Planning checker PASS. Tests executed directly with Node 22.23.4, UV_THREADPOOL_SIZE=1 and --v8-pool-size=1 to avoid child-runner resource pressure. Browser authentication and live API activation remain unverified.
+
+## SSO response-contract validation
+1. Reproduce the client accepting invalid SSO success projections: negative, fractional or unsafe created values and non-OpenGranter ownership in list/detail.
+2. Enforce the existing SSO HTTP projection contract at decode time without changing proxy decoding or displaying malformed partial data. Preserve safe-field projection and retryable unavailable state.
+3. Add RED/GREEN contract and lifecycle recovery cases; run focused regressions. No session/runtime/DDL activation. Require full required CI and independent formal exact-head approval before merge.
+
+Response-validation RED: SSO list exposed a negative created value as ready. GREEN: SSO transport 3/3, SSO lifecycle 4/4 including data clearing and retry after malformed list/detail, proxy transport 23/23 and lifecycle 8/8 (38/38 total, zero skips). Planning checker and diff whitespace PASS. No full typecheck/lint rerun while cgroup remains 2043-2044/2048 tasks; no push retry or CI claim.
