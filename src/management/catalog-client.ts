@@ -34,6 +34,46 @@ function discard(response: Response) {
   }
 }
 
+// A UI resource bound, not a server-side catalog size or pagination contract.
+const MAX_CATALOG_BYTES = 1_048_576;
+async function boundedJson(response: Response, signal: AbortSignal): Promise<unknown> {
+  const declared = response.headers.get('content-length');
+  if (declared && /^\d+$/u.test(declared) && Number(declared) > MAX_CATALOG_BYTES) {
+    discard(response);
+    throw new Error('Catalog body exceeds limit');
+  }
+  if (!response.body) throw new Error('Missing catalog body');
+  const reader = response.body.getReader();
+  const cancel = () => {
+    try {
+      void reader.cancel().catch(() => {});
+    } catch {
+      // Cleanup cannot delay a safe result or expose private errors.
+    }
+  };
+  signal.addEventListener('abort', cancel, { once: true });
+  const bytes = new Uint8Array(MAX_CATALOG_BYTES);
+  let size = 0;
+  try {
+    if (signal.aborted) throw new Error('Catalog read interrupted');
+    while (true) {
+      const { value, done } = await reader.read();
+      if (signal.aborted) throw new Error('Catalog read interrupted');
+      if (done) break;
+      size += value.byteLength;
+      if (size > MAX_CATALOG_BYTES) throw new Error('Catalog body exceeds limit');
+      bytes.set(value, size - value.byteLength);
+    }
+    return JSON.parse(new TextDecoder().decode(bytes.subarray(0, size)));
+  } catch (error) {
+    cancel();
+    throw error;
+  } finally {
+    signal.removeEventListener('abort', cancel);
+    reader.releaseLock();
+  }
+}
+
 function project(row: CatalogModel): CatalogModel {
   return { id: row.id, object: 'model', created: row.created, owned_by: row.owned_by };
 }
@@ -87,7 +127,7 @@ export function createManagementCatalogClient(request: CatalogRequest) {
         if (response.status === 403) return { state: 'denied' };
         if (response.status === 404) return { state: 'missing' };
         if (response.status !== 200) return { state: 'unavailable' };
-        const body: unknown = await response.json();
+        const body: unknown = await boundedJson(response, controller.signal);
         if (stale()) return { state: 'cancelled' };
         const data = decode(body);
         return data === undefined ? { state: 'unavailable' } : { state: 'ready', data };
