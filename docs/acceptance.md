@@ -1806,3 +1806,8 @@ The unused mount adapter builds fixed detached main/heading/status nodes with te
 - Required audit storage failure returns HTTP 503 without releasing catalog data.
 - Migration replay and populated upgrade preserve historical checksums. Local signed-JWT/loopback/PGlite checks are not company-IdP/browser or installed PostgreSQL acceptance.
 - See [contract](../contracts/sso-catalog-audit.md).
+
+## SSO catalog request framing (#641)
+
+- Both list and encoded-detail GET requests reject any Transfer-Encoding and nonzero/noncanonical Content-Length with fixed 400/no-store before discovery service work. No model metadata or bearer token is echoed.
+- Requests with absent body framing or exact Content-Length: 0 preserve existing authenticated outcomes. Verify through Fetch and real local Node sockets; this is not installed browser or company-IdP acceptance.
