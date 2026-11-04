@@ -115,3 +115,18 @@ test('dispose is terminal', async () => {
   session.clear('expired');
   assert.deepEqual(session.snapshot(), { state: 'disposed' });
 });
+
+test('a stalled catalog read leaves loading for the retryable unavailable state', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const session = createManagementCatalogSession();
+  session.authorize(async () => new Promise<Response>(() => {}));
+  const pending = session.list();
+  assert.deepEqual(session.snapshot(), { state: 'loading', view: 'list' });
+  t.mock.timers.tick(30_000);
+  await pending;
+  assert.deepEqual(session.snapshot(), { state: 'unavailable' });
+  session.authorize(async () => Response.json({ data: [] }));
+  await session.list();
+  assert.deepEqual(session.snapshot(), { state: 'empty' });
+  session.dispose();
+});
