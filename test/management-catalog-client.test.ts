@@ -110,23 +110,23 @@ test('stalled transport settles unavailable at 30 seconds even if abort is ignor
   assert.deepEqual(await pending, { state: 'unavailable' });
 });
 
-test('deadline includes stalled JSON decoding and ignores late private data', async (t) => {
+test('deadline includes stalled body consumption and cancels its stream', async (t) => {
   t.mock.timers.enable({ apis: ['setTimeout'] });
-  let finish!: (value: unknown) => void;
-  const response = Response.json({});
-  Object.defineProperty(response, 'json', {
-    value: () =>
-      new Promise((resolve) => {
-        finish = resolve;
-      }),
-  });
+  let cancelled = 0;
+  const response = new Response(
+    new ReadableStream<Uint8Array>({
+      cancel() {
+        cancelled++;
+        return new Promise<void>(() => {});
+      },
+    }),
+  );
   const client = createManagementCatalogClient(async () => response);
   const pending = client.detail(row.id);
   await Promise.resolve();
   t.mock.timers.tick(30_000);
   assert.deepEqual(await pending, { state: 'unavailable' });
-  finish(row);
-  await Promise.resolve();
+  assert.equal(cancelled, 1);
 });
 
 test('superseded stalled reads cancel immediately without waiting for their deadline', async (t) => {
@@ -269,4 +269,107 @@ test('a response arriving after deadline is discarded without replacing unavaila
   await Promise.resolve();
   await Promise.resolve();
   assert.equal(cancelled, 1);
+});
+
+test('oversized successful bodies fail safely for list and detail', async () => {
+  for (const detail of [false, true]) {
+    const body = JSON.stringify(
+      detail
+        ? { ...row, padding: 'x'.repeat(1_048_576) }
+        : { data: [row], padding: 'x'.repeat(1_048_576) },
+    );
+    const client = createManagementCatalogClient(async () => new Response(body));
+    assert.deepEqual(await (detail ? client.detail(row.id) : client.list()), {
+      state: 'unavailable',
+    });
+  }
+});
+
+test('chunked overflow cancels unread bytes without awaiting cancellation', async () => {
+  let cancelled = 0;
+  let pulls = 0;
+  const prefix = new TextEncoder().encode(JSON.stringify({ data: [row] }));
+  const response = new Response(
+    new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (++pulls === 1) controller.enqueue(prefix);
+        else if (pulls === 2) controller.enqueue(new Uint8Array(1_048_576).fill(32));
+        // Keep the stream open so overflow must cancel unread bytes.
+      },
+      cancel() {
+        cancelled++;
+        return new Promise<void>(() => {});
+      },
+    }),
+    { headers: { 'Content-Length': '1' } },
+  );
+  const result = await createManagementCatalogClient(async () => response).list();
+  assert.deepEqual(result, { state: 'unavailable' });
+  assert.equal(cancelled, 1);
+});
+
+test('exact byte boundary is accepted while an extra byte fails', async () => {
+  const json = JSON.stringify({ data: [row] });
+  for (const extra of [0, 1]) {
+    const body = json + ' '.repeat(1_048_576 - new TextEncoder().encode(json).length + extra);
+    const result = await createManagementCatalogClient(async () => new Response(body)).list();
+    assert.deepEqual(result, extra ? { state: 'unavailable' } : { state: 'ready', data: [row] });
+  }
+});
+
+test('declared oversized body is cancelled without reading or awaiting rejected cleanup', async () => {
+  let cancelled = 0;
+  const response = new Response(
+    new ReadableStream<Uint8Array>({
+      cancel() {
+        cancelled++;
+        return Promise.reject(new Error('private'));
+      },
+    }),
+    { headers: { 'Content-Length': '1048577' } },
+  );
+  assert.deepEqual(await createManagementCatalogClient(async () => response).list(), {
+    state: 'unavailable',
+  });
+  assert.equal(cancelled, 1);
+});
+
+test('split multibyte UTF-8 survives bounded decoding and private fields are projected away', async () => {
+  const unicodeRow = { ...row, owned_by: '팀' };
+  const bytes = new TextEncoder().encode(JSON.stringify({ data: [unicodeRow] }));
+  let offset = 0;
+  const response = new Response(
+    new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (offset === bytes.length) controller.close();
+        else controller.enqueue(bytes.slice(offset, ++offset));
+      },
+    }),
+  );
+  assert.deepEqual(await createManagementCatalogClient(async () => response).list(), {
+    state: 'ready',
+    data: [unicodeRow],
+  });
+});
+
+test('invalidation cancels an actively consumed body then permits the next detail read', async () => {
+  let cancelled = 0;
+  let calls = 0;
+  const client = createManagementCatalogClient(async () =>
+    ++calls > 1
+      ? Response.json(row)
+      : new Response(
+          new ReadableStream<Uint8Array>({
+            cancel() {
+              cancelled++;
+            },
+          }),
+        ),
+  );
+  const pending = client.list();
+  await Promise.resolve();
+  client.invalidate();
+  assert.deepEqual(await pending, { state: 'cancelled' });
+  assert.equal(cancelled, 1);
+  assert.deepEqual(await client.detail(row.id), { state: 'ready', data: row });
 });
