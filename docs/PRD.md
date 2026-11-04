@@ -1209,3 +1209,7 @@ The operator command adds isolated official-CLI device login, status and logout 
 ## Durable SSO catalog metadata audit (#641)
 
 A dedicated PostgreSQL append adapter preserves actual SSO principal/policy attribution without fabricated proxy credentials. Migration 012 adds metadata-only storage; it does not mount a runtime or establish retention, export or installed acceptance. See [contract](../contracts/sso-catalog-audit.md) and [plan](plans/641-sso-catalog-audit.md).
+
+## SSO catalog body-free reads (#641)
+
+The server-facing SSO catalog list/detail GET boundary rejects body framing before service work, including real Node requests whose bodies are discarded during Fetch adaptation. Existing authentication, IAM and required audit semantics remain unchanged. See [plan](plans/641-catalog-request-framing.md) and [HTTP contract](../contracts/sso-model-catalog-http.md).

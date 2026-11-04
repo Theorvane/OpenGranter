@@ -78,7 +78,16 @@ export function createSsoModelCatalogHandler(
       )
         return failure(503, 'internal_error');
       requestId = generatedId;
-      if (request.signal.aborted || url.search) return failure(400, 'invalid_request', requestId);
+      // Node drops GET bodies before Fetch adaptation; reject original framing too.
+      const length = request.headers.get('content-length');
+      if (
+        request.signal.aborted ||
+        url.search ||
+        request.body !== null ||
+        request.headers.has('transfer-encoding') ||
+        (length !== null && length !== '0')
+      )
+        return failure(400, 'invalid_request', requestId);
       let alias: string | undefined;
       if (!isList) {
         try {
