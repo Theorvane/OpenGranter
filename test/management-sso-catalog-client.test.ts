@@ -67,3 +67,26 @@ test('SSO rejects invalid contract rows without changing proxy decoding', async 
     assert.deepEqual(await proxy.detail(valid.id), { state: 'ready', data: invalid });
   }
 });
+
+test('SSO list exposes only aliases navigable by the detail contract', async () => {
+  for (const id of [
+    'a b',
+    'a%2Fb',
+    'a?b',
+    'a#b',
+    'a\\b',
+    'a/../b',
+    'a//b',
+    '/a',
+    'a/',
+    'a\u007fb',
+    'a'.repeat(513),
+    '\ud800',
+  ]) {
+    const row = { id, object: 'model', created: 0, owned_by: 'opengranter' };
+    const sso = createSsoManagementCatalogClient(async () => Response.json({ data: [row] }));
+    assert.deepEqual(await sso.list(), { state: 'unavailable' }, JSON.stringify(id));
+    const proxy = createManagementCatalogClient(async () => Response.json({ data: [row] }));
+    assert.deepEqual(await proxy.list(), { state: 'ready', data: [row] });
+  }
+});

@@ -24,3 +24,10 @@ Follow-up RED: missing createSsoManagementCatalogSession export. GREEN: new SSO 
 3. Add RED/GREEN contract and lifecycle recovery cases; run focused regressions. No session/runtime/DDL activation. Require full required CI and independent formal exact-head approval before merge.
 
 Response-validation RED: SSO list exposed a negative created value as ready. GREEN: SSO transport 3/3, SSO lifecycle 4/4 including data clearing and retry after malformed list/detail, proxy transport 23/23 and lifecycle 8/8 (38/38 total, zero skips). Planning checker and diff whitespace PASS. No full typecheck/lint rerun while cgroup remains 2043-2044/2048 tasks; no push retry or CI claim.
+
+## Navigable SSO list aliases
+1. Reproduce a successful SSO list exposing aliases that the existing detail contract rejects, leaving the UI with unusable detail links.
+2. Reuse one alias syntax guard for SSO list projections and detail navigation, rejecting the entire malformed list. Preserve proxy list decoding and SSO count/user aliases.
+3. Add contract RED/GREEN plus valid Unicode/slash/reserved-alias regressions. No session/credential/runtime activation. Require exact-head CI and formal independent approval.
+
+Alias validation RED: list rendered a space-containing alias as ready although detail rejected it. GREEN: SSO transport4/4, lifecycle4/4, proxy transport23/23 and lifecycle8/8 (39/39, zero skips). Includes twelve malformed alias variants plus unchanged proxy decoding and valid Unicode/slash/count/user reads. Direct single-thread Biome formatting/check succeeds; planning and whitespace checks pass. Standard typecheck launcher failed pthread_create; native path lookup failed, so typecheck remains unverified. Push attempt with GOMAXPROCS1/pack.threads1 failed gh credential-helper newosproc; no remote publication or PR claimed.

@@ -74,6 +74,26 @@ async function boundedJson(response: Response, signal: AbortSignal): Promise<unk
   }
 }
 
+function navigableAlias(id: string): boolean {
+  if (
+    !id ||
+    id.length > 512 ||
+    /[\s%\\?#]/u.test(id) ||
+    Array.from(id).some((char) => {
+      const code = char.charCodeAt(0);
+      return code < 32 || (code >= 127 && code <= 159);
+    }) ||
+    id.split('/').some((part) => !part || part === '.' || part === '..')
+  )
+    return false;
+  try {
+    encodeURIComponent(id);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function project(row: CatalogModel): CatalogModel {
   return { id: row.id, object: 'model', created: row.created, owned_by: row.owned_by };
 }
@@ -97,7 +117,8 @@ function createCatalogClient(request: CatalogRequest, sso: boolean) {
   const validModel = (value: unknown): value is CatalogModel =>
     model(value) &&
     (!sso ||
-      (Number.isSafeInteger(value.created) &&
+      (navigableAlias(value.id) &&
+        Number.isSafeInteger(value.created) &&
         value.created >= 0 &&
         value.owned_by === 'opengranter'));
   let revision = 0;
@@ -177,17 +198,7 @@ function createCatalogClient(request: CatalogRequest, sso: boolean) {
       }),
     detail: (id: string): Promise<CatalogResult<CatalogModel>> => {
       // Reserved compatible collection paths are not model detail operations.
-      if (
-        !id ||
-        (!sso && (id === 'count' || id === 'user')) ||
-        id.length > 512 ||
-        /[\s%\\?#]/u.test(id) ||
-        Array.from(id).some((char) => {
-          const code = char.charCodeAt(0);
-          return code < 32 || (code >= 127 && code <= 159);
-        }) ||
-        id.split('/').some((part) => !part || part === '.' || part === '..')
-      ) {
+      if (!navigableAlias(id) || (!sso && (id === 'count' || id === 'user'))) {
         invalidate();
         return Promise.resolve({ state: 'unavailable' });
       }
