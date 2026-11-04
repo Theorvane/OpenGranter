@@ -153,3 +153,120 @@ test('successful read clears its deadline and never later aborts the transport',
   t.mock.timers.tick(30_000);
   assert.equal(signal?.aborted, false);
 });
+
+test('non-200 bodies are cancelled without parsing or waiting for cleanup', async () => {
+  for (const [status, state] of [
+    [401, 'unauthenticated'],
+    [403, 'denied'],
+    [404, 'missing'],
+    [429, 'unavailable'],
+    [500, 'unavailable'],
+    [302, 'unavailable'],
+  ] as const) {
+    let cancelled = 0;
+    const body = new ReadableStream<Uint8Array>({
+      cancel() {
+        cancelled++;
+        return new Promise<void>(() => {});
+      },
+    });
+    const response = new Response(body, { status });
+    Object.defineProperty(response, 'json', {
+      value: () => {
+        throw new Error('must not parse private error');
+      },
+    });
+    const client = createManagementCatalogClient(async () => response);
+    assert.deepEqual(await client.list(), { state });
+    assert.equal(cancelled, 1);
+  }
+});
+
+test('rejected body cancellation stays private and does not block the next read', async () => {
+  let calls = 0;
+  let cancelled = 0;
+  const client = createManagementCatalogClient(async () => {
+    if (++calls > 1) return Response.json(row);
+    return new Response(
+      new ReadableStream({
+        cancel() {
+          cancelled++;
+          return Promise.reject(new Error('private cleanup failure'));
+        },
+      }),
+      { status: 503 },
+    );
+  });
+  assert.deepEqual(await client.list(), { state: 'unavailable' });
+  assert.equal(cancelled, 1);
+  assert.deepEqual(await client.detail(row.id), { state: 'ready', data: row });
+});
+
+test('late ignored-abort responses release their unread body after invalidation', async () => {
+  let finish!: (response: Response) => void;
+  let cancelled = 0;
+  const client = createManagementCatalogClient(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  const pending = client.list();
+  client.invalidate();
+  assert.deepEqual(await pending, { state: 'cancelled' });
+  finish(
+    new Response(
+      new ReadableStream({
+        cancel() {
+          cancelled++;
+        },
+      }),
+    ),
+  );
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(cancelled, 1);
+});
+
+test('body-free and synchronously failing cleanup preserve safe status', async () => {
+  assert.deepEqual(
+    await createManagementCatalogClient(async () => new Response(null, { status: 204 })).list(),
+    { state: 'unavailable' },
+  );
+  const response = new Response(null, { status: 403 });
+  Object.defineProperty(response, 'body', {
+    get() {
+      throw new Error('private cleanup error');
+    },
+  });
+  assert.deepEqual(await createManagementCatalogClient(async () => response).list(), {
+    state: 'denied',
+  });
+});
+
+test('a response arriving after deadline is discarded without replacing unavailable', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  let finish!: (response: Response) => void;
+  let cancelled = 0;
+  const client = createManagementCatalogClient(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  const pending = client.detail(row.id);
+  t.mock.timers.tick(30_000);
+  assert.deepEqual(await pending, { state: 'unavailable' });
+  finish(
+    new Response(
+      new ReadableStream({
+        cancel() {
+          cancelled++;
+        },
+      }),
+    ),
+  );
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(cancelled, 1);
+});

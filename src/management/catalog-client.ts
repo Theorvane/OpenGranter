@@ -25,6 +25,15 @@ function model(value: unknown): value is CatalogModel {
     typeof row.owned_by === 'string'
   );
 }
+function discard(response: Response) {
+  // Do not consume private errors or await an uncooperative stream cancellation.
+  try {
+    void response.body?.cancel().catch(() => {});
+  } catch {
+    // Cleanup failure cannot change the safe status or expose response text.
+  }
+}
+
 function project(row: CatalogModel): CatalogModel {
   return { id: row.id, object: 'model', created: row.created, owned_by: row.owned_by };
 }
@@ -69,7 +78,11 @@ export function createManagementCatalogClient(request: CatalogRequest) {
           headers: { accept: 'application/json' },
           signal: controller.signal,
         });
-        if (stale()) return { state: 'cancelled' };
+        if (stale()) {
+          discard(response);
+          return { state: 'cancelled' };
+        }
+        if (response.status !== 200) discard(response);
         if (response.status === 401) return { state: 'unauthenticated' };
         if (response.status === 403) return { state: 'denied' };
         if (response.status === 404) return { state: 'missing' };
