@@ -1,5 +1,6 @@
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { createManagementBrowserServer } from '../management/browser-http.ts';
 import type { PostgresConnection } from '../storage/postgres-connection.ts';
 import { loadPostgresMigrationSources } from '../storage/postgres-migration-sources.ts';
 import { applyPostgresMigrations } from '../storage/postgres-migrations.ts';
@@ -7,7 +8,10 @@ import type { BundledPostgresServerPorts } from './bundled-postgres-server.ts';
 import { createNodePostgresDirectChatServer } from './node-postgres-chat-server.ts';
 import { createNodePostgresDualRouteChatServer } from './node-postgres-dual-chat-server.ts';
 import type { PostgresDualRouteChatHandlerPorts } from './postgres-dual-chat-handler.ts';
-import { createPostgresRfc9068SsoManagementServer } from './postgres-sso-management-http.ts';
+import {
+  createPostgresRfc9068SsoManagementHandler,
+  createPostgresRfc9068SsoManagementServer,
+} from './postgres-sso-management-http.ts';
 
 interface GatewayRuntimeInfrastructure {
   readonly host: string;
@@ -27,7 +31,10 @@ export interface PostgresDualRouteGatewayRuntimePorts
 
 export interface PostgresSsoManagementRuntimePorts
   extends Omit<Parameters<typeof createPostgresRfc9068SsoManagementServer>[0], 'client'>,
-    GatewayRuntimeInfrastructure {}
+    GatewayRuntimeInfrastructure {
+  /** Explicit trusted PUBLIC bundle; absent means no browser routes. Never a session grant. */
+  readonly browserJavascript?: string;
+}
 
 export class InvalidGatewayRuntimeInput extends Error {
   constructor() {
@@ -164,14 +171,27 @@ export async function startPostgresDualRouteGateway(ports: PostgresDualRouteGate
 
 /** Explicitly own a migrated, separate SSO proxy-token management listener. */
 export async function startPostgresSsoManagementGateway(ports: PostgresSsoManagementRuntimePorts) {
+  const { browserJavascript } = ports;
+  if (
+    browserJavascript !== undefined &&
+    (typeof browserJavascript !== 'string' || browserJavascript.length === 0)
+  ) {
+    throw new InvalidGatewayRuntimeInput();
+  }
   const {
     openConnection: _open,
     host: _host,
     port: _port,
     migrationDirectory: _directory,
+    browserJavascript: _browser,
     ...managementPorts
   } = ports;
-  return startOwnedPostgresGateway(ports, async (client) =>
-    createPostgresRfc9068SsoManagementServer({ ...managementPorts, client }),
-  );
+  return startOwnedPostgresGateway(ports, async (client) => {
+    if (browserJavascript === undefined)
+      return createPostgresRfc9068SsoManagementServer({ ...managementPorts, client });
+    return createManagementBrowserServer({
+      javascript: browserJavascript,
+      application: createPostgresRfc9068SsoManagementHandler({ ...managementPorts, client }),
+    });
+  });
 }
