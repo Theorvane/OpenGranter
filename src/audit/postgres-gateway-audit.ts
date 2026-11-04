@@ -141,7 +141,9 @@ function details(event: RecordValue): RecordValue {
   switch (event.kind) {
     case 'management-auth-denied':
     case 'management-auth-unavailable':
-      return { operation: oneOf(event.operation, ['issue', 'revoke'] as const) };
+      return {
+        operation: oneOf(event.operation, ['issue', 'revoke', 'current-principal'] as const),
+      };
     case 'stream-interrupted':
       return {
         routeVersion: identifier(event.routeVersion),
