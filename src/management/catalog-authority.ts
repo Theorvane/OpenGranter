@@ -1,0 +1,120 @@
+import type { CatalogRequest } from './catalog-client.ts';
+import {
+  createManagementCatalogSession,
+  type ManagementCatalogSnapshot,
+} from './catalog-session.ts';
+
+export interface CatalogAuthorityGrant {
+  /** Supplied by a trusted session adapter, never constructed from UI input. */
+  readonly request: CatalogRequest;
+  /** Absolute epoch milliseconds from that same trusted session. */
+  readonly expiresAt: number;
+}
+export interface CatalogAuthorityOptions {
+  readonly onChange: (snapshot: ManagementCatalogSnapshot) => void;
+  readonly now?: () => number;
+  /** Returns a cancellation function; callback must be asynchronous. */
+  readonly schedule?: (delay: number, callback: () => void) => () => void;
+}
+
+/** Expiry and rendering adapter only, not authentication or an IAM capability.
+ * The request port must still enforce fresh server-side authentication and IAM.
+ * Nothing here persists an identity, a token, or catalog data across sessions.
+ */
+export function createManagementCatalogAuthority(options: CatalogAuthorityOptions) {
+  const session = createManagementCatalogSession();
+  const now = options.now ?? Date.now;
+  const schedule =
+    options.schedule ??
+    ((delay, callback) => {
+      const timer = setTimeout(callback, delay);
+      return () => clearTimeout(timer);
+    });
+  let expiresAt: number | undefined;
+  let cancel: (() => void) | undefined;
+  let revision = 0;
+  let disposed = false;
+
+  function notify() {
+    try {
+      options.onChange(session.snapshot());
+    } catch {
+      // Observer errors must not interfere with authority teardown or leak text.
+    }
+  }
+  function invalidate() {
+    revision++;
+    cancel?.();
+    cancel = undefined;
+    expiresAt = undefined;
+  }
+  function clear(state: 'unauthenticated' | 'expired' | 'denied' | 'unavailable') {
+    if (disposed) return;
+    invalidate();
+    session.clear(state);
+    notify();
+  }
+  function expired() {
+    if (expiresAt === undefined) return false;
+    const time = now();
+    if (!Number.isFinite(time) || time >= expiresAt) {
+      clear('expired');
+      return true;
+    }
+    return false;
+  }
+  function arm(current: number) {
+    if (current !== revision || expiresAt === undefined || expired()) return;
+    const delay = Math.max(1, Math.min(2147483647, expiresAt - now()));
+    cancel = schedule(delay, () => {
+      if (current !== revision || disposed) return;
+      cancel = undefined;
+      if (!expired()) arm(current);
+    });
+  }
+  async function read(operation: () => Promise<void>) {
+    if (disposed || expired() || expiresAt === undefined) return;
+    const current = revision;
+    const pending = operation();
+    notify(); // Loading is synchronous; completion is published separately.
+    await pending;
+    if (current !== revision || disposed || expired()) return;
+    const state = session.snapshot().state;
+    if (state === 'unauthenticated' || state === 'denied') invalidate();
+    notify();
+  }
+  return {
+    authorize(grant: CatalogAuthorityGrant) {
+      if (disposed) return;
+      invalidate();
+      const time = now();
+      if (
+        !Number.isSafeInteger(grant.expiresAt) ||
+        !Number.isFinite(time) ||
+        grant.expiresAt <= time
+      ) {
+        session.clear('expired');
+        notify();
+        return;
+      }
+      expiresAt = grant.expiresAt;
+      session.authorize(grant.request);
+      arm(revision);
+      notify();
+    },
+    clear,
+    snapshot(): ManagementCatalogSnapshot {
+      expired();
+      return session.snapshot();
+    },
+    list: () => read(() => session.list()),
+    detail: (id: string) => read(() => session.detail(id)),
+    dispose() {
+      if (disposed) return;
+      invalidate();
+      disposed = true;
+      session.dispose();
+      notify();
+    },
+  };
+}
