@@ -1817,3 +1817,10 @@ The unused mount adapter builds fixed detached main/heading/status nodes with te
 - Signed access-token list/detail through the composed Node boundary persist human and exact policy versions before response completion; fresh Deny and binding revocation take effect on the next call.
 - Anonymous denial is durably recorded; missing audit storage suppresses both authenticated and anonymous responses with 503. A deferred insert blocks metadata release.
 - Extra caller audit callbacks cannot replace durable append. No provider calls, synthetic credentials, automatic socket binding or session mounting occur. Local PGlite/loopback is not installed/browser/provider acceptance.
+
+
+## Owned SSO catalog runtime (#641)
+
+- Real local loopback listener with migrated PGlite and a registered signed test issuer serves catalog list and encoded-alias detail, with or without optional browser assets.
+- Verify durable human/policy attribution, anonymous denial, next-request Deny/revoked binding, required-audit outage, unchanged token authentication and unrelated/inference path isolation.
+- Verify one connection and idempotent close. Local test issuer/PGlite sockets are not browser login, installed PostgreSQL, company IdP or provider acceptance.
