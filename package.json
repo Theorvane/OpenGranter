@@ -17,7 +17,8 @@
     "compatibility:opencode": "node --experimental-strip-types scripts/conformance-opencode.ts",
     "start": "node --experimental-strip-types scripts/start-gateway.ts",
     "codex:auth": "node --experimental-strip-types scripts/codex-auth.ts",
-    "management:build": "node --experimental-strip-types scripts/build-management-browser.ts"
+    "management:build": "node --experimental-strip-types scripts/build-management-browser.ts",
+    "management:start": "node --experimental-strip-types scripts/start-management.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",
