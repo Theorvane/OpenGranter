@@ -19,6 +19,7 @@ const names = [
   '009_openrouter_provider_mappings.sql',
   '010_model_discovery_metadata.sql',
   '011_sso_identity_bindings.sql',
+  '012_sso_catalog_audit.sql',
 ];
 const migrations = await Promise.all(
   names.map(async (name) => ({
@@ -62,6 +63,7 @@ test('apply all migration files once and retain matching checksums', async () =>
       '009',
       '010',
       '011',
+      '012',
     ]);
     const second = await applyPostgresMigrations(connection(db), migrations, () => 2_000);
     assert.deepEqual(second, []);
@@ -70,7 +72,7 @@ test('apply all migration files once and retain matching checksums', async () =>
     );
     assert.deepEqual(
       result.rows.map((row) => row.version),
-      ['001', '002', '003', '004', '005', '006', '007', '008', '009', '010', '011'],
+      ['001', '002', '003', '004', '005', '006', '007', '008', '009', '010', '011', '012'],
     );
     assert.equal(
       result.rows.every((row) => /^[a-f0-9]{64}$/u.test(row.checksum)),
@@ -95,6 +97,7 @@ test('SSO migration upgrades populated historical storage without backfill or ch
     );
     assert.deepEqual(await applyPostgresMigrations(connection(db), migrations, () => 2_000), [
       '011',
+      '012',
     ]);
     const history = await db.query(
       'SELECT version, checksum, applied_at_ms FROM schema_migrations ORDER BY version',
@@ -201,4 +204,25 @@ test('database failure is safe and does not expose driver detail', async () => {
     applyPostgresMigrations(failing, migrations, () => 1_000),
     { name: 'MigrationUnavailable', message: 'Migration store unavailable' },
   );
+});
+
+test('catalog audit migration preserves populated version-011 history and human records', async () => {
+  const db = new PGlite();
+  try {
+    await applyPostgresMigrations(connection(db), migrations.slice(0, 11), () => 1000);
+    await db.exec("INSERT INTO iam_principals VALUES ('existing-human', 'human', true)");
+    const before = await db.query('SELECT * FROM schema_migrations ORDER BY version');
+    assert.deepEqual(await applyPostgresMigrations(connection(db), migrations, () => 2000), [
+      '012',
+    ]);
+    const after = await db.query('SELECT * FROM schema_migrations ORDER BY version');
+    assert.deepEqual(after.rows.slice(0, 11), before.rows);
+    assert.deepEqual((await db.query('SELECT * FROM sso_catalog_audit_events')).rows, []);
+    assert.deepEqual((await db.query('SELECT * FROM iam_principals')).rows, [
+      { principal_id: 'existing-human', kind: 'human', active: true },
+    ]);
+    assert.deepEqual(await applyPostgresMigrations(connection(db), migrations, () => 3000), []);
+  } finally {
+    await db.close();
+  }
 });

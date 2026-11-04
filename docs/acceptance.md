@@ -1799,3 +1799,10 @@ The pure boundary renderer distinguishes loading, absent session, expired sessio
 ## Management boundary DOM replacement (#639)
 
 The unused mount adapter builds fixed detached main/heading/status nodes with textContent and synchronously replaces all children of the caller-owned root. Structural fixture tests cover stale subtree removal, repeated state changes, five accessible states and unknown inputs without coercion/reflection. This is not a browser test, session detector, authorization revocation or memory/resource cleanup. Callers must own the root and dispose external listeners/resources. No session or endpoint integration is installed. See [plan](plans/639-management-boundary-mount.md).
+
+## SSO catalog durable metadata audit (#641)
+
+- Persist human/policy attribution or explicit anonymous authentication failures without tokens, content or synthetic credentials.
+- Required audit storage failure returns HTTP 503 without releasing catalog data.
+- Migration replay and populated upgrade preserve historical checksums. Local signed-JWT/loopback/PGlite checks are not company-IdP/browser or installed PostgreSQL acceptance.
+- See [contract](../contracts/sso-catalog-audit.md).

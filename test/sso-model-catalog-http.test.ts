@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import test from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
+import { createPostgresSsoCatalogAuditStore } from '../src/audit/postgres-sso-catalog.ts';
 import {
   createPostgresSsoModelCatalog,
   type SsoCatalogAuditEvent,
@@ -276,11 +277,16 @@ test('real loopback Node + signed JWT + migrated PGlite: role IAM, live deny/rev
       jwt.subject,
       'human',
     ]);
+    const audit = createPostgresSsoCatalogAuditStore(
+      { query: (sql, params) => db.query(sql, [...params]) },
+      () => 1000,
+    );
     const catalog = createPostgresSsoModelCatalog({
       ...jwt.config,
       client: { query: (sql, params) => db.query(sql, [...params]) },
       writeAudit: async (event) => {
         if (auditFailure) throw Error('private-error');
+        await audit.append(event);
         events.push(event);
       },
     });
@@ -316,6 +322,16 @@ test('real loopback Node + signed JWT + migrated PGlite: role IAM, live deny/rev
     assert.equal(events.at(-1)?.principalId, null);
     await safe(await get('', false), 401);
     assert.equal(events.at(-1)?.outcome, 'unauthenticated');
+    const persisted = await db.query<Record<string, unknown>>(
+      'SELECT principal_id, policy_versions, outcome FROM sso_catalog_audit_events ORDER BY event_id',
+    );
+    assert.equal(persisted.rows.length, 6);
+    assert.equal(persisted.rows[0]?.principal_id, 'human');
+    assert.deepEqual(persisted.rows[3]?.policy_versions, [{ id: 'allow', version: 'v2' }]);
+    assert.equal(persisted.rows[5]?.outcome, 'unauthenticated');
+    await db.exec("UPDATE iam_principals SET active = true WHERE principal_id = 'human'");
+    await db.exec('DROP TABLE sso_catalog_audit_events');
+    await safe(await get(), 503);
     auditFailure = true;
     await safe(await get('', false), 503);
   } finally {
