@@ -23,3 +23,8 @@
 ## Delivery
 - Commit implementation plus behavior tests with exact revision evidence and PR against main after dependency lands.
 - Risks: local PGlite and generated JWT do not establish installed PostgreSQL, company IdP, browser session or live-provider correctness. Rollback is reverting runtime dispatch only; no schema changes.
+
+## Review correction: adapter failures (#683)
+1. Reproduce Fetch-forbidden TRACE over real Node HTTP on token/catalog paths, with and without browser assets. Require fixed 503 internal_error, no-store, and no request/authentication leakage.
+2. Keep the existing management adapter error contract while composing static and application handlers; do not change the generic gateway adapter or frontend-owned files.
+3. Run regression RED before implementation, then GREEN plus runtime, browser HTTP, token HTTP and catalog HTTP suites. Request renewed formal exact-head review and full CI.

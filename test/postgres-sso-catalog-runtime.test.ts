@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { request as httpRequest } from 'node:http';
 import test from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
 import { startPostgresSsoManagementGateway } from '../src/gateway/postgres-gateway-runtime.ts';
@@ -68,6 +69,42 @@ for (const browserJavascript of [undefined, 'export {};']) {
         jwt.subject,
         'human',
       ]);
+      // Fetch rejects TRACE before application dispatch; exercise the Node adapter itself.
+      for (const path of ['/management/v1/proxy-tokens', '/management/v1/models']) {
+        const result = await new Promise<{
+          status: number | undefined;
+          cache: string | undefined;
+          body: string;
+        }>((resolve, reject) => {
+          const request = httpRequest(
+            `${base}${path}`,
+            { method: 'TRACE', headers },
+            (response) => {
+              let body = '';
+              response.setEncoding('utf8');
+              response.on('data', (chunk: string) => {
+                body += chunk;
+              });
+              response.on('end', () =>
+                resolve({
+                  status: response.statusCode,
+                  cache: response.headers['cache-control'],
+                  body,
+                }),
+              );
+              response.on('error', reject);
+            },
+          );
+          request.on('error', reject);
+          request.end();
+        });
+        assert.equal(result.status, 503);
+        assert.equal(result.cache, 'no-store');
+        assert.equal(JSON.parse(result.body).error.code, 'internal_error');
+        assert.ok(!result.body.includes(token));
+        assert.ok(!result.body.includes('TRACE'));
+        assert.ok(!result.body.includes('stack'));
+      }
       const list = JSON.parse(await status('/management/v1/models', 200));
       assert.equal(list.data[0].id, 'team/chat');
       const detail = JSON.parse(await status('/management/v1/models/team%2Fchat', 200));

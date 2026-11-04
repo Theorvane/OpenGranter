@@ -1,10 +1,11 @@
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { createManagementBrowserServer } from '../management/browser-http.ts';
+import { createManagementBrowserHandler } from '../management/browser-http.ts';
 import type { PostgresConnection } from '../storage/postgres-connection.ts';
 import { loadPostgresMigrationSources } from '../storage/postgres-migration-sources.ts';
 import { applyPostgresMigrations } from '../storage/postgres-migrations.ts';
 import type { BundledPostgresServerPorts } from './bundled-postgres-server.ts';
+import { createClientErrorResponse } from './client-errors.ts';
 import { createNodePostgresDirectChatServer } from './node-postgres-chat-server.ts';
 import { createNodePostgresDualRouteChatServer } from './node-postgres-dual-chat-server.ts';
 import { createNodeRequestServer } from './node-request-server.ts';
@@ -197,7 +198,15 @@ export async function startPostgresSsoManagementGateway(ports: PostgresSsoManage
         ? catalog(request)
         : tokens(request);
     };
-    if (browserJavascript === undefined) return createNodeRequestServer(application);
-    return createManagementBrowserServer({ javascript: browserJavascript, application });
+    const handler =
+      browserJavascript === undefined
+        ? application
+        : createManagementBrowserHandler({ javascript: browserJavascript, application });
+    // Preserve the SSO management adapter contract even when Fetch construction fails.
+    return createNodeRequestServer(handler, () => {
+      const response = createClientErrorResponse(503, 'internal_error');
+      response.headers.set('cache-control', 'no-store');
+      return response;
+    });
   });
 }
