@@ -1799,3 +1799,10 @@ The pure boundary renderer distinguishes loading, absent session, expired sessio
 ## Management boundary DOM replacement (#639)
 
 The unused mount adapter builds fixed detached main/heading/status nodes with textContent and synchronously replaces all children of the caller-owned root. Structural fixture tests cover stale subtree removal, repeated state changes, five accessible states and unknown inputs without coercion/reflection. This is not a browser test, session detector, authorization revocation or memory/resource cleanup. Callers must own the root and dispose external listeners/resources. No session or endpoint integration is installed. See [plan](plans/639-management-boundary-mount.md).
+
+## Management current-principal API (#639 incremental slice)
+
+- GET /management/v1/me with a verified RFC 9068 access token and current active-human binding returns exactly {principalId}, no-store and a server-generated request ID, with no cookies or permission grant.
+- Every request revalidates identity; inactive/deleted bindings and rejected tokens return 401 after required anonymous current-principal authentication-denial audit. Verification dependency failures return 503; failed audit returns 503 audit_unavailable. No token or claim is reflected.
+- Query/body input is rejected after authentication, including real HTTP nonzero Content-Length and chunked transfer framing; Content-Length: 0 remains valid. Unsupported methods return 404. Identity alone is not authorization for any list, detail or mutation.
+- Evidence: test/sso-current-principal-http.test.ts and test/postgres-sso-management-http.test.ts. Browser sessions, owned runtime activation, installed UI and release acceptance remain open.

@@ -569,3 +569,46 @@ test('configured public factory snapshots all settings once, including admin key
     await f.db.close();
   }
 });
+
+test('current-principal uses real JWT and current active-human binding; persists anonymous denial', async () => {
+  const f = await fixture();
+  const current = () =>
+    f.handler(
+      new Request('http://localhost/management/v1/me', {
+        headers: { authorization: 'Bearer ' + token },
+      }),
+    );
+  try {
+    const response = await current();
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    assert.equal(response.headers.get('set-cookie'), null);
+    assert.deepEqual(await response.json(), { principalId: 'human-admin' });
+    assert.equal(await f.count('token_management_decisions'), 0);
+    await f.db.query('UPDATE iam_principals SET active=false WHERE principal_id=$1', [
+      'human-admin',
+    ]);
+    await error(await current(), 401, 'unauthorized');
+    const events = await f.db.query(
+      'SELECT kind, principal_id, credential_id, policy_versions, details FROM gateway_audit_events',
+    );
+    assert.deepEqual(events.rows, [
+      {
+        kind: 'management-auth-denied',
+        principal_id: null,
+        credential_id: null,
+        policy_versions: null,
+        details: { operation: 'current-principal' },
+      },
+    ]);
+    await f.db.query('UPDATE iam_sso_identity_bindings SET principal_id=$1', ['human-owner']);
+    const rebound = await current();
+    assert.equal(rebound.status, 200);
+    assert.deepEqual(await rebound.json(), { principalId: 'human-owner' });
+    await f.db.exec('DROP TABLE gateway_audit_events');
+    const denied = await f.handler(new Request('http://localhost/management/v1/me'));
+    await error(denied, 503, 'audit_unavailable');
+  } finally {
+    await f.db.close();
+  }
+});
