@@ -1213,3 +1213,7 @@ A dedicated PostgreSQL append adapter preserves actual SSO principal/policy attr
 ## SSO catalog body-free reads (#641)
 
 The server-facing SSO catalog list/detail GET boundary rejects body framing before service work, including real Node requests whose bodies are discarded during Fetch adaptation. Existing authentication, IAM and required audit semantics remain unchanged. See [plan](plans/641-catalog-request-framing.md) and [HTTP contract](../contracts/sso-model-catalog-http.md).
+
+## Durable SSO catalog HTTP composition (#641)
+
+An optional PostgreSQL handler/non-listening server factory composes registered RFC9068 authentication, fresh IAM/catalog and mandatory dedicated SSO audit without an externally supplied audit callback. It adds no session, permission, ingress or runtime activation. See [plan](plans/641-durable-catalog-http.md).

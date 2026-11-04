@@ -1811,3 +1811,9 @@ The unused mount adapter builds fixed detached main/heading/status nodes with te
 
 - Both list and encoded-detail GET requests reject any Transfer-Encoding and nonzero/noncanonical Content-Length with fixed 400/no-store before discovery service work. No model metadata or bearer token is echoed.
 - Requests with absent body framing or exact Content-Length: 0 preserve existing authenticated outcomes. Verify through Fetch and real local Node sockets; this is not installed browser or company-IdP acceptance.
+
+## Durable PostgreSQL SSO catalog HTTP composition (#641)
+
+- Signed access-token list/detail through the composed Node boundary persist human and exact policy versions before response completion; fresh Deny and binding revocation take effect on the next call.
+- Anonymous denial is durably recorded; missing audit storage suppresses both authenticated and anonymous responses with 503. A deferred insert blocks metadata release.
+- Extra caller audit callbacks cannot replace durable append. No provider calls, synthetic credentials, automatic socket binding or session mounting occur. Local PGlite/loopback is not installed/browser/provider acceptance.

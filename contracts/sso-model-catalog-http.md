@@ -14,3 +14,7 @@
 ## Browser and deployment boundary
 
 This is a separate server-facing API namespace, not a change to proxy-token `/v1/models` or `/api/v1/models`. A trusted BFF must establish its reviewed OIDC/session/CSRF boundary and explicitly forward its server-held access token; browser code must not store bearer/proxy credentials. Existing frontend list/detail envelopes are compatible after that explicit route adaptation. This change does not mount the BFF, add session cookies, persist SSO audit, configure TLS/ingress, perform inference, reserve budget or claim installed acceptance. Local socket + signed JWT + migrated PGlite tests are not company-IdP/browser/installed-PostgreSQL/provider E2E.
+
+## Optional durable PostgreSQL composition (#641)
+
+createPostgresSsoModelCatalogHandler and createPostgresSsoModelCatalogServer in src/gateway/postgres-sso-model-catalog-http.ts accept the registered SSO configuration, SQL client and trusted request-ID factory. They explicitly wire the dedicated PostgreSQL SSO audit store into the fresh-authentication catalog service. The same trusted clock timestamps audit. No caller audit callback or service override is accepted; extra object properties do not alter composition. Existing HTTP semantics and migrations apply. The server is unbound; migrations, listening/TLS, SQL lifecycle and cookie/session/runtime integration remain caller-owned. The primitive dependency-injected service/HTTP constructors remain available but are not a durable-audit certification.
