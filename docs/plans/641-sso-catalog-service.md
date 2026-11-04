@@ -1,0 +1,8 @@
+# SSO user-visible catalog service (#637, #641)
+
+1. Compose current registered-key RFC 9068 human authentication and fresh IAM from #677 with the existing validated PostgreSQL catalog reader. This is user discovery visibility, NOT catalog administration permission.
+2. Reuse model InvokeModel and final inference-provider UseProvider candidate authorization, including explicit Deny and disabled aliases, on every list/detail call. Return only id/object/created/owned_by; never resolve secrets or invoke providers.
+3. Require an explicit server-only audit port. Events carry request ID, operation, outcome, current principal/policy versions when authenticated, and count. No fabricated proxy credential, token, claims, alias or private error. No SQL audit schema or HTTP/session contract is introduced; integration must implement durable SSO audit before activation.
+4. Fail closed on JWT/binding/snapshot/catalog errors and mandatory audit failure. A hidden or absent detail has the same missing result. Reads are fresh but separate binding/IAM/catalog queries are not an atomic revocation guarantee.
+5. RED: signed local JWT plus migrated PGlite calls fail because the service module is absent. GREEN: list/detail, role/Deny/provider visibility, current policy updates, human/binding/expiry changes, malformed catalog and audit failure; typecheck/lint/related suites.
+6. Submit exact-head PR for independent review and required CI. No browser session, public HTTP activation, database audit writer, installed PostgreSQL, live IdP/provider, production or paid calls are certified by these local checks.
