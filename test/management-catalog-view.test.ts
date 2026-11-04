@@ -6,6 +6,7 @@ import { type CatalogElement, renderCatalogView } from '../src/management/catalo
 class Element implements CatalogElement {
   readonly tag: string;
   textContent: string | null = null;
+  value = '';
   attributes: Record<string, string> = {};
   children: Element[] = [];
   listeners: Record<string, () => void> = {};
@@ -80,4 +81,45 @@ test('canonical session snapshots render safe native buttons', async () => {
   session.clear('expired');
   renderCatalogView(root, session.snapshot(), actions);
   assert.match(text(root), /Session expired/);
+});
+
+test('search filters model IDs and publishers without replacing the input', () => {
+  const root = new Element();
+  let selected = '';
+  renderCatalogView(
+    root,
+    {
+      state: 'list',
+      models: [
+        { id: 'demo/alpha', object: 'model', created: 0, owned_by: 'Acme' },
+        { id: 'demo/beta', object: 'model', created: 0, owned_by: 'Other' },
+      ],
+    },
+    {
+      list() {},
+      detail(id) {
+        selected = id;
+      },
+    },
+  );
+  const input = nodes(root).find((node) => node.tag === 'input');
+  assert.ok(input);
+  input.value = ' ACME ';
+  input.listeners.input?.();
+  assert.match(text(root), /demo\/alpha/);
+  assert.doesNotMatch(text(root), /demo\/beta/);
+  nodes(root)
+    .find((node) => node.textContent === 'demo/alpha')
+    ?.listeners.click?.();
+  assert.equal(selected, 'demo/alpha');
+  input.value = 'no matches';
+  input.listeners.input?.();
+  assert.match(text(root), /No matching models/);
+  assert.equal(
+    nodes(root).find((node) => node.tag === 'input'),
+    input,
+  );
+  input.value = 'BETA';
+  input.listeners.input?.();
+  assert.match(text(root), /demo\/beta/);
 });

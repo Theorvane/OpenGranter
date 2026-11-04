@@ -27,7 +27,7 @@ test('actual bundled entry mounts signed-out without network and disposes on pag
     entry: 'src/management/catalog-entry.ts',
   });
   const root = new Element();
-  let dispose: (() => void) | undefined;
+  const listeners = new Map<string, (event?: { persisted: boolean }) => void>();
   const context = {
     document: {
       getElementById(id: string) {
@@ -36,10 +36,8 @@ test('actual bundled entry mounts signed-out without network and disposes on pag
       },
     },
     window: {
-      addEventListener(type: string, listener: () => void, options: unknown) {
-        assert.equal(type, 'pagehide');
-        assert.deepEqual(JSON.parse(JSON.stringify(options)), { once: true });
-        dispose = listener;
+      addEventListener(type: string, listener: () => void) {
+        listeners.set(type, listener);
       },
     },
     fetch() {
@@ -48,9 +46,20 @@ test('actual bundled entry mounts signed-out without network and disposes on pag
   };
   runInNewContext(javascript, context);
   assert.match(text(root), /Sign-in required/);
-  assert.ok(dispose);
-  dispose();
+  const hide = listeners.get('pagehide');
+  assert.ok(hide);
+  hide();
   assert.equal(root.children.length, 0);
+  const show = listeners.get('pageshow');
+  assert.ok(show);
+  show({ persisted: false });
+  assert.equal(root.children.length, 0);
+  for (let cycle = 0; cycle < 3; cycle++) {
+    show({ persisted: true });
+    assert.match(text(root), /Sign-in required/);
+    hide();
+    assert.equal(root.children.length, 0);
+  }
   assert.deepEqual(Object.keys(context.window), ['addEventListener']);
   runInNewContext(javascript, {
     document: {

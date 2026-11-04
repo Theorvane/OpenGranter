@@ -3,6 +3,7 @@ import type { ManagementCatalogSnapshot } from './catalog-session.ts';
 
 export interface CatalogElement {
   textContent: string | null;
+  value?: string;
   ownerDocument: { createElement(tag: string): CatalogElement };
   setAttribute(name: string, value: string): void;
   append(...nodes: CatalogElement[]): void;
@@ -73,13 +74,32 @@ export function renderCatalogView(
       empty.setAttribute('role', 'status');
       main.append(empty);
     } else {
+      const label = element('label', 'Search models');
+      const search = element('input');
+      search.setAttribute('type', 'search');
+      search.setAttribute('placeholder', 'Model ID or publisher');
+      label.append(search);
       const list = element('ul');
-      for (const model of value.models) {
-        const row = element('li');
-        row.append(button(model.id, () => actions.detail(model.id)));
-        list.append(row);
-      }
-      main.append(list);
+      const status = element('p');
+      status.setAttribute('role', 'status');
+      const filter = () => {
+        const query = (search.value ?? '').trim().toLowerCase();
+        const models = value.models.filter((model) =>
+          [model.id, model.owned_by].some((text) => text.toLowerCase().includes(query)),
+        );
+        list.replaceChildren();
+        for (const model of models) {
+          const row = element('li');
+          row.append(button(model.id, () => actions.detail(model.id)));
+          list.append(row);
+        }
+        status.textContent = models.length
+          ? `${models.length} models shown.`
+          : 'No matching models.';
+      };
+      search.addEventListener('input', filter);
+      filter();
+      main.append(label, status, list);
     }
     main.append(button('Refresh models', actions.list));
   } else if (value.state === 'detail') {

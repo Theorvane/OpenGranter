@@ -21,3 +21,17 @@ The app and view tests were prepared alongside existing local implementation; hi
 ## Delivery
 
 Preserve earlier local builder outside the worktree; fast-forward to merged main and build the actual entry using `npm run --silent management:build -- src/management/catalog-entry.ts`. Run focused tests, typecheck, lint, full check and a real browser smoke where available. Report commands/results and unverified session/provider acceptance separately. Rollback removes the new opt-in UI files without changing canonical client/session/authority or HTTP runtime.
+
+## BFCache lifecycle regression
+
+Independent review identified permanent disposal on pagehide without restoration. Keep teardown on every pagehide; on persisted pageshow create a new signed-out app, never reusing a grant or protected data. Regression tests cover repeated restore/dispose cycles and zero network. Actual browser validation must distinguish a real BFCache restoration from a reload.
+
+## Screen-first preview (2026-11-04)
+
+Add local, case-insensitive model ID/publisher search to the existing list view. Provide a loopback-only opt-in preview script using the same app/view bundle and synthetic responses; prominently label demo/no session/no backend, with no credentials, remote fetch or production activation. Exercise list, detail, search/no results, loading, empty, error and BFCache signed-out restoration. Keep the production entry fail-closed. Preview scripts and their regression test are FE-owned; shared HTTP/client/session files remain unchanged.
+
+## Screen-first verification (2026-11-04 17:00 KST)
+
+Existing lifecycle red log: /tmp/catalog676-bfcache-red.log (one regression fails before fix). Current focused catalog tests: 48 pass, zero fail (/tmp/catalog676-1707-focused.log). Typecheck and repository lint completed in npm run check (lint informational notices only); full check exceeded the 300-second command deadline during the test phase, so full-suite success is NOT claimed. Planning checker and pinned compatibility schemas pass separately. HTTP preview on loopback 18776 returns 200 and explicitly labels DEMO / NOT CONNECTED. Page browser timed out and desktop URL navigation was denied; no retry, real browser DOM/search/detail/state/BFCache success or screenshot is claimed. Public entry remains signed-out. Session integration is unimplemented pending approved server contract.
+
+Run from checkout with Node >=22.14: node --experimental-strip-types scripts/preview-management-catalog.ts. Open http://127.0.0.1:18776/ for synthetic preview or /signed-out for public entry. Loopback-only, not externally deployed.
