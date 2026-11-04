@@ -1217,3 +1217,7 @@ The server-facing SSO catalog list/detail GET boundary rejects body framing befo
 ## Durable SSO catalog HTTP composition (#641)
 
 An optional PostgreSQL handler/non-listening server factory composes registered RFC9068 authentication, fresh IAM/catalog and mandatory dedicated SSO audit without an externally supplied audit callback. It adds no session, permission, ingress or runtime activation. See [plan](plans/641-durable-catalog-http.md).
+
+## Owned management catalog listener (#641)
+
+Explicit SSO management startup now serves existing authorized catalog list/detail on its single migrated database connection, alongside owner-scoped token operations and optional static browser assets. Catalog replies require fresh IAM and durable attributed audit; no browser session, inference or new deployment is granted. See [plan](plans/641-catalog-runtime.md) and [contract](../contracts/sso-management-runtime.md).
