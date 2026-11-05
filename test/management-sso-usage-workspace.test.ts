@@ -440,3 +440,54 @@ test('view navigation revokes completed CSV downloads and pagehide aborts a pend
     URL.revokeObjectURL = original;
   }
 });
+
+test('detached workspace navigation cannot spend renewed authority or replace the active view', async () => {
+  for (const change of ['navigation', 'renewal', 'clear', 'pagehide', 'dispose'] as const) {
+    const f = fixture();
+    const paths: string[] = [];
+    const grant = {
+      expiresAt: 300,
+      request: async (path: string) => {
+        paths.push(path);
+        return response(path);
+      },
+    };
+    await f.app.authorize(grant);
+    const detached = f.root.find('Usage history');
+    assert.ok(detached);
+    switch (change) {
+      case 'navigation':
+        f.root.click('Models');
+        await settle();
+        break;
+      case 'renewal':
+        await f.app.authorize(grant);
+        break;
+      case 'clear':
+        f.app.clear();
+        await f.app.authorize(grant);
+        break;
+      case 'pagehide':
+        f.lifecycle.dispatchEvent(new Event('pagehide'));
+        f.lifecycle.dispatchEvent(new Event('pageshow'));
+        await f.app.authorize(grant);
+        break;
+      case 'dispose':
+        f.app.dispose();
+        break;
+    }
+    const before = f.root.text();
+    const count = paths.length;
+    detached.events.click?.();
+    await settle();
+    assert.equal(paths.length, count, change + ': detached navigation must not dispatch');
+    assert.equal(f.root.text(), before, change + ': detached navigation must not rerender');
+    if (change !== 'dispose') {
+      f.root.click('Usage history');
+      await settle();
+      assert.equal(paths.length, count + 1, change + ': current navigation still works');
+      assert.match(f.root.text(), /No usage records/);
+    }
+    f.app.dispose();
+  }
+});

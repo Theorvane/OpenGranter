@@ -1266,3 +1266,7 @@ Operators can filter usage with UTC calendar inputs and inspect ISO UTC record t
 ## Usage to current model review (#642)
 
 Connect existing usage rows to current catalog detail inside the trusted workspace, retaining fresh permission checks and durable audit rather than treating historical usage as authority. No new screen, endpoint or session activation. See [plan](plans/642-usage-model-drilldown.md) and [contract](../contracts/usage-screen.md#current-model-inspection-from-usage-642).
+
+## Workspace navigation lifetime (#639, #642)
+
+Trusted workspace navigation is scoped to its creating render so discarded controls cannot consume renewed authority or replace the active view. See the [plan](plans/639-workspace-navigation-lifetime.md); public entry, session acquisition, installed runtime and schema activation remain unchanged.

@@ -45,3 +45,5 @@ Time filters use explicitly UTC datetime controls with millisecond precision and
 ## Current model inspection from usage (#642)
 
 Within the explicitly mounted trusted workspace, each usage model has a native Inspect model button that disposes the usage view and its downloads and opens current catalog detail through the same fresh SSO/IAM audited transport. The historical alias is only a lookup key, not permission, a route or cached catalog metadata. Revoked or unavailable model access remains hidden as not-found; auth failures still clear workspace authority. Back to models performs a fresh list. Standalone usage mounts have no navigation unless their trusted owner opts in. Detached controls cannot navigate after reload, grant renewal, expiry, clear or disposal. No public entry, session, listener or schema activation is added.
+
+Workspace navigation controls belong only to their creating render. Detached Models/Usage history controls after a view change, renewal, clear, pagehide/restoration or disposal cannot dispatch with current authority or replace the active view. Current controls remain functional; server authorization and mandatory audits are unchanged.
