@@ -151,10 +151,7 @@ export function parseUsageHistoryQuery(url: URL): UsageHistoryFilters & {
     requestedPrincipalId !== null &&
     (!nonempty(requestedPrincipalId) ||
       requestedPrincipalId.length > 256 ||
-      [...requestedPrincipalId].some((character) => {
-        const code = character.charCodeAt(0);
-        return code < 32 || code === 127;
-      }))
+      /[\p{Cc}]/u.test(requestedPrincipalId))
   ) {
     throw new InvalidUsageQuery();
   }
