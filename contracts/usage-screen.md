@@ -33,3 +33,7 @@ The public sign-in entry is NOT changed or activated. Session/BFF, installed usa
 ## Explicit CSV page continuation (#642)
 
 The existing usage screen offers Export next CSV page only after a successful CSV page returns a next cursor. Carry that exact opaque cursor and applied filters in a fresh protected request; never infer it from JSON pagination or auto-aggregate exports. Each download is one page. Export current page CSV restarts from the visible JSON page without mutating its navigation history. Revoke the previous download before a subsequent export; invalidate continuation on list/filter changes, cancellation, expiry, clear, denial and disposal. Detached controls and late responses cannot restore an invalidated chain. This source/local HTTP change does not activate a listener, migration, public entry or session. See [plan](../docs/plans/642-csv-page-continuation.md).
+
+## Explicit review API composition (#642)
+
+The opt-in server-only review handler shares trusted registered-key and SQL configuration across existing catalog and usage handlers without caching identity. Exact GET catalog list/detail and usage JSON/CSV retain original requests and mandatory durable audits. Unknown paths and writes fail closed before SQL. This does not mount a listener or promote candidate schema.
