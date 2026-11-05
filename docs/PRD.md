@@ -1278,3 +1278,7 @@ Catalog list/detail and scoped usage JSON/CSV now share an explicit unbound serv
 ## Same-origin source review composition (#639/#642)
 
 An optional unbound source factory serves caller-owned public management assets and existing registered-key catalog/usage review routes on one origin. It adds no session, frontend activation or installed runtime. See [contract](../contracts/sso-usage-http.md).
+
+## Usage action lifetime (#642)
+
+Existing usage controls now belong to their creating render: detached filters, paging, CSV and cancellation cannot act with renewed authority or interrupt replacement work. This does not activate session/runtime/schema or complete browser login. See [plan](plans/642-usage-control-lifetime.md) and [contract](../contracts/usage-screen.md).

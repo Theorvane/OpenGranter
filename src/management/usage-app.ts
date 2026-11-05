@@ -56,6 +56,7 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
   }
   let client: ReturnType<typeof createManagementUsageClient> | undefined;
   let revision = 0;
+  let renderRevision = 0;
   let disposed = false;
   let filters: UsageFilters = {};
   let page: UsagePage | undefined;
@@ -78,11 +79,17 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
   const button = (text: string, action: () => void) => {
     const node = element('button', text);
     node.setAttribute('type', 'button');
-    node.addEventListener('click', action);
+    const rendered = renderRevision;
+    node.addEventListener('click', () => {
+      // Detached controls must not consume renewed authority or cancel newer work.
+      if (disposed || rendered !== renderRevision || expired()) return;
+      action();
+    });
     return node;
   };
   function render(moveFocus = false) {
     if (disposed) return;
+    ++renderRevision;
     const main = element('section');
     const heading = element('h1', 'Usage history');
     heading.setAttribute('tabindex', '-1');

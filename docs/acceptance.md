@@ -1897,3 +1897,9 @@ The existing usage screen offers Export next CSV page only after a successful CS
 - Public assets require no SQL, grant no cookie authority, retain restrictive CSP/no-store, and reject queries/framing without SPA fallback.
 - One loopback origin serves the public workspace artifact and signed model list/detail, scoped usage/CSV backed by embedded SQL and durable audits; fresh IAM denial and audit failure remain fail-closed.
 - Not native-browser login, session activation, installed PostgreSQL or provider acceptance. Caller must separately supply an approved trusted adapter. See [plan](plans/639-review-static-composition.md).
+
+## Usage action lifetime (#642)
+
+- Retain filter/paging/CSV/refresh/retry controls, renew the grant and click the detached controls: no additional HTTP requests, old principal filters or cursor replay. Fresh controls remain functional.
+- Retain Cancel request from an old loading render, begin a replacement read and click the old control: new read remains pending and completes; current Cancel still aborts it.
+- No session, public entry, schema or installed-runtime activation. Structural DOM and loopback HTTP do not certify native-browser/IdP acceptance. See [plan](plans/642-usage-control-lifetime.md).
