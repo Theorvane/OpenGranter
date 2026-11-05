@@ -1824,3 +1824,7 @@ The unused mount adapter builds fixed detached main/heading/status nodes with te
 - Real local loopback listener with migrated PGlite and a registered signed test issuer serves catalog list and encoded-alias detail, with or without optional browser assets.
 - Verify durable human/policy attribution, anonymous denial, next-request Deny/revoked binding, required-audit outage, unchanged token authentication and unrelated/inference path isolation.
 - Verify one connection and idempotent close. Local test issuer/PGlite sockets are not browser login, installed PostgreSQL, company IdP or provider acceptance.
+
+## Usage previous-page review (#642)
+
+Starting from an authorized usage page, advance twice and return twice: each request must preserve the original opaque cursor, and the first page must omit it. Export after returning uses the displayed page query and navigating revokes the download. Applying filters, retrying the first page, failures and identity changes must remove previous navigation; superseded responses must not restore private rows or history. See [contract](../contracts/usage-previous-page.md). Structural DOM and local HTTP tests are separate from required real-browser and installed acceptance.

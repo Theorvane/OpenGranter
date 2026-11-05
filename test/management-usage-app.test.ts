@@ -143,6 +143,16 @@ test('disconnected mount, loading, safe text, paging, filters and CSV over actua
       false,
     );
     await assert.rejects(fetch(link.attrs.href));
+    root.button('Previous page').click();
+    await waitFor(() => root.text().includes('Inspect attempt'));
+    assert.equal(seen.at(-1)?.has('cursor'), false);
+    assert.equal(
+      root.all().some((node) => node.textContent === 'Previous page'),
+      false,
+    );
+    root.button('Next page').click();
+    await waitFor(() => root.text().includes('No usage records'));
+    assert.equal(seen.at(-1)?.get('cursor'), cursor);
     const model = root.all().find((node) => node.tag === 'label' && node.textContent === 'Model')
       ?.children[0];
     assert.ok(model);
@@ -324,4 +334,120 @@ test('attempt inspection disappears during reload, HTTP denial, and disposal', a
   assert.equal(root.all().filter((node) => node.tag === 'details').length, 1);
   app.dispose();
   assert.equal(root.children.length, 0);
+});
+
+test('previous navigation refetches opaque queries, preserves CSV scope and resets on filters', async () => {
+  const root = new Element();
+  const app = mountManagementUsage(root);
+  const seen: URL[] = [];
+  const second = 'opaque_SECOND_123';
+  const third = 'opaque_THIRD_456';
+  await app.connect(async (path) => {
+    const url = new URL(path, 'http://localhost');
+    seen.push(url);
+    const current = url.searchParams.get('cursor');
+    if (url.searchParams.get('format') === 'csv')
+      return new Response(current ?? 'first', {
+        headers: { 'content-type': 'text/csv', 'x-usage-has-more': 'false' },
+      });
+    return new Response(
+      JSON.stringify({
+        object: 'list',
+        data: [{ ...row, attemptId: current ?? 'first' }],
+        has_more: current !== third,
+        next_cursor: current === third ? null : current === second ? third : second,
+      }),
+      { headers: { 'content-type': 'application/json' } },
+    );
+  });
+  const hasPrevious = () => root.all().some((node) => node.textContent === 'Previous page');
+  assert.equal(hasPrevious(), false);
+  root.button('Next page').click();
+  await waitFor(() => root.text().includes(second));
+  root.button('Next page').click();
+  await waitFor(() => root.text().includes(third));
+  root.button('Previous page').click();
+  assert.doesNotMatch(root.text(), /opaque_THIRD_456/);
+  await waitFor(() => root.text().includes(second));
+  assert.equal(seen.at(-1)?.searchParams.get('cursor'), second);
+  root.button('Export current page CSV').click();
+  await waitFor(() => root.all().some((node) => node.tag === 'a'));
+  const download = root.all().find((node) => node.tag === 'a')?.attrs.href;
+  assert.ok(download);
+  assert.equal(await (await fetch(download)).text(), second);
+  root.button('Previous page').click();
+  await waitFor(() => root.text().includes('Inspect attempt'));
+  assert.equal(seen.at(-1)?.searchParams.has('cursor'), false);
+  assert.equal(hasPrevious(), false);
+  await assert.rejects(fetch(download));
+  root.button('Next page').click();
+  await waitFor(() => root.text().includes(second));
+  root.button('Retry / first page').click();
+  await waitFor(() => root.text().includes('Inspect attempt'));
+  assert.equal(hasPrevious(), false);
+  root.button('Next page').click();
+  await waitFor(() => root.text().includes(second));
+  root.button('Apply filters').click();
+  await waitFor(() => root.text().includes('Inspect attempt'));
+  assert.equal(hasPrevious(), false);
+  assert.equal(seen.at(-1)?.searchParams.has('cursor'), false);
+  app.clear('expired');
+  await app.connect(async () => response());
+  assert.equal(hasPrevious(), false);
+  app.dispose();
+});
+
+test('failed pagination and superseded identity cannot restore navigation or old rows', async () => {
+  const root = new Element();
+  const app = mountManagementUsage(root);
+  const hasPrevious = () => root.all().some((node) => node.textContent === 'Previous page');
+  let finish: ((value: Response) => void) | undefined;
+  let failExport = false;
+  const firstPage = () =>
+    new Response(
+      JSON.stringify({
+        object: 'list',
+        data: [row],
+        has_more: true,
+        next_cursor: cursor,
+      }),
+      { headers: { 'content-type': 'application/json' } },
+    );
+  await app.connect(async (path) => {
+    if (path.includes('format=csv') && failExport) return new Response(null, { status: 503 });
+    if (path.includes('cursor=')) return response();
+    return firstPage();
+  });
+  root.button('Next page').click();
+  await waitFor(hasPrevious);
+  failExport = true;
+  root.button('Export current page CSV').click();
+  await waitFor(() => root.text().includes('Usage unavailable'));
+  assert.equal(hasPrevious(), false);
+  assert.doesNotMatch(root.text(), /human/);
+  root.button('Retry / first page').click();
+  await waitFor(() => root.text().includes('Inspect attempt'));
+  assert.equal(hasPrevious(), false);
+  await app.connect(async (path) =>
+    path.includes('cursor=') ? new Response(null, { status: 503 }) : firstPage(),
+  );
+  root.button('Next page').click();
+  await waitFor(() => root.text().includes('Usage unavailable'));
+  assert.equal(hasPrevious(), false);
+  await app.connect(async (path) => {
+    if (!path.includes('cursor=')) return firstPage();
+    return new Promise<Response>((resolve) => {
+      finish = resolve;
+    });
+  });
+  root.button('Next page').click();
+  assert.ok(finish);
+  app.clear('expired');
+  await app.connect(async () => response([]));
+  finish(response());
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.match(root.text(), /No usage records/);
+  assert.equal(hasPrevious(), false);
+  assert.doesNotMatch(root.text(), /human/);
+  app.dispose();
 });
