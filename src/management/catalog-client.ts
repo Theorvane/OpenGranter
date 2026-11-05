@@ -64,7 +64,7 @@ async function boundedJson(response: Response, signal: AbortSignal): Promise<unk
       if (size > MAX_CATALOG_BYTES) throw new Error('Catalog body exceeds limit');
       bytes.set(value, size - value.byteLength);
     }
-    return JSON.parse(new TextDecoder().decode(bytes.subarray(0, size)));
+    return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes.subarray(0, size)));
   } catch (error) {
     cancel();
     throw error;
