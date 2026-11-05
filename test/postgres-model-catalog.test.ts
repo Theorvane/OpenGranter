@@ -302,3 +302,55 @@ test('gateway model listing consumes the stored active route and applies IAM', a
     await db.close();
   }
 });
+
+test('exact publication lookup is parameterized and preserves disabled and missing models', async () => {
+  const { db, reader, calls } = await fixture();
+  try {
+    await db.exec(
+      "INSERT INTO catalog_models (alias, created_at_seconds, enabled) VALUES ('team/retired', 0, false)",
+    );
+    assert.deepEqual(await reader.findPublishedModel('team/retired'), {
+      alias: 'team/retired',
+      created: 0,
+      enabled: false,
+      routes: [],
+    });
+    assert.equal(await reader.findPublishedModel('missing'), undefined);
+    assert.deepEqual(
+      calls.map(({ params }) => params),
+      [['team/retired'], ['missing']],
+    );
+    assert.ok(calls.every(({ sql }) => sql.includes('WHERE m.alias = $1 LIMIT 2')));
+    await assert.rejects(reader.findPublishedModel("bad' OR 1=1"), {
+      name: 'ModelCatalogUnavailable',
+    });
+    assert.equal(calls.length, 2);
+  } finally {
+    await db.close();
+  }
+});
+
+test('exact publication lookup fails closed on duplicate, wrong-alias, malformed and unavailable rows', async () => {
+  const row = {
+    alias: 'expected',
+    created_at_seconds: '0',
+    enabled: false,
+    active_route_id: null,
+    route_id: null,
+  };
+  for (const rows of [[row, row], [{ ...row, alias: 'different' }], [{ ...row, enabled: true }]]) {
+    const reader = createPostgresModelCatalogReader({ query: async () => ({ rows }) });
+    await assert.rejects(reader.findPublishedModel('expected'), {
+      name: 'ModelCatalogUnavailable',
+    });
+  }
+  const unavailable = createPostgresModelCatalogReader({
+    query: async () => {
+      throw Error('private database failure');
+    },
+  });
+  await assert.rejects(unavailable.findPublishedModel('expected'), {
+    name: 'ModelCatalogUnavailable',
+    message: 'Model catalog unavailable',
+  });
+});
