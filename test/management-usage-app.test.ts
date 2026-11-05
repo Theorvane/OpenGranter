@@ -551,3 +551,239 @@ test('operator cancellation aborts CSV, removes records and ignores late blob cr
   assert.match(root.text(), /Session expired/u);
   app.dispose();
 });
+
+function authorityFixture() {
+  const root = new Element();
+  let time = 1000;
+  const jobs: { delay: number; callback: () => void; cancelled: boolean }[] = [];
+  const app = mountManagementUsage(root, {
+    now: () => time,
+    schedule(delay, callback) {
+      const job = { delay, callback, cancelled: false };
+      jobs.push(job);
+      return () => {
+        job.cancelled = true;
+      };
+    },
+  });
+  return {
+    root,
+    app,
+    jobs,
+    setTime: (value: number) => {
+      time = value;
+    },
+  };
+}
+test('trusted usage grant automatically expires and clears rows, CSV and filters', async () => {
+  const f = authorityFixture();
+  let calls = 0;
+  await f.app.authorize({
+    request: async (_path) => {
+      calls++;
+      return new URLSearchParams(_path.split('?')[1]).get('format') === 'csv'
+        ? new Response('private,csv\r\n', {
+            headers: { 'content-type': 'text/csv; charset=utf-8', 'x-usage-has-more': 'false' },
+          })
+        : response();
+    },
+    expiresAt: 2000,
+  });
+  assert.match(f.root.text(), /attempt/);
+  f.root.button('Export current page CSV').click();
+  await waitFor(() => f.root.text().includes('Download usage.csv'));
+  const link = f.root.all().find((node) => node.tag === 'a');
+  assert.ok(link);
+  const url = link.attrs.href;
+  assert.ok(url);
+  f.setTime(2000);
+  f.jobs[0]?.callback();
+  assert.match(f.root.text(), /Session expired/);
+  assert.doesNotMatch(f.root.text(), /attempt|Download usage.csv/);
+  assert.equal(
+    f.root.all().some((node) => node.tag === 'input'),
+    false,
+  );
+  await assert.rejects(fetch(url));
+  assert.equal(calls, 2);
+  f.app.dispose();
+});
+test('invalid usage grants replace old authority without network work', async () => {
+  for (const expiresAt of [NaN, Infinity, 1000, -1, 1000.5]) {
+    const f = authorityFixture();
+    await f.app.authorize({ request: async () => response(), expiresAt: 2000 });
+    await f.app.authorize({
+      request: async () => {
+        throw Error('must not request');
+      },
+      expiresAt,
+    });
+    assert.match(f.root.text(), /Session expired/);
+    assert.doesNotMatch(f.root.text(), /attempt/);
+    assert.equal(f.jobs[0]?.cancelled, true);
+    f.app.dispose();
+  }
+});
+test('suspended timers cannot admit new requests or late JSON at expiry', async () => {
+  const f = authorityFixture();
+  let release!: (value: Response) => void;
+  let signal: AbortSignal | null | undefined;
+  const pending = f.app.authorize({
+    request: (_path, init) => {
+      signal = init.signal;
+      return new Promise((resolve) => {
+        release = resolve;
+      });
+    },
+    expiresAt: 2000,
+  });
+  f.setTime(2001);
+  release(response());
+  await pending;
+  assert.match(f.root.text(), /Session expired/);
+  assert.doesNotMatch(f.root.text(), /attempt/);
+  // The response has finished; expiry withholds it rather than claiming network rollback.
+  assert.equal(signal?.aborted, false);
+  await f.app.authorize({ request: async () => response(), expiresAt: 3000 });
+  const refresh = f.root.button('Refresh current page');
+  f.setTime(3000);
+  refresh.click();
+  assert.match(f.root.text(), /Session expired/);
+  f.app.dispose();
+});
+test('usage authority renewal ignores old timers and disposal is terminal', async () => {
+  const f = authorityFixture();
+  await f.app.authorize({ request: async () => response(), expiresAt: 2000 });
+  await f.app.authorize({ request: async () => response([]), expiresAt: 4000 });
+  f.setTime(2000);
+  f.jobs[0]?.callback();
+  assert.doesNotMatch(f.root.text(), /Session expired/);
+  assert.equal(f.jobs[0]?.cancelled, true);
+  f.app.dispose();
+  assert.equal(f.jobs[1]?.cancelled, true);
+  await f.app.authorize({
+    request: async () => {
+      throw Error('disposed');
+    },
+    expiresAt: 5000,
+  });
+  assert.equal(f.root.children.length, 0);
+});
+
+test('expiry aborts pending work, rejects late CSV and revokes authority', async () => {
+  const f = authorityFixture();
+  let finish!: (response: Response) => void;
+  let signal: AbortSignal | null | undefined;
+  let calls = 0;
+  await f.app.authorize({
+    request: async (_path, init) => {
+      if (++calls === 1) return response();
+      signal = init.signal;
+      return new Promise((resolve) => {
+        finish = resolve;
+      });
+    },
+    expiresAt: 2000,
+  });
+  f.root.button('Export current page CSV').click();
+  f.setTime(2000);
+  f.jobs[0]?.callback();
+  assert.equal(signal?.aborted, true);
+  finish(
+    new Response('private,csv', {
+      headers: { 'content-type': 'text/csv', 'x-usage-has-more': 'false' },
+    }),
+  );
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.match(f.root.text(), /Session expired/);
+  assert.doesNotMatch(f.root.text(), /Download usage.csv/);
+  f.app.dispose();
+});
+test('suspended timer cannot publish CSV consumed after deadline', async () => {
+  const f = authorityFixture();
+  let calls = 0;
+  let body!: ReadableStreamDefaultController<Uint8Array>;
+  await f.app.authorize({
+    request: async () => {
+      if (++calls === 1) return response();
+      return new Response(
+        new ReadableStream({
+          start(controller) {
+            body = controller;
+          },
+        }),
+        {
+          headers: { 'content-type': 'text/csv', 'x-usage-has-more': 'false' },
+        },
+      );
+    },
+    expiresAt: 2000,
+  });
+  f.root.button('Export current page CSV').click();
+  await waitFor(() => body !== undefined);
+  f.setTime(2000);
+  body.enqueue(new TextEncoder().encode('private,csv'));
+  body.close();
+  await waitFor(() => f.root.text().includes('Session expired'));
+  assert.doesNotMatch(f.root.text(), /Download usage.csv/);
+  f.app.dispose();
+});
+test('usage deadlines bound long timers, rearm early callbacks and cancel on denial', async () => {
+  const f = authorityFixture();
+  await f.app.authorize({ request: async () => response(), expiresAt: Number.MAX_SAFE_INTEGER });
+  assert.equal(f.jobs[0]?.delay, 2147483647);
+  f.jobs[0]?.callback();
+  assert.equal(f.jobs[1]?.delay, 2147483647);
+  await f.app.authorize({
+    request: async () => new Response(null, { status: 403 }),
+    expiresAt: 3000,
+  });
+  assert.match(f.root.text(), /Access denied/);
+  assert.equal(f.jobs[2]?.cancelled, true);
+  f.setTime(4000);
+  f.jobs[2]?.callback();
+  assert.match(f.root.text(), /Access denied/);
+  f.app.dispose();
+});
+test('new usage authority rejects old in-flight response and stale callbacks', async () => {
+  const f = authorityFixture();
+  let finish!: (response: Response) => void;
+  const pending = f.app.authorize({
+    request: () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    expiresAt: 2000,
+  });
+  await f.app.authorize({ request: async () => response([]), expiresAt: 4000 });
+  finish(response());
+  await pending;
+  f.setTime(2000);
+  f.jobs[0]?.callback();
+  assert.doesNotMatch(f.root.text(), /attempt|Session expired/);
+  f.app.clear('unauthenticated');
+  assert.equal(f.jobs[1]?.cancelled, true);
+  f.app.dispose();
+});
+
+test('deadline crossing during authorize cannot reconnect after expiry clear', async () => {
+  const root = new Element();
+  let reads = 0;
+  let clockReads = 0;
+  const app = mountManagementUsage(root, {
+    now: () => (++clockReads === 1 ? 1000 : 2000),
+    schedule: () => {
+      throw Error('must not schedule expired grant');
+    },
+  });
+  await app.authorize({
+    request: async () => {
+      reads++;
+      return response();
+    },
+    expiresAt: 2000,
+  });
+  assert.match(root.text(), /Session expired/);
+  assert.equal(reads, 0);
+  app.dispose();
+});

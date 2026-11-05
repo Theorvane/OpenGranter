@@ -1843,3 +1843,10 @@ Reject C0/DEL/C1 in explicit principal filters, preserve ordinary Unicode IDs ex
 - Refresh on a later page forwards its exact query and retains previous-page navigation only after success. No historical rows are cached.
 - Cancel during list or CSV aborts the client request, clears rows/navigation/downloads, and ignores an abort-insensitive late response. Retry remains possible through existing authority; clear/expiry/denial still disconnects it. Cancellation does not assert server rollback.
 - Evidence: structural DOM tests in test/management-usage-app.test.ts; installed authenticated browser acceptance remains a separate unresolved gate. See [plan](plans/642-usage-request-controls.md).
+
+
+## Usage trusted deadline (#642)
+
+- The existing mounted usage UI clears records, filters, cursors and CSV URLs when a trusted grant expires. Suspended timers cannot release late JSON/CSV or start another protected request. Invalid replacement, renewal, logout, 401/403 and disposal are covered.
+- Evidence: structural DOM unit tests and mounted app through signed SSO loopback HTTP, database and durable audit. No native-browser, installed schema/session, provider or billing acceptance is implied.
+- See [plan](plans/642-usage-authority-expiry.md) and [contract](../contracts/usage-screen.md#trusted-deadline-integration-642).

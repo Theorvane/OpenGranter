@@ -14,3 +14,11 @@ Status: candidate, disconnected screen only. No production session or schema act
 - Dependencies still unresolved: authorized session/transport owner, mounted HTTP composition and actual authenticated browser E2E. This contract does not replace the catalog list/detail contract or approve those dependencies.
 
 Validation: `test/management-usage-app.test.ts` uses structural DOM plus a real loopback HTTP handler with a fake service. This is not a production JWT/session proof. Isolated visual browser smoke is a separate check.
+
+## Trusted deadline integration (#642)
+
+`authorize(grant: CatalogAuthorityGrant)` is the session-adapter integration path on the existing mounted screen. The trusted owner supplies the same request port and absolute safe-integer future epoch-ms deadline used by the catalog; UI filters never confer authority. This does not authenticate a session or mint a token. Low-level `connect(request)` remains compatible and requires externally owned lifecycle clearing.
+
+The screen automatically clears transport, rows, filters, page history and CSV links on expiry. Every list/refresh/page/filter/CSV read checks the deadline before network dispatch and after body consumption, so suspended timers cannot publish a late result. Pending work is aborted on timer expiry. A fully consumed response is withheld, not retrospectively aborted or rolled back. Invalid replacement grants erase the previous state without network work. Renewal cancels old timers and stale completions; long deadlines use bounded timers that rearm. 401/403 disconnect transport and cancel the deadline. Logout and permission-change owners must still call clear; dispose remains terminal.
+
+Validation includes the actual mounted app through signed RFC9068 loopback HTTP, embedded PostgreSQL-compatible storage, fresh IAM and mandatory durable audit using an explicitly loaded candidate schema. Structural DOM is not native-browser, installed-schema, IdP-login or provider acceptance. Entry owner wiring and installed listener/schema decisions remain outstanding.
