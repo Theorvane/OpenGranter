@@ -1243,3 +1243,9 @@ Operators can refresh the current usage page without losing opaque-cursor review
 ## Usage trusted authority deadline (#642)
 
 The existing usage screen accepts a trusted transport/deadline grant and clears private records, filters and downloads automatically on expiry. Read dispatch and completed body consumption enforce expiry even if browser timers are delayed. This is a lifecycle adapter, not a session/login implementation or route/schema activation. See [plan](plans/642-usage-authority-expiry.md) and [screen contract](../contracts/usage-screen.md#trusted-deadline-integration-642).
+
+## Shared model / usage workspace (#642)
+
+An explicit trusted owner may mount mountSsoUsageWorkspace(root, lifecycle, options) and pass its approved CatalogAuthorityGrant. Native Models / Usage history navigation mounts the existing SSO catalog or usage app, disposes the previous view and performs a fresh read through the same trusted port. No proxy fallback, cross-view cache, global grant endpoint or credential acquisition is added. Logout, pagehide, expiry and current-grant HTTP 401/403 clear both retained authority and displayed data; stale responses cannot clear renewed grants. Completed CSV URLs are revoked on navigation and pending exports are aborted on pagehide. pageshow never replays a grant.
+
+The public sign-in entry is NOT changed or activated. Session/BFF, installed usage listener/schema and entry-owner wiring remain separate held dependencies. Isolated signed HTTP / embedded SQL / structural DOM evidence is not native-browser or installed SSO acceptance.

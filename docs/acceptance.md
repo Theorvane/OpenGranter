@@ -1850,3 +1850,9 @@ Reject C0/DEL/C1 in explicit principal filters, preserve ordinary Unicode IDs ex
 - The existing mounted usage UI clears records, filters, cursors and CSV URLs when a trusted grant expires. Suspended timers cannot release late JSON/CSV or start another protected request. Invalid replacement, renewal, logout, 401/403 and disposal are covered.
 - Evidence: structural DOM unit tests and mounted app through signed SSO loopback HTTP, database and durable audit. No native-browser, installed schema/session, provider or billing acceptance is implied.
 - See [plan](plans/642-usage-authority-expiry.md) and [contract](../contracts/usage-screen.md#trusted-deadline-integration-642).
+
+## Shared model / usage workspace (#642)
+
+An explicit trusted owner may mount mountSsoUsageWorkspace(root, lifecycle, options) and pass its approved CatalogAuthorityGrant. Native Models / Usage history navigation mounts the existing SSO catalog or usage app, disposes the previous view and performs a fresh read through the same trusted port. No proxy fallback, cross-view cache, global grant endpoint or credential acquisition is added. Logout, pagehide, expiry and current-grant HTTP 401/403 clear both retained authority and displayed data; stale responses cannot clear renewed grants. Completed CSV URLs are revoked on navigation and pending exports are aborted on pagehide. pageshow never replays a grant.
+
+The public sign-in entry is NOT changed or activated. Session/BFF, installed usage listener/schema and entry-owner wiring remain separate held dependencies. Isolated signed HTTP / embedded SQL / structural DOM evidence is not native-browser or installed SSO acceptance.
