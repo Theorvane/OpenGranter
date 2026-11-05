@@ -220,8 +220,8 @@ test('workspace is buildable through the reviewed public boundary', async () => 
 test('workspace switches signed SSO HTTP views against shared SQL and durable audits, then clears on fresh IAM denial', async () => {
   const { PGlite } = await import('@electric-sql/pglite');
   const { readFile } = await import('node:fs/promises');
-  const { createPostgresSsoReviewServer } = await import(
-    '../src/gateway/postgres-sso-review-http.ts'
+  const { createPostgresSsoReviewBrowserServer } = await import(
+    '../src/gateway/postgres-sso-review-browser-http.ts'
   );
   const { loadPostgresMigrationSources } = await import(
     '../src/storage/postgres-migration-sources.ts'
@@ -236,7 +236,11 @@ test('workspace switches signed SSO HTTP views against shared SQL and durable au
   let ids = 0;
   const ports = { ...jwt.config, client: sql, newRequestId: () => `workspace-${++ids}` };
   // Explicit production source composition; runtime/manifest remain unchanged.
-  const server = createPostgresSsoReviewServer(ports);
+  const javascript = await buildManagementBrowser({
+    root: process.cwd(),
+    entry: 'src/management/sso-usage-workspace.ts',
+  });
+  const server = createPostgresSsoReviewBrowserServer({ ...ports, javascript });
   const f = fixture();
   const originalRevoke = URL.revokeObjectURL;
   const revoked: string[] = [];
@@ -291,6 +295,15 @@ test('workspace switches signed SSO HTTP views against shared SQL and durable au
     await once(server, 'listening');
     const address = server.address();
     assert.ok(address && typeof address !== 'string');
+    const origin = 'http://127.0.0.1:' + address.port;
+    const shell = await fetch(origin + '/management');
+    assert.equal(shell.status, 200);
+    assert.match(await shell.text(), /src="\/management\/app.js"/);
+    const module = await fetch(origin + '/management/app.js');
+    assert.equal(module.status, 200);
+    assert.equal(await module.text(), javascript);
+    // Workspace library only: trusted adapter remains external. Structural DOM
+    // authorization below is explicit test authority, not native browser login.
     await f.app.authorize({
       expiresAt: 1000,
       request: (path, init) => {
