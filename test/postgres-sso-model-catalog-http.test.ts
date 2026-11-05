@@ -159,3 +159,50 @@ test('Fetch composition awaits its actual audit insert and ignores extra callbac
     await f.db.close();
   }
 });
+
+test('loopback detail remains authorized and durably audited beyond the collection bound', async () => {
+  const f = await fixture();
+  const server = createPostgresSsoModelCatalogServer(f.ports);
+  try {
+    await f.db.exec(
+      "INSERT INTO catalog_models (alias, created_at_seconds, enabled) SELECT 'extra-' || n, 0, false FROM generate_series(1, 1001) AS n",
+    );
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    const get = (suffix = '') =>
+      fetch(`http://127.0.0.1:${address.port}/management/v1/models${suffix}`, {
+        headers: { authorization: `Bearer ${f.token}` },
+        redirect: 'error',
+      });
+    await safe(await get(), 503);
+    assert.deepEqual(await safe(await get('/team%2Fchat'), 200), {
+      id: 'team/chat',
+      object: 'model',
+      created: 42,
+      owned_by: 'opengranter',
+    });
+    await f.db.exec(`UPDATE iam_policies SET version = 'v2', statements =
+      '[{"effect":"Deny","actions":["llm:InvokeModel"],"resources":["model:*"]}]' WHERE policy_id = 'allow'`);
+    await safe(await get('/team%2Fchat'), 404);
+    await safe(await get('/absent'), 404);
+    const rows = (
+      await f.db.query<{ outcome: string; model_count: number }>(
+        'SELECT outcome, model_count FROM sso_catalog_audit_events ORDER BY event_id',
+      )
+    ).rows;
+    assert.deepEqual(
+      rows.map(({ outcome }) => outcome),
+      ['unavailable', 'ready', 'missing', 'missing'],
+    );
+    await f.db.exec('DROP TABLE sso_catalog_audit_events');
+    await safe(await get('/team%2Fchat'), 503);
+  } finally {
+    if (server.listening)
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    await f.db.close();
+  }
+});
