@@ -1262,3 +1262,7 @@ The explicit source-only review handler joins catalog metadata and scoped usage 
 ## UTC usage time controls (#642)
 
 Operators can filter usage with UTC calendar inputs and inspect ISO UTC record times instead of converting epoch milliseconds manually. Server query/export semantics remain unchanged. See [plan](plans/642-utc-usage-controls.md) and [contract](../contracts/usage-screen.md#utc-review-controls-642).
+
+## Usage to current model review (#642)
+
+Connect existing usage rows to current catalog detail inside the trusted workspace, retaining fresh permission checks and durable audit rather than treating historical usage as authority. No new screen, endpoint or session activation. See [plan](plans/642-usage-model-drilldown.md) and [contract](../contracts/usage-screen.md#current-model-inspection-from-usage-642).

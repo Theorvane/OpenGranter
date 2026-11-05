@@ -993,3 +993,44 @@ test('UTC range controls reject impossible dates before HTTP and clear old recor
   assert.doesNotMatch(root.text(), /Inspect attempt|<img/);
   app.dispose();
 });
+
+test('model inspection is opt-in safe text and detached controls cannot navigate after renewal or teardown', async () => {
+  const standalone = new Element();
+  const basic = mountManagementUsage(standalone);
+  await basic.connect(async () => response());
+  assert.equal(
+    standalone
+      .all()
+      .some((node) => node.tag === 'button' && node.textContent?.startsWith('Inspect model ')),
+    false,
+  );
+  basic.dispose();
+  for (const action of ['clear', 'dispose', 'expire', 'renew', 'reload'] as const) {
+    let time = 100;
+    const seen: string[] = [];
+    const root = new Element();
+    const app = mountManagementUsage(root, {
+      now: () => time,
+      schedule: () => () => {},
+      onInspectModel: (id) => seen.push(id),
+    });
+    const grant = { expiresAt: 200, request: async () => response() };
+    await app.authorize(grant);
+    const inspect = root.button('Inspect model ' + row.modelAlias);
+    inspect.click();
+    assert.deepEqual(seen, [row.modelAlias]);
+    assert.equal(
+      root.all().some((node) => node.tag === 'img'),
+      false,
+    );
+    if (action === 'expire') time = 200;
+    else if (action === 'renew') await app.authorize(grant);
+    else if (action === 'reload') {
+      root.button('Retry / first page').click();
+      await waitFor(() => root.text().includes('Inspect attempt'));
+    } else app[action]();
+    inspect.click();
+    assert.deepEqual(seen, [row.modelAlias], action);
+    app.dispose();
+  }
+});
