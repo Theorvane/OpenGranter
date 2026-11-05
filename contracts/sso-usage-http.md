@@ -17,3 +17,7 @@ Explicit principal filters reject all Unicode Cc characters (C0, DEL and C1) as 
 ## Unified source-only review server (#642)
 
 createPostgresSsoReviewServer composes the existing read-only review handler with the standard Node Request bridge. It returns an unbound server: caller owns listen/TLS, SQL lifecycle and reviewed schema promotion. The same origin serves exact catalog list/detail and usage JSON/CSV paths; no token writes, session acquisition or installed runtime activation. Unsupported paths/methods are no-store/nosniff 404 before SQL/request IDs; framed GET bodies are 400 before SQL. Transport cancellation and mandatory child authentication/IAM/audit remain unchanged. See [plan](../docs/plans/642-review-node-server.md).
+
+## Same-origin public asset composition (#639/#642)
+
+createPostgresSsoReviewBrowserHandler/Server composes the existing public static handler and read-only review handler. Only /management, /management/ and /management/app.js serve the caller-owned public JavaScript/document, with existing CSP/no-store/framing rules and no SQL/authentication. All other requests pass unchanged to exact private routes; no SPA fallback, cookie authority, token writes or credential bridge. The server is unbound; this is not runtime activation, browser login, an entry-module change, or schema promotion. A workspace library build does not acquire or mount a trusted session adapter. See [plan](../docs/plans/639-review-static-composition.md).

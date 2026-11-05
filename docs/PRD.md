@@ -1274,3 +1274,7 @@ Trusted workspace navigation is scoped to its creating render so discarded contr
 ## Unified source-only review Node server (#642)
 
 Catalog list/detail and scoped usage JSON/CSV now share an explicit unbound server factory, reusing the existing read-only SSO review handler and standard Node Request bridge. Caller-owned listen/TLS and schema promotion remain required; installed runtime, session and public entry are unchanged. See [plan](plans/642-review-node-server.md).
+
+## Same-origin source review composition (#639/#642)
+
+An optional unbound source factory serves caller-owned public management assets and existing registered-key catalog/usage review routes on one origin. It adds no session, frontend activation or installed runtime. See [contract](../contracts/sso-usage-http.md).

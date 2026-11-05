@@ -1891,3 +1891,9 @@ The existing usage screen offers Export next CSV page only after a successful CS
 - Actual loopback HTTP serves catalog and usage/CSV using registered-key SSO and mandatory durable audit, with fresh IAM denial and failed-audit isolation.
 - Unsupported methods/paths and framed GET requests reject before SQL; fixed no-store transport failures expose no SQL or token.
 - Structural DOM plus embedded SQL integration is not native-browser or installed IdP acceptance. Plan: [642 review Node server](plans/642-review-node-server.md).
+
+## Source-only same-origin review (#639/#642)
+
+- Public assets require no SQL, grant no cookie authority, retain restrictive CSP/no-store, and reject queries/framing without SPA fallback.
+- One loopback origin serves the public workspace artifact and signed model list/detail, scoped usage/CSV backed by embedded SQL and durable audits; fresh IAM denial and audit failure remain fail-closed.
+- Not native-browser login, session activation, installed PostgreSQL or provider acceptance. Caller must separately supply an approved trusted adapter. See [plan](plans/639-review-static-composition.md).
