@@ -1302,3 +1302,8 @@ The existing authorized usage view now shows exact per-currency current-page est
 ## Usage filter correction (#642)
 
 The existing review form preserves submitted filter text on validation failure and offers an explicit reset to a fresh self-scoped query without principal/model/time/cursor. Reset revokes CSV and prior paging; renewal and clearing remove drafts. Existing server permission and audit remain mandatory. See [contract](../contracts/usage-screen.md#correcting-submitted-filters-642) and [plan](plans/642-filter-correction.md).
+
+
+## Exact audit principal references (#642)
+
+Existing audit JSON/CSV queries and durable actor/target projection support exact bounded Unicode principal references, without normalization, new authority or relaxed non-principal identifiers. Current target IAM, explicit Deny and mandatory audit remain enforced. No SSO/session/runtime/schema activation. See [contract](../contracts/audit-principal-references.md) and [plan](plans/642-audit-unicode-principal.md).
