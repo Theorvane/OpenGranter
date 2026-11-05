@@ -51,3 +51,7 @@ Workspace navigation controls belong only to their creating render. Detached Mod
 ## Usage action render lifetime (#642)
 
 Every usage button belongs to its creating render, including Apply filters, paging, retry, refresh, CSV continuation and cancellation. A detached button after rerender, renewal, clear or disposal must not dispatch with the current authority or interrupt a replacement request. Current controls still check expiry before acting. Native download links retain the existing object-URL revocation rules. See [plan](../docs/plans/642-usage-control-lifetime.md).
+
+## CSV link activation lifetime (#642)
+
+A CSV download anchor rechecks click, auxiliary-click and context-menu events and permits its native default action only for its creating render, current object URL and live trusted deadline. Suspended expiry timers cannot extend download activation. Replacement, renewal, clear and disposal block detached anchors; current unexpired downloads still work. This does not revoke bytes already downloaded or establish native-browser/installed acceptance. See [plan](../docs/plans/642-csv-download-authority.md).

@@ -1278,3 +1278,7 @@ Catalog list/detail and scoped usage JSON/CSV now share an explicit unbound serv
 ## Usage action lifetime (#642)
 
 Existing usage controls now belong to their creating render: detached filters, paging, CSV and cancellation cannot act with renewed authority or interrupt replacement work. This does not activate session/runtime/schema or complete browser login. See [plan](plans/642-usage-control-lifetime.md) and [contract](../contracts/usage-screen.md).
+
+## CSV download activation (#642)
+
+CSV link activation now rechecks the trusted deadline and render lifetime, including suspended expiry timers; stale anchors cannot invoke the default download action. No session/runtime/schema or public entry activation. See [plan](plans/642-csv-download-authority.md).
