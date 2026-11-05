@@ -1399,3 +1399,170 @@ test('trusted initial model filter survives paging and refresh, validates locall
     app.dispose();
   }
 });
+
+test('invalid usage drafts survive repeated submission and correction keeps exact scope', async () => {
+  const root = new Element();
+  const app = mountManagementUsage(root);
+  const seen: URLSearchParams[] = [];
+  const input = (label: string) => {
+    const found = root.all().find((node) => node.tag === 'label' && node.textContent === label)
+      ?.children[0];
+    assert.ok(found, label);
+    return found;
+  };
+  try {
+    await app.connect(async (path) => {
+      seen.push(new URL('https://local.invalid' + path).searchParams);
+      return response();
+    });
+    input('Model').value = 'team/chat+?&=한글';
+    input('From (UTC)').value = '2023-02-29T00:00';
+    input('To (UTC, exclusive)').value = '2024-03-01T00:00:00.001';
+    input('Page size (1–100)').value = '101';
+    root.button('Apply filters').click();
+    await waitFor(() => root.text().includes('Invalid usage filters'));
+    assert.equal(input('From (UTC)').value, '2023-02-29T00:00');
+    assert.equal(input('Page size (1–100)').value, '101');
+    root.button('Apply filters').click();
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(seen.length, 1, 'repeat does not broaden a rejected range into an HTTP read');
+    input('From (UTC)').value = '2024-02-29T00:00:00.001';
+    input('Page size (1–100)').value = '25';
+    root.button('Apply filters').click();
+    await waitFor(() => seen.length === 2 && root.text().includes('Inspect attempt'));
+    assert.equal(seen[1]?.get('from_ms'), String(Date.parse('2024-02-29T00:00:00.001Z')));
+    assert.equal(seen[1]?.get('to_ms'), String(Date.parse('2024-03-01T00:00:00.001Z')));
+    assert.equal(seen[1]?.get('model'), 'team/chat+?&=한글');
+    assert.equal(seen[1]?.get('limit'), '25');
+  } finally {
+    app.dispose();
+  }
+});
+
+test('explicit clear filters starts a fresh self-scoped page and stale reset cannot use renewal', async () => {
+  const root = new Element();
+  const app = mountManagementUsage(root, { now: () => 1 });
+  const seen: URLSearchParams[] = [];
+  const grant = {
+    expiresAt: 1000,
+    request: async (path: string) => {
+      seen.push(new URL('https://local.invalid' + path).searchParams);
+      return response();
+    },
+  };
+  try {
+    await app.authorize(grant, 'scoped-model');
+    const staleReset = root.button('Clear filters');
+    staleReset.click();
+    await waitFor(() => seen.length === 2 && root.text().includes('Inspect attempt'));
+    assert.equal(seen[1]?.toString(), 'format=json');
+    assert.ok(
+      root
+        .all()
+        .filter((node) => node.tag === 'input')
+        .every((node) => node.value === ''),
+    );
+    await app.authorize(grant, 'renewed-model');
+    staleReset.click();
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(seen.length, 3);
+    assert.equal(seen[2]?.get('model'), 'renewed-model');
+    app.clear();
+    assert.doesNotMatch(root.text(), /Clear filters|renewed-model/);
+  } finally {
+    app.dispose();
+  }
+});
+
+test('HTTP clear filters retires scoped CSV and cursor without inventing principal authority', async () => {
+  const seen: URLSearchParams[] = [];
+  const server = createSsoUsageHistoryServer({
+    newRequestId: () => 'filter-correction-http',
+    usage: {
+      async read(_token, _id, query) {
+        const params = new URLSearchParams(query);
+        seen.push(params);
+        if (params.get('format') === 'csv')
+          return {
+            state: 'ready',
+            format: 'csv',
+            csv: 'model\r\nchat\r\n',
+            hasMore: true,
+            nextCursor: cursor,
+          };
+        return {
+          state: 'ready',
+          format: 'json',
+          data: [row],
+          hasMore: !params.has('cursor'),
+          nextCursor: params.has('cursor') ? null : cursor,
+        };
+      },
+    },
+  });
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  const address = server.address();
+  assert.ok(address && typeof address !== 'string');
+  const root = new Element();
+  const app = mountManagementUsage(root);
+  try {
+    await app.connect((path, init) =>
+      fetch('http://127.0.0.1:' + address.port + path, {
+        ...init,
+        headers: { ...init.headers, authorization: 'Bearer isolated-test-port' },
+      }),
+    );
+    for (const [label, value] of [
+      ['Principal ID', 'human'],
+      ['Model', 'team/chat'],
+      ['From (UTC)', '1970-01-01T00:00:00.001'],
+    ]) {
+      const input = root.all().find((node) => node.tag === 'label' && node.textContent === label)
+        ?.children[0];
+      assert.ok(input);
+      assert.equal(typeof value, 'string');
+      input.value = value ?? '';
+    }
+    root.button('Apply filters').click();
+    await waitFor(() => seen.length === 2 && root.text().includes('Next page'));
+    root.button('Next page').click();
+    await waitFor(() => root.text().includes('Previous page'));
+    root.button('Export current page CSV').click();
+    await waitFor(() => root.text().includes('Download usage.csv'));
+    const href = root.all().find((node) => node.tag === 'a')?.attrs.href;
+    assert.ok(href);
+    assert.equal(seen.at(-1)?.get('cursor'), cursor);
+    assert.equal(seen.at(-1)?.get('principal_id'), 'human');
+    root.button('Clear filters').click();
+    await waitFor(() => seen.length === 5 && root.text().includes('Next page'));
+    assert.equal(seen.at(-1)?.toString(), 'format=json');
+    assert.doesNotMatch(root.text(), /Previous page|Download usage.csv|Export next CSV page/);
+    await assert.rejects(fetch(href));
+    const model = root.all().find((node) => node.tag === 'label' && node.textContent === 'Model')
+      ?.children[0];
+    assert.ok(model);
+    model.value = 'private-draft';
+    root.button('Apply filters').click();
+    await waitFor(() => seen.length === 6 && root.text().includes('Next page'));
+    app.clear('expired');
+    assert.doesNotMatch(root.text(), /private-draft|Clear filters|Inspect attempt/);
+    await app.connect((path, init) =>
+      fetch('http://127.0.0.1:' + address.port + path, {
+        ...init,
+        headers: { ...init.headers, authorization: 'Bearer isolated-test-port' },
+      }),
+    );
+    assert.equal(seen.at(-1)?.toString(), 'format=json');
+    assert.ok(
+      root
+        .all()
+        .filter((node) => node.tag === 'input')
+        .every((node) => node.value === ''),
+    );
+  } finally {
+    app.dispose();
+    server.close();
+    await once(server, 'close');
+  }
+});

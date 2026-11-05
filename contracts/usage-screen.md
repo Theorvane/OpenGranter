@@ -59,3 +59,8 @@ A CSV download anchor rechecks click, auxiliary-click and context-menu events an
 ## Current-page cost summary (#642)
 
 The existing ready view summarizes only the currently authorized JSON page. Estimated and provider-reported decimal amounts are added exactly, independently per currency; there is no exchange-rate conversion or estimated-to-billed substitution. Coverage counts report rows carrying each cost, partial/missing/invalid usage and possible billing/duplicates. An absent amount remains Unknown (zero coverage), while an explicit zero is retained. Possible duplicates remain included and flagged, not silently removed. Totals are not an invoice, reconciliation result or all-pages export. Summary nodes are replaced with the existing rows on every load, cancellation, clear, expiry and disposal.
+
+
+## Correcting submitted filters (#642)
+
+The existing form preserves submitted raw text across validation/error rerenders rather than deriving rejected UTC text from NaN. Repeated submission of an unchanged invalid range remains invalid and cannot silently become an unbounded read. Corrected text uses the existing UTC parser and validating client. Drafts are local presentation only, cleared on expiry, denial, authority replacement and disposal; they never authorize principal access. Clear filters explicitly starts a fresh self-scoped JSON page, clears principal/model/time/page-size/cursor, discards paging history and revokes CSV/continuation. Detached reset controls retain the existing render and authority guards. No new route, session, listener or schema. See [plan](../docs/plans/642-filter-correction.md). Native browser validation/input behavior remains unverified.
