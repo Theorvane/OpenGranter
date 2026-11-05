@@ -26,3 +26,7 @@ createSsoManagementCatalogClient targets only the fixed management namespace for
 The explicit SSO transport rejects a whole list/detail success when a row violates the existing nonnegative safe-integer created or fixed OpenGranter ownership projection. The UI lifecycle clears prior content into retryable unavailable, without displaying malformed rows or private extras. Proxy transport decoding is unchanged.
 
 SSO list rows must also satisfy the existing detail alias syntax and be encodable as one URL component. A malformed alias rejects the whole list rather than rendering a link that cannot open. Unicode, slash-containing aliases and count/user remain supported; proxy list decoding is unchanged.
+
+## Explicit UI observer and expiry adapter (#641)
+
+`createSsoManagementCatalogAuthority` composes the SSO lifecycle with trusted-grant expiry and rendering notifications. It reads only `/management/v1/models` and encoded detail aliases. The existing proxy authority remains separate. A new trusted grant starts a new identity epoch; expiry, denial, logout and disposal cancel pending work and remove protected snapshots. HTTP authentication and authorization remain server-enforced; this factory does not acquire a session or activate a browser/runtime.
