@@ -101,6 +101,8 @@ export function mountManagementUsage(root: UsageElement) {
         }),
       );
       main.append(form);
+      if (state === 'loading' || state === 'exporting')
+        main.append(button('Cancel request', cancel));
       if (state !== 'loading' && state !== 'exporting')
         main.append(
           button('Retry / first page', () => {
@@ -187,6 +189,9 @@ export function mountManagementUsage(root: UsageElement) {
         );
       }
       main.append(
+        button('Refresh current page', () => {
+          void load({ ...filters }, [...previous]);
+        }),
         button('Export current page CSV', () => {
           void exportCsv();
         }),
@@ -208,6 +213,16 @@ export function mountManagementUsage(root: UsageElement) {
     }
     root.replaceChildren(main);
     if (moveFocus) heading.focus();
+  }
+  function cancel() {
+    if (disposed || !client || (state !== 'loading' && state !== 'exporting')) return;
+    ++revision;
+    client.invalidate();
+    page = undefined;
+    previous = [];
+    revoke();
+    state = 'cancelled';
+    render(true);
   }
   async function load(next: UsageFilters, history: readonly UsageFilters[] = []) {
     if (!client || disposed) return;
