@@ -1884,3 +1884,10 @@ The existing usage screen offers Export next CSV page only after a successful CS
 - Capture a navigation control, then navigate, renew, clear and reauthorize, or hide/restore and reauthorize. Clicking the detached control must leave request count and current view unchanged.
 - Current navigation still loads a fresh page; disposal leaves all retained controls inert. These structural DOM/loopback checks do not certify native browser, installed session or deployment.
 - See the [navigation lifetime plan](plans/639-workspace-navigation-lifetime.md).
+
+## Unified source-only review server (#642)
+
+- Explicit factory returns an unbound Node server; no runtime/schema/session activation.
+- Actual loopback HTTP serves catalog and usage/CSV using registered-key SSO and mandatory durable audit, with fresh IAM denial and failed-audit isolation.
+- Unsupported methods/paths and framed GET requests reject before SQL; fixed no-store transport failures expose no SQL or token.
+- Structural DOM plus embedded SQL integration is not native-browser or installed IdP acceptance. Plan: [642 review Node server](plans/642-review-node-server.md).

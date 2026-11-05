@@ -1270,3 +1270,7 @@ Connect existing usage rows to current catalog detail inside the trusted workspa
 ## Workspace navigation lifetime (#639, #642)
 
 Trusted workspace navigation is scoped to its creating render so discarded controls cannot consume renewed authority or replace the active view. See the [plan](plans/639-workspace-navigation-lifetime.md); public entry, session acquisition, installed runtime and schema activation remain unchanged.
+
+## Unified source-only review Node server (#642)
+
+Catalog list/detail and scoped usage JSON/CSV now share an explicit unbound server factory, reusing the existing read-only SSO review handler and standard Node Request bridge. Caller-owned listen/TLS and schema promotion remain required; installed runtime, session and public entry are unchanged. See [plan](plans/642-review-node-server.md).

@@ -220,8 +220,7 @@ test('workspace is buildable through the reviewed public boundary', async () => 
 test('workspace switches signed SSO HTTP views against shared SQL and durable audits, then clears on fresh IAM denial', async () => {
   const { PGlite } = await import('@electric-sql/pglite');
   const { readFile } = await import('node:fs/promises');
-  const { createNodeRequestServer } = await import('../src/gateway/node-request-server.ts');
-  const { createPostgresSsoReviewHandler } = await import(
+  const { createPostgresSsoReviewServer } = await import(
     '../src/gateway/postgres-sso-review-http.ts'
   );
   const { loadPostgresMigrationSources } = await import(
@@ -237,7 +236,7 @@ test('workspace switches signed SSO HTTP views against shared SQL and durable au
   let ids = 0;
   const ports = { ...jwt.config, client: sql, newRequestId: () => `workspace-${++ids}` };
   // Explicit production source composition; runtime/manifest remain unchanged.
-  const server = createNodeRequestServer(createPostgresSsoReviewHandler(ports));
+  const server = createPostgresSsoReviewServer(ports);
   const f = fixture();
   const originalRevoke = URL.revokeObjectURL;
   const revoked: string[] = [];

@@ -1,4 +1,6 @@
+import type { Server } from 'node:http';
 import { createClientErrorResponse } from './client-errors.ts';
+import { createNodeRequestServer } from './node-request-server.ts';
 import { createPostgresSsoModelCatalogHandler } from './postgres-sso-model-catalog-http.ts';
 import {
   createPostgresSsoUsageHistoryHandler,
@@ -29,4 +31,16 @@ export function createPostgresSsoReviewHandler(
     response.headers.set('x-content-type-options', 'nosniff');
     return response;
   };
+}
+
+/** Returns an unbound read-only server, not an installed runtime or session.
+ * Caller owns listen/TLS, SQL lifecycle and reviewed schema promotion.
+ */
+export function createPostgresSsoReviewServer(ports: PostgresSsoUsageHistoryHttpPorts): Server {
+  return createNodeRequestServer(createPostgresSsoReviewHandler(ports), () => {
+    const response = createClientErrorResponse(503, 'internal_error');
+    response.headers.set('cache-control', 'no-store');
+    response.headers.set('x-content-type-options', 'nosniff');
+    return response;
+  });
 }

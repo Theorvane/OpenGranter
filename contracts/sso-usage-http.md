@@ -13,3 +13,7 @@ Plan: [642](../docs/plans/642-sso-usage-http.md). Tests: test/sso-usage-history-
 ## Principal filter character validation (#642)
 
 Explicit principal filters reject all Unicode Cc characters (C0, DEL and C1) as invalid_query, matching the browser client. Signed requests still require a durable invalid-query audit with no target/mode and no usage storage read; audit failure remains 503. Valid Unicode IDs remain exact, without normalization. See [plan](../docs/plans/642-usage-principal-query.md).
+
+## Unified source-only review server (#642)
+
+createPostgresSsoReviewServer composes the existing read-only review handler with the standard Node Request bridge. It returns an unbound server: caller owns listen/TLS, SQL lifecycle and reviewed schema promotion. The same origin serves exact catalog list/detail and usage JSON/CSV paths; no token writes, session acquisition or installed runtime activation. Unsupported paths/methods are no-store/nosniff 404 before SQL/request IDs; framed GET bodies are 400 before SQL. Transport cancellation and mandatory child authentication/IAM/audit remain unchanged. See [plan](../docs/plans/642-review-node-server.md).
