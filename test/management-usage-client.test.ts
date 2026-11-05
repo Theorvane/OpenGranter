@@ -130,8 +130,10 @@ test('status mapping never reads private error bodies; requests carry no credent
 });
 
 test('allowlist projection, strict paging/record/media validation and response byte cap', async () => {
-  const client = (body: unknown, headers = { 'content-type': 'application/json' }) =>
-    createManagementUsageClient(async () => new Response(JSON.stringify(body), { headers }));
+  const client = (
+    body: unknown,
+    headers: Record<string, string> = { 'content-type': 'application/json' },
+  ) => createManagementUsageClient(async () => new Response(JSON.stringify(body), { headers }));
   const result = await client({
     ...page,
     secret: 'private',
