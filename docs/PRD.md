@@ -1229,3 +1229,7 @@ The disconnected usage screen can revisit successfully loaded pages by refetchin
 ## Usage screen restricted build integration (#642)
 
 The existing management browser builder must build the actual usage client and app as self-contained modules. Only three named pure record/attribution modules may cross the management source boundary; server modules, arbitrary packages, symlink escapes and shared-module entry points remain rejected. Bundled record validation preserves unknown costs and strips unexpected fields. This is build integration, not installed session or real-browser acceptance. See [plan](plans/642-usage-public-build.md) and [contract](../contracts/usage-browser-client.md#restricted-public-build-642).
+
+## Usage principal filter validation (#642)
+
+Usage API filters reject C0/DEL/C1 controls consistently with the browser before policy/storage; invalid-query auditing remains mandatory. Valid Unicode principal IDs are not normalized. See [contract](../contracts/sso-usage-http.md#principal-filter-character-validation-642).

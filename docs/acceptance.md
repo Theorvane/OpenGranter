@@ -1832,3 +1832,7 @@ Starting from an authorized usage page, advance twice and return twice: each req
 ## Usage screen restricted build integration (#642)
 
 The existing management browser builder must build the actual usage client and app as self-contained modules. Only three named pure record/attribution modules may cross the management source boundary; server modules, arbitrary packages, symlink escapes and shared-module entry points remain rejected. Bundled record validation preserves unknown costs and strips unexpected fields. This is build integration, not installed session or real-browser acceptance. See [plan](plans/642-usage-public-build.md) and [contract](../contracts/usage-browser-client.md#restricted-public-build-642).
+
+## Usage principal query controls (#642)
+
+Reject C0/DEL/C1 in explicit principal filters, preserve ordinary Unicode IDs exactly, and return 400 for signed direct JSON/CSV HTTP requests without usage reads. Require durable invalid-query metadata with no target/mode; an unavailable audit store still yields 503. Local PGlite/HTTP tests do not certify installed or browser behavior.

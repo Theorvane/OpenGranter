@@ -9,3 +9,7 @@ Errors use fixed client-error envelopes: unauthenticated=401/unauthorized with W
 createPostgresSsoUsageHistoryHandler/Server composes the actual database reader, registered-key authenticator and concrete awaited audit store; no injected no-op audit. Server is unbound and is not mounted into the installed management listener. Caller owns schema promotion/migrations, committed SQL, TLS, lifecycle and session bridging. Candidate audit schema is NOT an installed migration. No new CSRF/CORS/login/session decision is implied.
 
 Plan: [642](../docs/plans/642-sso-usage-http.md). Tests: test/sso-usage-history-http.test.ts. Depends on #696/#697. No installed/browser/provider acceptance claim.
+
+## Principal filter character validation (#642)
+
+Explicit principal filters reject all Unicode Cc characters (C0, DEL and C1) as invalid_query, matching the browser client. Signed requests still require a durable invalid-query audit with no target/mode and no usage storage read; audit failure remains 503. Valid Unicode IDs remain exact, without normalization. See [plan](../docs/plans/642-usage-principal-query.md).
