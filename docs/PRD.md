@@ -1221,3 +1221,7 @@ An optional PostgreSQL handler/non-listening server factory composes registered 
 ## Owned management catalog listener (#641)
 
 Explicit SSO management startup now serves existing authorized catalog list/detail on its single migrated database connection, alongside owner-scoped token operations and optional static browser assets. Catalog replies require fresh IAM and durable attributed audit; no browser session, inference or new deployment is granted. See [plan](plans/641-catalog-runtime.md) and [contract](../contracts/sso-management-runtime.md).
+
+## Usage review navigation (#642)
+
+The disconnected usage screen can revisit successfully loaded pages by refetching prior opaque queries through the authorized transport. Only filters are retained; failed operations or identity changes discard navigation. CSV remains scoped to the displayed page. This is not browser-session, installed, or billing reconciliation acceptance. See [plan](plans/642-usage-previous-page.md) and [contract](../contracts/usage-previous-page.md).

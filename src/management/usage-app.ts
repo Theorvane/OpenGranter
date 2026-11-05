@@ -22,6 +22,7 @@ export function mountManagementUsage(root: UsageElement) {
   let disposed = false;
   let filters: UsageFilters = {};
   let page: UsagePage | undefined;
+  let previous: readonly UsageFilters[] = [];
   let state = 'unauthenticated';
   let csvUrl: string | undefined;
   let csvMore = false;
@@ -165,11 +166,23 @@ export function mountManagementUsage(root: UsageElement) {
         table.append(body);
         main.append(table);
       }
+      if (previous.length) {
+        const target = previous.at(-1);
+        const remaining = previous.slice(0, -1);
+        if (target)
+          main.append(
+            button('Previous page', () => {
+              void load(target, remaining);
+            }),
+          );
+      }
       if (page.hasMore && page.nextCursor) {
         const cursor = page.nextCursor;
+        const history = [...previous, { ...filters }];
+        const next = { ...filters, cursor };
         main.append(
           button('Next page', () => {
-            void load({ ...filters, cursor });
+            void load(next, history);
           }),
         );
       }
@@ -196,18 +209,22 @@ export function mountManagementUsage(root: UsageElement) {
     root.replaceChildren(main);
     if (moveFocus) heading.focus();
   }
-  async function load(next: UsageFilters) {
+  async function load(next: UsageFilters, history: readonly UsageFilters[] = []) {
     if (!client || disposed) return;
     const current = ++revision;
     revoke();
     filters = { ...next };
+    previous = [];
     page = undefined;
     state = 'loading';
     render();
     const result = await client.list(filters);
     if (disposed || revision !== current) return;
     state = result.state;
-    if (result.state === 'ready') page = result.data;
+    if (result.state === 'ready') {
+      page = result.data;
+      previous = history;
+    }
     render(true);
   }
   async function exportCsv() {
@@ -224,6 +241,7 @@ export function mountManagementUsage(root: UsageElement) {
       state = 'ready';
     } else {
       page = undefined;
+      previous = [];
       state = result.state;
     }
     render(true);
@@ -233,6 +251,7 @@ export function mountManagementUsage(root: UsageElement) {
     client?.invalidate();
     client = undefined;
     filters = {};
+    previous = [];
     page = undefined;
     revoke();
     state = reason;
