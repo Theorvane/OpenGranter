@@ -8,3 +8,7 @@
 6. Run focused tests, typecheck, lint, planning scan and full check. Open PR against main, request exact-head independent formal review and require mandatory CI before merge. Session/API/UI integration and durable SSO usage audit composition remain release blockers.
 
 Contract: [SSO usage history](../../contracts/sso-usage-history.md).
+
+## Local evidence
+
+Initial production-module RED is saved in /tmp/og-1900-usage-red.log. Self-review added a meaningful oversized-cursor RED (513-character stored attempt ID returned an unusable cursor), fixed by the same 512-character continuation bound as the proxy gateway. Final focused suite covers 11 new SSO usage cases plus existing SSO catalog and PostgreSQL reader regressions. These use real signed ephemeral JWTs and SQL in migrated PGlite, not installed PostgreSQL or an IdP login.

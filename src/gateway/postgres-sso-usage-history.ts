@@ -90,6 +90,9 @@ export function createPostgresSsoUsageHistory(
             ...(parsed.toMs === undefined ? {} : { toMs: parsed.toMs }),
           });
           const last = page.records.at(-1);
+          if (page.hasMore && (!last || last.attemptId.length > 512)) {
+            throw new Error('invalid usage cursor');
+          }
           const nextCursor =
             page.hasMore && last
               ? encodeUsageCursor({ occurredAt: last.occurredAt, attemptId: last.attemptId })

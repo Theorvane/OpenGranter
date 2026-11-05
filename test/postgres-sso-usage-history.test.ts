@@ -384,3 +384,20 @@ test('missing audit dependency is rejected and trusted ports are captured at con
     await f.db.close();
   }
 });
+
+test('oversized stored attempt ID cannot create an unusable next-page cursor', async () => {
+  const f = await fixture();
+  try {
+    const oversized = 'z'.repeat(513);
+    await f.db.query(
+      `UPDATE usage_records SET attempt_id=$1, record=jsonb_set(record, '{attemptId}', to_jsonb($1::text)) WHERE attempt_id=$2`,
+      [oversized, 'attempt-c'],
+    );
+    assert.deepEqual(await f.service.read(token, 'cursor-bounds', '?limit=1'), {
+      state: 'unavailable',
+    });
+    assert.equal(f.events.at(-1)?.count, 0);
+  } finally {
+    await f.db.close();
+  }
+});
