@@ -1274,3 +1274,7 @@ Trusted workspace navigation is scoped to its creating render so discarded contr
 ## Unified source-only review Node server (#642)
 
 Catalog list/detail and scoped usage JSON/CSV now share an explicit unbound server factory, reusing the existing read-only SSO review handler and standard Node Request bridge. Caller-owned listen/TLS and schema promotion remain required; installed runtime, session and public entry are unchanged. See [plan](plans/642-review-node-server.md).
+
+## Usage action lifetime (#642)
+
+Existing usage controls now belong to their creating render: detached filters, paging, CSV and cancellation cannot act with renewed authority or interrupt replacement work. This does not activate session/runtime/schema or complete browser login. See [plan](plans/642-usage-control-lifetime.md) and [contract](../contracts/usage-screen.md).

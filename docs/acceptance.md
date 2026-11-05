@@ -1891,3 +1891,9 @@ The existing usage screen offers Export next CSV page only after a successful CS
 - Actual loopback HTTP serves catalog and usage/CSV using registered-key SSO and mandatory durable audit, with fresh IAM denial and failed-audit isolation.
 - Unsupported methods/paths and framed GET requests reject before SQL; fixed no-store transport failures expose no SQL or token.
 - Structural DOM plus embedded SQL integration is not native-browser or installed IdP acceptance. Plan: [642 review Node server](plans/642-review-node-server.md).
+
+## Usage action lifetime (#642)
+
+- Retain filter/paging/CSV/refresh/retry controls, renew the grant and click the detached controls: no additional HTTP requests, old principal filters or cursor replay. Fresh controls remain functional.
+- Retain Cancel request from an old loading render, begin a replacement read and click the old control: new read remains pending and completes; current Cancel still aborts it.
+- No session, public entry, schema or installed-runtime activation. Structural DOM and loopback HTTP do not certify native-browser/IdP acceptance. See [plan](plans/642-usage-control-lifetime.md).

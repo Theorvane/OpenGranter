@@ -1034,3 +1034,102 @@ test('model inspection is opt-in safe text and detached controls cannot navigate
     app.dispose();
   }
 });
+
+test('detached usage controls cannot replay filters, paging or CSV under renewed authority over HTTP', async () => {
+  const seen: string[] = [];
+  const server = createSsoUsageHistoryServer({
+    newRequestId: () => 'render-lifetime',
+    usage: {
+      async read(_token, _id, query) {
+        seen.push(query);
+        return {
+          state: 'ready',
+          format: 'json',
+          data: [row],
+          hasMore: true,
+          nextCursor: cursor,
+        };
+      },
+    },
+  });
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  const address = server.address();
+  if (!address || typeof address === 'string') throw Error('no address');
+  const root = new Element();
+  const app = mountManagementUsage(root, { now: () => 100, schedule: () => () => {} });
+  const grant = {
+    expiresAt: 200,
+    request: (path: string, init: RequestInit) =>
+      fetch(`http://127.0.0.1:${address.port}${path}`, {
+        ...init,
+        headers: { ...init.headers, authorization: 'Bearer test-port' },
+      }),
+  };
+  try {
+    await app.authorize(grant);
+    const old = [
+      'Apply filters',
+      'Next page',
+      'Export current page CSV',
+      'Refresh current page',
+      'Retry / first page',
+    ].map((label) => root.button(label));
+    const input = root.all().find((node) => node.tag === 'input');
+    assert.ok(input);
+    input.value = 'old-principal';
+    await app.authorize(grant);
+    assert.equal(seen.length, 2);
+    for (const control of old) control.click();
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    assert.equal(seen.length, 2, 'old controls must not dispatch using renewed authority');
+    assert.doesNotMatch(root.text(), /Loading|Preparing/);
+    root.button('Apply filters').click();
+    await waitFor(() => seen.length === 3 && root.text().includes('Usage records'));
+    assert.equal(new URLSearchParams(seen[2]).has('principal_id'), false);
+  } finally {
+    app.dispose();
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
+  }
+});
+
+test('detached cancel cannot abort a replacement usage request', async () => {
+  const root = new Element();
+  const app = mountManagementUsage(root);
+  let finish!: (value: Response) => void;
+  const first = app.connect(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  const oldCancel = root.button('Cancel request');
+  finish(response());
+  await first;
+  let replacementSignal: AbortSignal | null | undefined;
+  let complete!: (value: Response) => void;
+  const replacement = app.connect((_path, init) => {
+    replacementSignal = init.signal;
+    return new Promise((resolve) => {
+      complete = resolve;
+    });
+  });
+  try {
+    oldCancel.click();
+    assert.equal(replacementSignal?.aborted, false);
+    assert.match(root.text(), /Loading usage/);
+    complete(response([]));
+    await replacement;
+    assert.match(root.text(), /No usage records/);
+    root.button('Refresh current page').click();
+    const freshCancel = root.button('Cancel request');
+    freshCancel.click();
+    assert.equal(replacementSignal?.aborted, true);
+    assert.match(root.text(), /Request cancelled/);
+    complete(response());
+  } finally {
+    app.dispose();
+  }
+});
