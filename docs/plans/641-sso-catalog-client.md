@@ -31,3 +31,10 @@ Response-validation RED: SSO list exposed a negative created value as ready. GRE
 3. Add contract RED/GREEN plus valid Unicode/slash/reserved-alias regressions. No session/credential/runtime activation. Require exact-head CI and formal independent approval.
 
 Alias validation RED: list rendered a space-containing alias as ready although detail rejected it. GREEN: SSO transport4/4, lifecycle4/4, proxy transport23/23 and lifecycle8/8 (39/39, zero skips). Includes twelve malformed alias variants plus unchanged proxy decoding and valid Unicode/slash/count/user reads. Direct single-thread Biome formatting/check succeeds; planning and whitespace checks pass. Standard typecheck launcher failed pthread_create; native path lookup failed, so typecheck remains unverified. Push attempt with GOMAXPROCS1/pack.threads1 failed gh credential-helper newosproc; no remote publication or PR claimed.
+
+## Current-main API integration (2026-11-05)
+1. Integrate reviewed exact-detail SQL (#692) and fatal UTF-8 decoding (#693) without losing the explicit SSO namespace or introducing proxy fallback.
+2. Connect the actual SSO client to a loopback Node server with signed JWTs and migrated PGlite; exercise list/detail, fresh Deny, revoked identity binding and failed durable audit. Preserve status-only safe states and audit requirements.
+3. Run the integrated real-HTTP suite, both client namespaces and encoding regressions, typecheck and planning checks. Require new exact-head formal approval and all required CI before merge. This is synthetic-identity local API integration, not company IdP/browser login or installed acceptance.
+
+Integrated GREEN: 43/43 focused transport/encoding/lifecycle/real-HTTP tests, zero skips; typecheck, changed-file Biome, planning and whitespace checks pass. Actual client received list/detail, fresh-policy hidden detail and empty list, revoked-binding unauthenticated and audit-failure unavailable through Node HTTP. No historical RED claim for this integration-only regression.
