@@ -1,6 +1,7 @@
 import type { CatalogRequest } from './catalog-client.ts';
 import {
   createManagementCatalogSession,
+  createSsoManagementCatalogSession,
   type ManagementCatalogSnapshot,
 } from './catalog-session.ts';
 
@@ -22,7 +23,21 @@ export interface CatalogAuthorityOptions {
  * Nothing here persists an identity, a token, or catalog data across sessions.
  */
 export function createManagementCatalogAuthority(options: CatalogAuthorityOptions) {
-  const session = createManagementCatalogSession();
+  return createCatalogAuthority(options, createManagementCatalogSession);
+}
+
+/** Explicit SSO observer/expiry adapter, not a session authenticator.
+ * No proxy fallback, credential bridge or automatic browser activation.
+ */
+export function createSsoManagementCatalogAuthority(options: CatalogAuthorityOptions) {
+  return createCatalogAuthority(options, createSsoManagementCatalogSession);
+}
+
+function createCatalogAuthority(
+  options: CatalogAuthorityOptions,
+  createSession: typeof createManagementCatalogSession,
+) {
+  const session = createSession();
   const now = options.now ?? Date.now;
   const schedule =
     options.schedule ??

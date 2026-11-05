@@ -3,6 +3,7 @@ import {
   type CatalogRequest,
   type CatalogResult,
   createManagementCatalogClient,
+  createSsoManagementCatalogClient,
 } from './catalog-client.ts';
 
 type LockedState = 'unauthenticated' | 'expired' | 'denied' | 'unavailable';
@@ -17,6 +18,17 @@ export type ManagementCatalogSnapshot =
  * Each navigation replaces prior content; no credential or identity is persisted.
  */
 export function createManagementCatalogSession() {
+  return createCatalogSession(createManagementCatalogClient);
+}
+
+/** SSO transport lifecycle only; the trusted caller still owns authentication.
+ * No session acquisition, browser activation or proxy fallback is introduced.
+ */
+export function createSsoManagementCatalogSession() {
+  return createCatalogSession(createSsoManagementCatalogClient);
+}
+
+function createCatalogSession(createClient: typeof createManagementCatalogClient) {
   let client: ReturnType<typeof createManagementCatalogClient> | undefined;
   let revision = 0;
   let disposed = false;
@@ -56,7 +68,7 @@ export function createManagementCatalogSession() {
     authorize(request: CatalogRequest) {
       if (disposed) return;
       invalidate();
-      client = createManagementCatalogClient(request);
+      client = createClient(request);
       snapshot = Object.freeze({ state: 'idle' });
     },
     clear,
