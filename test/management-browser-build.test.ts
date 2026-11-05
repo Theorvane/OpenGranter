@@ -97,3 +97,113 @@ test('CLI emits only a browser module or a fixed error', () => {
     );
   }
 });
+
+test('builds the actual usage client and app through the restricted public builder', async () => {
+  const javascript = await buildManagementBrowser({
+    root: resolve('.'),
+    entry: 'src/management/usage-client.ts',
+  });
+  assert.doesNotMatch(javascript, /Buffer|node:|process\.env|sourceMappingURL/);
+  const api = await load(javascript);
+  const client = api.createManagementUsageClient(async () =>
+    Response.json({
+      object: 'list',
+      data: [],
+      has_more: false,
+      next_cursor: null,
+    }),
+  );
+  assert.deepEqual(await client.list(), {
+    state: 'ready',
+    data: {
+      records: [],
+      hasMore: false,
+      nextCursor: null,
+    },
+  });
+  const app = await buildManagementBrowser({
+    root: resolve('.'),
+    entry: 'src/management/usage-app.ts',
+  });
+  assert.equal(typeof (await load(app)).mountManagementUsage, 'function');
+  assert.doesNotMatch(app, /Buffer|node:|process\.env|sourceMappingURL/);
+});
+
+test('built usage client shares normalization, strips unexpected fields and preserves unknown costs', async () => {
+  const { buildUsageRecord } = await import('../src/usage/record-usage.ts');
+  const record = buildUsageRecord({
+    principalId: 'human',
+    credentialId: 'credential',
+    policyVersions: [],
+    requestId: 'request',
+    attemptId: 'attempt',
+    modelAlias: 'chat',
+    routeKind: 'managed',
+    upstreamModelId: 'model',
+    selectedCandidateId: 'candidate',
+    occurredAt: 1,
+    latencyMs: 2,
+    outcome: 'succeeded',
+    possiblyBilled: true,
+    possibleDuplicate: true,
+  });
+  const api = await load(
+    await buildManagementBrowser({
+      root: resolve('.'),
+      entry: 'src/management/usage-client.ts',
+    }),
+  );
+  let invalid = false;
+  const client = api.createManagementUsageClient(async () =>
+    Response.json({
+      object: 'list',
+      data: [
+        {
+          ...record,
+          prompt: 'not-public',
+          secret: 'not-public',
+          ...(invalid ? { usage: { ...record.usage, totalTokens: -1 } } : {}),
+        },
+      ],
+      has_more: false,
+      next_cursor: null,
+    }),
+  );
+  const result = await client.list();
+  assert.equal(result.state, 'ready');
+  assert.deepEqual(result.data.records, [record]);
+  assert.equal(result.data.records[0].usage.totalTokens, null);
+  assert.equal(result.data.records[0].estimatedCost, null);
+  assert.equal(result.data.records[0].upstreamBilledCost, null);
+  invalid = true;
+  assert.deepEqual(await client.list(), { state: 'unavailable' });
+});
+
+test('shared public dependencies cannot be entries or expand to server directories', async () => {
+  for (const entry of [
+    'src/usage/record-parser.ts',
+    'src/usage/record-usage.ts',
+    'src/audit/attribution.ts',
+  ]) {
+    await assert.rejects(buildManagementBrowser({ root: resolve('.'), entry }));
+  }
+  await fixture(async (root, source) => {
+    await mkdir(join(root, 'src/usage'));
+    await writeFile(join(root, 'src/usage/history.ts'), 'export const value = 1;');
+    await writeFile(join(source, 'entry.ts'), 'export * from "../usage/history.ts";');
+    await assert.rejects(buildManagementBrowser({ root, entry: 'src/management/entry.ts' }));
+    // A future import added to a reviewed shared module still fails closed.
+    await writeFile(join(root, 'src/usage/record-parser.ts'), 'export * from "./history.ts";');
+    await writeFile(join(source, 'entry.ts'), 'export * from "../usage/record-parser.ts";');
+    await assert.rejects(buildManagementBrowser({ root, entry: 'src/management/entry.ts' }));
+  });
+});
+
+test('shared allowlist checks canonical paths, not symlink names', async () =>
+  fixture(async (root, source) => {
+    await mkdir(join(root, 'src/usage'));
+    await writeFile(join(root, 'outside.ts'), 'export const privateValue = 1;');
+    await symlink(join(root, 'outside.ts'), join(root, 'src/usage/record-parser.ts'));
+    await writeFile(join(source, 'entry.ts'), 'export * from "../usage/record-parser.ts";');
+    await assert.rejects(buildManagementBrowser({ root, entry: 'src/management/entry.ts' }));
+  }));

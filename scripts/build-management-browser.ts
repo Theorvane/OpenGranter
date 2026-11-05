@@ -14,11 +14,18 @@ export interface ManagementBrowserBuildOptions {
 export async function buildManagementBrowser(
   options: ManagementBrowserBuildOptions,
 ): Promise<string> {
-  const root = resolve(options.root);
+  const root = await realpath(resolve(options.root));
   const source = await realpath(resolve(root, 'src/management'));
-  async function local(path: string) {
+  // Reviewed content-free validators only; never permit whole server directories.
+  const shared = new Set([
+    resolve(root, 'src/usage/record-parser.ts'),
+    resolve(root, 'src/usage/record-usage.ts'),
+    resolve(root, 'src/audit/attribution.ts'),
+  ]);
+  async function local(path: string, entryPoint = false) {
     const canonical = await realpath(path);
     const child = relative(source, canonical);
+    if (!entryPoint && shared.has(canonical)) return canonical;
     if (
       !child ||
       child === '..' ||
@@ -30,7 +37,7 @@ export async function buildManagementBrowser(
     }
     return canonical;
   }
-  const entry = await local(resolve(root, options.entry));
+  const entry = await local(resolve(root, options.entry), true);
   const result = await build({
     absWorkingDir: root,
     entryPoints: [entry],
