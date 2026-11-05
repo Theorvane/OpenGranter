@@ -630,7 +630,7 @@ test('suspended timers cannot admit new requests or late JSON at expiry', async 
   let signal: AbortSignal | null | undefined;
   const pending = f.app.authorize({
     request: (_path, init) => {
-      signal = init.signal;
+      signal = init.signal ?? undefined;
       return new Promise((resolve) => {
         release = resolve;
       });
@@ -678,7 +678,7 @@ test('expiry aborts pending work, rejects late CSV and revokes authority', async
   await f.app.authorize({
     request: async (_path, init) => {
       if (++calls === 1) return response();
-      signal = init.signal;
+      signal = init.signal ?? undefined;
       return new Promise((resolve) => {
         finish = resolve;
       });
@@ -786,4 +786,188 @@ test('deadline crossing during authorize cannot reconnect after expiry clear', a
   assert.match(root.text(), /Session expired/);
   assert.equal(reads, 0);
   app.dispose();
+});
+
+test('explicit CSV continuation preserves opaque cursor and JSON page, revokes URLs and stops at exhaustion', async () => {
+  const root = new Element();
+  const app = mountManagementUsage(root);
+  const requests: URLSearchParams[] = [];
+  const csvCursor = 'opaque_CSV-2';
+  const nextCursor = 'opaque_CSV-3';
+  try {
+    await app.connect(async (path) => {
+      const query = new URL(path, 'http://localhost').searchParams;
+      requests.push(query);
+      if (query.get('format') !== 'csv') return response();
+      const current = query.get('cursor');
+      return new Response('model\r\npage\r\n', {
+        headers: {
+          'content-type': 'text/csv',
+          'x-usage-has-more': String(current !== nextCursor),
+          ...(current === nextCursor
+            ? {}
+            : { 'x-usage-next-cursor': current === csvCursor ? nextCursor : csvCursor }),
+        },
+      });
+    });
+    root.button('Export current page CSV').click();
+    await waitFor(() => root.text().includes('Download usage.csv'));
+    const old = root.all().find((node) => node.tag === 'a')?.attrs.href;
+    assert.ok(old);
+    root.button('Export next CSV page').click();
+    await waitFor(() => root.text().includes('Download usage.csv'));
+    await assert.rejects(fetch(old));
+    root.button('Export next CSV page').click();
+    await waitFor(() => root.text().includes('Download usage.csv'));
+    assert.ok(!root.all().some((n) => n.textContent === 'Export next CSV page'));
+    assert.deepEqual(
+      requests.filter((q) => q.get('format') === 'csv').map((q) => q.get('cursor')),
+      [null, csvCursor, nextCursor],
+    );
+    assert.equal(requests.filter((q) => q.get('format') === 'json').length, 1);
+    root.button('Export current page CSV').click();
+    await waitFor(() => root.text().includes('Download usage.csv'));
+    assert.equal(requests.at(-1)?.get('cursor'), null);
+    root.button('Refresh current page').click();
+    await waitFor(
+      () =>
+        root.text().includes('No usage records') === false &&
+        root.text().includes('Export current page CSV'),
+    );
+    assert.ok(!root.all().some((n) => n.textContent === 'Export next CSV page'));
+    assert.ok(!root.text().includes('Download usage.csv'));
+  } finally {
+    app.dispose();
+  }
+});
+
+test('CSV continuation denial clears export authority and late cancelled page cannot restore a download', async () => {
+  for (const mode of ['denied', 'cancelled'] as const) {
+    const root = new Element();
+    const app = mountManagementUsage(root);
+    let pending: ((response: Response) => void) | undefined;
+    let signal: AbortSignal | undefined;
+    try {
+      await app.connect(async (path, init) => {
+        const query = new URL(path, 'http://localhost').searchParams;
+        if (query.get('format') !== 'csv') return response();
+        if (!query.has('cursor'))
+          return new Response('a\r\n', {
+            headers: {
+              'content-type': 'text/csv',
+              'x-usage-has-more': 'true',
+              'x-usage-next-cursor': 'exact_opaque',
+            },
+          });
+        if (mode === 'denied') return new Response(null, { status: 403 });
+        signal = init.signal ?? undefined;
+        return new Promise<Response>((resolve) => {
+          pending = resolve;
+        });
+      });
+      root.button('Export current page CSV').click();
+      await waitFor(() => root.text().includes('Download usage.csv'));
+      root.button('Export next CSV page').click();
+      if (mode === 'denied') await waitFor(() => root.text().includes('Access denied'));
+      else {
+        await waitFor(() => pending !== undefined);
+        root.button('Cancel request').click();
+        assert.equal(signal?.aborted, true);
+        pending?.(
+          new Response('late\r\n', {
+            headers: { 'content-type': 'text/csv', 'x-usage-has-more': 'false' },
+          }),
+        );
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        assert.match(root.text(), /cancelled/);
+      }
+      assert.ok(!root.text().includes('Download usage.csv'));
+      assert.ok(!root.all().some((n) => n.textContent === 'Export next CSV page'));
+    } finally {
+      app.dispose();
+    }
+  }
+});
+
+test('loopback HTTP CSV continuation keeps filters; filter changes retire old controls', async () => {
+  const seen: URLSearchParams[] = [];
+  const server = createSsoUsageHistoryServer({
+    newRequestId: () => 'csv-ui-request',
+    usage: {
+      async read(_token, _id, query) {
+        const params = new URLSearchParams(query);
+        seen.push(params);
+        if (params.get('format') === 'csv')
+          return {
+            state: 'ready',
+            format: 'csv',
+            csv: 'model\r\nchat\r\n',
+            hasMore: !params.has('cursor'),
+            nextCursor: params.has('cursor') ? null : cursor,
+          };
+        return { state: 'ready', format: 'json', data: [], hasMore: false, nextCursor: null };
+      },
+    },
+  });
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  const address = server.address();
+  assert.ok(address && typeof address !== 'string');
+  const root = new Element();
+  const app = mountManagementUsage(root);
+  const change = (label: string, value: string) => {
+    const input = root.all().find((n) => n.tag === 'label' && n.textContent === label)?.children[0];
+    assert.ok(input);
+    input.value = value;
+  };
+  try {
+    await app.connect((path, init) =>
+      fetch('http://127.0.0.1:' + address.port + path, {
+        ...init,
+        headers: { ...init.headers, authorization: 'Bearer isolated-http-port' },
+      }),
+    );
+    change('Model', 'team/a&b');
+    change('Principal ID', 'human');
+    change('From (epoch milliseconds)', '1');
+    change('To (epoch milliseconds, exclusive)', '99');
+    change('Page size (1–100)', '2');
+    root.button('Apply filters').click();
+    await waitFor(() => root.text().includes('Export current page CSV'));
+    root.button('Export current page CSV').click();
+    await waitFor(() => root.text().includes('Download usage.csv'));
+    root.button('Export next CSV page').click();
+    await waitFor(() => root.text().includes('Download usage.csv'));
+    const pages = seen.filter((q) => q.get('format') === 'csv');
+    assert.equal(pages.length, 2);
+    assert.ok(pages[0] && pages[1]);
+    assert.equal(pages[0].has('cursor'), false);
+    assert.equal(pages[1].get('cursor'), cursor);
+    for (const page of pages) {
+      assert.equal(page.get('model'), 'team/a&b');
+      assert.equal(page.get('principal_id'), 'human');
+      assert.equal(page.get('from_ms'), '1');
+      assert.equal(page.get('to_ms'), '99');
+      assert.equal(page.get('limit'), '2');
+    }
+    root.button('Export current page CSV').click();
+    await waitFor(() => root.text().includes('Download usage.csv'));
+    const detached = root.button('Export next CSV page');
+    change('Model', 'other');
+    root.button('Apply filters').click();
+    await waitFor(() => root.text().includes('Export current page CSV'));
+    const count = seen.length;
+    detached.click();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    assert.equal(seen.length, count);
+    assert.ok(!root.text().includes('Download usage.csv'));
+    root.button('Export current page CSV').click();
+    await waitFor(() => root.text().includes('Download usage.csv'));
+    assert.equal(seen.at(-1)?.get('model'), 'other');
+    assert.equal(seen.at(-1)?.has('cursor'), false);
+  } finally {
+    app.dispose();
+    server.close();
+    await once(server, 'close');
+  }
 });
