@@ -60,6 +60,9 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
   let renderRevision = 0;
   let disposed = false;
   let filters: UsageFilters = {};
+  // Submitted text belongs to this authority, not to numeric transport values.
+  // In particular NaN must not erase a rejected UTC range on rerender.
+  let draftFilters: Readonly<Record<string, string>> | undefined;
   let page: UsagePage | undefined;
   let previous: readonly UsageFilters[] = [];
   let state = 'unauthenticated';
@@ -127,11 +130,12 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
         const input = element('input');
         input.setAttribute('type', kind);
         input.value =
-          kind === 'datetime-local'
+          draftFilters?.[key] ??
+          (kind === 'datetime-local'
             ? filters[key] === undefined
               ? ''
               : usageUtcInput(filters[key] as number)
-            : String(filters[key] ?? '');
+            : String(filters[key] ?? ''));
         if (kind === 'datetime-local') {
           input.setAttribute('min', '1970-01-01T00:00');
           input.setAttribute('max', '9999-12-31T23:59:59.999');
@@ -148,6 +152,9 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
       }
       form.append(
         button('Apply filters', () => {
+          draftFilters = Object.fromEntries(
+            Object.entries(inputs).map(([key, input]) => [key, input.value ?? '']),
+          );
           const next: Record<string, string | number> = {};
           for (const [key, input] of Object.entries(inputs)) {
             const value = (input.value ?? '').trim();
@@ -159,6 +166,10 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
                   : value;
           }
           void load(next);
+        }),
+        button('Clear filters', () => {
+          draftFilters = undefined;
+          void load({});
         }),
       );
       main.append(form);
@@ -374,6 +385,7 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
     client?.invalidate();
     client = undefined;
     filters = {};
+    draftFilters = undefined;
     previous = [];
     page = undefined;
     revoke();

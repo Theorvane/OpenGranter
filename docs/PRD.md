@@ -1293,3 +1293,8 @@ The existing authorized usage view now shows exact per-currency current-page est
 - Existing model detail opens existing usage history with the exact published alias; current-page CSV preserves that filter and ordinary navigation resets it.
 - Fresh usage IAM and mandatory audit remain required; catalog visibility grants no usage permission. Detached controls cannot spend renewed/expired authority.
 - Verify structural DOM and actual signed SSO loopback HTTP with embedded SQL separately from installed/native-browser acceptance. No session/runtime/schema activation. See [plan](plans/642-model-usage-drilldown.md) and [contract](../contracts/model-usage-drilldown.md).
+
+
+## Usage filter correction (#642)
+
+The existing review form preserves submitted filter text on validation failure and offers an explicit reset to a fresh self-scoped query without principal/model/time/cursor. Reset revokes CSV and prior paging; renewal and clearing remove drafts. Existing server permission and audit remain mandatory. See [contract](../contracts/usage-screen.md#correcting-submitted-filters-642) and [plan](plans/642-filter-correction.md).

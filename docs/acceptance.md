@@ -1914,3 +1914,11 @@ Structural cancelable click events must show current downloads are permitted, ex
 - Existing model detail opens existing usage history with the exact published alias; current-page CSV preserves that filter and ordinary navigation resets it.
 - Fresh usage IAM and mandatory audit remain required; catalog visibility grants no usage permission. Detached controls cannot spend renewed/expired authority.
 - Verify structural DOM and actual signed SSO loopback HTTP with embedded SQL separately from installed/native-browser acceptance. No session/runtime/schema activation. See [plan](plans/642-model-usage-drilldown.md) and [contract](../contracts/model-usage-drilldown.md).
+
+
+## Usage filter correction (#642)
+
+- Rejected UTC text survives rerender; repeated invalid submission dispatches no HTTP; correction keeps exact UTC/model/page-size scope.
+- Explicit reset sends only format=json through the existing protected endpoint, invalidates cursor/history/download/continuation, and does not inject principal authority.
+- Detached reset cannot use renewal. Expiry, clearing and replacement discard drafts. Loopback HTTP/structural DOM evidence is separate from native-browser/installed SSO acceptance.
+- [Plan](plans/642-filter-correction.md), [contract](../contracts/usage-screen.md#correcting-submitted-filters-642).
