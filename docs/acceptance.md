@@ -1878,3 +1878,9 @@ The existing usage screen offers Export next CSV page only after a successful CS
 - Model permission removal after the usage read produces hidden not-found, without stale detail or upstream data. Fresh usage denial still clears both views.
 - Model navigation revokes completed CSV URLs. Detached controls after reload, renewal, expiry, clear or dispose cannot navigate. Standalone usage has no navigation by default.
 - Loopback HTTP, embedded SQL and structural DOM tests are not installed IdP or native-browser acceptance. Public entry/session/runtime/schema activation remains unchanged.
+
+## Workspace navigation lifetime (#639, #642)
+
+- Capture a navigation control, then navigate, renew, clear and reauthorize, or hide/restore and reauthorize. Clicking the detached control must leave request count and current view unchanged.
+- Current navigation still loads a fresh page; disposal leaves all retained controls inert. These structural DOM/loopback checks do not certify native browser, installed session or deployment.
+- See the [navigation lifetime plan](plans/639-workspace-navigation-lifetime.md).

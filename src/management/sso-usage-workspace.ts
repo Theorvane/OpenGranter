@@ -30,6 +30,7 @@ export function mountSsoUsageWorkspace(
   let grant: CatalogAuthorityGrant | undefined;
   let cancelTimer: (() => void) | undefined;
   let generation = 0;
+  let renderRevision = 0;
   let view: View = 'models';
   let modelId: string | undefined;
   let reason: Cleared = 'unauthenticated';
@@ -72,6 +73,7 @@ export function mountSsoUsageWorkspace(
   }
   async function render() {
     if (disposed) return;
+    const rendered = ++renderRevision;
     app?.dispose();
     const element = (tag: string, text?: string) => {
       const node = root.ownerDocument.createElement(tag);
@@ -88,7 +90,9 @@ export function mountSsoUsageWorkspace(
       button.setAttribute('type', 'button');
       if (view === target) button.setAttribute('aria-current', 'page');
       button.addEventListener('click', () => {
-        if (!active || disposed) return;
+        // A detached navigation control must not consume a renewed grant or
+        // interrupt the current view after a rerender or page restoration.
+        if (!active || disposed || rendered !== renderRevision) return;
         view = target;
         modelId = undefined;
         // A suspended timer must not let navigation dispatch with an old grant.
