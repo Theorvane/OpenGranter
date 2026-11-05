@@ -229,3 +229,46 @@ test('model Deny hides exact detail and missing audit configuration cannot const
     await f.db.close();
   }
 });
+
+test('detail reads only its publication beyond the collection bound and unrelated invalid routes', async () => {
+  const f = await fixture();
+  try {
+    await f.db.exec(`
+      INSERT INTO catalog_models (alias, created_at_seconds, enabled)
+      SELECT 'extra-' || n, 0, false FROM generate_series(1, 1001) AS n;
+    `);
+    assert.deepEqual(await f.service.list(token, 'large-list'), { state: 'unavailable' });
+    assert.deepEqual(await f.service.detail(token, 'bounded-detail', 'team/chat'), {
+      state: 'ready',
+      data: model('team/chat', 1000),
+    });
+    await f.db.exec(`DELETE FROM catalog_models WHERE alias LIKE 'extra-%';
+      UPDATE catalog_routes SET candidates = '[]'::jsonb WHERE route_id = 'blocked';`);
+    assert.deepEqual(await f.service.list(token, 'invalid-list'), { state: 'unavailable' });
+    assert.deepEqual(await f.service.detail(token, 'isolated-detail', 'team/chat'), {
+      state: 'ready',
+      data: model('team/chat', 1000),
+    });
+    for (const alias of ['absent', 'disabled']) {
+      assert.deepEqual(await f.service.detail(token, 'missing-detail', alias), {
+        state: 'missing',
+      });
+    }
+    assert.equal(
+      f.sql.filter(
+        (sql) => sql.includes('FROM catalog_models') && sql.includes('WHERE m.alias = $1 LIMIT 2'),
+      ).length,
+      4,
+    );
+    assert.deepEqual(
+      f.events.map(({ outcome }) => outcome),
+      ['unavailable', 'ready', 'unavailable', 'ready', 'missing', 'missing'],
+    );
+    f.failAudit();
+    assert.deepEqual(await f.service.detail(token, 'audit-failure', 'team/chat'), {
+      state: 'audit_unavailable',
+    });
+  } finally {
+    await f.db.close();
+  }
+});
