@@ -1221,3 +1221,8 @@ An optional PostgreSQL handler/non-listening server factory composes registered 
 ## Owned management catalog listener (#641)
 
 Explicit SSO management startup now serves existing authorized catalog list/detail on its single migrated database connection, alongside owner-scoped token operations and optional static browser assets. Catalog replies require fresh IAM and durable attributed audit; no browser session, inference or new deployment is granted. See [plan](plans/641-catalog-runtime.md) and [contract](../contracts/sso-management-runtime.md).
+
+
+## Exact audit principal references (#642)
+
+Existing audit JSON/CSV queries and durable actor/target projection support exact bounded Unicode principal references, without normalization, new authority or relaxed non-principal identifiers. Current target IAM, explicit Deny and mandatory audit remain enforced. No SSO/session/runtime/schema activation. See [contract](../contracts/audit-principal-references.md) and [plan](plans/642-audit-unicode-principal.md).

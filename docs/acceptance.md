@@ -1824,3 +1824,10 @@ The unused mount adapter builds fixed detached main/heading/status nodes with te
 - Real local loopback listener with migrated PGlite and a registered signed test issuer serves catalog list and encoded-alias detail, with or without optional browser assets.
 - Verify durable human/policy attribution, anonymous denial, next-request Deny/revoked binding, required-audit outage, unchanged token authentication and unrelated/inference path isolation.
 - Verify one connection and idempotent close. Local test issuer/PGlite sockets are not browser login, installed PostgreSQL, company IdP or provider acceptance.
+
+
+## Exact audit principal references (#642)
+
+- Test exact Korean/supplementary principals, distinct composed/decomposed IDs, blank/C0/DEL/C1/overlength rejection and unchanged non-principal identifier restrictions.
+- Exercise actual loopback HTTP with PGlite-backed audit insert/read for scoped JSON and CSV keyset pages; fresh target Deny prevents reads and failed mandatory audit suppresses records.
+- No installed PostgreSQL, native browser/IdP, SSO audit route, runtime activation or full #637 completion is certified. See [contract](../contracts/audit-principal-references.md).
