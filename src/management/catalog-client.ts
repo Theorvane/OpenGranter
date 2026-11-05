@@ -74,6 +74,26 @@ async function boundedJson(response: Response, signal: AbortSignal): Promise<unk
   }
 }
 
+function navigableAlias(id: string): boolean {
+  if (
+    !id ||
+    id.length > 512 ||
+    /[\s%\\?#]/u.test(id) ||
+    Array.from(id).some((char) => {
+      const code = char.charCodeAt(0);
+      return code < 32 || (code >= 127 && code <= 159);
+    }) ||
+    id.split('/').some((part) => !part || part === '.' || part === '..')
+  )
+    return false;
+  try {
+    encodeURIComponent(id);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function project(row: CatalogModel): CatalogModel {
   return { id: row.id, object: 'model', created: row.created, owned_by: row.owned_by };
 }
@@ -82,6 +102,25 @@ function project(row: CatalogModel): CatalogModel {
  * No cache, persistence, provider calls, response error text or token handling.
  */
 export function createManagementCatalogClient(request: CatalogRequest) {
+  return createCatalogClient(request, false);
+}
+
+/** Explicit SSO namespace, not a session/BFF or credential bridge.
+ * Caller owns fresh authentication; no proxy endpoint fallback is attempted.
+ */
+export function createSsoManagementCatalogClient(request: CatalogRequest) {
+  return createCatalogClient(request, true);
+}
+
+function createCatalogClient(request: CatalogRequest, sso: boolean) {
+  const base = sso ? '/management/v1/models' : '/api/v1/models';
+  const validModel = (value: unknown): value is CatalogModel =>
+    model(value) &&
+    (!sso ||
+      (navigableAlias(value.id) &&
+        Number.isSafeInteger(value.created) &&
+        value.created >= 0 &&
+        value.owned_by === 'opengranter'));
   let revision = 0;
   let pending: AbortController | undefined;
   function invalidate() {
@@ -146,31 +185,20 @@ export function createManagementCatalogClient(request: CatalogRequest) {
   return {
     invalidate,
     list: () =>
-      read('/api/v1/models', (body): readonly CatalogModel[] | undefined => {
+      read(base, (body): readonly CatalogModel[] | undefined => {
         if (
           typeof body !== 'object' ||
           body === null ||
           !('data' in body) ||
           !Array.isArray(body.data) ||
-          !body.data.every(model)
+          !body.data.every(validModel)
         )
           return undefined;
         return body.data.map(project);
       }),
     detail: (id: string): Promise<CatalogResult<CatalogModel>> => {
       // Reserved compatible collection paths are not model detail operations.
-      if (
-        !id ||
-        id === 'count' ||
-        id === 'user' ||
-        id.length > 512 ||
-        /[\s%\\?#]/u.test(id) ||
-        Array.from(id).some((char) => {
-          const code = char.charCodeAt(0);
-          return code < 32 || (code >= 127 && code <= 159);
-        }) ||
-        id.split('/').some((part) => !part || part === '.' || part === '..')
-      ) {
+      if (!navigableAlias(id) || (!sso && (id === 'count' || id === 'user'))) {
         invalidate();
         return Promise.resolve({ state: 'unavailable' });
       }
@@ -181,8 +209,8 @@ export function createManagementCatalogClient(request: CatalogRequest) {
         invalidate();
         return Promise.resolve({ state: 'unavailable' });
       }
-      return read(`/api/v1/models/${encoded}`, (body) =>
-        model(body) && body.id === id ? project(body) : undefined,
+      return read(`${base}/${encoded}`, (body) =>
+        validModel(body) && body.id === id ? project(body) : undefined,
       );
     },
   };

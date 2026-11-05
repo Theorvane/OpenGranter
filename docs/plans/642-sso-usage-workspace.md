@@ -1,0 +1,15 @@
+# Shared SSO model and usage workspace (#642)
+
+1. Problem: the reviewed SSO catalog DOM stack (#694 ancestry) and usage app (#707) have separate source histories and no shared navigation/lifecycle composition. Integrate those prerequisites in an isolated feature branch; do not alter either owned app or activate an entry, session, listener or schema.
+2. User behavior: native Models / Usage history buttons switch the active screen. Switching disposes the old screen, aborts pending reads and revokes export URLs. A trusted owner supplies one request port and deadline; each newly mounted screen fetches fresh data. No cross-view cache, proxy fallback or authority acquisition.
+3. Security: logout, pagehide, deadline expiry and current-grant HTTP 401/403 erase the retained grant and active screen. pageshow allows a fresh grant, never replays one. Stale responses cannot clear renewed grants. Request dispatch checks the deadline even with suspended timers. Dispose removes page listeners and is terminal. Existing backend IAM and mandatory audit remain authoritative.
+4. RED first: missing module, navigation paths, pending abort/late denial, expiry, page lifecycle, fresh grant, disposal and public bundling. GREEN: actual workspace through loopback signed RFC9068 HTTP, migrated isolated PostgreSQL-compatible storage, fresh IAM and mandatory durable audit with explicit candidate usage schema.
+5. Validate focused suites, typecheck, lint, planning checks and full check. New PR must disclose integrated unmerged prerequisite ancestry and await exact-HEAD CI and formal independent approval. No main merge, production/paid call or installed activation.
+6. Unresolved: trusted session/BFF, installed usage schema/listener and public entry-owner wiring remain held. Structural DOM, VM bundle execution and loopback SQL are not native-browser or deployed SSO acceptance.
+
+## Local implementation evidence
+
+- Isolated prerequisite integration commit 6f17536 combines #694 ancestry with #707; no main branch merge or installed activation. Feature changes are separate for review.
+- Initial attempted RED failed on an unsupported TypeScript test parameter property, not the product gap; it is NOT valid missing-feature evidence. After correction, the missing-module baseline was recreated and failed ERR_MODULE_NOT_FOUND (/tmp/og-0030-workspace-missing-module-red.log). This reconstruction occurred after the initial implementation.
+- First executable GREEN attempt exposed an invalid test publisher (org instead of the SSO contract opengranter); fixed the fixture, not production validation. Final focused suite 73/73 passed, zero skips, including 8 new workspace cases, signed RFC9068 HTTP with shared embedded SQL and mandatory durable audits, CSV revocation and pending export abort. /tmp/og-0030-workspace-focused.log.
+- Typecheck, full lint (575 files, existing warnings), planning/contracts/link/fixture checks and whitespace checks passed. Native browser remains unavailable: Team Computer screen is still being released. No screenshot, installed SSO or provider success claim. Full check and exact-HEAD CI/formal approval remain required.
