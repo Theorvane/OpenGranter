@@ -239,3 +239,89 @@ test('expiry revokes CSV download and clears filter values', async () => {
   await assert.rejects(fetch(url));
   app.dispose();
 });
+
+test('authorized per-attempt details preserve unknowns and clear with identity', async () => {
+  const root = new Element();
+  const app = mountManagementUsage(root);
+  const observed = {
+    ...row,
+    requestId: '<script>request</script>',
+    credentialId: 'NEVER-RENDER-CREDENTIAL',
+    attemptId: 'attempt-A',
+    actualInferenceProviderId: null,
+    usage: { status: 'partial', promptTokens: 0, completionTokens: null, totalTokens: null },
+    estimatedCost: {
+      amountDecimal: '0.000000000000000001',
+      currency: 'USD',
+      priceVersion: 'price-v2',
+    },
+    upstreamBilledCost: {
+      amountDecimal: '0.000000000000000002',
+      currency: 'USD',
+      source: 'direct-provider',
+    },
+  };
+  let calls = 0;
+  await app.connect(async () => {
+    calls++;
+    return response([observed, { ...observed, attemptId: 'attempt-B' }]);
+  });
+  const details = root.all().filter((node) => node.tag === 'details');
+  assert.equal(details.length, 2, 'one native detail for each authorized attempt');
+  const first = details[0];
+  assert.ok(first);
+  assert.match(first.text(), /<script>request<\/script>/u);
+  assert.match(first.text(), /attempt-A/u);
+  assert.doesNotMatch(first.text(), /attempt-B|NEVER-RENDER-CREDENTIAL/u);
+  assert.equal(first.children[0]?.tag, 'summary');
+  assert.equal(first.children[0]?.textContent, 'Inspect attempt');
+  const fields = new Map(
+    first
+      .all()
+      .filter((node) => node.tag === 'dt')
+      .map((node) => {
+        const dl = first.children.find((child) => child.tag === 'dl');
+        assert.ok(dl);
+        return [node.textContent, dl.children[dl.children.indexOf(node) + 1]?.textContent];
+      }),
+  );
+  assert.equal(fields.get('Prompt tokens'), '0');
+  assert.equal(fields.get('Completion tokens'), 'Unknown');
+  assert.equal(fields.get('Actual inference provider'), 'Unknown');
+  assert.equal(fields.get('Estimated price version'), 'price-v2');
+  assert.equal(fields.get('Reported billing source'), 'direct-provider');
+  assert.equal(fields.get('Latency (ms)'), '10');
+  assert.match(root.text(), /0\.000000000000000001 USD/u);
+  assert.match(root.text(), /0\.000000000000000002 USD/u);
+  assert.equal(calls, 1, 'inspection uses the existing authorized page only');
+  app.clear('expired');
+  assert.equal(root.all().filter((node) => node.tag === 'details').length, 0);
+  assert.doesNotMatch(root.text(), /attempt-A|price-v2|<script>/u);
+  app.dispose();
+});
+
+test('attempt inspection disappears during reload, HTTP denial, and disposal', async () => {
+  const root = new Element();
+  const app = mountManagementUsage(root);
+  let finish: ((value: Response) => void) | undefined;
+  let calls = 0;
+  await app.connect(async () => {
+    calls++;
+    if (calls === 1) return response();
+    return await new Promise<Response>((resolve) => {
+      finish = resolve;
+    });
+  });
+  assert.equal(root.all().filter((node) => node.tag === 'details').length, 1);
+  assert.match(root.text(), /Unknown/u);
+  root.button('Retry / first page').click();
+  assert.equal(root.all().filter((node) => node.tag === 'details').length, 0);
+  assert.ok(finish);
+  finish(new Response(null, { status: 403 }));
+  await waitFor(() => root.text().includes('Access denied.'));
+  assert.doesNotMatch(root.text(), /attempt|credential|candidate/u);
+  await app.connect(async () => response());
+  assert.equal(root.all().filter((node) => node.tag === 'details').length, 1);
+  app.dispose();
+  assert.equal(root.children.length, 0);
+});
