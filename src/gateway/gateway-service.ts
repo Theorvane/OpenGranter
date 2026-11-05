@@ -60,19 +60,42 @@ function isBootstrapPorts(value: unknown): value is GatewayBootstrapPorts {
   );
 }
 
-interface ServiceOptions {
+interface BaseServiceOptions {
   readonly env: NodeJS.ProcessEnv;
   readonly signals: Pick<EventEmitter, 'on' | 'removeListener'>;
   readonly report: (message: string) => void;
   readonly exit: (code: number) => void;
   readonly loadModule?: (url: string) => Promise<unknown>;
-  readonly start?: (ports: PostgresDualRouteGatewayRuntimePorts) => Promise<{
-    readonly close: () => Promise<void>;
-  }>;
+}
+
+interface ServiceOptions extends BaseServiceOptions {
+  readonly start?: (
+    ports: PostgresDualRouteGatewayRuntimePorts,
+  ) => Promise<{ readonly close: () => Promise<void> }>;
 }
 
 /** Dedicated process boundary. exit must terminate the process in production. */
-export async function runGatewayService(options: ServiceOptions): Promise<void> {
+export function runGatewayService(options: ServiceOptions): Promise<void> {
+  return runConfiguredGatewayService({
+    ...options,
+    factoryName: 'createGatewayPorts',
+    isBootstrapPorts,
+    start: options.start ?? startPostgresDualRouteGateway,
+  });
+}
+
+export interface ConfiguredGatewayServiceOptions<T> extends BaseServiceOptions {
+  readonly factoryName: string;
+  readonly isBootstrapPorts: (value: unknown) => value is T;
+  readonly start: (
+    ports: T & { host: string; port: number; now: () => number; newRequestId: () => string },
+  ) => Promise<{ readonly close: () => Promise<void> }>;
+}
+
+/** Shared lifecycle only; callers select an explicit trusted bootstrap contract. */
+export async function runConfiguredGatewayService<T>(
+  options: ConfiguredGatewayServiceOptions<T>,
+): Promise<void> {
   let config: ServiceConfig;
   try {
     config = parseGatewayServiceConfig(options.env);
@@ -128,17 +151,18 @@ export async function runGatewayService(options: ServiceOptions): Promise<void> 
           finish(0);
           return;
         }
-        if (!isObject(module) || typeof module.createGatewayPorts !== 'function') {
+        if (!isObject(module) || typeof module[options.factoryName] !== 'function') {
           throw new Error('Invalid bootstrap');
         }
-        const ports: unknown = await module.createGatewayPorts();
+        const factory = module[options.factoryName] as () => unknown;
+        const ports: unknown = await factory();
         if (finished) return;
         if (stopping) {
           finish(0);
           return;
         }
-        if (!isBootstrapPorts(ports)) throw new Error('Invalid bootstrap');
-        runtime = await (options.start ?? startPostgresDualRouteGateway)({
+        if (!options.isBootstrapPorts(ports)) throw new Error('Invalid bootstrap');
+        runtime = await options.start({
           ...ports,
           host: config.host,
           port: config.port,
