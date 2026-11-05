@@ -6,6 +6,7 @@ import {
   createPostgresSsoModelCatalogHandler,
   createPostgresSsoModelCatalogServer,
 } from '../src/gateway/postgres-sso-model-catalog-http.ts';
+import { createSsoManagementCatalogClient } from '../src/management/catalog-client.ts';
 import { loadPostgresMigrationSources } from '../src/storage/postgres-migration-sources.ts';
 import { createSsoAccessTokenFixture } from './sso-access-token-fixture.ts';
 
@@ -156,6 +157,102 @@ test('Fetch composition awaits its actual audit insert and ignores extra callbac
     assert.equal(overrideCalls, 0);
   } finally {
     release?.();
+    await f.db.close();
+  }
+});
+
+test('loopback detail remains authorized and durably audited beyond the collection bound', async () => {
+  const f = await fixture();
+  const server = createPostgresSsoModelCatalogServer(f.ports);
+  try {
+    await f.db.exec(
+      "INSERT INTO catalog_models (alias, created_at_seconds, enabled) SELECT 'extra-' || n, 0, false FROM generate_series(1, 1001) AS n",
+    );
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    const get = (suffix = '') =>
+      fetch(`http://127.0.0.1:${address.port}/management/v1/models${suffix}`, {
+        headers: { authorization: `Bearer ${f.token}` },
+        redirect: 'error',
+      });
+    await safe(await get(), 503);
+    assert.deepEqual(await safe(await get('/team%2Fchat'), 200), {
+      id: 'team/chat',
+      object: 'model',
+      created: 42,
+      owned_by: 'opengranter',
+    });
+    await f.db.exec(`UPDATE iam_policies SET version = 'v2', statements =
+      '[{"effect":"Deny","actions":["llm:InvokeModel"],"resources":["model:*"]}]' WHERE policy_id = 'allow'`);
+    await safe(await get('/team%2Fchat'), 404);
+    await safe(await get('/absent'), 404);
+    const rows = (
+      await f.db.query<{ outcome: string; model_count: number }>(
+        'SELECT outcome, model_count FROM sso_catalog_audit_events ORDER BY event_id',
+      )
+    ).rows;
+    assert.deepEqual(
+      rows.map(({ outcome }) => outcome),
+      ['unavailable', 'ready', 'missing', 'missing'],
+    );
+    await f.db.exec('DROP TABLE sso_catalog_audit_events');
+    await safe(await get('/team%2Fchat'), 503);
+  } finally {
+    if (server.listening)
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    await f.db.close();
+  }
+});
+
+test('SSO UI transport consumes real signed-JWT HTTP with fresh IAM and durable audit', async () => {
+  const f = await fixture();
+  const server = createPostgresSsoModelCatalogServer(f.ports);
+  try {
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    const paths: string[] = [];
+    // Test-only trusted request port, not a browser credential/session adapter.
+    const client = createSsoManagementCatalogClient(async (path, init) => {
+      paths.push(path);
+      const headers = new Headers(init.headers);
+      headers.set('authorization', `Bearer ${f.token}`);
+      return fetch(`http://127.0.0.1:${address.port}${path}`, { ...init, headers });
+    });
+    const row = { id: 'team/chat', object: 'model', created: 42, owned_by: 'opengranter' };
+    assert.deepEqual(await client.list(), { state: 'ready', data: [row] });
+    assert.deepEqual(await client.detail('team/chat'), { state: 'ready', data: row });
+    await f.db.exec(`UPDATE iam_policies SET version = 'v2', statements =
+      '[{"effect":"Deny","actions":["llm:InvokeModel"],"resources":["model:*"]}]' WHERE policy_id = 'allow'`);
+    assert.deepEqual(await client.detail('team/chat'), { state: 'missing' });
+    assert.deepEqual(await client.list(), { state: 'ready', data: [] });
+    await f.db.exec('DELETE FROM iam_sso_identity_bindings');
+    assert.deepEqual(await client.list(), { state: 'unauthenticated' });
+    const events = (
+      await f.db.query<{ outcome: string }>(
+        'SELECT outcome FROM sso_catalog_audit_events ORDER BY event_id',
+      )
+    ).rows;
+    assert.deepEqual(
+      events.map((event) => event.outcome),
+      ['ready', 'ready', 'missing', 'ready', 'unauthenticated'],
+    );
+    await f.db.exec('DROP TABLE sso_catalog_audit_events');
+    assert.deepEqual(await client.list(), { state: 'unavailable' });
+    assert.equal(paths.length, 6);
+    assert.ok(paths.every((path) => path.startsWith('/management/v1/models')));
+    assert.equal(paths[1], '/management/v1/models/team%2Fchat');
+    client.invalidate();
+  } finally {
+    if (server.listening)
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
     await f.db.close();
   }
 });

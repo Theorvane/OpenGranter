@@ -71,7 +71,14 @@ export function createPostgresSsoModelCatalog(
     try {
       const context = await authenticate(accessToken);
       principal = context;
-      const models = await catalog.listPublishedModels();
+      const publication =
+        operation === 'detail' ? await catalog.findPublishedModel(alias ?? '') : undefined;
+      const models =
+        operation === 'list'
+          ? await catalog.listPublishedModels()
+          : publication
+            ? [publication]
+            : [];
       const data = Object.freeze(
         models
           .filter(
