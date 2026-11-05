@@ -1913,3 +1913,10 @@ Structural cancelable click events must show current downloads are permitted, ex
 - The existing usage screen consumes loopback HTTP JSON rows and renders estimated versus reported per-currency sums exactly, including amounts above Number precision and sub-cent values. Missing costs remain Unknown; an explicit zero remains known. Coverage and possible-duplicate/billing markers are page-only, not reconciled invoices.
 - Structural DOM tests verify decimal carry, 100 maximum-length ledger amounts, empty/unknown pages and clearing on refresh/expiry/disposal. Existing trusted workspace/registered-key embedded-SQL HTTP integration remains passing. This does not certify native browser login, installed PostgreSQL, schema promotion or paid-provider billing.
 - Evidence: RED 33 pass/2 expected missing-summary failures; focused GREEN 57/57 zero skips, TypeScript PASS. Exact-head CI and formal independent approval are required before merge.
+
+
+## Model detail to usage drilldown (#642)
+
+- Existing model detail opens existing usage history with the exact published alias; current-page CSV preserves that filter and ordinary navigation resets it.
+- Fresh usage IAM and mandatory audit remain required; catalog visibility grants no usage permission. Detached controls cannot spend renewed/expired authority.
+- Verify structural DOM and actual signed SSO loopback HTTP with embedded SQL separately from installed/native-browser acceptance. No session/runtime/schema activation. See [plan](plans/642-model-usage-drilldown.md) and [contract](../contracts/model-usage-drilldown.md).
