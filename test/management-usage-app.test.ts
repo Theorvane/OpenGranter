@@ -3,7 +3,7 @@ import { once } from 'node:events';
 import test from 'node:test';
 import { createSsoUsageHistoryServer } from '../src/gateway/sso-usage-history-http.ts';
 import { mountManagementUsage, type UsageElement } from '../src/management/usage-app.ts';
-import { buildUsageRecord } from '../src/usage/record-usage.ts';
+import { buildUsageRecord, type UsageRecord } from '../src/usage/record-usage.ts';
 
 class Element implements UsageElement {
   textContent: string | null = null;
@@ -1219,4 +1219,138 @@ test('detached CSV links cannot activate after replacement, renewal, clearing or
   } finally {
     f.app.dispose();
   }
+});
+
+test('current-page summary consumes HTTP rows with exact separate costs and coverage', async () => {
+  const rows: UsageRecord[] = [
+    {
+      ...row,
+      estimatedCost: { amountDecimal: '9007199254740993.1', currency: 'USD', priceVersion: 'p1' },
+      upstreamBilledCost: { amountDecimal: '0.20', currency: 'USD', source: 'direct-provider' },
+    },
+    {
+      ...row,
+      attemptId: 'second',
+      estimatedCost: { amountDecimal: '0.20', currency: 'USD', priceVersion: 'p2' },
+      upstreamBilledCost: { amountDecimal: '0', currency: 'EUR', source: 'openrouter' },
+      possibleDuplicate: true,
+    },
+    {
+      ...row,
+      attemptId: 'third',
+      estimatedCost: { amountDecimal: '0.000000000000000001', currency: 'EUR', priceVersion: 'p3' },
+    },
+    {
+      ...row,
+      attemptId: 'fourth',
+      usage: { status: 'partial', promptTokens: 1, completionTokens: null, totalTokens: null },
+    },
+  ];
+  const server = createSsoUsageHistoryServer({
+    newRequestId: () => 'summary',
+    usage: {
+      async read() {
+        return { state: 'ready', format: 'json', data: rows, hasMore: false, nextCursor: null };
+      },
+    },
+  });
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  const address = server.address();
+  assert.ok(address && typeof address !== 'string');
+  const root = new Element();
+  const app = mountManagementUsage(root);
+  try {
+    await app.connect((path, init) =>
+      fetch('http://127.0.0.1:' + address.port + path, {
+        ...init,
+        headers: { ...init.headers, authorization: 'Bearer test-port' },
+      }),
+    );
+    const summary = root
+      .all()
+      .find((node) => node.attrs['aria-label'] === 'Current page cost summary');
+    assert.ok(summary);
+    const text = summary.text();
+    assert.match(text, /9007199254740993\.3 USD/);
+    assert.match(text, /0\.000000000000000001 EUR/);
+    assert.match(text, /0\.2 USD/);
+    assert.match(text, /0 EUR/);
+    assert.match(text, /Estimated cost coverage: 3 of 4 records/);
+    assert.match(text, /Reported cost coverage: 2 of 4 records/);
+    assert.match(text, /Partial usage: 1/);
+    assert.match(text, /Missing usage: 3/);
+    assert.match(text, /Possible duplicates: 1/);
+    assert.match(text, /Possibly billed: 4/);
+    assert.match(text, /not an invoice or all-pages total/);
+    root.button('Refresh current page').click();
+    assert.equal(
+      root.all().some((node) => node.attrs['aria-label'] === 'Current page cost summary'),
+      false,
+    );
+    await waitFor(() => root.text().includes('Current page only'));
+    app.clear('expired');
+    assert.doesNotMatch(root.text(), /9007199254740993|Current page only/);
+  } finally {
+    app.dispose();
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+});
+
+test('empty and unknown page costs never become invented zero totals', async () => {
+  const root = new Element();
+  const app = mountManagementUsage(root);
+  await app.connect(async () => response());
+  assert.match(root.text(), /Estimated cost coverage: 0 of 1 records/);
+  assert.match(root.text(), /Estimated totals: Unknown/);
+  assert.match(root.text(), /Reported totals: Unknown/);
+  await app.connect(async () => response([]));
+  assert.match(root.text(), /Estimated cost coverage: 0 of 0 records/);
+  assert.match(root.text(), /Estimated totals: Unknown/);
+  assert.doesNotMatch(root.text(), /0 USD/);
+  app.dispose();
+  assert.doesNotMatch(root.text(), /Current page only/);
+});
+
+test('page totals handle decimal carry, maximum ledger amounts and explicit zero', async () => {
+  const root = new Element();
+  const app = mountManagementUsage(root);
+  const amounts = ['0.1', '0.2', '0.70'];
+  await app.connect(async () =>
+    response(
+      amounts.map((amountDecimal) => ({
+        ...row,
+        estimatedCost: { amountDecimal, currency: 'USD', priceVersion: 'p' },
+      })),
+    ),
+  );
+  const summary = () => {
+    const found = root
+      .all()
+      .find((node) => node.attrs['aria-label'] === 'Current page cost summary');
+    assert.ok(found);
+    return found.text();
+  };
+  assert.match(summary(), /Estimated totals: 1 USD/);
+  assert.doesNotMatch(summary(), /1\.0|0\.300000/);
+  await app.connect(async () =>
+    response([
+      { ...row, estimatedCost: { amountDecimal: '0.000', currency: 'USD', priceVersion: 'p' } },
+    ]),
+  );
+  assert.match(summary(), /Estimated totals: 0 USD/);
+  assert.match(summary(), /Estimated cost coverage: 1 of 1 records/);
+  const max = '9'.repeat(128);
+  await app.connect(async () =>
+    response(
+      Array.from({ length: 100 }, (_, index) => ({
+        ...row,
+        attemptId: String(index),
+        estimatedCost: { amountDecimal: max, currency: 'USD', priceVersion: 'p' },
+      })),
+    ),
+  );
+  assert.ok(summary().includes('Estimated totals: ' + (BigInt(max) * 100n).toString() + ' USD'));
+  assert.match(summary(), /Estimated cost coverage: 100 of 100 records/);
+  app.dispose();
 });
