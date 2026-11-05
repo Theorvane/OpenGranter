@@ -105,7 +105,15 @@ export function mountSsoUsageWorkspace(
     root.replaceChildren(navigation, content);
     const mounted =
       view === 'models'
-        ? mountSsoManagementCatalog(content, options)
+        ? mountSsoManagementCatalog(content, {
+            ...options,
+            onInspectUsage(id) {
+              if (disposed || !active || app !== mounted || !valid()) return;
+              view = 'usage';
+              modelId = id;
+              void render();
+            },
+          })
         : mountManagementUsage(content, {
             ...options,
             onInspectModel(id) {

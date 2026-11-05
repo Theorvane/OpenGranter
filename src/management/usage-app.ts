@@ -383,7 +383,7 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
   render();
   return {
     /** Trusted session integration. Deadline is not authentication or an IAM grant. */
-    async authorize(grant: CatalogAuthorityGrant) {
+    async authorize(grant: CatalogAuthorityGrant, modelId?: string) {
       if (disposed) return;
       clear();
       const time = now();
@@ -398,7 +398,8 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
       expiresAt = grant.expiresAt;
       client = createManagementUsageClient(grant.request);
       arm(authorityRevision);
-      await load({});
+      // A published catalog alias is only a filter, never read authority.
+      await load(modelId === undefined ? {} : { model: modelId });
     },
     /** Low-level port: caller must supply and clear its own lifecycle. */
     async connect(request: CatalogRequest) {
