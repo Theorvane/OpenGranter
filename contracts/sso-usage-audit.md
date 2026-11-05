@@ -1,0 +1,9 @@
+# Durable SSO usage audit candidate (#642)
+
+`createPostgresSsoUsageHistoryWithAudit` composes #696 with a concrete parameterized PostgreSQL writer; no injected no-op writer can replace it. It uses the trusted SSO clock for audit timestamps and keeps the service's awaited fail-closed behavior. Database acknowledgement must represent committed/autocommit writes; an enclosing transaction must commit before any response release. Persistence and usage reads are not an atomic IAM/revocation snapshot.
+
+Metadata is limited to request ID, current SSO human principal/policy versions, target principal, self/all selection, outcome and returned count (0..100). Anonymous authentication/storage failures have no actor/policies/target/mode. Explicit target selection still requires ReadAll even for oneself. Invalid queries have no target/mode. A self selection must target the actor. Non-ready events have zero count. IDs and policy versions use the existing catalog metadata bounds; invalid events never reach SQL. Unknown fields (tokens, raw query, CSV, records, prompts, credential IDs) are discarded. Store failures expose a fixed error; the read service replaces any result with audit_unavailable.
+
+[Candidate schema](sso-usage-audit-schema.sql) is deliberately OUTSIDE migrations and the deployment manifest pending architecture/ownership review. Tests apply it only to local ephemeral PGlite. No installed schema migration, runtime wiring, HTTP endpoint, session, provider invocation or browser acceptance is implied. Promotion to a numbered migration plus installed persistence/restart/export testing remains required before activation. This candidate does not authorize content retention or decide retention/read permissions.
+
+[Numbered plan](../docs/plans/642-sso-usage-audit.md). Tests: test/postgres-sso-usage-audit.test.ts. Depends on #696; no parent merge or formal approval is assumed.
