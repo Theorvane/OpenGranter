@@ -1865,3 +1865,9 @@ The existing usage screen offers Export next CSV page only after a successful CS
 ## Review API composition (#642)
 
 - Replace workspace test-only routing with the explicit production review handler; verify signed SSO, shared SQL, catalog detail, JSON/CSV, fresh IAM denial and fail-closed audit writes over loopback HTTP. Reject unknown paths and writes without SQL. No installed activation or native browser acceptance is implied.
+
+## UTC usage review controls (#642)
+
+- UTC inputs round-trip exact milliseconds independent of the browser timezone; leap-day validation rejects impossible dates before HTTP and clears stale records.
+- Actual loopback HTTP list and CSV retain the same from_ms/to_ms filters and exclusive upper bound. Native browser and installed session acceptance remain separate.
+- See [plan](plans/642-utc-usage-controls.md) and [contract](../contracts/usage-screen.md#utc-review-controls-642).
