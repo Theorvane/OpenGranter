@@ -1,4 +1,5 @@
 import type { CatalogRequest } from './catalog-client.ts';
+import { renderUsageAttemptDetails } from './usage-attempt-details.ts';
 import { createManagementUsageClient, type UsageFilters, type UsagePage } from './usage-client.ts';
 
 export interface UsageElement {
@@ -127,6 +128,7 @@ export function mountManagementUsage(root: UsageElement) {
           'Usage status',
           'Possibly billed',
           'Possible duplicate',
+          'Attempt details',
         ]) {
           const cell = element('th', text);
           cell.setAttribute('scope', 'col');
@@ -155,6 +157,9 @@ export function mountManagementUsage(root: UsageElement) {
             record.possibleDuplicate ? 'Yes' : 'No',
           ])
             row.append(element('td', text));
+          const inspection = element('td');
+          inspection.append(renderUsageAttemptDetails(root.ownerDocument, record));
+          row.append(inspection);
           body.append(row);
         }
         table.append(body);
