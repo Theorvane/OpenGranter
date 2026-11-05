@@ -1907,3 +1907,9 @@ The existing usage screen offers Export next CSV page only after a successful CS
 ## CSV link activation (#642)
 
 Structural cancelable click events must show current downloads are permitted, expired downloads prevent the default action and revoke the URL even without firing timers, and detached links cannot activate after export replacement, authority renewal, clear or disposal. This is not native-browser or installed acceptance. See [plan](plans/642-csv-download-authority.md).
+
+## Current-page usage cost coverage (#642)
+
+- The existing usage screen consumes loopback HTTP JSON rows and renders estimated versus reported per-currency sums exactly, including amounts above Number precision and sub-cent values. Missing costs remain Unknown; an explicit zero remains known. Coverage and possible-duplicate/billing markers are page-only, not reconciled invoices.
+- Structural DOM tests verify decimal carry, 100 maximum-length ledger amounts, empty/unknown pages and clearing on refresh/expiry/disposal. Existing trusted workspace/registered-key embedded-SQL HTTP integration remains passing. This does not certify native browser login, installed PostgreSQL, schema promotion or paid-provider billing.
+- Evidence: RED 33 pass/2 expected missing-summary failures; focused GREEN 57/57 zero skips, TypeScript PASS. Exact-head CI and formal independent approval are required before merge.

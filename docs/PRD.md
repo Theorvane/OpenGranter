@@ -1286,3 +1286,7 @@ Existing usage controls now belong to their creating render: detached filters, p
 ## CSV download activation (#642)
 
 CSV link activation now rechecks the trusted deadline and render lifetime, including suspended expiry timers; stale anchors cannot invoke the default download action. No session/runtime/schema or public entry activation. See [plan](plans/642-csv-download-authority.md).
+
+## Current-page usage cost coverage (#642)
+
+The existing authorized usage view now shows exact per-currency current-page estimated and provider-reported sums separately, with missing-cost and token-usage coverage and possible-billing/duplicate counts. Missing amounts stay Unknown, duplicates remain included and flagged, and no currency conversion, invoice or all-pages total is inferred. Session, public entry, runtime and schema activation remain unchanged. See [plan](plans/642-usage-page-cost-summary.md) and [contract](../contracts/usage-screen.md).

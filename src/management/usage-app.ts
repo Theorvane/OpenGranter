@@ -2,6 +2,7 @@ import type { CatalogAuthorityGrant } from './catalog-authority.ts';
 import type { CatalogRequest } from './catalog-client.ts';
 import { renderUsageAttemptDetails } from './usage-attempt-details.ts';
 import { createManagementUsageClient, type UsageFilters, type UsagePage } from './usage-client.ts';
+import { renderUsagePageSummary } from './usage-page-summary.ts';
 import { formatUsageTime, parseUsageUtcInput, usageUtcInput } from './usage-time.ts';
 
 export interface UsageElement {
@@ -172,6 +173,7 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
         );
     }
     if (state === 'ready' && page) {
+      main.append(renderUsagePageSummary(root.ownerDocument, page.records));
       if (!page.records.length) {
         const empty = element('p', 'No usage records.');
         empty.setAttribute('role', 'status');

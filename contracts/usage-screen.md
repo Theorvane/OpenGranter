@@ -55,3 +55,7 @@ Every usage button belongs to its creating render, including Apply filters, pagi
 ## CSV link activation lifetime (#642)
 
 A CSV download anchor rechecks click, auxiliary-click and context-menu events and permits its native default action only for its creating render, current object URL and live trusted deadline. Suspended expiry timers cannot extend download activation. Replacement, renewal, clear and disposal block detached anchors; current unexpired downloads still work. This does not revoke bytes already downloaded or establish native-browser/installed acceptance. See [plan](../docs/plans/642-csv-download-authority.md).
+
+## Current-page cost summary (#642)
+
+The existing ready view summarizes only the currently authorized JSON page. Estimated and provider-reported decimal amounts are added exactly, independently per currency; there is no exchange-rate conversion or estimated-to-billed substitution. Coverage counts report rows carrying each cost, partial/missing/invalid usage and possible billing/duplicates. An absent amount remains Unknown (zero coverage), while an explicit zero is retained. Possible duplicates remain included and flagged, not silently removed. Totals are not an invoice, reconciliation result or all-pages export. Summary nodes are replaced with the existing rows on every load, cancellation, clear, expiry and disposal.
