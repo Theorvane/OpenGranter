@@ -7,3 +7,9 @@ Results are ready(data), unauthenticated, denied, invalid_query, unavailable or 
 New requests and invalidate() cancel old requests. The caller must invalidate on logout/expiry/principal change. Body bytes are capped at 1 MiB and the entire operation at 30 seconds, including ignored aborts. No cache, persistence, credential handling, session contract or installed acceptance is provided.
 
 Plan: [642](../docs/plans/642-usage-browser-client.md). Tests: test/management-usage-client.test.ts and test/management-usage-integration.test.ts.
+
+## Restricted public build (#642)
+
+The usage client imports the shared pure record parser, not the server history/cursor module. The existing management builder permits exactly `src/usage/record-parser.ts`, `src/usage/record-usage.ts` and `src/audit/attribution.ts` as reviewed shared public dependencies. These are not entry points. Canonical paths must match; server directories, packages, symlink escapes and future unapproved transitive imports remain blocked. History retains its parser re-export for existing server consumers. Parsing and accounting semantics are unchanged.
+
+Build integration tests execute the real bundled client and import the real bundled usage app. They verify unknown usage/costs, allowlisted projection and malformed record rejection without Node Buffer. This is not real DOM/browser, installed listener/session, schema or provider acceptance. See [plan](../docs/plans/642-usage-public-build.md).

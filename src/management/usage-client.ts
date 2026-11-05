@@ -1,4 +1,4 @@
-import { parseStoredUsageRecord } from '../usage/history.ts';
+import { parseStoredUsageRecord } from '../usage/record-parser.ts';
 import type { UsageRecord } from '../usage/record-usage.ts';
 import type { CatalogRequest } from './catalog-client.ts';
 

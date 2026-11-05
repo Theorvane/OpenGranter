@@ -1225,3 +1225,7 @@ Explicit SSO management startup now serves existing authorized catalog list/deta
 ## Usage review navigation (#642)
 
 The disconnected usage screen can revisit successfully loaded pages by refetching prior opaque queries through the authorized transport. Only filters are retained; failed operations or identity changes discard navigation. CSV remains scoped to the displayed page. This is not browser-session, installed, or billing reconciliation acceptance. See [plan](plans/642-usage-previous-page.md) and [contract](../contracts/usage-previous-page.md).
+
+## Usage screen restricted build integration (#642)
+
+The existing management browser builder must build the actual usage client and app as self-contained modules. Only three named pure record/attribution modules may cross the management source boundary; server modules, arbitrary packages, symlink escapes and shared-module entry points remain rejected. Bundled record validation preserves unknown costs and strips unexpected fields. This is build integration, not installed session or real-browser acceptance. See [plan](plans/642-usage-public-build.md) and [contract](../contracts/usage-browser-client.md#restricted-public-build-642).
