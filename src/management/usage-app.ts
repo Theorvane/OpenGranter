@@ -11,7 +11,7 @@ export interface UsageElement {
   setAttribute(name: string, value: string): void;
   append(...nodes: UsageElement[]): void;
   replaceChildren(...nodes: UsageElement[]): void;
-  addEventListener(type: string, listener: () => void): void;
+  addEventListener(type: string, listener: (event?: { preventDefault(): void }) => void): void;
   focus(): void;
 }
 export interface UsageAuthorityOptions {
@@ -272,6 +272,15 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
         const download = element('a', 'Download usage.csv');
         download.setAttribute('href', csvUrl);
         download.setAttribute('download', 'usage.csv');
+        const rendered = renderRevision;
+        const url = csvUrl;
+        for (const type of ['click', 'auxclick', 'contextmenu'])
+          download.addEventListener(type, (event) => {
+            // Native anchors have a default action: button guards do not protect it.
+            // Check the trusted deadline even if the expiry timer was suspended.
+            if (disposed || rendered !== renderRevision || url !== csvUrl || expired())
+              event?.preventDefault();
+          });
         main.append(download);
         const note = element(
           'p',
