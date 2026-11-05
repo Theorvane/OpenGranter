@@ -1836,3 +1836,10 @@ The existing management browser builder must build the actual usage client and a
 ## Usage principal query controls (#642)
 
 Reject C0/DEL/C1 in explicit principal filters, preserve ordinary Unicode IDs exactly, and return 400 for signed direct JSON/CSV HTTP requests without usage reads. Require durable invalid-query metadata with no target/mode; an unavailable audit store still yields 503. Local PGlite/HTTP tests do not certify installed or browser behavior.
+
+
+## Usage request controls (#642)
+
+- Refresh on a later page forwards its exact query and retains previous-page navigation only after success. No historical rows are cached.
+- Cancel during list or CSV aborts the client request, clears rows/navigation/downloads, and ignores an abort-insensitive late response. Retry remains possible through existing authority; clear/expiry/denial still disconnects it. Cancellation does not assert server rollback.
+- Evidence: structural DOM tests in test/management-usage-app.test.ts; installed authenticated browser acceptance remains a separate unresolved gate. See [plan](plans/642-usage-request-controls.md).

@@ -1233,3 +1233,8 @@ The existing management browser builder must build the actual usage client and a
 ## Usage principal filter validation (#642)
 
 Usage API filters reject C0/DEL/C1 controls consistently with the browser before policy/storage; invalid-query auditing remains mandatory. Valid Unicode principal IDs are not normalized. See [contract](../contracts/sso-usage-http.md#principal-filter-character-validation-642).
+
+
+## Usage request controls (#642)
+
+Operators can refresh the current usage page without losing opaque-cursor review position, and cancel pending list/CSV requests without stale results or download links reappearing. Reads remain freshly authorized through the supplied transport. No installed session, route or migration activation is implied. See [plan](plans/642-usage-request-controls.md) and [screen contract](../contracts/usage-screen.md).

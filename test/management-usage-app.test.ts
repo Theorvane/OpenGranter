@@ -190,7 +190,7 @@ test('expiry invalidates delayed response; reconnect clears principal data; disp
   let finish: ((response: Response) => void) | undefined;
   let signal: AbortSignal | null | undefined;
   const first = app.connect((_path, init) => {
-    signal = init.signal;
+    signal = init.signal ?? undefined;
     return new Promise((resolve) => {
       finish = resolve;
     });
@@ -449,5 +449,105 @@ test('failed pagination and superseded identity cannot restore navigation or old
   assert.match(root.text(), /No usage records/);
   assert.equal(hasPrevious(), false);
   assert.doesNotMatch(root.text(), /human/);
+  app.dispose();
+});
+
+test('refresh refetches the current opaque page and preserves previous navigation', async () => {
+  const root = new Element();
+  const app = mountManagementUsage(root);
+  const seen: URL[] = [];
+  await app.connect(async (path) => {
+    const url = new URL(path, 'http://localhost');
+    seen.push(url);
+    const second = url.searchParams.has('cursor');
+    return new Response(
+      JSON.stringify({
+        object: 'list',
+        data: [{ ...row, attemptId: second ? 'second' : 'first' }],
+        has_more: !second,
+        next_cursor: second ? null : cursor,
+      }),
+      { headers: { 'content-type': 'application/json' } },
+    );
+  });
+  root.button('Next page').click();
+  await waitFor(() => root.all().some((node) => node.textContent === 'second'));
+  const query = seen.at(-1)?.search;
+  root.button('Refresh current page').click();
+  assert.doesNotMatch(root.text(), /Inspect attempt/u);
+  await waitFor(() => root.all().some((node) => node.textContent === 'second'));
+  assert.equal(seen.at(-1)?.search, query);
+  root.button('Previous page').click();
+  await waitFor(() => root.all().some((node) => node.textContent === 'first'));
+  assert.equal(seen.at(-1)?.searchParams.has('cursor'), false);
+  app.dispose();
+});
+
+test('operator cancellation aborts list and discards late success without disconnecting authority', async () => {
+  const root = new Element();
+  const app = mountManagementUsage(root);
+  let finish: ((response: Response) => void) | undefined;
+  let signal: AbortSignal | undefined;
+  let calls = 0;
+  const connecting = app.connect(async (_path, init) => {
+    calls++;
+    if (calls > 1) return response();
+    signal = init.signal ?? undefined;
+    return new Promise<Response>((resolve) => {
+      finish = resolve;
+    });
+  });
+  assert.match(root.text(), /Loading usage/u);
+  root.button('Cancel request').click();
+  assert.equal(signal?.aborted, true);
+  assert.match(root.text(), /Request cancelled/u);
+  assert.doesNotMatch(root.text(), /Inspect attempt/u);
+  assert.ok(finish);
+  finish(response());
+  await connecting;
+  assert.match(root.text(), /Request cancelled/u);
+  root.button('Retry / first page').click();
+  await waitFor(() => root.text().includes('Inspect attempt'));
+  assert.equal(calls, 2);
+  app.clear('denied');
+  assert.match(root.text(), /Access denied/u);
+  assert.equal(
+    root.all().some((node) => node.textContent === 'Refresh current page'),
+    false,
+  );
+  app.dispose();
+});
+
+test('operator cancellation aborts CSV, removes records and ignores late blob creation', async () => {
+  const root = new Element();
+  const app = mountManagementUsage(root);
+  let finish: ((response: Response) => void) | undefined;
+  let signal: AbortSignal | undefined;
+  await app.connect(async (path, init) => {
+    if (!path.includes('format=csv')) return response();
+    signal = init.signal ?? undefined;
+    return new Promise<Response>((resolve) => {
+      finish = resolve;
+    });
+  });
+  root.button('Export current page CSV').click();
+  assert.match(root.text(), /Preparing CSV/u);
+  root.button('Cancel request').click();
+  assert.equal(signal?.aborted, true);
+  assert.match(root.text(), /Request cancelled/u);
+  assert.ok(finish);
+  finish(
+    new Response('private late csv', {
+      headers: { 'content-type': 'text/csv', 'x-usage-has-more': 'false' },
+    }),
+  );
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.equal(
+    root.all().some((node) => node.tag === 'a' || node.tag === 'details'),
+    false,
+  );
+  assert.doesNotMatch(root.text(), /private late csv|Inspect attempt/u);
+  app.clear('expired');
+  assert.match(root.text(), /Session expired/u);
   app.dispose();
 });
