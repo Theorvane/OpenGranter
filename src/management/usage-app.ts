@@ -2,6 +2,7 @@ import type { CatalogAuthorityGrant } from './catalog-authority.ts';
 import type { CatalogRequest } from './catalog-client.ts';
 import { renderUsageAttemptDetails } from './usage-attempt-details.ts';
 import { createManagementUsageClient, type UsageFilters, type UsagePage } from './usage-client.ts';
+import { formatUsageTime, parseUsageUtcInput, usageUtcInput } from './usage-time.ts';
 
 export interface UsageElement {
   textContent: string | null;
@@ -108,14 +109,24 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
       for (const [key, label, kind] of [
         ['principalId', 'Principal ID', 'text'],
         ['model', 'Model', 'text'],
-        ['fromMs', 'From (epoch milliseconds)', 'number'],
-        ['toMs', 'To (epoch milliseconds, exclusive)', 'number'],
+        ['fromMs', 'From (UTC)', 'datetime-local'],
+        ['toMs', 'To (UTC, exclusive)', 'datetime-local'],
         ['limit', 'Page size (1–100)', 'number'],
       ] as const) {
         const wrapper = element('label', label);
         const input = element('input');
         input.setAttribute('type', kind);
-        input.value = String(filters[key] ?? '');
+        input.value =
+          kind === 'datetime-local'
+            ? filters[key] === undefined
+              ? ''
+              : usageUtcInput(filters[key] as number)
+            : String(filters[key] ?? '');
+        if (kind === 'datetime-local') {
+          input.setAttribute('min', '1970-01-01T00:00');
+          input.setAttribute('max', '9999-12-31T23:59:59.999');
+          input.setAttribute('step', '0.001');
+        }
         if (kind === 'number') {
           input.setAttribute('min', key === 'limit' ? '1' : '0');
           input.setAttribute('step', '1');
@@ -131,7 +142,11 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
           for (const [key, input] of Object.entries(inputs)) {
             const value = (input.value ?? '').trim();
             if (value)
-              next[key] = ['fromMs', 'toMs', 'limit'].includes(key) ? Number(value) : value;
+              next[key] = ['fromMs', 'toMs'].includes(key)
+                ? parseUsageUtcInput(value)
+                : key === 'limit'
+                  ? Number(value)
+                  : value;
           }
           void load(next);
         }),
@@ -157,7 +172,7 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
         table.append(element('caption', 'Usage records — current page'));
         const head = element('tr');
         for (const text of [
-          'Time (epoch ms)',
+          'Time (UTC)',
           'Principal',
           'Model',
           'Outcome',
@@ -180,7 +195,7 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
         for (const record of page.records) {
           const row = element('tr');
           for (const text of [
-            String(record.occurredAt),
+            formatUsageTime(record.occurredAt),
             record.principalId,
             record.modelAlias,
             record.outcome,

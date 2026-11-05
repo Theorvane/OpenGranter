@@ -37,3 +37,7 @@ The existing usage screen offers Export next CSV page only after a successful CS
 ## Explicit review API composition (#642)
 
 The opt-in server-only review handler shares trusted registered-key and SQL configuration across existing catalog and usage handlers without caching identity. Exact GET catalog list/detail and usage JSON/CSV retain original requests and mandatory durable audits. Unknown paths and writes fail closed before SQL. This does not mount a listener or promote candidate schema.
+
+## UTC review controls (#642)
+
+Time filters use explicitly UTC datetime controls with millisecond precision and an exclusive upper bound. Calendar validation rejects impossible dates, pre-epoch input and timezone suffixes before any HTTP request. The existing from_ms/to_ms query and CSV contracts are unchanged; record times display ISO UTC with an epoch fallback outside the supported Date range. Local browser timezone must never shift the selected range. No session or runtime activation.

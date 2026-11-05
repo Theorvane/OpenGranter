@@ -929,8 +929,8 @@ test('loopback HTTP CSV continuation keeps filters; filter changes retire old co
     );
     change('Model', 'team/a&b');
     change('Principal ID', 'human');
-    change('From (epoch milliseconds)', '1');
-    change('To (epoch milliseconds, exclusive)', '99');
+    change('From (UTC)', '1970-01-01T00:00:00.001');
+    change('To (UTC, exclusive)', '1970-01-01T00:00:00.099');
     change('Page size (1–100)', '2');
     root.button('Apply filters').click();
     await waitFor(() => root.text().includes('Export current page CSV'));
@@ -970,4 +970,26 @@ test('loopback HTTP CSV continuation keeps filters; filter changes retire old co
     server.close();
     await once(server, 'close');
   }
+});
+
+test('UTC range controls reject impossible dates before HTTP and clear old records', async () => {
+  const root = new Element();
+  const app = mountManagementUsage(root);
+  let calls = 0;
+  await app.connect(async () => {
+    calls++;
+    return response();
+  });
+  const input = root.all().find((node) => node.tag === 'label' && node.textContent === 'From (UTC)')
+    ?.children[0];
+  assert.ok(input);
+  assert.equal(input.attrs.type, 'datetime-local');
+  assert.equal(input.attrs.step, '0.001');
+  assert.match(root.text(), /1970-01-01T00:00:00.002Z/);
+  input.value = '2023-02-29T00:00';
+  root.button('Apply filters').click();
+  await waitFor(() => root.text().includes('Invalid usage filters'));
+  assert.equal(calls, 1);
+  assert.doesNotMatch(root.text(), /Inspect attempt|<img/);
+  app.dispose();
 });

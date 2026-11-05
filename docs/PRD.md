@@ -1258,3 +1258,7 @@ The existing usage screen offers Export next CSV page only after a successful CS
 ## Scoped review API composition (#642)
 
 The explicit source-only review handler joins catalog metadata and scoped usage JSON/CSV at one trusted Request boundary, preserving fresh SSO/IAM and mandatory per-operation audit. No runtime/session/schema activation. See [plan](plans/642-review-http-composition.md) and [contract](../contracts/usage-screen.md#explicit-review-api-composition-642).
+
+## UTC usage time controls (#642)
+
+Operators can filter usage with UTC calendar inputs and inspect ISO UTC record times instead of converting epoch milliseconds manually. Server query/export semantics remain unchanged. See [plan](plans/642-utc-usage-controls.md) and [contract](../contracts/usage-screen.md#utc-review-controls-642).
