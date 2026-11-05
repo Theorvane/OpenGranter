@@ -221,11 +221,8 @@ test('workspace switches signed SSO HTTP views against shared SQL and durable au
   const { PGlite } = await import('@electric-sql/pglite');
   const { readFile } = await import('node:fs/promises');
   const { createNodeRequestServer } = await import('../src/gateway/node-request-server.ts');
-  const { createPostgresSsoModelCatalogHandler } = await import(
-    '../src/gateway/postgres-sso-model-catalog-http.ts'
-  );
-  const { createPostgresSsoUsageHistoryHandler } = await import(
-    '../src/gateway/postgres-sso-usage-history-http.ts'
+  const { createPostgresSsoReviewHandler } = await import(
+    '../src/gateway/postgres-sso-review-http.ts'
   );
   const { loadPostgresMigrationSources } = await import(
     '../src/storage/postgres-migration-sources.ts'
@@ -239,12 +236,8 @@ test('workspace switches signed SSO HTTP views against shared SQL and durable au
   const sql = { query: (text: string, values: readonly unknown[]) => db.query(text, [...values]) };
   let ids = 0;
   const ports = { ...jwt.config, client: sql, newRequestId: () => `workspace-${++ids}` };
-  const catalog = createPostgresSsoModelCatalogHandler(ports);
-  const usage = createPostgresSsoUsageHistoryHandler(ports);
-  // Explicit isolated test composition. Does not change the owned runtime/manifest.
-  const server = createNodeRequestServer((request) =>
-    new URL(request.url).pathname === '/management/v1/usage' ? usage(request) : catalog(request),
-  );
+  // Explicit production source composition; runtime/manifest remain unchanged.
+  const server = createNodeRequestServer(createPostgresSsoReviewHandler(ports));
   const f = fixture();
   const paths: string[] = [];
   async function until(text: RegExp) {
@@ -317,6 +310,27 @@ test('workspace switches signed SSO HTTP views against shared SQL and durable au
     ]);
     assert.equal((await db.query('SELECT * FROM sso_catalog_audit_events')).rows.length, 2);
     assert.equal((await db.query('SELECT * FROM sso_usage_audit_events')).rows.length, 1);
+    // Same production source handler serves detail/export, not a test router.
+    const review = (path: string, headers: Record<string, string> = {}) =>
+      fetch(`http://127.0.0.1:${address.port}${path}`, {
+        headers: { authorization: `Bearer ${token}`, ...headers },
+      });
+    const detail = await review('/management/v1/models/team%2Fchat');
+    assert.equal(detail.status, 200);
+    assert.match(await detail.text(), /team\/chat/);
+    const csv = await review('/management/v1/usage?format=csv');
+    assert.equal(csv.status, 200);
+    assert.match(csv.headers.get('content-type') ?? '', /text\/csv/);
+    assert.match(await csv.text(), /attempt/);
+    const other = await review('/management/v1/usage?principal_id=other');
+    assert.equal(other.status, 403);
+    assert.doesNotMatch(await other.text(), /attempt|private-upstream/);
+    const cookie = await review('/management/v1/usage', {
+      authorization: '',
+      cookie: 'session=not-authority',
+    });
+    assert.equal(cookie.status, 401);
+    await cookie.text();
     await db.exec('DELETE FROM iam_role_policies');
     f.root.click('Usage history');
     await until(/Access denied/);
@@ -329,9 +343,19 @@ test('workspace switches signed SSO HTTP views against shared SQL and durable au
     );
     assert.deepEqual(
       audits.rows.map((row) => row.outcome),
-      ['ready', 'forbidden'],
+      ['ready', 'ready', 'forbidden', 'unauthenticated', 'forbidden'],
     );
     assert.doesNotMatch(f.root.text(), /private-upstream|Bearer|credential/);
+    // Missing durable audit fails closed independently on each route.
+    await db.exec('DROP TABLE sso_usage_audit_events');
+    const failedUsage = await review('/management/v1/usage');
+    assert.equal(failedUsage.status, 503);
+    assert.equal(failedUsage.headers.get('cache-control'), 'no-store');
+    assert.match(await failedUsage.text(), /audit_unavailable/);
+    await db.exec('DROP TABLE sso_catalog_audit_events');
+    const failedCatalog = await review('/management/v1/models');
+    assert.equal(failedCatalog.status, 503);
+    assert.match(await failedCatalog.text(), /audit_unavailable/);
   } finally {
     f.app.dispose();
     server.closeAllConnections();
