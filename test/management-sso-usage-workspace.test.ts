@@ -239,6 +239,12 @@ test('workspace switches signed SSO HTTP views against shared SQL and durable au
   // Explicit production source composition; runtime/manifest remain unchanged.
   const server = createNodeRequestServer(createPostgresSsoReviewHandler(ports));
   const f = fixture();
+  const originalRevoke = URL.revokeObjectURL;
+  const revoked: string[] = [];
+  URL.revokeObjectURL = (url) => {
+    revoked.push(url);
+    originalRevoke(url);
+  };
   const paths: string[] = [];
   async function until(text: RegExp) {
     for (let n = 0; n < 200 && !text.test(f.root.text()); n++) await settle();
@@ -300,16 +306,25 @@ test('workspace switches signed SSO HTTP views against shared SQL and durable au
     f.root.click('Usage history');
     await until(/human/);
     assert.match(f.root.text(), /Unknown/);
-    f.root.click('Models');
+    f.root.click('Export current page CSV');
+    await until(/Download usage.csv/);
+    f.root.click('Inspect model team/chat');
+    await until(/Model ID/);
+    assert.equal(revoked.length, 1, 'model navigation revokes the CSV download');
+    assert.doesNotMatch(f.root.text(), /Download usage.csv/);
+    assert.doesNotMatch(f.root.text(), /Inspect attempt|private-upstream/);
+    f.root.click('Back to models');
     await until(/Models available/);
     await until(/team\/chat/);
     assert.deepEqual(paths, [
       '/management/v1/models',
       '/management/v1/usage?format=json',
+      '/management/v1/usage?format=csv',
+      '/management/v1/models/team%2Fchat',
       '/management/v1/models',
     ]);
-    assert.equal((await db.query('SELECT * FROM sso_catalog_audit_events')).rows.length, 2);
-    assert.equal((await db.query('SELECT * FROM sso_usage_audit_events')).rows.length, 1);
+    assert.equal((await db.query('SELECT * FROM sso_catalog_audit_events')).rows.length, 3);
+    assert.equal((await db.query('SELECT * FROM sso_usage_audit_events')).rows.length, 2);
     // Same production source handler serves detail/export, not a test router.
     const review = (path: string, headers: Record<string, string> = {}) =>
       fetch(`http://127.0.0.1:${address.port}${path}`, {
@@ -331,19 +346,29 @@ test('workspace switches signed SSO HTTP views against shared SQL and durable au
     });
     assert.equal(cookie.status, 401);
     await cookie.text();
+    f.root.click('Usage history');
+    await until(/Inspect attempt/);
+    const detached = f.root.find('Inspect model team/chat');
+    assert.ok(detached);
     await db.exec('DELETE FROM iam_role_policies');
+    detached.events.click?.();
+    await until(/Model not found/);
+    const beforeDetached = paths.length;
+    detached.events.click?.();
+    await settle();
+    assert.equal(paths.length, beforeDetached, 'disposed usage controls cannot dispatch');
     f.root.click('Usage history');
     await until(/Access denied/);
     f.root.click('Models');
     await settle();
     assert.match(f.root.text(), /Access denied/);
-    assert.equal(paths.length, 4);
+    assert.equal(paths.length, 8);
     const audits = await db.query<{ outcome: string }>(
       'SELECT outcome FROM sso_usage_audit_events ORDER BY event_id',
     );
     assert.deepEqual(
       audits.rows.map((row) => row.outcome),
-      ['ready', 'ready', 'forbidden', 'unauthenticated', 'forbidden'],
+      ['ready', 'ready', 'ready', 'forbidden', 'unauthenticated', 'ready', 'forbidden'],
     );
     assert.doesNotMatch(f.root.text(), /private-upstream|Bearer|credential/);
     // Missing durable audit fails closed independently on each route.
@@ -358,6 +383,7 @@ test('workspace switches signed SSO HTTP views against shared SQL and durable au
     assert.match(await failedCatalog.text(), /audit_unavailable/);
   } finally {
     f.app.dispose();
+    URL.revokeObjectURL = originalRevoke;
     server.closeAllConnections();
     if (server.listening) await new Promise<void>((resolve) => server.close(() => resolve()));
     await db.close();

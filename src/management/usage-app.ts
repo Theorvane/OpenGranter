@@ -15,6 +15,8 @@ export interface UsageElement {
   focus(): void;
 }
 export interface UsageAuthorityOptions {
+  /** Optional trusted workspace navigation, never an authorization decision. */
+  readonly onInspectModel?: (id: string) => void;
   readonly now?: () => number;
   /** Must invoke callbacks asynchronously and return cancellation. */
   readonly schedule?: (delay: number, callback: () => void) => () => void;
@@ -194,7 +196,7 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
         const body = element('tbody');
         for (const record of page.records) {
           const row = element('tr');
-          for (const text of [
+          for (const [index, text] of [
             formatUsageTime(record.occurredAt),
             record.principalId,
             record.modelAlias,
@@ -209,8 +211,20 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
             record.usage.status,
             record.possiblyBilled ? 'Yes' : 'No',
             record.possibleDuplicate ? 'Yes' : 'No',
-          ])
-            row.append(element('td', text));
+          ].entries()) {
+            const cell = element('td', text);
+            if (index === 2 && options.onInspectModel) {
+              const current = revision;
+              cell.replaceChildren(
+                button('Inspect model ' + text, () => {
+                  if (disposed || !client || revision !== current || expired() || state !== 'ready')
+                    return;
+                  options.onInspectModel?.(record.modelAlias);
+                }),
+              );
+            }
+            row.append(cell);
+          }
           const inspection = element('td');
           inspection.append(renderUsageAttemptDetails(root.ownerDocument, record));
           row.append(inspection);

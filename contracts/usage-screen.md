@@ -41,3 +41,7 @@ The opt-in server-only review handler shares trusted registered-key and SQL conf
 ## UTC review controls (#642)
 
 Time filters use explicitly UTC datetime controls with millisecond precision and an exclusive upper bound. Calendar validation rejects impossible dates, pre-epoch input and timezone suffixes before any HTTP request. The existing from_ms/to_ms query and CSV contracts are unchanged; record times display ISO UTC with an epoch fallback outside the supported Date range. Local browser timezone must never shift the selected range. No session or runtime activation.
+
+## Current model inspection from usage (#642)
+
+Within the explicitly mounted trusted workspace, each usage model has a native Inspect model button that disposes the usage view and its downloads and opens current catalog detail through the same fresh SSO/IAM audited transport. The historical alias is only a lookup key, not permission, a route or cached catalog metadata. Revoked or unavailable model access remains hidden as not-found; auth failures still clear workspace authority. Back to models performs a fresh list. Standalone usage mounts have no navigation unless their trusted owner opts in. Detached controls cannot navigate after reload, grant renewal, expiry, clear or disposal. No public entry, session, listener or schema activation is added.

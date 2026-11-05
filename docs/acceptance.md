@@ -1871,3 +1871,10 @@ The existing usage screen offers Export next CSV page only after a successful CS
 - UTC inputs round-trip exact milliseconds independent of the browser timezone; leap-day validation rejects impossible dates before HTTP and clears stale records.
 - Actual loopback HTTP list and CSV retain the same from_ms/to_ms filters and exclusive upper bound. Native browser and installed session acceptance remain separate.
 - See [plan](plans/642-utc-usage-controls.md) and [contract](../contracts/usage-screen.md#utc-review-controls-642).
+
+## Usage model inspection (#642)
+
+- In the trusted workspace, a usage row opens current model detail through the existing signed, audited HTTP API; Back to models performs a fresh list. A historical alias never grants model access.
+- Model permission removal after the usage read produces hidden not-found, without stale detail or upstream data. Fresh usage denial still clears both views.
+- Model navigation revokes completed CSV URLs. Detached controls after reload, renewal, expiry, clear or dispose cannot navigate. Standalone usage has no navigation by default.
+- Loopback HTTP, embedded SQL and structural DOM tests are not installed IdP or native-browser acceptance. Public entry/session/runtime/schema activation remains unchanged.

@@ -34,9 +34,11 @@ export function mountSsoManagementCatalog(
   renderCatalogView(root, authority.snapshot(), actions);
   return {
     /** Never promote UI input to a trusted grant. */
-    async authorize(grant: CatalogAuthorityGrant) {
+    async authorize(grant: CatalogAuthorityGrant, modelId?: string) {
       authority.authorize(grant);
-      await authority.list();
+      navigate = modelId !== undefined;
+      if (modelId !== undefined) await authority.detail(modelId);
+      else await authority.list();
     },
     clear: authority.clear,
     dispose: authority.dispose,

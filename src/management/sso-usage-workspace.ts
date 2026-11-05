@@ -18,7 +18,7 @@ type Cleared = 'unauthenticated' | 'expired' | 'denied';
 export function mountSsoUsageWorkspace(
   root: UsageElement,
   lifecycle: Pick<EventTarget, 'addEventListener' | 'removeEventListener'>,
-  options: UsageAuthorityOptions = {},
+  options: Omit<UsageAuthorityOptions, 'onInspectModel'> = {},
 ) {
   const now = options.now ?? Date.now;
   const schedule =
@@ -31,6 +31,7 @@ export function mountSsoUsageWorkspace(
   let cancelTimer: (() => void) | undefined;
   let generation = 0;
   let view: View = 'models';
+  let modelId: string | undefined;
   let reason: Cleared = 'unauthenticated';
   let active = true;
   let disposed = false;
@@ -42,6 +43,7 @@ export function mountSsoUsageWorkspace(
   function removeAuthority() {
     generation++;
     grant = undefined;
+    modelId = undefined;
     cancelTimer?.();
     cancelTimer = undefined;
   }
@@ -88,6 +90,7 @@ export function mountSsoUsageWorkspace(
       button.addEventListener('click', () => {
         if (!active || disposed) return;
         view = target;
+        modelId = undefined;
         // A suspended timer must not let navigation dispatch with an old grant.
         if (grant && !valid()) return;
         void render();
@@ -99,7 +102,15 @@ export function mountSsoUsageWorkspace(
     const mounted =
       view === 'models'
         ? mountSsoManagementCatalog(content, options)
-        : mountManagementUsage(content, options);
+        : mountManagementUsage(content, {
+            ...options,
+            onInspectModel(id) {
+              if (disposed || !active || app !== mounted || !valid()) return;
+              view = 'models';
+              modelId = id;
+              void render();
+            },
+          });
     app = mounted;
     if (!grant) {
       mounted.clear(reason);
@@ -122,7 +133,7 @@ export function mountSsoUsageWorkspace(
       }
       return response;
     };
-    await mounted.authorize({ request, expiresAt: supplied.expiresAt });
+    await mounted.authorize({ request, expiresAt: supplied.expiresAt }, modelId);
   }
   const hide = () => {
     if (disposed) return;
@@ -154,6 +165,7 @@ export function mountSsoUsageWorkspace(
       grant = { request, expiresAt };
       reason = 'unauthenticated';
       view = 'models';
+      modelId = undefined;
       const current = generation;
       arm(current);
       if (current === generation) await render();
