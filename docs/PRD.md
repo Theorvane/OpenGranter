@@ -1286,3 +1286,10 @@ CSV link activation now rechecks the trusted deadline and render lifetime, inclu
 ## Current-page usage cost coverage (#642)
 
 The existing authorized usage view now shows exact per-currency current-page estimated and provider-reported sums separately, with missing-cost and token-usage coverage and possible-billing/duplicate counts. Missing amounts stay Unknown, duplicates remain included and flagged, and no currency conversion, invoice or all-pages total is inferred. Session, public entry, runtime and schema activation remain unchanged. See [plan](plans/642-usage-page-cost-summary.md) and [contract](../contracts/usage-screen.md).
+
+
+## Model detail to usage drilldown (#642)
+
+- Existing model detail opens existing usage history with the exact published alias; current-page CSV preserves that filter and ordinary navigation resets it.
+- Fresh usage IAM and mandatory audit remain required; catalog visibility grants no usage permission. Detached controls cannot spend renewed/expired authority.
+- Verify structural DOM and actual signed SSO loopback HTTP with embedded SQL separately from installed/native-browser acceptance. No session/runtime/schema activation. See [plan](plans/642-model-usage-drilldown.md) and [contract](../contracts/model-usage-drilldown.md).

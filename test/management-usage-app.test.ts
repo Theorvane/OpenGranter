@@ -1354,3 +1354,48 @@ test('page totals handle decimal carry, maximum ledger amounts and explicit zero
   assert.match(summary(), /Estimated cost coverage: 100 of 100 records/);
   app.dispose();
 });
+
+test('trusted initial model filter survives paging and refresh, validates locally, and resets on renewal', async () => {
+  const root = new Element();
+  const app = mountManagementUsage(root, { now: () => 1 });
+  const alias = 'team/chat+?&=한글';
+  const seen: URLSearchParams[] = [];
+  const grant = {
+    expiresAt: 1000,
+    request: async (path: string) => {
+      const query = new URL('https://local.invalid' + path).searchParams;
+      seen.push(query);
+      return Response.json({
+        object: 'list',
+        data: [{ ...row, modelAlias: alias }],
+        has_more: !query.has('cursor'),
+        next_cursor: query.has('cursor') ? null : cursor,
+      });
+    },
+  };
+  try {
+    await app.authorize(grant, alias);
+    assert.equal(seen[0]?.get('model'), alias);
+    assert.equal(seen[0]?.has('principal_id'), false);
+    root.button('Next page').click();
+    await waitFor(() => root.text().includes('Previous page'));
+    root.button('Refresh current page').click();
+    await waitFor(() => seen.length === 3 && root.text().includes('Previous page'));
+    assert.ok(
+      seen
+        .slice(1)
+        .every((query) => query.get('model') === alias && query.get('cursor') === cursor),
+    );
+    root.button('Previous page').click();
+    await waitFor(() => seen.length === 4 && root.text().includes('Next page'));
+    assert.equal(seen[3]?.has('cursor'), false);
+    assert.equal(seen[3]?.get('model'), alias);
+    await app.authorize(grant, 'bad\nfilter');
+    assert.equal(seen.length, 4, 'invalid initial filters never dispatch');
+    assert.match(root.text(), /Invalid usage filters/);
+    await app.authorize(grant);
+    assert.equal(seen[4]?.has('model'), false);
+  } finally {
+    app.dispose();
+  }
+});
