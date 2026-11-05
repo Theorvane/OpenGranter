@@ -1897,3 +1897,7 @@ The existing usage screen offers Export next CSV page only after a successful CS
 - Retain filter/paging/CSV/refresh/retry controls, renew the grant and click the detached controls: no additional HTTP requests, old principal filters or cursor replay. Fresh controls remain functional.
 - Retain Cancel request from an old loading render, begin a replacement read and click the old control: new read remains pending and completes; current Cancel still aborts it.
 - No session, public entry, schema or installed-runtime activation. Structural DOM and loopback HTTP do not certify native-browser/IdP acceptance. See [plan](plans/642-usage-control-lifetime.md).
+
+## CSV link activation (#642)
+
+Structural cancelable click events must show current downloads are permitted, expired downloads prevent the default action and revoke the URL even without firing timers, and detached links cannot activate after export replacement, authority renewal, clear or disposal. This is not native-browser or installed acceptance. See [plan](plans/642-csv-download-authority.md).

@@ -10,7 +10,7 @@ class Element implements UsageElement {
   value = '';
   children: Element[] = [];
   attrs: Record<string, string> = {};
-  listeners: Record<string, () => void> = {};
+  listeners: Record<string, (event?: { preventDefault(): void }) => void> = {};
   ownerDocument = { createElement: (tag: string) => new Element(tag) };
   readonly tag: string;
   constructor(tag = 'div') {
@@ -25,7 +25,7 @@ class Element implements UsageElement {
   replaceChildren(...nodes: Element[]) {
     this.children = nodes;
   }
-  addEventListener(type: string, listener: () => void) {
+  addEventListener(type: string, listener: (event?: { preventDefault(): void }) => void) {
     this.listeners[type] = listener;
   }
   click() {
@@ -1131,5 +1131,92 @@ test('detached cancel cannot abort a replacement usage request', async () => {
     complete(response());
   } finally {
     app.dispose();
+  }
+});
+
+test('CSV link activation checks trusted deadline even when expiry timer is suspended', async () => {
+  const f = authorityFixture();
+  const revoked: string[] = [];
+  const original = URL.revokeObjectURL;
+  URL.revokeObjectURL = (url) => {
+    revoked.push(url);
+    original(url);
+  };
+  try {
+    await f.app.authorize({
+      expiresAt: 2000,
+      request: async (path) =>
+        path.includes('format=csv')
+          ? new Response('private,csv', {
+              headers: { 'content-type': 'text/csv', 'x-usage-has-more': 'false' },
+            })
+          : response(),
+    });
+    f.root.button('Export current page CSV').click();
+    await waitFor(() => f.root.text().includes('Download usage.csv'));
+    const link = f.root.all().find((node) => node.tag === 'a');
+    assert.ok(link);
+    const url = link.attrs.href;
+    assert.ok(url);
+    const fresh = new Event('click', { cancelable: true });
+    link.listeners.click?.(fresh);
+    assert.equal(fresh.defaultPrevented, false);
+    f.setTime(2000); // Do not fire the scheduled expiry callback.
+    for (const type of ['auxclick', 'click', 'contextmenu']) {
+      const expired = new Event(type, { cancelable: true });
+      link.listeners[type]?.(expired);
+      assert.equal(expired.defaultPrevented, true, type);
+    }
+    assert.match(f.root.text(), /Session expired/);
+    assert.ok(revoked.includes(url));
+    assert.doesNotMatch(f.root.text(), /Download usage.csv/);
+  } finally {
+    f.app.dispose();
+    URL.revokeObjectURL = original;
+  }
+});
+
+test('detached CSV links cannot activate after replacement, renewal, clearing or disposal', async () => {
+  const f = authorityFixture();
+  const grant = {
+    expiresAt: 2000,
+    request: async (path: string) =>
+      path.includes('format=csv')
+        ? new Response('private,csv', {
+            headers: { 'content-type': 'text/csv', 'x-usage-has-more': 'false' },
+          })
+        : response(),
+  };
+  async function exportLink() {
+    f.root.button('Export current page CSV').click();
+    await waitFor(() => f.root.text().includes('Download usage.csv'));
+    const link = f.root.all().find((node) => node.tag === 'a');
+    assert.ok(link);
+    return link;
+  }
+  function blocked(link: Element) {
+    for (const type of ['click', 'auxclick', 'contextmenu']) {
+      const event = new Event(type, { cancelable: true });
+      link.listeners[type]?.(event);
+      assert.equal(event.defaultPrevented, true, type);
+    }
+  }
+  try {
+    await f.app.authorize(grant);
+    const replaced = await exportLink();
+    const renewed = await exportLink();
+    blocked(replaced);
+    await f.app.authorize(grant);
+    blocked(renewed);
+    assert.doesNotMatch(f.root.text(), /Session expired/);
+    const cleared = await exportLink();
+    f.app.clear();
+    blocked(cleared);
+    await f.app.authorize(grant);
+    const disposed = await exportLink();
+    f.app.dispose();
+    blocked(disposed);
+  } finally {
+    f.app.dispose();
   }
 });
