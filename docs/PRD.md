@@ -1238,3 +1238,8 @@ Usage API filters reject C0/DEL/C1 controls consistently with the browser before
 ## Usage request controls (#642)
 
 Operators can refresh the current usage page without losing opaque-cursor review position, and cancel pending list/CSV requests without stale results or download links reappearing. Reads remain freshly authorized through the supplied transport. No installed session, route or migration activation is implied. See [plan](plans/642-usage-request-controls.md) and [screen contract](../contracts/usage-screen.md).
+
+
+## Usage trusted authority deadline (#642)
+
+The existing usage screen accepts a trusted transport/deadline grant and clears private records, filters and downloads automatically on expiry. Read dispatch and completed body consumption enforce expiry even if browser timers are delayed. This is a lifecycle adapter, not a session/login implementation or route/schema activation. See [plan](plans/642-usage-authority-expiry.md) and [screen contract](../contracts/usage-screen.md#trusted-deadline-integration-642).

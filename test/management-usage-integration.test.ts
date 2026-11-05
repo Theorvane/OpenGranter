@@ -6,11 +6,31 @@ import { runInNewContext } from 'node:vm';
 import { PGlite } from '@electric-sql/pglite';
 import { build } from 'esbuild';
 import { createPostgresSsoUsageHistoryServer } from '../src/gateway/postgres-sso-usage-history-http.ts';
+import { mountManagementUsage, type UsageElement } from '../src/management/usage-app.ts';
 import { createManagementUsageClient } from '../src/management/usage-client.ts';
 import { loadPostgresMigrationSources } from '../src/storage/postgres-migration-sources.ts';
 import { createPostgresUsageLedger } from '../src/usage/postgres-ledger.ts';
 import { buildUsageRecord } from '../src/usage/record-usage.ts';
 import { createSsoAccessTokenFixture } from './sso-access-token-fixture.ts';
+
+class Node implements UsageElement {
+  textContent: string | null = null;
+  value = '';
+  children: Node[] = [];
+  ownerDocument = { createElement: (_tag: string) => new Node() };
+  setAttribute(_name: string, _value: string) {}
+  append(...nodes: Node[]) {
+    this.children.push(...nodes);
+  }
+  replaceChildren(...nodes: Node[]) {
+    this.children = nodes;
+  }
+  addEventListener(_type: string, _listener: () => void) {}
+  focus() {}
+  text(): string {
+    return [this.textContent ?? '', ...this.children.map((node) => node.text())].join(' ');
+  }
+}
 
 const record = buildUsageRecord({
   principalId: 'human',
@@ -82,12 +102,41 @@ test('usage client through signed SSO, real HTTP, database, fresh IAM and mandat
       assert.match(csv.data.csv, /attempt/u);
       assert.equal(csv.data.hasMore, false);
     }
+    // Actual mounted app -> signed SSO HTTP -> SQL -> awaited audit.
+    const root = new Node();
+    let time = 1;
+    let expire: (() => void) | undefined;
+    const app = mountManagementUsage(root, {
+      now: () => time,
+      schedule: (_delay, callback) => {
+        expire = callback;
+        return () => {};
+      },
+    });
+    try {
+      await app.authorize({
+        request: (path, init) =>
+          fetch(`http://127.0.0.1:${address.port}${path}`, {
+            ...init,
+            headers: { ...init.headers, authorization: `Bearer ${token}` },
+          }),
+        expiresAt: 2,
+      });
+      assert.match(root.text(), /human/);
+      assert.match(root.text(), /Unknown/);
+      time = 2;
+      expire?.();
+      assert.match(root.text(), /Session expired/);
+      assert.doesNotMatch(root.text(), /human/);
+    } finally {
+      app.dispose();
+    }
     await db.exec('DELETE FROM iam_role_policies');
     assert.deepEqual(await client.list(), { state: 'denied' });
     token = await jwt.token({ exp: Math.floor(Date.now() / 1000) - 3600 });
     assert.deepEqual(await client.list(), { state: 'unauthenticated' });
-    assert.equal(id, 6);
-    assert.equal((await db.query('SELECT * FROM sso_usage_audit_events')).rows.length, 6);
+    assert.equal(id, 7);
+    assert.equal((await db.query('SELECT * FROM sso_usage_audit_events')).rows.length, 7);
     await db.exec('DROP TABLE sso_usage_audit_events');
     assert.deepEqual(await client.list(), { state: 'unavailable' });
   } finally {

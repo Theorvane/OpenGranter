@@ -1,3 +1,4 @@
+import type { CatalogAuthorityGrant } from './catalog-authority.ts';
 import type { CatalogRequest } from './catalog-client.ts';
 import { renderUsageAttemptDetails } from './usage-attempt-details.ts';
 import { createManagementUsageClient, type UsageFilters, type UsagePage } from './usage-client.ts';
@@ -12,11 +13,44 @@ export interface UsageElement {
   addEventListener(type: string, listener: () => void): void;
   focus(): void;
 }
-/** Disconnected by default. Trusted caller supplies authorized transport and MUST
- * clear on logout/expiry/principal or permission change; dispose on unmount.
- * No session creation, token storage, entry mounting or runtime activation here.
+export interface UsageAuthorityOptions {
+  readonly now?: () => number;
+  /** Must invoke callbacks asynchronously and return cancellation. */
+  readonly schedule?: (delay: number, callback: () => void) => () => void;
+}
+/** Disconnected by default. authorize enforces a trusted deadline; low-level connect
+ * requires external expiry clearing. Both require clear on logout/identity/permission
+ * changes and dispose on unmount. No session, token storage or runtime activation.
  */
-export function mountManagementUsage(root: UsageElement) {
+export function mountManagementUsage(root: UsageElement, options: UsageAuthorityOptions = {}) {
+  const now = options.now ?? Date.now;
+  const schedule =
+    options.schedule ??
+    ((delay, callback) => {
+      const timer = setTimeout(callback, delay);
+      return () => clearTimeout(timer);
+    });
+  let expiresAt: number | undefined;
+  let cancelExpiry: (() => void) | undefined;
+  let authorityRevision = 0;
+  function expired() {
+    if (expiresAt === undefined) return false;
+    const time = now();
+    if (!Number.isFinite(time) || time >= expiresAt) {
+      clear('expired');
+      return true;
+    }
+    return false;
+  }
+  function arm(current: number) {
+    if (current !== authorityRevision || disposed || expiresAt === undefined || expired()) return;
+    const delay = Math.max(1, Math.min(2147483647, expiresAt - now()));
+    cancelExpiry = schedule(delay, () => {
+      if (current !== authorityRevision || disposed) return;
+      cancelExpiry = undefined;
+      if (!expired()) arm(current);
+    });
+  }
   let client: ReturnType<typeof createManagementUsageClient> | undefined;
   let revision = 0;
   let disposed = false;
@@ -215,7 +249,7 @@ export function mountManagementUsage(root: UsageElement) {
     if (moveFocus) heading.focus();
   }
   function cancel() {
-    if (disposed || !client || (state !== 'loading' && state !== 'exporting')) return;
+    if (disposed || !client || expired() || (state !== 'loading' && state !== 'exporting')) return;
     ++revision;
     client.invalidate();
     page = undefined;
@@ -225,7 +259,7 @@ export function mountManagementUsage(root: UsageElement) {
     render(true);
   }
   async function load(next: UsageFilters, history: readonly UsageFilters[] = []) {
-    if (!client || disposed) return;
+    if (!client || disposed || expired()) return;
     const current = ++revision;
     revoke();
     filters = { ...next };
@@ -234,7 +268,11 @@ export function mountManagementUsage(root: UsageElement) {
     state = 'loading';
     render();
     const result = await client.list(filters);
-    if (disposed || revision !== current) return;
+    if (disposed || revision !== current || expired()) return;
+    if (result.state === 'unauthenticated' || result.state === 'denied') {
+      clear(result.state);
+      return;
+    }
     state = result.state;
     if (result.state === 'ready') {
       page = result.data;
@@ -243,13 +281,17 @@ export function mountManagementUsage(root: UsageElement) {
     render(true);
   }
   async function exportCsv() {
-    if (!client || disposed || state !== 'ready') return;
+    if (!client || disposed || expired() || state !== 'ready') return;
     const current = ++revision;
     revoke();
     state = 'exporting';
     render();
     const result = await client.csv(filters);
-    if (disposed || revision !== current) return;
+    if (disposed || revision !== current || expired()) return;
+    if (result.state === 'unauthenticated' || result.state === 'denied') {
+      clear(result.state);
+      return;
+    }
     if (result.state === 'ready') {
       csvUrl = URL.createObjectURL(new Blob([result.data.csv], { type: 'text/csv;charset=utf-8' }));
       csvMore = result.data.hasMore;
@@ -262,6 +304,10 @@ export function mountManagementUsage(root: UsageElement) {
     render(true);
   }
   function clear(reason: 'unauthenticated' | 'expired' | 'denied' = 'unauthenticated') {
+    ++authorityRevision;
+    cancelExpiry?.();
+    cancelExpiry = undefined;
+    expiresAt = undefined;
     ++revision;
     client?.invalidate();
     client = undefined;
@@ -274,6 +320,25 @@ export function mountManagementUsage(root: UsageElement) {
   }
   render();
   return {
+    /** Trusted session integration. Deadline is not authentication or an IAM grant. */
+    async authorize(grant: CatalogAuthorityGrant) {
+      if (disposed) return;
+      clear();
+      const time = now();
+      if (
+        !Number.isSafeInteger(grant.expiresAt) ||
+        !Number.isFinite(time) ||
+        grant.expiresAt <= time
+      ) {
+        clear('expired');
+        return;
+      }
+      expiresAt = grant.expiresAt;
+      client = createManagementUsageClient(grant.request);
+      arm(authorityRevision);
+      await load({});
+    },
+    /** Low-level port: caller must supply and clear its own lifecycle. */
     async connect(request: CatalogRequest) {
       if (disposed) return;
       clear();
