@@ -60,10 +60,12 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
   let state = 'unauthenticated';
   let csvUrl: string | undefined;
   let csvMore = false;
+  let csvNext: UsageFilters | undefined;
   function revoke() {
     if (csvUrl) URL.revokeObjectURL(csvUrl);
     csvUrl = undefined;
     csvMore = false;
+    csvNext = undefined;
   }
   const element = (tag: string, text?: string) => {
     const node = root.ownerDocument.createElement(tag);
@@ -243,6 +245,15 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
         );
         note.setAttribute('role', 'status');
         main.append(note);
+        if (csvNext) {
+          // Capture only this returned page cursor; detached controls cannot replay it.
+          const next = csvNext;
+          main.append(
+            button('Export next CSV page', () => {
+              if (csvNext === next) void exportCsv(next);
+            }),
+          );
+        }
       }
     }
     root.replaceChildren(main);
@@ -280,13 +291,13 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
     }
     render(true);
   }
-  async function exportCsv() {
+  async function exportCsv(exportFilters: UsageFilters = filters) {
     if (!client || disposed || expired() || state !== 'ready') return;
     const current = ++revision;
     revoke();
     state = 'exporting';
     render();
-    const result = await client.csv(filters);
+    const result = await client.csv(exportFilters);
     if (disposed || revision !== current || expired()) return;
     if (result.state === 'unauthenticated' || result.state === 'denied') {
       clear(result.state);
@@ -295,6 +306,10 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
     if (result.state === 'ready') {
       csvUrl = URL.createObjectURL(new Blob([result.data.csv], { type: 'text/csv;charset=utf-8' }));
       csvMore = result.data.hasMore;
+      csvNext =
+        result.data.hasMore && result.data.nextCursor !== null
+          ? { ...exportFilters, cursor: result.data.nextCursor }
+          : undefined;
       state = 'ready';
     } else {
       page = undefined;
