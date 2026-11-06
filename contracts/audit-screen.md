@@ -26,3 +26,7 @@ CSV is the existing server-projected page export and uses `x-has-more` / `x-next
 ## Supported audit browser artifact (#642)
 
 Audit client and screen must build through the supported management browser builder, not unrestricted esbuild. Shared pure projection/query validation preserves the server contract and error identity. Exact canonical dependency allowlisting excludes SQL adapters and runtime modules. Structural-DOM execution of that artifact is not native-browser or installed acceptance. See [plan](../docs/plans/642-audit-browser-build.md).
+
+## Current-page request correlation (#642)
+
+The ready nonempty audit page also provides native expandable request traces. Groups use exact principal plus request ID (not request ID alone), first-seen group order and unchanged server event order. All events, including repeated entries and bigint event IDs, remain visible. Counts refer only to this page; they are not full request history, billing, causality, inferred execution order or success. Each event shows UTC time, kind and the same text-only projected credential/policy/details used in the table. Expansion makes no request. No automatic history fetch, client deduplication, cross-page cache or authority is introduced. Trace nodes are owned by the current ready page and removed with it on all existing lifecycle transitions. This does not authorize SSO workspace integration. See [plan](../docs/plans/642-audit-request-trace.md).

@@ -167,6 +167,7 @@ for (const compiled of [false, true]) {
       requestId: 'OTHER_PRIVATE_REQUEST',
       count: 1,
     });
+    await writer.append({ ...event, kind: 'models-listed', count: 2 });
     const audit: unknown[] = [];
     const queries: unknown[] = [];
     let deny = false;
@@ -247,6 +248,12 @@ for (const compiled of [false, true]) {
         ).rows.length,
         1,
       );
+      const trace = root
+        .all()
+        .find((node) => node.attrs['aria-label'] === 'Current page audit request correlation');
+      assert.ok(trace);
+      assert.match(trace.text(), /Events on this page: 2/);
+      assert.doesNotMatch(trace.text(), /OTHER_PRIVATE_REQUEST|PRIVATE/);
       assert.equal(queries.length, 1);
       assert.equal(audit.length, 1);
       root.button('Export current page CSV').click();
@@ -259,7 +266,7 @@ for (const compiled of [false, true]) {
       deny = true;
       root.button('Refresh current page').click();
       await until(() => root.text().includes('Access denied'));
-      assert.doesNotMatch(root.text(), /credential-1/);
+      assert.doesNotMatch(root.text(), /credential-1|Request correlation/);
       assert.equal(queries.length, 2);
       deny = false;
       failedAudit = true;

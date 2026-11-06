@@ -1325,3 +1325,7 @@ Implement the missing audit list/detail/filter/paging and explicit page-CSV scre
 ## Supported audit browser artifact (#642)
 
 Audit client and screen must build through the supported management browser builder, not unrestricted esbuild. Shared pure projection/query validation preserves the server contract and error identity. Exact canonical dependency allowlisting excludes SQL adapters and runtime modules. Structural-DOM execution of that artifact is not native-browser or installed acceptance. See [plan](plans/642-audit-browser-build.md).
+
+## Current-page audit request trace (#642)
+
+The disconnected audit screen provides expandable current-page request/event correlation from authorized metadata, preserving principal isolation, returned order and repeats without inferring complete execution history. No extra read, SSO activation or retention is introduced. See [plan](plans/642-audit-request-trace.md) and [contract](../contracts/audit-screen.md#current-page-request-correlation-642).

@@ -1958,3 +1958,10 @@ Structural cancelable click events must show current downloads are permitted, ex
 ## Supported audit browser artifact (#642)
 
 Audit client and screen must build through the supported management browser builder, not unrestricted esbuild. Shared pure projection/query validation preserves the server contract and error identity. Exact canonical dependency allowlisting excludes SQL adapters and runtime modules. Structural-DOM execution of that artifact is not native-browser or installed acceptance. See [plan](plans/642-audit-browser-build.md).
+
+## Current-page audit request trace (#642)
+
+- Source and supported artifact mount actual request traces from the client-projected page; expanding groups performs no additional read.
+- Exact compound principal/request grouping handles delimiter collisions and shared request IDs without mixing identities; preserves bigint event IDs, repeated events and server order. HTML-like identifiers render only as text.
+- Trace is absent on empty/loading/error pages and removed across pagination, renewal, denial, expiry, clear and unmount.
+- Existing real loopback HTTP + embedded SQL tests verify multi-event grouping, other-principal isolation, acknowledged audit reads, CSV, Deny and failed audit in source and supported artifact. This is structural DOM, not native-browser/installed/provider acceptance.
