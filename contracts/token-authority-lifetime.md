@@ -12,3 +12,7 @@
 ## Evidence and limits
 
 Source and the actual supported browser bundle test valid issue/revoke, snapshotted authority, expired/invalid clocks, timer suspension, early timer rearm, in-flight logout/expiry, late secret suppression, denial and uncertain-outcome locking. The authority and underlying transport also run against actual loopback SSO HTTP with signed JWT and migrated embedded SQL: issue/verify/revoke, current-policy Deny and terminal host notification, a committed issue whose secret is suppressed at expiry, mandatory-audit failure without credential creation, and the uncertain-outcome dispatch lock. This is ephemeral local API evidence, not a browser-acquired session or installed PostgreSQL. No native-browser login, installed SQL, provider call, deployment or production success is asserted. Frontend screen integration and the approved session/BFF/IdP/CSRF contract remain open.
+
+## Shared catalog screen teardown correction (#639)
+
+The existing proxy/SSO catalog authority now treats throwing or negative clocks as expired, rejects negative epoch grants, clears protected snapshots and prevents further reads. Timer cancellation exceptions cannot prevent session abort or the host clearing notification. The clock is rechecked while arming expiry as well as before reads and publication. This changes the existing screen authority, not DOM ownership, session acquisition or runtime activation. Source and supported browser artifacts cover displayed-data clearing, invalid initial clocks/grants and in-flight logout with throwing cleanup.

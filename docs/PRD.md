@@ -1342,3 +1342,8 @@ The browser token mutation adapter binds one snapshotted trusted request/expiry 
 ### Token authority host invalidation integration (#640)
 
 The optional trusted token authority invalidation observer lets the owning UI clear an already displayed one-time secret on expiry, logout/disposal or authentication/authorization denial. Observer errors cannot prevent abort. Source and supported browser artifacts pass signed-JWT loopback HTTP with migrated embedded SQL for lifecycle, current IAM, committed-but-expired unknown outcomes and fail-closed mandatory audit. This does not deliver browser session acquisition, installed SQL or a credential screen. See contracts/token-authority-lifetime.md.
+
+
+### Catalog screen fail-closed lifetime correction (#639)
+
+Existing catalog screen authority must clear protected model data when its trusted clock throws or becomes negative. Timer cleanup failures must not block logout abort or clearing. Preserve current SSO/IAM and no-runtime-activation boundaries. See [contract](../contracts/token-authority-lifetime.md#shared-catalog-screen-teardown-correction-639).

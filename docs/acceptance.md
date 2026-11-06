@@ -1982,3 +1982,8 @@ Source and supported browser artifact must prevent expired/disposed dispatch, re
 - Source and supported browser artifact notify once to clear host-held one-time secrets at expiry; observer errors cannot prevent pending abort or reopen disposed authority.
 - Actual ephemeral loopback HTTP plus signed JWT and migrated embedded SQL issue/verify/revoke, enforce changed Deny with terminal notification, suppress secret for a committed issue completed after expiry, and reject mutation on missing mandatory audit. Unknown outcome blocks subsequent dispatch; local expiry does not certify rollback.
 - Native-browser login/UI integration, approved session contract, installed PostgreSQL and deployment remain independent incomplete gates.
+
+
+## Catalog clock and logout teardown (#639)
+
+Both existing catalog authority factories, from source and the supported browser artifact, must expire and clear a previously returned private model list on throwing/negative clock; reject invalid initial clock/negative epoch grants without dispatch; and abort pending reads/notify unauthenticated even when timer cancellation throws. Structural/source evidence is not native browser login, installed SQL or deployment acceptance.
