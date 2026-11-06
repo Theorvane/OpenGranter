@@ -47,7 +47,7 @@ class Element implements UsageElement {
 }
 
 const row = buildUsageRecord({
-  principalId: 'human',
+  principalId: '<img src=x>&principal_id=other',
   credentialId: 'reference',
   policyVersions: [],
   requestId: 'request',
@@ -76,9 +76,11 @@ async function settled(check: () => boolean) {
   }
   assert.ok(check(), 'UI settled');
 }
-for (const artifact of [false, true]) {
+for (const { dimension, artifact } of (['model', 'principal'] as const).flatMap((dimension) =>
+  [false, true].map((artifact) => ({ dimension, artifact })),
+)) {
   test(
-    'model API drilldown and authority guards: ' + (artifact ? 'artifact' : 'source'),
+    dimension + ' API drilldown and authority guards: ' + (artifact ? 'artifact' : 'source'),
     async () => {
       const mount = artifact
         ? ((
@@ -115,9 +117,15 @@ for (const artifact of [false, true]) {
               'x-usage-next-cursor': 'csvOpaque',
             },
           });
-        return reply(!query.has('model'));
+        return reply(!query.has(dimension === 'model' ? 'model' : 'principal_id'));
       };
-      const filter = () => root.button('Filter usage for model ' + row.modelAlias);
+      const filter = () =>
+        root.button(
+          'Filter usage for ' +
+            dimension +
+            ' ' +
+            (dimension === 'model' ? row.modelAlias : row.principalId),
+        );
       try {
         await app.authorize({ request, expiresAt: 100 });
         const inputs = root.all().filter((n) => n.tag === 'input');
@@ -126,7 +134,11 @@ for (const artifact of [false, true]) {
         assert.ok(inputs[2]);
         assert.ok(inputs[3]);
         assert.ok(inputs[4]);
-        inputs[0].value = 'human';
+        if (dimension === 'model') inputs[0].value = 'human';
+        else {
+          assert.ok(inputs[1]);
+          inputs[1].value = 'submitted-model';
+        }
         inputs[2].value = '1970-01-01T00:00:00.001';
         inputs[3].value = '1970-01-01T00:00:00.010';
         inputs[4].value = '7';
@@ -164,8 +176,14 @@ for (const artifact of [false, true]) {
         assert.equal(seen.length, count);
         const query = seen.at(-1);
         assert.ok(query);
-        assert.equal(query.get('model'), row.modelAlias);
-        assert.equal(query.get('principal_id'), 'human');
+        assert.equal(
+          query.get('model'),
+          dimension === 'model' ? row.modelAlias : 'submitted-model',
+        );
+        assert.equal(
+          query.get('principal_id'),
+          dimension === 'principal' ? row.principalId : 'human',
+        );
         assert.equal(query.get('from_ms'), '1');
         assert.equal(query.get('to_ms'), '10');
         assert.equal(query.get('limit'), '7');
@@ -175,7 +193,10 @@ for (const artifact of [false, true]) {
         pending(reply());
         await settled(() => root.text().includes('Usage records — current page'));
         assert.doesNotMatch(root.text(), /Previous page/);
-        assert.equal(root.all().filter((n) => n.tag === 'input')[1]?.value, row.modelAlias);
+        assert.equal(
+          root.all().filter((n) => n.tag === 'input')[dimension === 'model' ? 1 : 0]?.value,
+          dimension === 'model' ? row.modelAlias : row.principalId,
+        );
         assert.equal(
           root.all().some((n) => n.tag === 'img'),
           false,

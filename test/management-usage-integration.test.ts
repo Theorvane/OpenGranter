@@ -152,6 +152,53 @@ test('usage client through signed SSO, real HTTP, database, fresh IAM and mandat
       assert.equal(appQueries[1]?.get('model'), 'chat');
       assert.equal(appQueries[1]?.has('principal_id'), false);
       assert.equal(appQueries[1]?.has('cursor'), false);
+      const principalFilter = () =>
+        root.all().find((node) => node.textContent === 'Filter usage for principal human');
+      const selfOnly = principalFilter();
+      assert.ok(selfOnly);
+      selfOnly.listeners.click?.();
+      assert.match(root.text(), /Loading usage/);
+      for (let i = 0; i < 100 && !root.text().includes('Access denied'); i++)
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      // Explicit principal selection requires ReadAll even for self. No downgrade.
+      assert.match(root.text(), /Access denied/);
+      assert.equal(appQueries.length, 3);
+      assert.equal(appQueries[2]?.get('principal_id'), 'human');
+      assert.equal(appQueries[2]?.get('model'), 'chat');
+      const deniedAudits = await db.query<{ outcome: string; record_count: number }>(
+        "SELECT outcome, record_count FROM sso_usage_audit_events WHERE outcome = 'forbidden'",
+      );
+      assert.ok(deniedAudits.rows.some((row) => row.record_count === 0));
+      // Test-only policy transition through the real fresh IAM reader.
+      await db.query('UPDATE iam_policies SET statements = $1 WHERE policy_id = $2', [
+        JSON.stringify([
+          {
+            effect: 'Allow',
+            actions: ['usage:ReadSelf', 'usage:ReadAll'],
+            resources: ['principal:human'],
+          },
+        ]),
+        'p',
+      ]);
+      await app.authorize({
+        request: (path, init) => {
+          appQueries.push(new URL(path, 'http://local').searchParams);
+          return fetch('http://127.0.0.1:' + address.port + path, {
+            ...init,
+            headers: { ...init.headers, authorization: 'Bearer ' + token },
+          });
+        },
+        expiresAt: 2,
+      });
+      const allowed = principalFilter();
+      assert.ok(allowed);
+      allowed.listeners.click?.();
+      for (let i = 0; i < 100 && !root.text().includes('Usage records — current page'); i++)
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      assert.match(root.text(), /Usage records — current page/);
+      assert.equal(appQueries.length, 5);
+      assert.equal(appQueries[4]?.get('principal_id'), 'human');
+      assert.equal(appQueries[4]?.has('cursor'), false);
       time = 2;
       expire?.();
       assert.match(root.text(), /Session expired/);
@@ -163,8 +210,8 @@ test('usage client through signed SSO, real HTTP, database, fresh IAM and mandat
     assert.deepEqual(await client.list(), { state: 'denied' });
     token = await jwt.token({ exp: Math.floor(Date.now() / 1000) - 3600 });
     assert.deepEqual(await client.list(), { state: 'unauthenticated' });
-    assert.equal(id, 8);
-    assert.equal((await db.query('SELECT * FROM sso_usage_audit_events')).rows.length, 8);
+    assert.equal(id, 11);
+    assert.equal((await db.query('SELECT * FROM sso_usage_audit_events')).rows.length, 11);
     await db.exec('DROP TABLE sso_usage_audit_events');
     assert.deepEqual(await client.list(), { state: 'unavailable' });
   } finally {

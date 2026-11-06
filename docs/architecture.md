@@ -1422,3 +1422,7 @@ Explicit strict:false Gemini schema transport additionally permits ASCII digits 
 ## Codex operator OAuth first slice (#635)
 
 The operator command adds isolated official-CLI device login, status and logout only. It does not register a subscription-backed inference provider, change OpenRouter/OpenAI-compatible APIs, or bypass IAM, limits, audit or usage. Success does not establish model entitlement or live acceptance. A separate app-server/Responses adapter and authenticated streaming/tool-call E2E remain pending. See the [operator guide](guides/codex-oauth.md), [contract](../contracts/codex-oauth.md), and [plan](plans/635-codex-device-oauth.md).
+
+## Principal usage row actions (#642)
+
+The usage screen reuses its render-owned guarded button and existing usage client for exact principal filtering. Server ReadAll and mandatory audit remain authoritative even for explicit self filters; no principal-directory or session capability is introduced. See [contract](../contracts/principal-usage-drilldown.md).

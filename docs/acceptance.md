@@ -2042,3 +2042,7 @@ Usage and audit screens now submit existing filters through semantic forms and E
 - Expiry-triggered renewal during issue or revoke validation returns disposed for that stale action, never the invalid mutation result ready. No request is dispatched and no reconciliation is fabricated.
 - Clock-triggered replacement cannot retarget a stale issue to a new grant. The next explicit action succeeds using that grant; existing uncertain-outcome locks remain unchanged.
 - Exercise source and supported browser artifact separately from native browser/session and installed PostgreSQL acceptance. See [contract](../contracts/token-authority-lifetime.md#mutation-entry-ownership).
+
+## Principal usage drilldown (#642)
+
+A usage row principal action requests the exact selected principal while retaining submitted model/UTC/size filters, clearing cursor/history/drafts/CSV continuation. Unsafe text remains inert and encoded once. Detached, expired or disposed actions cannot read; late responses cannot restore cleared data. Verify actual ReadSelf-only denial (including explicit self selection) and scoped ReadAll success through signed SSO HTTP with mandatory audit; never retry with weaker scope. See [contract](../contracts/principal-usage-drilldown.md). Native browser/session and installed acceptance remain separate.
