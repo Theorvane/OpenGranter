@@ -1454,3 +1454,7 @@ The trusted source workspace can open usage from a projected audit event using e
 ## Reverse usage/audit review navigation (#642)
 
 Usage rows expose an optional guarded exact principal/request callback; the trusted workspace disposes usage state and mounts fresh audit review with cursorless submitted bounds. Audit initial hints are snapshotted and validated by the existing client. No data or permission cache crosses views. Source composition does not adapt authentication: /v1/audit still uses proxy auth, and SSO workspace HTTP has no audit route. Approved adapter/contract integration is mandatory before installation. See [contract](../contracts/usage-audit-navigation.md).
+
+## Local token revocation review (#640)
+
+The token DOM screen owns a transient exact-ID confirmation snapshot only; workspace/client/server contracts are unchanged. No authorization or existence assertion is cached by review. Every workspace notification invalidates it; render revision/current readiness guard actions and consume the review before dispatch. Server fresh IAM and atomic mandatory audit remain authoritative. No BFF/session/runtime/DDL or provider change. See [contract](../contracts/token-revoke-confirmation.md).

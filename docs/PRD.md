@@ -1417,3 +1417,7 @@ The trusted source workspace can open usage from a projected audit event using e
 ## Usage-to-audit review navigation (#642)
 
 The trusted source workspace can inspect audit metadata for an exact usage-row principal/request pair, retaining submitted model/UTC/page-size bounds and discarding draft/cursor/export state. Audit authorization remains independent; never broaden on denial. See [plan](plans/642-usage-audit-navigation.md) and [contract](../contracts/usage-audit-navigation.md). The proxy-authenticated audit API is not mounted by the SSO workspace server; approved integration remains a release gate. No installed session/browser or live acceptance is established.
+
+## Explicit token revocation review (#640)
+
+The credential screen now reviews the exact submitted credential ID before a separate confirm action sends the existing revoke POST. Cancel is request-free; edits cannot retarget confirmation. Issue action, workspace notification, authority replacement, expiry, logout and unmount invalidate review. Current server IAM, required transaction/audit and unknown-outcome lock remain authoritative. See [plan](plans/640-revoke-confirmation.md) and [contract](../contracts/token-revoke-confirmation.md). No session/runtime activation or installed/native-browser acceptance is claimed.

@@ -9,6 +9,7 @@ const messages: Readonly<Record<string, string>> = {
   invalid_input:
     'Enter a principal and an integer expiry (epoch milliseconds), or a credential ID.',
   invalid_request: 'The server rejected the request.',
+  invalid_credential: 'Enter a credential ID to review revocation.',
   unauthenticated: 'Authentication required.',
   denied: 'Access denied.',
   outcome_unknown: 'Reconciliation required. The operation may have committed. Do not retry.',
@@ -29,6 +30,7 @@ export function mountManagementTokens(root: UsageElement, workspace: Workspace) 
   let principal = '';
   let expiry = '';
   let credential = '';
+  let pendingRevocation: string | undefined;
   const element = (tag: string, text?: string) => {
     const node = root.ownerDocument.createElement(tag);
     if (text !== undefined) node.textContent = text;
@@ -118,6 +120,7 @@ export function mountManagementTokens(root: UsageElement, workspace: Workspace) 
       render();
     };
     submit(issue, 'Issue token', () => {
+      pendingRevocation = undefined;
       principal = principalInput.value ?? '';
       expiry = expiryInput.value ?? '';
       if (!principal || !/^\d+$/u.test(expiry) || !Number.isSafeInteger(Number(expiry))) {
@@ -137,10 +140,43 @@ export function mountManagementTokens(root: UsageElement, workspace: Workspace) 
     const credentialInput = input(revoke, 'credentialId', 'Credential ID', credential);
     submit(revoke, 'Revoke token', () => {
       credential = credentialInput.value ?? '';
-      outcome = '';
-      void complete(snapshot.authorityRevision, workspace.revoke({ credentialId: credential }));
+      pendingRevocation = credential || undefined;
+      outcome = credential ? '' : 'invalid_credential';
+      render();
     });
     section.append(revoke);
+    if (pendingRevocation !== undefined && state === 'ready') {
+      // Capture the reviewed ID, not a mutable form input or later authority.
+      const target = pendingRevocation;
+      const review = element('section');
+      review.setAttribute('aria-label', 'Confirm token revocation');
+      review.append(
+        element('h3', 'Review token revocation'),
+        element('p', 'Credential ID to revoke: ' + target),
+        element(
+          'p',
+          'This will request revocation. Existence, ownership and permission are checked by the server, not this review.',
+        ),
+      );
+      const confirm = element('button', 'Confirm revocation');
+      confirm.setAttribute('type', 'button');
+      confirm.addEventListener('click', () => {
+        if (!allowed() || pendingRevocation !== target) return;
+        pendingRevocation = undefined;
+        outcome = '';
+        void complete(snapshot.authorityRevision, workspace.revoke({ credentialId: target }));
+      });
+      const cancel = element('button', 'Cancel revocation');
+      cancel.setAttribute('type', 'button');
+      cancel.addEventListener('click', () => {
+        if (!allowed() || pendingRevocation !== target) return;
+        pendingRevocation = undefined;
+        outcome = '';
+        render();
+      });
+      review.append(confirm, cancel);
+      section.append(review);
+    }
     if (snapshot.secret) {
       section.append(element('p', 'Credential ID: ' + snapshot.secret.credentialId));
       const secret = element('pre', snapshot.secret.token);
@@ -160,6 +196,7 @@ export function mountManagementTokens(root: UsageElement, workspace: Workspace) 
   }
   let authorityRevision = workspace.snapshot().authorityRevision;
   const unsubscribe = workspace.subscribe(() => {
+    pendingRevocation = undefined;
     const current = workspace.snapshot();
     if (current.authorityRevision !== authorityRevision || current.state !== 'ready') {
       principal = '';
@@ -175,6 +212,7 @@ export function mountManagementTokens(root: UsageElement, workspace: Workspace) 
     dispose() {
       if (disposed) return;
       disposed = true;
+      pendingRevocation = undefined;
       ++revision;
       unsubscribe();
       workspace.hideSecret();

@@ -2074,3 +2074,7 @@ The trusted source workspace can open usage from a projected audit event using e
 ## Usage-to-audit navigation (#642)
 
 Source and public-bundle DOM tests must preserve exact principal/request and submitted bounds, cursor/draft reset, CSV scope, ordinary navigation/renewal reset and denial without broad fallback. Detached/hidden/expired/cleared/disposed actions dispatch nothing; initial audit hints are snapshotted/cursorless and invalid hints fail locally. Existing actual HTTP audit tests separately verify target IAM, redaction and fail-closed required audit. This is not installed SSO acceptance: /v1/audit proxy authority cannot be inferred from SSO review authority.
+
+## Token revocation review (#640)
+
+Source and supported bundle structural DOM must show exact ID as text, zero requests before confirm/cancel, exact captured-target dispatch and at-most-once actions. Old controls cannot survive replaced reviews, issue, notification, renewal, logout, expiry or unmount. Signed test-JWT loopback HTTP plus migrated local PGlite must prove cancel has no decision/mutation, edited ID cannot retarget, confirmed revoke invalidates the credential, and a policy Deny committed after review blocks revoke with current-version mandatory decision audit. This does not certify native-browser login, installed PostgreSQL or deployment. [Plan](plans/640-revoke-confirmation.md), [contract](../contracts/token-revoke-confirmation.md).
