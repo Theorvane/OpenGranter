@@ -666,3 +666,100 @@ for (const state of ['consumed', 'locked'] as const) {
     }
   });
 }
+
+async function promptly<T>(promise: Promise<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(
+          () => reject(Error('known rejection blocked on body cancellation')),
+          250,
+        );
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+for (const operation of ['issue', 'revoke'] as const) {
+  for (const reason of ['oversize', 'utf8', 'abort'] as const) {
+    for (const cleanup of ['pending', 'rejects'] as const) {
+      test(`${operation} ${reason} rejects promptly with ${cleanup} body cleanup`, async () => {
+        const f = fixture();
+        const abort = new AbortController();
+        let cancelCalls = 0;
+        let started!: () => void;
+        const reading = new Promise<void>((resolve) => {
+          started = resolve;
+        });
+        let finish!: () => void;
+        const cancellation = new Promise<void>((resolve) => {
+          finish = resolve;
+        });
+        const stream = new ReadableStream<Uint8Array>(
+          {
+            pull(controller) {
+              started();
+              if (reason !== 'abort')
+                controller.enqueue(
+                  reason === 'oversize' ? new Uint8Array(16385) : new Uint8Array([0xc3, 0x28]),
+                );
+            },
+            cancel() {
+              cancelCalls++;
+              return cleanup === 'pending'
+                ? cancellation
+                : Promise.reject(Error('private-cleanup'));
+            },
+          },
+          { highWaterMark: 0 },
+        );
+        const req = new Request(`http://localhost${paths[operation]}`, {
+          method: 'POST',
+          headers: { authorization: 'Bearer opaque-SSO-token', 'content-type': 'application/json' },
+          body: stream,
+          signal: abort.signal,
+          duplex: 'half',
+        } as RequestInit);
+        const pending = f.handler(req);
+        await reading;
+        if (reason === 'abort') abort.abort();
+        try {
+          await checkError(await promptly(pending), 400, 'invalid_request');
+          assert.equal(stream.locked, false);
+          assert.equal(cancelCalls, 1);
+          assert.deepEqual(f.calls, ['authenticate']);
+          assert.deepEqual(f.inputs, []);
+        } finally {
+          finish();
+          await pending;
+        }
+      });
+    }
+  }
+  test(`${operation} complete valid body is not cancelled`, async () => {
+    let cancellations = 0;
+    const f = fixture();
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(JSON.stringify(bodies[operation])));
+        controller.close();
+      },
+      cancel() {
+        cancellations++;
+      },
+    });
+    const req = new Request(`http://localhost${paths[operation]}`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer opaque-SSO-token', 'content-type': 'application/json' },
+      body: stream,
+      duplex: 'half',
+    } as RequestInit);
+    assert.equal((await f.handler(req)).status, operation === 'issue' ? 201 : 200);
+    assert.equal(cancellations, 0);
+    assert.equal(stream.locked, false);
+    assert.deepEqual(f.calls, ['authenticate', operation]);
+  });
+}

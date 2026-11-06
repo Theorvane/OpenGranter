@@ -2090,3 +2090,8 @@ Source and supported bundle structural DOM must show exact ID as text, zero requ
 ## Credential issuance review (#640)
 
 Source and supported-bundle DOM cases require zero dispatch before confirmation/cancel, text-only exact principal and UTC preview, date validation, captured target despite edits, single dispatch and stale/lifecycle invalidation. Signed test-JWT loopback HTTP with migrated PGlite must prove review/cancel create neither credentials nor decisions; confirm issues for the reviewed target; current server Deny committed after review prevents issuance and durably records denied decision/current policy version. These are not live company SSO, native-browser or installed PostgreSQL acceptance. See [plan](plans/640-issue-confirmation.md) and [contract](../contracts/token-issue-confirmation.md).
+
+
+## Credential upload rejection cleanup (#640)
+
+Existing issue/revoke handlers complete a known invalid-body rejection without awaiting underlying stream cancellation. Oversized/invalid UTF-8/aborted uploads cannot dispatch mutation; cleanup is best-effort and observed, with reader locks released. No new upload deadline, session, runtime, route or schema. See [plan](plans/640-management-body-cleanup.md) and [contract](../contracts/management-body-cleanup.md). Public-handler regressions and registered test-JWT/PGlite composition are separate from actual loopback HTTP current-IAM checks and from native-browser/installed PostgreSQL acceptance.

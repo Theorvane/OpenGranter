@@ -1058,3 +1058,112 @@ test('existing management host navigation issues and revokes credentials through
     }
   }
 });
+
+test('registered SSO rejects pending upload cleanup without mutation then enforces fresh SQL IAM over HTTP', async () => {
+  const f = await fixture();
+  const server = createPostgresRfc9068SsoManagementServer(f.config);
+  try {
+    for (const path of [issuePath, revokePath]) {
+      let finish!: () => void;
+      const cleanup = new Promise<void>((resolve) => {
+        finish = resolve;
+      });
+      let cancellations = 0;
+      const stream = new ReadableStream<Uint8Array>(
+        {
+          pull(controller) {
+            controller.enqueue(new Uint8Array(16385));
+          },
+          cancel() {
+            cancellations++;
+            return cleanup;
+          },
+        },
+        { highWaterMark: 0 },
+      );
+      const pending = f.handler(
+        new Request(`http://localhost${path}`, {
+          method: 'POST',
+          headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+          body: stream,
+          duplex: 'half',
+        } as RequestInit),
+      );
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        await error(
+          await Promise.race([
+            pending,
+            new Promise<never>((_, reject) => {
+              timer = setTimeout(
+                () => reject(Error('registered SSO rejection blocked on cleanup')),
+                1000,
+              );
+            }),
+          ]),
+          400,
+          'invalid_request',
+        );
+        assert.equal(cancellations, 1);
+        assert.equal(stream.locked, false);
+        assert.equal(await f.count('proxy_credentials'), 0);
+        assert.equal(await f.count('proxy_credential_events'), 0);
+        assert.equal(await f.count('token_management_decisions'), 0);
+      } finally {
+        clearTimeout(timer);
+        finish();
+        await pending;
+      }
+    }
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    const address = server.address();
+    assert.ok(address && typeof address === 'object');
+    const base = `http://127.0.0.1:${address.port}`;
+    const post = (path: string, body: unknown) =>
+      fetch(base + path, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+    const issuedResponse = await post(issuePath, {
+      principalId: 'human-owner',
+      expiresAt: now() + day,
+    });
+    assert.equal(issuedResponse.status, 201);
+    const issued = (await issuedResponse.json()) as { credentialId: string; token: string };
+    assert.equal((await f.tokens.verifyCredential(issued.token))?.principalId, 'human-owner');
+    await f.db.exec(
+      `UPDATE iam_policies SET version='v2', statements='[{"effect":"Deny","actions":["iam:Manage"],"resources":["*"]}]'`,
+    );
+    await error(await post(revokePath, { credentialId: issued.credentialId }), 403, 'forbidden');
+    assert.equal((await f.tokens.verifyCredential(issued.token))?.principalId, 'human-owner');
+    assert.equal(await f.count('proxy_credentials'), 1);
+    assert.equal(await f.count('proxy_credential_events'), 1);
+    assert.deepEqual(
+      (
+        await f.db.query(
+          'SELECT operation,outcome FROM token_management_decisions ORDER BY event_id',
+        )
+      ).rows,
+      [
+        { operation: 'issue', outcome: 'allowed' },
+        { operation: 'revoke', outcome: 'denied' },
+      ],
+    );
+    await f.db.exec('DELETE FROM iam_sso_identity_bindings');
+    await error(
+      await post(issuePath, { principalId: 'human-owner', expiresAt: now() + day }),
+      401,
+      'unauthorized',
+    );
+    assert.equal(await f.count('proxy_credentials'), 1);
+    assert.equal(await f.count('proxy_credential_events'), 1);
+    assert.equal(await f.count('token_management_decisions'), 2);
+    assert.equal(await f.count('gateway_audit_events'), 1);
+  } finally {
+    server.closeAllConnections();
+    if (server.listening) await new Promise<void>((resolve) => server.close(() => resolve()));
+    await f.db.close();
+  }
+});

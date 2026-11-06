@@ -1467,3 +1467,8 @@ The token DOM screen owns a transient exact-ID confirmation snapshot only; works
 ## Credential issuance intent (#640)
 
 Only the token screen owns ephemeral issuance review. It does not acquire authority or reset the host reconciliation latch. Exact validated integer expiry is previewed as UTC; captured input is consumed before the existing workspace mutation. New submissions/workspace notifications/unmount clear intent; revision/readiness guards block stale/double clicks. Authentication, current IAM, expiry/lifetime and transaction/audit remain existing server responsibilities. No runtime/route/schema/session change. See [plan](plans/640-issue-confirmation.md) and [contract](../contracts/token-issue-confirmation.md).
+
+
+## Credential upload rejection cleanup (#640)
+
+Existing issue/revoke handlers complete a known invalid-body rejection without awaiting underlying stream cancellation. Oversized/invalid UTF-8/aborted uploads cannot dispatch mutation; cleanup is best-effort and observed, with reader locks released. No new upload deadline, session, runtime, route or schema. See [plan](plans/640-management-body-cleanup.md) and [contract](../contracts/management-body-cleanup.md). Public-handler regressions and registered test-JWT/PGlite composition are separate from actual loopback HTTP current-IAM checks and from native-browser/installed PostgreSQL acceptance.

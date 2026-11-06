@@ -68,7 +68,11 @@ async function readBody(request: Request): Promise<unknown> {
     return undefined;
   }
   if (!reader) return undefined;
+  let cancellationRequested = false;
   const cancel = () => {
+    if (cancellationRequested) return;
+    cancellationRequested = true;
+    // Cleanup cannot delay a known rejection or authorize a mutation.
     void reader.cancel().catch(() => undefined);
   };
   request.signal.addEventListener('abort', cancel, { once: true });
@@ -95,7 +99,7 @@ async function readBody(request: Request): Promise<unknown> {
     parsed = undefined;
   } finally {
     request.signal.removeEventListener('abort', cancel);
-    if (!complete) await reader.cancel().catch(() => undefined);
+    if (!complete) cancel();
     reader.releaseLock();
   }
   return parsed;
