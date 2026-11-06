@@ -6,6 +6,7 @@ import { renderUsagePageSummary } from './usage-page-summary.ts';
 export function renderUsageModelSummary(
   document: UsageElement['ownerDocument'],
   records: readonly UsageRecord[],
+  filterControl?: (alias: string) => UsageElement,
 ): UsageElement {
   const section = document.createElement('section');
   section.setAttribute('aria-label', 'Current page usage by model');
@@ -34,6 +35,7 @@ export function renderUsageModelSummary(
     const summary = renderUsagePageSummary(document, rows);
     summary.setAttribute('aria-label', 'Current page cost and token summary for ' + alias);
     details.append(label, summary);
+    if (filterControl) details.append(filterControl(alias));
     section.append(details);
   }
   return section;

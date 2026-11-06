@@ -25,7 +25,13 @@ class Node implements UsageElement {
   replaceChildren(...nodes: Node[]) {
     this.children = nodes;
   }
-  addEventListener(_type: string, _listener: () => void) {}
+  listeners: Record<string, () => void> = {};
+  addEventListener(type: string, listener: () => void) {
+    this.listeners[type] = listener;
+  }
+  all(): Node[] {
+    return [this, ...this.children.flatMap((child) => child.all())];
+  }
   focus() {}
   text(): string {
     return [this.textContent ?? '', ...this.children.map((node) => node.text())].join(' ');
@@ -77,6 +83,12 @@ test('usage client through signed SSO, real HTTP, database, fresh IAM and mandat
       'human',
     ]);
     await createPostgresUsageLedger(sql)(record);
+    await createPostgresUsageLedger(sql)({
+      ...record,
+      modelAlias: 'second-model',
+      attemptId: 'second-attempt',
+      occurredAt: 3,
+    });
     server.listen(0, '127.0.0.1');
     await once(server, 'listening');
     const address = server.address();
@@ -103,6 +115,7 @@ test('usage client through signed SSO, real HTTP, database, fresh IAM and mandat
       assert.equal(csv.data.hasMore, false);
     }
     // Actual mounted app -> signed SSO HTTP -> SQL -> awaited audit.
+    const appQueries: URLSearchParams[] = [];
     const root = new Node();
     let time = 1;
     let expire: (() => void) | undefined;
@@ -115,15 +128,30 @@ test('usage client through signed SSO, real HTTP, database, fresh IAM and mandat
     });
     try {
       await app.authorize({
-        request: (path, init) =>
-          fetch(`http://127.0.0.1:${address.port}${path}`, {
+        request: (path, init) => {
+          appQueries.push(new URL(path, 'http://local').searchParams);
+          return fetch(`http://127.0.0.1:${address.port}${path}`, {
             ...init,
             headers: { ...init.headers, authorization: `Bearer ${token}` },
-          }),
+          });
+        },
         expiresAt: 2,
       });
       assert.match(root.text(), /human/);
       assert.match(root.text(), /Unknown/);
+      assert.match(root.text(), /second-model/);
+      const filter = root.all().find((node) => node.textContent === 'Filter usage for model chat');
+      assert.ok(filter);
+      filter.listeners.click?.();
+      assert.match(root.text(), /Loading usage/);
+      for (let i = 0; i < 100 && !root.text().includes('Usage records — current page'); i++)
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      assert.match(root.text(), /Usage records — current page/);
+      assert.doesNotMatch(root.text(), /second-model/);
+      assert.equal(appQueries.length, 2);
+      assert.equal(appQueries[1]?.get('model'), 'chat');
+      assert.equal(appQueries[1]?.has('principal_id'), false);
+      assert.equal(appQueries[1]?.has('cursor'), false);
       time = 2;
       expire?.();
       assert.match(root.text(), /Session expired/);
@@ -135,8 +163,8 @@ test('usage client through signed SSO, real HTTP, database, fresh IAM and mandat
     assert.deepEqual(await client.list(), { state: 'denied' });
     token = await jwt.token({ exp: Math.floor(Date.now() / 1000) - 3600 });
     assert.deepEqual(await client.list(), { state: 'unauthenticated' });
-    assert.equal(id, 7);
-    assert.equal((await db.query('SELECT * FROM sso_usage_audit_events')).rows.length, 7);
+    assert.equal(id, 8);
+    assert.equal((await db.query('SELECT * FROM sso_usage_audit_events')).rows.length, 8);
     await db.exec('DROP TABLE sso_usage_audit_events');
     assert.deepEqual(await client.list(), { state: 'unavailable' });
   } finally {

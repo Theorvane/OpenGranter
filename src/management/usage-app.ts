@@ -217,7 +217,16 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
     }
     if (state === 'ready' && page) {
       main.append(renderUsagePageSummary(root.ownerDocument, page.records));
-      main.append(renderUsageModelSummary(root.ownerDocument, page.records));
+      main.append(
+        renderUsageModelSummary(root.ownerDocument, page.records, (alias) =>
+          button('Filter usage for model ' + alias, () => {
+            // Existing submitted scope only, never unsubmitted form edits.
+            const { cursor: _cursor, ...scope } = filters;
+            draftFilters = undefined;
+            void load({ ...scope, model: alias });
+          }),
+        ),
+      );
       if (page.records.length)
         main.append(renderUsageRequestGroups(root.ownerDocument, page.records));
       if (!page.records.length) {

@@ -86,3 +86,10 @@ The existing page summary displays independent prompt, completion and total toke
 Each ready page groups existing validated rows by exact modelAlias in first-seen order. Expand a model to inspect the same exact per-currency estimated/reported cost totals and independently reported token counters with coverage as the page summary. Missing values stay unknown, zero stays zero, and duplicate attempts remain included. No cross-page aggregation, identity grouping, additional fetch, settlement, currency conversion, inferred total or reconciliation is introduced. Aliases render as text only. Groups are replaced on navigation/loading and removed with the owning screen on authority loss/disposal; stale reads cannot restore them. Empty pages show no model groups.
 
 Plan: [model usage summary](../docs/plans/642-model-usage-summary.md).
+
+
+## Scoped model filter drilldown (#642)
+
+Each current-page model group offers an explicit filter action. It requests the existing authorized usage endpoint with the exact alias, retaining submitted principal/time/page-size scope and resetting cursor, history, drafts and CSV continuation. It is not an all-pages total or a client-side hidden subset. Unsubmitted edits are not applied. The existing guarded button factory prevents stale renders/authorities, expired grants and disposed screens from making reads; loading/errors remove the old page. No identity expansion, new permission, runtime activation or session contract is introduced. Signed test-SSO HTTP with migrated PGlite and mandatory audit is distinct from native browser/installed acceptance.
+
+Plan: [model filter drilldown](../docs/plans/642-model-filter-drilldown.md).
