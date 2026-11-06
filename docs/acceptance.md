@@ -2021,3 +2021,10 @@ Usage and audit screens now submit existing filters through semantic forms and E
 - Signed test RFC9068 access tokens, migrated PGlite and loopback HTTP prove existing browser-token transport issuance, digest-only persistence, revoke, lifecycle events and current binding removal.
 - Verify route/method lookalikes, preserved abort/query/body validation, ignored injected authority ports, owner-scoped current Deny, lifetime cap and failed required decision audit. Original review factories still reject writes.
 - Construction remains unbound; no installed PostgreSQL, native browser, real SSO login, provider E2E or paid call is certified. See [contract](../contracts/management-workspace-http.md).
+
+## Policy simulator screen (#640)
+
+- Current persisted inherited grants and changed explicit Deny/version render through the actual internal simulator; inactive/missing/SQL-failure states never fabricate Allow.
+- Exact validated inputs, bounded projected results and text-only rendering; no automatic retries, invocation, hypothetical policy grant or public reader activation.
+- Cancellation, replacement, logout, expiry, bad clocks, failed scheduling and unmount suppress stale results and detached controls, clearing private diagnostic data. Supported browser artifact contains no SQL/server dependency.
+- Structural DOM/PGlite/build evidence is not native-browser/login/public API/installed PostgreSQL acceptance. Public reader permission/visibility/audit plus approved session/host integration remain open. See [contract](../contracts/policy-simulator-screen.md).

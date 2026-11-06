@@ -1372,3 +1372,7 @@ Usage and audit screens now submit existing filters through semantic forms and E
 ## Explicit management workspace API composition (#640)
 
 An opt-in source-only workspace factory composes existing registered-key SSO model/usage reads with authorized proxy-token issue/revoke, preserving the separate read-only review API. Existing authentication, current owner IAM, lifetime caps and mandatory durable audit remain in the child services. No runtime, session or deployment is activated. See [contract](../contracts/management-workspace-http.md).
+
+## Persisted policy simulation screen (#640)
+
+A disconnected TypeScript screen now reads the existing current persisted simulator through a trusted host-owned read port, renders exact principal/action/resource and bounded effect/reason/policy versions, and handles missing/denied/unavailable/loading/cancel/expiry without enabling execution. Public reader authentication, visibility and access audit remain undecided; no session, endpoint or existing host is connected. See [plan](plans/640-policy-simulator-screen.md) and [screen contract](../contracts/policy-simulator-screen.md).
