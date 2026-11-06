@@ -471,3 +471,58 @@ test('audit CSV forwards opaque decimal cursor and rejects invalid paging metada
   headers = { 'content-type': 'text/csv', 'x-has-more': 'false', 'x-next-cursor': '7' };
   assert.equal((await client.csv()).state, 'unavailable');
 });
+
+for (const artifact of [false, true]) {
+  for (const reason of ['unauthenticated', 'expired', 'denied', 'dispose'] as const) {
+    test(`audit ${artifact ? 'artifact' : 'source'} ${reason} clears protected data when timer cancellation throws`, async () => {
+      const mount: typeof mountManagementAudit = artifact
+        ? (
+            await import(
+              `data:text/javascript;base64,${Buffer.from(await buildManagementBrowser({ root: process.cwd(), entry: 'src/management/audit-app.ts' })).toString('base64')}`
+            )
+          ).mountManagementAudit
+        : mountManagementAudit;
+      const root = new Element();
+      let cancellations = 0;
+      let requests = 0;
+      const app = mount(root, {
+        now: () => 100,
+        schedule: () => () => {
+          cancellations++;
+          throw new Error('PRIVATE_CANCELLATION_ERROR');
+        },
+      });
+      await app.authorize({
+        expiresAt: 200,
+        request: async (path) => {
+          requests++;
+          return path.includes('format=csv')
+            ? new Response('event_id\r\n8\r\n', {
+                headers: { 'content-type': 'text/csv', 'x-has-more': 'false' },
+              })
+            : response();
+        },
+      });
+      assert.match(root.text(), /credential-1/);
+      const refresh = root.button('Refresh current page');
+      root.button('Export current page CSV').click();
+      await until(() => root.all().some((node) => node.tag === 'a'));
+      const href = required(root.all().find((node) => node.tag === 'a')?.attrs.href);
+      assert.equal((await fetch(href)).status, 200);
+      assert.doesNotThrow(() => (reason === 'dispose' ? app.dispose() : app.clear(reason)));
+      assert.equal(cancellations, 1);
+      assert.doesNotMatch(root.text(), /credential-1|사용자|PRIVATE/);
+      assert.equal(
+        root.all().some((node) => node.tag === 'a'),
+        false,
+      );
+      await assert.rejects(fetch(href));
+      const count = requests;
+      refresh.click();
+      await settle();
+      assert.equal(requests, count);
+      app.dispose();
+      assert.equal(cancellations, 1);
+    });
+  }
+}

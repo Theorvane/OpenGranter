@@ -364,8 +364,13 @@ export function mountManagementAudit(root: UsageElement, options: AuditAuthority
   }
   function clear(reason: 'unauthenticated' | 'expired' | 'denied' = 'unauthenticated') {
     ++authorityRevision;
-    cancelExpiry?.();
+    const cancel = cancelExpiry;
     cancelExpiry = undefined;
+    try {
+      cancel?.();
+    } catch {
+      // Timer cleanup is best-effort; protected data cleanup is mandatory.
+    }
     expiresAt = undefined;
     ++revision;
     client?.invalidate();
