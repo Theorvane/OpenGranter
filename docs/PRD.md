@@ -1338,3 +1338,7 @@ Trusted management hosts can issue and revoke proxy credentials through the exis
 ## Trusted token mutation lifetime (#640)
 
 The browser token mutation adapter binds one snapshotted trusted request/expiry to issue/revoke, disposes on logout/expiry and suppresses late secrets even with suspended timers. No session acquisition, renewal, UI or runtime activation is introduced; uncertain mutations require separate reconciliation. See [contract](../contracts/token-authority-lifetime.md) and [plan](plans/640-token-authority-lifetime.md).
+
+### Token authority host invalidation integration (#640)
+
+The optional trusted token authority invalidation observer lets the owning UI clear an already displayed one-time secret on expiry, logout/disposal or authentication/authorization denial. Observer errors cannot prevent abort. Source and supported browser artifacts pass signed-JWT loopback HTTP with migrated embedded SQL for lifecycle, current IAM, committed-but-expired unknown outcomes and fail-closed mandatory audit. This does not deliver browser session acquisition, installed SQL or a credential screen. See contracts/token-authority-lifetime.md.

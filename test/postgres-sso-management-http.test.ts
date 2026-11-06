@@ -633,3 +633,112 @@ test('browser token client source and supported artifact use signed HTTP with du
     }
   }
 });
+
+test('token authority source and supported artifact integrate signed HTTP with SQL outcomes and host clearing', async () => {
+  const { createManagementTokenAuthority: source } = await import(
+    '../src/management/token-management-authority.ts'
+  );
+  const { buildManagementBrowser } = await import('../scripts/build-management-browser.ts');
+  const javascript = await buildManagementBrowser({
+    root: process.cwd(),
+    entry: 'src/management/token-management-authority.ts',
+  });
+  const built = (await import(
+    'data:text/javascript;base64,' + Buffer.from(javascript).toString('base64')
+  )) as { createManagementTokenAuthority: typeof source };
+  for (const factory of [source, built.createManagementTokenAuthority]) {
+    const f = await fixture();
+    const server = createPostgresRfc9068SsoManagementServer(f.config);
+    const authorities: ReturnType<typeof source>[] = [];
+    try {
+      server.listen(0, '127.0.0.1');
+      await once(server, 'listening');
+      const address = server.address();
+      assert.ok(address && typeof address === 'object');
+      let calls = 0;
+      let clock = now();
+      let expireAfterResponse = false;
+      const notices: string[] = [];
+      const authority = () => {
+        const value = factory(
+          {
+            expiresAt: now() + 1000,
+            request: async (path, init) => {
+              calls++;
+              const response = await fetch('http://127.0.0.1:' + address.port + path, {
+                ...init,
+                headers: { ...init.headers, authorization: 'Bearer ' + token },
+              });
+              if (expireAfterResponse) clock = now() + 1000;
+              return response;
+            },
+          },
+          {
+            now: () => clock,
+            schedule: () => () => {},
+            onInvalidate: (reason) => {
+              notices.push(reason);
+            },
+          },
+        );
+        authorities.push(value);
+        return value;
+      };
+      const live = authority();
+      const input = { principalId: 'human-owner', expiresAt: now() + day };
+      const issued = await live.issue(input);
+      assert.equal(issued.state, 'issued');
+      if (issued.state !== 'issued') throw Error('Issuance failed');
+      assert.equal((await f.tokens.verifyCredential(issued.token))?.principalId, 'human-owner');
+      assert.deepEqual(await live.revoke({ credentialId: issued.credentialId }), {
+        state: 'revoked',
+        revoked: true,
+      });
+      assert.equal(await f.tokens.verifyCredential(issued.token), undefined);
+      await f.db.query('UPDATE iam_policies SET version=$1, statements=$2', [
+        'v2',
+        JSON.stringify([{ effect: 'Deny', actions: ['iam:Manage'], resources: ['*'] }]),
+      ]);
+      assert.deepEqual(await live.issue(input), { state: 'denied' });
+      assert.deepEqual(notices, ['disposed']);
+      assert.deepEqual(await live.issue(input), { state: 'disposed' });
+      assert.equal(calls, 3);
+      assert.equal(await f.count('proxy_credentials'), 1);
+      assert.equal(await f.count('token_management_decisions'), 3);
+      await f.db.query('UPDATE iam_policies SET version=$1, statements=$2', [
+        'v3',
+        JSON.stringify([{ effect: 'Allow', actions: ['iam:Manage'], resources: ['principal:*'] }]),
+      ]);
+      const expiring = authority();
+      expireAfterResponse = true;
+      assert.deepEqual(await expiring.issue(input), { state: 'outcome_unknown' });
+      assert.deepEqual(await expiring.issue(input), { state: 'expired' });
+      assert.deepEqual(notices, ['disposed', 'expired']);
+      // Real SQL commit survives local expiry: no automatic retry/rollback claim.
+      assert.equal(await f.count('proxy_credentials'), 2);
+      assert.equal(await f.count('token_management_decisions'), 4);
+      assert.equal(calls, 4);
+      expireAfterResponse = false;
+      clock = now();
+      const auditFailure = authority();
+      await f.db.exec('ALTER TABLE token_management_decisions RENAME TO unavailable_decisions');
+      assert.deepEqual(await auditFailure.issue(input), { state: 'outcome_unknown' });
+      assert.deepEqual(await auditFailure.revoke({ credentialId: issued.credentialId }), {
+        state: 'reconciliation_required',
+      });
+      assert.equal(calls, 5);
+      assert.equal(await f.count('proxy_credentials'), 2);
+      assert.equal(await f.count('proxy_credential_events'), 3);
+      const persisted =
+        JSON.stringify((await f.db.query('SELECT * FROM proxy_credential_events')).rows) +
+        JSON.stringify((await f.db.query('SELECT * FROM unavailable_decisions')).rows);
+      assert.equal(persisted.includes(issued.token), false);
+      assert.equal(persisted.includes(token), false);
+    } finally {
+      for (const value of authorities) value.dispose();
+      server.closeAllConnections();
+      if (server.listening) await new Promise<void>((resolve) => server.close(() => resolve()));
+      await f.db.close();
+    }
+  }
+});

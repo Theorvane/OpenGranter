@@ -5,3 +5,8 @@
 3. Preserve singleflight and uncertain-outcome reconciliation lock. No authorize/reset method; constructing another adapter is not reconciliation. Fail closed on invalid clock/expiry and invalidate on 401/403.
 4. RED/GREEN source and supported artifact: issue/revoke, suspended expiry, logout/expiry in flight, late secret, invalid expiry/clock, early timer, mutated grant, denial, unknown outcome.
 5. Run tests, typecheck/lint/scripts/compatibility; publish dependent draft PR for exact-head review. No merge before required CI and formal approval.
+
+## Host secret-clearing integration follow-up
+
+6. Expose one terminal onInvalidate notification (expiry or disposal) so the owning UI can clear an already displayed one-time secret without duplicating authority timers. Never send credentials in notifications; contain observer errors and retain terminal abort semantics. No DOM, session acquisition or activation.
+7. RED/GREEN source and supported artifact: expiry after successful issue notifies once, logout/denial notification and throwing observer during in-flight disposal. Integrate authority with real loopback HTTP, signed JWT, migrated embedded SQL and token verification/revocation; verify denied/audit-failure and unknown-outcome behavior separately from native browser or installed SQL.

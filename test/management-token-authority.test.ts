@@ -198,3 +198,68 @@ for (const [label, create] of [
     assert.equal(calls, 0);
   });
 }
+
+for (const [label, create] of [
+  ['source', source],
+  ['artifact', built.createManagementTokenAuthority],
+] as const) {
+  test(label + ': host clears an already delivered secret once at expiry', async () => {
+    let time = 1;
+    let fire: () => void = () => {};
+    let displayed: string | undefined;
+    const reasons: string[] = [];
+    const authority = create(
+      {
+        expiresAt: 100,
+        request: async () =>
+          new Response(JSON.stringify({ credentialId: 'c', token: 'one-time' }), {
+            status: 201,
+            headers: { 'content-type': 'application/json' },
+          }),
+      },
+      {
+        now: () => time,
+        schedule: (_delay, callback) => {
+          fire = callback;
+          return () => {};
+        },
+        onInvalidate: (reason) => {
+          displayed = undefined;
+          reasons.push(reason);
+        },
+      },
+    );
+    const issued = await authority.issue({ principalId: 'human', expiresAt: 9000 });
+    assert.equal(issued.state, 'issued');
+    if (issued.state === 'issued') displayed = issued.token;
+    assert.equal(displayed, 'one-time');
+    time = 100;
+    fire();
+    assert.equal(displayed, undefined);
+    assert.deepEqual(reasons, ['expired']);
+    authority.dispose();
+    fire();
+    assert.deepEqual(reasons, ['expired']);
+  });
+  test(label + ': observer failure cannot prevent pending abort or reopen authority', async () => {
+    let notices = 0;
+    const authority = create(
+      { expiresAt: 100, request: () => new Promise<Response>(() => {}) },
+      {
+        now: () => 1,
+        schedule: () => () => {},
+        onInvalidate: (reason) => {
+          assert.equal(reason, 'disposed');
+          notices++;
+          throw Error('private UI error');
+        },
+      },
+    );
+    const pending = authority.issue({ principalId: 'human', expiresAt: 9000 });
+    assert.doesNotThrow(() => authority.dispose());
+    assert.deepEqual(await pending, { state: 'outcome_unknown' });
+    assert.deepEqual(await authority.revoke({ credentialId: 'c' }), { state: 'disposed' });
+    authority.dispose();
+    assert.equal(notices, 1);
+  });
+}

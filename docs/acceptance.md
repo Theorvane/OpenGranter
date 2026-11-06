@@ -1976,3 +1976,9 @@ Audit client and screen must build through the supported management browser buil
 ## Trusted token mutation lifetime (#640)
 
 Source and supported browser artifact must prevent expired/disposed dispatch, reject invalid/throwing clocks, snapshot request/expiry, rearm early timers, suppress late issue secrets, preserve unknown-outcome locking and close on 401/403. Logout/expiry after dispatch is not rollback. No native-browser session or deployment acceptance follows from these tests. See [contract](../contracts/token-authority-lifetime.md).
+
+### Token authority terminal host notification (#640)
+
+- Source and supported browser artifact notify once to clear host-held one-time secrets at expiry; observer errors cannot prevent pending abort or reopen disposed authority.
+- Actual ephemeral loopback HTTP plus signed JWT and migrated embedded SQL issue/verify/revoke, enforce changed Deny with terminal notification, suppress secret for a committed issue completed after expiry, and reject mutation on missing mandatory audit. Unknown outcome blocks subsequent dispatch; local expiry does not certify rollback.
+- Native-browser login/UI integration, approved session contract, installed PostgreSQL and deployment remain independent incomplete gates.

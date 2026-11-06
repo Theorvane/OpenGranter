@@ -7,6 +7,8 @@ import {
 
 export interface TokenAuthorityOptions {
   readonly now?: () => number;
+  /** Clear host-held private UI state. Called once, with no credential payload. */
+  readonly onInvalidate?: (reason: 'expired' | 'disposed') => void;
   /** Callback must be asynchronous. Returns a cancellation function. */
   readonly schedule?: (delay: number, callback: () => void) => () => void;
 }
@@ -24,6 +26,7 @@ export function createManagementTokenAuthority(
   const request = grant.request;
   const expiresAt = grant.expiresAt;
   const now = options.now ?? Date.now;
+  const onInvalidate = options.onInvalidate;
   const schedule =
     options.schedule ??
     ((delay, callback) => {
@@ -43,7 +46,16 @@ export function createManagementTokenAuthority(
     const cleanup = cancel;
     cancel = undefined;
     client.dispose();
-    cleanup?.();
+    try {
+      cleanup?.();
+    } catch {
+      // A host cleanup failure cannot reopen authority or suppress notification.
+    }
+    try {
+      onInvalidate?.(state);
+    } catch {
+      // UI observer failures cannot prevent terminal abort or expose private errors.
+    }
   }
   function clock() {
     try {
