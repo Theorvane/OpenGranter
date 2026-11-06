@@ -1,0 +1,9 @@
+# Internal credential metadata inventory
+
+createPostgresProxyCredentialHistory(client) returns read(query). Caller is trusted and owns authentication, target authorization, durable audit and release approval; this function grants no authority and is not a public API. Public/browser composition remains absent pending that contract.
+
+Query: principalId (nonempty valid Unicode text <=256 code units, no controls), limit integer1..100, observedAt nonnegative safe epoch integer, cursor null or {createdAt, credentialId}. Cursors are typed internal values, not unsigned public authorization. Reusing a cursor never changes the principal WHERE scope. Ordering is createdAt DESC then credentialId COLLATE C DESC. One extra row establishes hasMore; nextCursor is the last visible key only when hasMore. Not a cross-page snapshot; concurrent lifecycle changes are visible on later reads.
+
+Only credentialId, principalId, createdAt, expiresAt, revokedAt and state are projected. State is revoked when revokedAt is nonnull, otherwise expired when expiresAt <= observedAt, otherwise active. This is observed metadata, not permission, credential verification or proof that the principal is active. No token or digest selected; additional driver fields never escape. Invalid input throws InvalidCredentialHistoryInput before SQL. Invalid/cross-scope/unordered/duplicate/beyond-cursor rows or SQL failure throw CredentialHistoryUnavailable with a fixed message, including corrupt lookahead rows. No partial page escapes.
+
+No schema/index change or standing service. Existing issue/revoke and their audit behavior remain unchanged. Empty page is success. Cursor and full page validated; no billing/provider/session behavior. Tests separate fake-driver validation from actual migration002/PGlite SQL and lifecycle updates; neither establishes installed PostgreSQL/browser acceptance.

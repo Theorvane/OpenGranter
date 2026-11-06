@@ -82,3 +82,8 @@ The trusted source workspace can open usage from a projected audit event using e
 ## Credential upload rejection cleanup (#640)
 
 Existing issue/revoke handlers complete a known invalid-body rejection without awaiting underlying stream cancellation. Oversized/invalid UTF-8/aborted uploads cannot dispatch mutation; cleanup is best-effort and observed, with reader locks released. No new upload deadline, session, runtime, route or schema. See [plan](plans/640-management-body-cleanup.md) and [contract](../contracts/management-body-cleanup.md). Public-handler regressions and registered test-JWT/PGlite composition are separate from actual loopback HTTP current-IAM checks and from native-browser/installed PostgreSQL acceptance.
+
+
+## #640 credential inventory source evidence
+
+Original PRD credential administration: src/gateway/postgres-proxy-credential-history.ts and test/postgres-proxy-credential-history.test.ts now supply the bounded principal-scoped metadata read needed for future revoke selection. Contract: contracts/credential-inventory.md. No digest/token projection or new schema. Public API/IAM/read-audit/UI integration: MISSING, not implied by existing issue/revoke permissions; installed/browser acceptance: MISSING.
