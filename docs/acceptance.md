@@ -2015,3 +2015,9 @@ Source and supported browser bundle forms must issue/revoke via the authorized A
 ## Keyboard history filters (#642)
 
 Usage and audit screens now submit existing filters through semantic forms and Enter, sharing parsing, first-page reset and draft correction with Apply. Detached/expired forms cannot consume authority. No session/entry activation. Source/artifact event and audit HTTP evidence remain separate from native-browser acceptance. See [contract](../contracts/history-filter-submission.md) and [plan](plans/642-history-filter-submission.md).
+
+## Explicit management workspace HTTP (#640)
+
+- Signed test RFC9068 access tokens, migrated PGlite and loopback HTTP prove existing browser-token transport issuance, digest-only persistence, revoke, lifecycle events and current binding removal.
+- Verify route/method lookalikes, preserved abort/query/body validation, ignored injected authority ports, owner-scoped current Deny, lifetime cap and failed required decision audit. Original review factories still reject writes.
+- Construction remains unbound; no installed PostgreSQL, native browser, real SSO login, provider E2E or paid call is certified. See [contract](../contracts/management-workspace-http.md).

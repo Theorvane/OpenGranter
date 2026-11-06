@@ -1368,3 +1368,7 @@ The trusted source host now exposes the existing scoped audit metadata/CSV scree
 ## Keyboard history filters (#642)
 
 Usage and audit screens now submit existing filters through semantic forms and Enter, sharing parsing, first-page reset and draft correction with Apply. Detached/expired forms cannot consume authority. No session/entry activation. Source/artifact event and audit HTTP evidence remain separate from native-browser acceptance. See [contract](../contracts/history-filter-submission.md) and [plan](plans/642-history-filter-submission.md).
+
+## Explicit management workspace API composition (#640)
+
+An opt-in source-only workspace factory composes existing registered-key SSO model/usage reads with authorized proxy-token issue/revoke, preserving the separate read-only review API. Existing authentication, current owner IAM, lifetime caps and mandatory durable audit remain in the child services. No runtime, session or deployment is activated. See [contract](../contracts/management-workspace-http.md).
