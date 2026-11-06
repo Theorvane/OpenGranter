@@ -858,6 +858,15 @@ test('credential forms source and supported artifact issue and revoke through si
       root.named('principalId').value = 'human-owner';
       root.named('expiresAt').value = String(now() + day);
       root.named('issue').submit();
+      assert.equal(await f.count('proxy_credentials'), 0);
+      assert.equal(await f.count('token_management_decisions'), 0);
+      root.button('Cancel issuance').click();
+      assert.equal(await f.count('proxy_credentials'), 0);
+      assert.equal(await f.count('token_management_decisions'), 0);
+      root.named('issue').submit();
+      root.named('principalId').value = 'unreviewed-nonexistent-principal';
+      root.named('expiresAt').value = '1';
+      root.button('Confirm issuance').click();
       await idle();
       const secret = workspace.snapshot().secret;
       assert.ok(secret);
@@ -884,6 +893,10 @@ test('credential forms source and supported artifact issue and revoke through si
       root.named('principalId').value = 'human-owner';
       root.named('expiresAt').value = String(now() + day);
       root.named('issue').submit();
+      root
+        .all()
+        .find((n) => n.textContent === 'Confirm issuance')
+        ?.click();
       await idle();
       const retained = workspace.snapshot().secret;
       assert.ok(retained);
@@ -908,6 +921,47 @@ test('credential forms source and supported artifact issue and revoke through si
           )
         ).rows,
         [{ outcome: 'denied', policy_versions: [{ id: 'manage', version: 'deny-after-review' }] }],
+      );
+      // A fresh local review is not permission; Deny committed after review wins for issue too.
+      await f.db.query('UPDATE iam_policies SET version = $1, statements = $2::jsonb', [
+        'allow-for-issue-review',
+        JSON.stringify([{ effect: 'Allow', actions: ['iam:Manage'], resources: ['*'] }]),
+      ]);
+      workspace.authorize({
+        expiresAt: now() + 1000,
+        request: (path, init) =>
+          fetch('http://127.0.0.1:' + address.port + path, {
+            ...init,
+            headers: { ...init.headers, authorization: 'Bearer ' + token },
+          }),
+      });
+      root.named('principalId').value = 'human-owner';
+      root.named('expiresAt').value = String(now() + day);
+      root.named('issue').submit();
+      assert.equal(await f.count('token_management_decisions'), 4);
+      await f.db.query('UPDATE iam_policies SET version = $1, statements = $2::jsonb', [
+        'deny-after-issue-review',
+        JSON.stringify([{ effect: 'Deny', actions: ['iam:Manage'], resources: ['*'] }]),
+      ]);
+      root.button('Confirm issuance').click();
+      await idle();
+      assert.match(root.text(), /Access denied/);
+      assert.equal(workspace.snapshot().secret, undefined);
+      assert.equal(await f.count('proxy_credentials'), 2);
+      assert.equal(await f.count('token_management_decisions'), 5);
+      assert.deepEqual(
+        (
+          await f.db.query(
+            'SELECT outcome, policy_versions FROM token_management_decisions WHERE operation = $1 ORDER BY event_id DESC LIMIT 1',
+            ['issue'],
+          )
+        ).rows,
+        [
+          {
+            outcome: 'denied',
+            policy_versions: [{ id: 'manage', version: 'deny-after-issue-review' }],
+          },
+        ],
       );
     } finally {
       app.dispose();
@@ -956,6 +1010,10 @@ test('existing management host navigation issues and revokes credentials through
       root.named('principalId').value = 'human-owner';
       root.named('expiresAt').value = String(now() + day);
       root.named('issue').submit();
+      root
+        .all()
+        .find((n) => n.textContent === 'Confirm issuance')
+        ?.click();
       async function waitFor(pattern: RegExp) {
         for (let i = 0; i < 400 && !pattern.test(root.text()); i++)
           await new Promise((resolve) => setTimeout(resolve, 5));

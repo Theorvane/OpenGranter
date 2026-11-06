@@ -81,12 +81,20 @@ for (const [label, mount] of [
       f.root.button('Credentials').click();
       f.fill();
       f.root.named('issue').submit();
+      f.root
+        .all()
+        .find((n) => n.textContent === 'Confirm issuance')
+        ?.click();
       await settle();
       assert.equal(f.paths.length, 0);
       await f.authorize();
       f.root.button('Credentials').click();
       f.fill();
       f.root.named('issue').submit();
+      f.root
+        .all()
+        .find((n) => n.textContent === 'Confirm issuance')
+        ?.click();
       await settle();
       assert.match(f.root.text(), /one-time/);
       f.root.button('Models').click();
@@ -120,6 +128,7 @@ for (const [label, mount] of [
       f.fill();
       const old = f.root.named('issue');
       old.submit();
+      f.root.button('Confirm issuance').click();
       assert.match(f.root.text(), /Working/);
       f.root.button('Usage history').click();
       await settle();
@@ -131,6 +140,10 @@ for (const [label, mount] of [
       old.submit();
       f.fill();
       f.root.named('issue').submit();
+      f.root
+        .all()
+        .find((n) => n.textContent === 'Confirm issuance')
+        ?.click();
       finish(Response.json({ credentialId: 'c', token: 'late-secret' }, { status: 201 }));
       await settle();
       assert.doesNotMatch(f.root.text(), /late-secret/);
@@ -153,6 +166,10 @@ for (const [label, mount] of [
         f.root.button('Credentials').click();
         f.fill();
         f.root.named('issue').submit();
+        f.root
+          .all()
+          .find((n) => n.textContent === 'Confirm issuance')
+          ?.click();
         if (stale) await f.authorize();
         finish(new Response(null, { status: 403 }));
         await settle();
@@ -188,6 +205,10 @@ for (const [label, mount] of [
         f.root.button('Credentials').click();
         f.fill();
         f.root.named('issue').submit();
+        f.root
+          .all()
+          .find((n) => n.textContent === 'Confirm issuance')
+          ?.click();
         await settle();
         assert.match(f.root.text(), /one-time/);
         const old = f.root.named('issue');
@@ -216,6 +237,10 @@ for (const [label, mount] of [
           f.root.button('Credentials').click();
           f.fill();
           f.root.named('issue').submit();
+          f.root
+            .all()
+            .find((n) => n.textContent === 'Confirm issuance')
+            ?.click();
           await settle();
           assert.equal(f.paths.length, count);
         }

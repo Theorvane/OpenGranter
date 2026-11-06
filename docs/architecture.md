@@ -1458,3 +1458,8 @@ Usage rows expose an optional guarded exact principal/request callback; the trus
 ## Local token revocation review (#640)
 
 The token DOM screen owns a transient exact-ID confirmation snapshot only; workspace/client/server contracts are unchanged. No authorization or existence assertion is cached by review. Every workspace notification invalidates it; render revision/current readiness guard actions and consume the review before dispatch. Server fresh IAM and atomic mandatory audit remain authoritative. No BFF/session/runtime/DDL or provider change. See [contract](../contracts/token-revoke-confirmation.md).
+
+
+## Credential issuance intent (#640)
+
+Only the token screen owns ephemeral issuance review. It does not acquire authority or reset the host reconciliation latch. Exact validated integer expiry is previewed as UTC; captured input is consumed before the existing workspace mutation. New submissions/workspace notifications/unmount clear intent; revision/readiness guards block stale/double clicks. Authentication, current IAM, expiry/lifetime and transaction/audit remain existing server responsibilities. No runtime/route/schema/session change. See [plan](plans/640-issue-confirmation.md) and [contract](../contracts/token-issue-confirmation.md).

@@ -2078,3 +2078,8 @@ Source and public-bundle DOM tests must preserve exact principal/request and sub
 ## Token revocation review (#640)
 
 Source and supported bundle structural DOM must show exact ID as text, zero requests before confirm/cancel, exact captured-target dispatch and at-most-once actions. Old controls cannot survive replaced reviews, issue, notification, renewal, logout, expiry or unmount. Signed test-JWT loopback HTTP plus migrated local PGlite must prove cancel has no decision/mutation, edited ID cannot retarget, confirmed revoke invalidates the credential, and a policy Deny committed after review blocks revoke with current-version mandatory decision audit. This does not certify native-browser login, installed PostgreSQL or deployment. [Plan](plans/640-revoke-confirmation.md), [contract](../contracts/token-revoke-confirmation.md).
+
+
+## Credential issuance review (#640)
+
+Source and supported-bundle DOM cases require zero dispatch before confirmation/cancel, text-only exact principal and UTC preview, date validation, captured target despite edits, single dispatch and stale/lifecycle invalidation. Signed test-JWT loopback HTTP with migrated PGlite must prove review/cancel create neither credentials nor decisions; confirm issues for the reviewed target; current server Deny committed after review prevents issuance and durably records denied decision/current policy version. These are not live company SSO, native-browser or installed PostgreSQL acceptance. See [plan](plans/640-issue-confirmation.md) and [contract](../contracts/token-issue-confirmation.md).

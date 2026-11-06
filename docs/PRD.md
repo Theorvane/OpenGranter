@@ -1421,3 +1421,8 @@ The trusted source workspace can inspect audit metadata for an exact usage-row p
 ## Explicit token revocation review (#640)
 
 The credential screen now reviews the exact submitted credential ID before a separate confirm action sends the existing revoke POST. Cancel is request-free; edits cannot retarget confirmation. Issue action, workspace notification, authority replacement, expiry, logout and unmount invalidate review. Current server IAM, required transaction/audit and unknown-outcome lock remain authoritative. See [plan](plans/640-revoke-confirmation.md) and [contract](../contracts/token-revoke-confirmation.md). No session/runtime activation or installed/native-browser acceptance is claimed.
+
+
+## Explicit credential issuance review (#640)
+
+The credential screen now reviews exact principal ID and explicit expiry (epoch milliseconds plus ISO UTC) before a separate confirmation sends the existing issue POST. Cancel makes no request; edits cannot retarget the captured operation. Invalid/unrepresentable dates cannot open review. Every workspace notification and opposite action clears intent. Current server IAM/lifetime/principal checks, atomic audit and unknown-outcome lock remain authoritative. No new session, API, schema, runtime or provider activation. See [plan](plans/640-issue-confirmation.md) and [contract](../contracts/token-issue-confirmation.md).

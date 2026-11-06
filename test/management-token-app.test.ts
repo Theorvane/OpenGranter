@@ -71,11 +71,19 @@ for (const [label, mount] of [
       });
       h.fill();
       h.root.named('issue').submit();
+      h.root
+        .all()
+        .find((n) => n.textContent === 'Confirm issuance')
+        ?.click();
       await settle();
       assert.equal(calls.length, 0);
       h.authorize();
       h.fill();
       h.root.named('issue').submit();
+      h.root
+        .all()
+        .find((n) => n.textContent === 'Confirm issuance')
+        ?.click();
       await settle();
       assert.match(h.root.text(), /<script>one-time<\/script>/);
       assert.equal(h.root.all().filter((n) => n.tag === 'script').length, 0);
@@ -100,11 +108,19 @@ for (const [label, mount] of [
     h.fill();
     h.root.named('expiresAt').value = '9e3';
     h.root.named('issue').submit();
+    h.root
+      .all()
+      .find((n) => n.textContent === 'Confirm issuance')
+      ?.click();
     await settle();
     assert.equal(calls, 0);
     assert.match(h.root.text(), /Enter a principal/);
     h.fill();
     h.root.named('issue').submit();
+    h.root
+      .all()
+      .find((n) => n.textContent === 'Confirm issuance')
+      ?.click();
     await settle();
     assert.match(h.root.text(), /Access denied/);
     assert.equal(calls, 1);
@@ -129,6 +145,10 @@ for (const [label, mount] of [
       assert.equal(calls, 0);
       h.fill();
       h.root.named('issue').submit();
+      h.root
+        .all()
+        .find((n) => n.textContent === 'Confirm issuance')
+        ?.click();
       await settle();
       assert.match(h.root.text(), /one-time/);
       h.expire();
@@ -152,6 +172,10 @@ for (const [label, mount] of [
       h.authorize();
       h.fill();
       h.root.named('issue').submit();
+      h.root
+        .all()
+        .find((n) => n.textContent === 'Confirm issuance')
+        ?.click();
       assert.match(h.root.text(), /Working/);
       h.app.dispose();
       assert.equal(h.root.children.length, 0);
@@ -163,6 +187,10 @@ for (const [label, mount] of [
       root2.named('principalId').value = 'human';
       root2.named('expiresAt').value = '9000';
       root2.named('issue').submit();
+      root2
+        .all()
+        .find((n) => n.textContent === 'Confirm issuance')
+        ?.click();
       finish(Response.json({ credentialId: 'c', token: 'late-secret' }, { status: 201 }));
       await settle();
       assert.doesNotMatch(root2.text(), /late-secret/);
@@ -181,11 +209,19 @@ for (const [label, mount] of [
     h.authorize();
     h.fill();
     h.root.named('issue').submit();
+    h.root
+      .all()
+      .find((n) => n.textContent === 'Confirm issuance')
+      ?.click();
     await settle();
     h.root.button('Hide secret').click();
     assert.doesNotMatch(h.root.text(), /one-time/);
     h.fill();
     h.root.named('issue').submit();
+    h.root
+      .all()
+      .find((n) => n.textContent === 'Confirm issuance')
+      ?.click();
     await settle();
     h.workspace.logout();
     assert.doesNotMatch(h.root.text(), /one-time/);
@@ -207,6 +243,10 @@ for (const [label, mount] of [
       }
     });
     h.root.named('issue').submit();
+    h.root
+      .all()
+      .find((n) => n.textContent === 'Confirm issuance')
+      ?.click();
     await settle();
     assert.equal(replaced, true);
     assert.doesNotMatch(h.root.text(), /one-time|Token issued/);

@@ -66,3 +66,8 @@ The trusted source workspace can open usage from a projected audit event using e
 ## Destructive credential action review (#640)
 
 [Token screen](../src/management/token-management-app.ts) adds request-free exact-ID review/cancel before explicit revoke. [Source/bundle cases](../test/management-token-revoke-confirmation.test.ts) cover targeting, lifecycle and stale controls; [signed HTTP/PGlite tests](../test/postgres-sso-management-http.test.ts) prove actual revocation and current Deny after review with decision audit. See [contract](../contracts/token-revoke-confirmation.md). Native-browser session and installed acceptance remain missing; this is not a session activation.
+
+
+## Credential issuance target and expiry (#640)
+
+[Token screen](../src/management/token-management-app.ts) now provides request-free exact-principal/UTC-expiry review, explicit confirm/cancel and lifecycle invalidation. [Source/artifact tests](../test/management-token-issue-confirmation.test.ts) plus [signed HTTP/PGlite cases](../test/postgres-sso-management-http.test.ts) distinguish local review from current server IAM/audit. Native-browser/session/installed acceptance and original PRD completion remain open. See [plan](plans/640-issue-confirmation.md) and [contract](../contracts/token-issue-confirmation.md).
