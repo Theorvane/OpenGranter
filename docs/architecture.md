@@ -1430,3 +1430,8 @@ The usage screen reuses its render-owned guarded button and existing usage clien
 ## Audit model filtering action (#642)
 
 Projected model-bearing audit events expose a guarded action to query the existing audit API for that exact alias, retaining submitted principal/UTC/page size and clearing paging/drafts/CSV. Non-model events do not invent aliases. Existing server IAM, metadata projection and mandatory audit remain authoritative; no session, retention, endpoint or schema change. See [contract](../contracts/audit-model-drilldown.md) and [plan](plans/642-audit-model-drilldown.md). Verify source/artifact actions, scope reset, stale/expired controls, denial and late results independently of native browser/install acceptance.
+
+
+## Exact audit request filter boundary (#642)
+
+The existing audit JSON/CSV read intersects optional exact request_id with the freshly authorized principal, model, UTC range and keyset cursor. The audit screen exposes exact request filtering and a per-event trace action retaining submitted scope while resetting paging and CSV. Reprojection rejects mismatched rows at SQL, HTTP, CSV and browser boundaries; a request ID is never identity or a permission grant. Existing audit:Read and mandatory access audit remain authoritative. No session, runtime, DDL, retention or paid-provider change. See [plan](plans/642-audit-request-filter.md) and [contract](../contracts/audit-request-filter.md). Tests cover strict inputs, real loopback HTTP with migrated PGlite and injected authentication, SQL isolation/lookahead, denied reads, audit failure, source/artifact lifecycle and CSV continuation; these are not live SSO, installed PostgreSQL or native-browser acceptance.

@@ -810,6 +810,7 @@ export function createChatHandler<T>(
             limit: parsed.limit,
             cursor: parsed.cursor,
             ...(parsed.modelAlias === undefined ? {} : { modelAlias: parsed.modelAlias }),
+            ...(parsed.requestId === undefined ? {} : { requestId: parsed.requestId }),
             ...(parsed.fromMs === undefined ? {} : { fromMs: parsed.fromMs }),
             ...(parsed.toMs === undefined ? {} : { toMs: parsed.toMs }),
           }),

@@ -421,3 +421,19 @@ test('other, absent, or spoofed projected model aliases reject injected pages as
     }
   }
 });
+
+test('exact request filter reaches reader; injected mismatches withhold both JSON and CSV', async () => {
+  for (const format of ['json', 'csv']) {
+    const { handler, state } = fixture();
+    const good = await handler(request('?request_id=model-list-1&format=' + format));
+    assert.equal(good.status, 200);
+    await good.text();
+    assert.deepEqual(state.queries, [
+      { principalId: 'person-1', limit: 50, cursor: null, requestId: 'model-list-1' },
+    ]);
+    const bad = await handler(request('?request_id=other&format=' + format));
+    assert.equal(bad.status, 503);
+    assert.doesNotMatch(await bad.text(), /model-list-1|private prompt/);
+    assert.equal((state.audit.at(-1) as { kind: string }).kind, 'audit-history-read-unavailable');
+  }
+});

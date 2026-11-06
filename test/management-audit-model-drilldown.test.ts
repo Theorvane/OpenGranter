@@ -115,7 +115,7 @@ for (const artifact of [false, true]) {
       try {
         await app.authorize({ request, expiresAt: 100 });
         const inputs = root.all().filter((n) => n.tag === 'input');
-        assert.equal(inputs.length, 5);
+        assert.equal(inputs.length, 6);
         assert.ok(inputs[0]);
         assert.ok(inputs[2]);
         assert.ok(inputs[3]);
