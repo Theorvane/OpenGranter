@@ -1472,3 +1472,8 @@ Only the token screen owns ephemeral issuance review. It does not acquire author
 ## Credential upload rejection cleanup (#640)
 
 Existing issue/revoke handlers complete a known invalid-body rejection without awaiting underlying stream cancellation. Oversized/invalid UTF-8/aborted uploads cannot dispatch mutation; cleanup is best-effort and observed, with reader locks released. No new upload deadline, session, runtime, route or schema. See [plan](plans/640-management-body-cleanup.md) and [contract](../contracts/management-body-cleanup.md). Public-handler regressions and registered test-JWT/PGlite composition are separate from actual loopback HTTP current-IAM checks and from native-browser/installed PostgreSQL acceptance.
+
+
+## Credential metadata read primitive (#640)
+
+The internal reader selects only nonsecret columns from migration002. SQL uses exact principal scope, numeric creation-time ordering and UTF8 C-collated credential IDs; application validation rejects every corrupt/cross-scope/out-of-order row including lookahead. Input is captured before awaiting SQL. One extra row produces the last-visible continuation. Observation time never grants authentication validity. No public route, authorization implication, audit override, schema or runtime activation. See [contract](../contracts/credential-inventory.md).

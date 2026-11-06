@@ -1435,3 +1435,8 @@ The credential screen now reviews exact principal ID and explicit expiry (epoch 
 ## Credential upload rejection cleanup (#640)
 
 Existing issue/revoke handlers complete a known invalid-body rejection without awaiting underlying stream cancellation. Oversized/invalid UTF-8/aborted uploads cannot dispatch mutation; cleanup is best-effort and observed, with reader locks released. No new upload deadline, session, runtime, route or schema. See [plan](plans/640-management-body-cleanup.md) and [contract](../contracts/management-body-cleanup.md). Public-handler regressions and registered test-JWT/PGlite composition are separate from actual loopback HTTP current-IAM checks and from native-browser/installed PostgreSQL acceptance.
+
+
+## Credential metadata inventory (#640)
+
+A trusted internal PostgreSQL reader now provides principal-scoped, bounded credential metadata for future revoke-ID discovery: stable keyset pagination and observed active/expired/revoked state, without token digests or plaintext tokens. It grants no read authority. Public SSO API, IAM action/resource, required read audit and UI wiring remain unimplemented pending reviewed integration; issue/revoke permissions do not imply inventory permission. Existing schema and writes unchanged. See [contract](../contracts/credential-inventory.md) and [plan](plans/640-credential-inventory.md).

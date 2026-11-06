@@ -2095,3 +2095,8 @@ Source and supported-bundle DOM cases require zero dispatch before confirmation/
 ## Credential upload rejection cleanup (#640)
 
 Existing issue/revoke handlers complete a known invalid-body rejection without awaiting underlying stream cancellation. Oversized/invalid UTF-8/aborted uploads cannot dispatch mutation; cleanup is best-effort and observed, with reader locks released. No new upload deadline, session, runtime, route or schema. See [plan](plans/640-management-body-cleanup.md) and [contract](../contracts/management-body-cleanup.md). Public-handler regressions and registered test-JWT/PGlite composition are separate from actual loopback HTTP current-IAM checks and from native-browser/installed PostgreSQL acceptance.
+
+
+## Internal credential inventory (#640)
+
+Require strict pre-SQL input validation, fixed private errors, redacted allowlist projection, inclusive expiry/revocation precedence, whole-page validation including lookahead and captured query values across await. Actual migration002/PGlite must demonstrate cross-principal isolation, stable numeric and UTF8 keyset traversal, exact expiry and fresh persisted revocation. This is internal SQL evidence only: public SSO authorization/audit/API/UI, installed PostgreSQL and native-browser acceptance remain release gates. See [plan](plans/640-credential-inventory.md).
