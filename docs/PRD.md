@@ -1380,3 +1380,8 @@ A disconnected TypeScript screen now reads the existing current persisted simula
 ## Credential host installation ownership (#640)
 
 Reentrant logout or grant renewal during authority construction/cleanup must not be overwritten by an older host action. Dispose superseded authority before publication and preserve mutation uncertainty and one-time display clearing. No session/runtime or permission change. See [contract](../contracts/token-authority-lifetime.md#owning-host-reentrant-installation).
+
+
+## Credential mutation-entry ownership (#640)
+
+A stale credential action cannot adopt renewed authority during validation. Snapshot authority identity/generation before checking suspended expiry; undispatched stale actions return disposed without inventing reconciliation, while a later explicit action can use the new grant. See [contract](../contracts/token-authority-lifetime.md#mutation-entry-ownership). No session, runtime or permission change.

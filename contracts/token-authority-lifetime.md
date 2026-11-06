@@ -30,3 +30,8 @@ Throwing schedulers (initial or rearm), non-function cancellation handles and sy
 ## Owning-host reentrant installation
 
 Host lifecycle actions may run synchronously during expiry notifications, scheduling or cancellation. Each detach captures its generation before invoking external cleanup. An older authorize/logout/navigation action must not overwrite a newer reentrant action; an authority constructed after losing ownership is immediately disposed, never published. Construction-time expiry renewal keeps the newest grant, and lifecycle logout during construction cannot resurrect mutation dispatch. Existing unknown-outcome locks and secret clearing remain unchanged. This is not grant acquisition, permission, session or runtime activation.
+
+
+## Mutation-entry ownership
+
+An issue/revoke invocation snapshots the owning authority and generation before checking suspended expiry. If that validation synchronously replaces or logs out the grant, the stale invocation returns disposed: it neither adopts a replacement principal's authority nor reports ready as a mutation result. No write dispatched, so no reconciliation latch is fabricated. A later explicit action may use the replacement grant. Existing in-flight ambiguity remains locked. Source and supported browser-artifact tests cover expiry-triggered renewal for both writes and clock-triggered replacement; this is not live SSO or browser-session acceptance.

@@ -369,4 +369,69 @@ for (const [label, create] of [
     assert.deepEqual(await workspace.issue(input), { state: 'issued' });
     workspace.logout();
   });
+  for (const mutation of ['issue', 'revoke'] as const) {
+    test(
+      label + ': stale ' + mutation + ' cannot adopt expiry-time renewed authority',
+      async () => {
+        let time = 1;
+        let renewed = false;
+        let calls = 0;
+        const workspace = create({ now: () => time, schedule: () => () => {} });
+        workspace.authorize({ expiresAt: 100, request: async () => json() });
+        const unsubscribe = workspace.subscribe(() => {
+          if (!renewed && workspace.snapshot().state === 'expired') {
+            renewed = true;
+            workspace.authorize({
+              expiresAt: 200,
+              request: async () => {
+                calls++;
+                return json();
+              },
+            });
+          }
+        });
+        time = 100;
+        const result =
+          mutation === 'issue'
+            ? await workspace.issue(input)
+            : await workspace.revoke({ credentialId: 'c' });
+        assert.deepEqual(result, { state: 'disposed' });
+        assert.equal(calls, 0);
+        assert.equal(workspace.snapshot().state, 'ready');
+        assert.equal(workspace.snapshot().reconciliationRequired, false);
+        assert.deepEqual(await workspace.issue(input), { state: 'issued' });
+        assert.equal(calls, 1);
+        unsubscribe();
+        workspace.logout();
+      },
+    );
+  }
+  test(label + ': clock-time replacement cannot retarget a stale mutation', async () => {
+    let replace = false;
+    let calls = 0;
+    const workspace = create({
+      now: () => {
+        if (replace) {
+          replace = false;
+          workspace.authorize({
+            expiresAt: 200,
+            request: async () => {
+              calls++;
+              return json();
+            },
+          });
+        }
+        return 1;
+      },
+      schedule: () => () => {},
+    });
+    workspace.authorize({ expiresAt: 100, request: async () => json() });
+    replace = true;
+    assert.deepEqual(await workspace.issue(input), { state: 'disposed' });
+    assert.equal(calls, 0);
+    assert.equal(workspace.snapshot().reconciliationRequired, false);
+    assert.deepEqual(await workspace.issue(input), { state: 'issued' });
+    assert.equal(calls, 1);
+    workspace.logout();
+  });
 }

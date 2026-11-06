@@ -42,3 +42,13 @@ Scheduler execution: corrected original-HEAD regression 20 pass / 6 fail / 0 ski
 19. Verify supported browser artifacts and existing signed HTTP tests; update the same PR, not a new disconnected stack. Session, permissions, runtime and activation remain unchanged.
 
 Reentrant execution: original HEAD3435c19 with new public source/artifact tests produced 24 pass / 8 fail / 0 skip (expired renewal returned ready instead of issued, logout resurrected issuance, obsolete replacement won, and older logout overwrote newer ready state). Corrected owning workspace gives 32 pass / 0 fail / 0 skip. All management plus signed workspace HTTP focused tests give 316 pass / 0 fail / 0 skip. Typecheck and lint pass in the standard full-check prelude; planning/links/fixture scan and six compatibility pins pass separately. Full repository tests are running, not yet certified. No native browser, live IdP, installed PostgreSQL or provider result.
+
+
+## Mutation-entry ownership (2026-11-06 18:30 KST)
+
+20. Reproduce suspended-expiry renewal during issue/revoke entry and synchronous clock-time grant replacement in source and supported browser artifact. Capture RED before runtime edits.
+21. Capture authority identity and generation before validating it. A stale invocation must return disposed without adopting a replacement grant or inventing reconciliation for an undispatched write. A subsequent explicit action may use the new grant.
+22. Preserve existing expiry, singleflight, one-time display and unknown-outcome guards. Verify the same host/HTTP integration, typecheck, lint and contracts; no frontend/session/runtime/permission changes.
+
+
+Mutation-entry execution: original6cb82a1 public source/artifact RED32 pass / 6 fail / 0 skip (ready instead of disposed; actual issued under replacement authority). Corrected38 pass / 0 fail / 0 skip; all management plus signed workspace HTTP/migrated PGlite322 pass / 0 fail / 0 skip. This fixes existing host ownership, not a new feature stack. Prior6cb82a1 STANDARD fullcheck completed9364 pass / 0 fail / 1 skip (real PostgreSQL migration integration not configured), with scripts and six pins PASS; that result does not certify this new HEAD or installed PostgreSQL. Native browser, IdP, session, deployed runtime and providers remain unverified.

@@ -2035,3 +2035,10 @@ Usage and audit screens now submit existing filters through semantic forms and E
 - Logout during scheduling prevents dispatch and cancels the superseded timer exactly once.
 - Reentrant renewal during cancellation is not overwritten by an older replacement or logout. Unknown write outcomes still require reconciliation.
 - These are isolated host lifecycle checks, not browser SSO, installed PostgreSQL or live provider acceptance.
+
+
+## Credential mutation-entry ownership (#640)
+
+- Expiry-triggered renewal during issue or revoke validation returns disposed for that stale action, never the invalid mutation result ready. No request is dispatched and no reconciliation is fabricated.
+- Clock-triggered replacement cannot retarget a stale issue to a new grant. The next explicit action succeeds using that grant; existing uncertain-outcome locks remain unchanged.
+- Exercise source and supported browser artifact separately from native browser/session and installed PostgreSQL acceptance. See [contract](../contracts/token-authority-lifetime.md#mutation-entry-ownership).

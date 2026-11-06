@@ -64,9 +64,14 @@ export function createManagementTokenWorkspace(options: TokenWorkspaceOptions = 
   ) {
     if (uncertain) return { state: 'reconciliation_required' } as const;
     if (busy) return { state: 'busy' } as const;
-    if (!authority?.isActive()) return { state } as { readonly state: 'expired' | 'disposed' };
     const current = authority;
     const epoch = generation;
+    const active = current?.isActive();
+    // Validation may synchronously renew/logout via the host clock or expiry observer.
+    // An action from the old view must not silently use replacement authority.
+    if (epoch !== generation || current !== authority) return { state: 'disposed' } as const;
+    if (!current || !active)
+      return { state: state === 'expired' ? 'expired' : 'disposed' } as const;
     busy = true;
     secret = undefined;
     // Start before notifying: reentrant logout must abort this operation too.
