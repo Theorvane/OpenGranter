@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import test from 'node:test';
+import { buildManagementBrowser } from '../scripts/build-management-browser.ts';
 import { createSsoUsageHistoryServer } from '../src/gateway/sso-usage-history-http.ts';
 import { mountManagementUsage, type UsageElement } from '../src/management/usage-app.ts';
 import { buildUsageRecord, type UsageRecord } from '../src/usage/record-usage.ts';
@@ -1576,3 +1577,59 @@ test('HTTP clear filters retires scoped CSV and cursor without inventing princip
     await once(server, 'close');
   }
 });
+
+for (const artifact of [false, true]) {
+  for (const reason of ['unauthenticated', 'expired', 'denied', 'dispose'] as const) {
+    test(`usage ${artifact ? 'artifact' : 'source'} ${reason} clears protected data when timer cancellation throws`, async () => {
+      const mount: typeof mountManagementUsage = artifact
+        ? (
+            await import(
+              `data:text/javascript;base64,${Buffer.from(await buildManagementBrowser({ root: process.cwd(), entry: 'src/management/usage-app.ts' })).toString('base64')}`
+            )
+          ).mountManagementUsage
+        : mountManagementUsage;
+      const root = new Element();
+      let cancellations = 0;
+      let requests = 0;
+      const app = mount(root, {
+        now: () => 100,
+        schedule: () => () => {
+          cancellations++;
+          throw new Error('PRIVATE_CANCELLATION_ERROR');
+        },
+      });
+      await app.authorize({
+        expiresAt: 200,
+        request: async (path) => {
+          requests++;
+          return path.includes('format=csv')
+            ? new Response('request_id\r\n8\r\n', {
+                headers: { 'content-type': 'text/csv', 'x-usage-has-more': 'false' },
+              })
+            : response();
+        },
+      });
+      assert.match(root.text(), /human/);
+      root.button('Export current page CSV').click();
+      await waitFor(() => root.all().some((node) => node.tag === 'a'));
+      const href = root.all().find((node) => node.tag === 'a')?.attrs.href;
+      assert.ok(href);
+      assert.equal((await fetch(href)).status, 200);
+      const refresh = root.button('Refresh current page');
+      assert.doesNotThrow(() => (reason === 'dispose' ? app.dispose() : app.clear(reason)));
+      assert.equal(cancellations, 1);
+      assert.doesNotMatch(root.text(), /human|candidate|PRIVATE/);
+      assert.equal(
+        root.all().some((node) => node.tag === 'a'),
+        false,
+      );
+      await assert.rejects(fetch(href));
+      const count = requests;
+      refresh.click();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      assert.equal(requests, count);
+      app.dispose();
+      assert.equal(cancellations, 1);
+    });
+  }
+}
