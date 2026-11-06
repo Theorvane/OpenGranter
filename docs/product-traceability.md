@@ -87,3 +87,10 @@ Existing issue/revoke handlers complete a known invalid-body rejection without a
 ## #640 credential inventory source evidence
 
 Original PRD credential administration: src/gateway/postgres-proxy-credential-history.ts and test/postgres-proxy-credential-history.test.ts now supply the bounded principal-scoped metadata read needed for future revoke selection. Contract: contracts/credential-inventory.md. No digest/token projection or new schema. Public API/IAM/read-audit/UI integration: MISSING, not implied by existing issue/revoke permissions; installed/browser acceptance: MISSING.
+
+
+## Exact credential detail checkpoint (#640)
+
+- Original PRD identity/credential administration and issue640 list/detail foundation: [reader](../src/gateway/postgres-proxy-credential-detail.ts), [plan](plans/640-credential-detail.md), [contract](../contracts/credential-detail.md).
+- [Tests](../test/postgres-proxy-credential-detail.test.ts): exact scope/projection, missing isolation, lifecycle boundaries, pre-SQL validation, corrupt-output/private-error rejection, async capture and actual migrated issue/inventory/detail/revoke/verification workflow. Read operations add no lifecycle events.
+- Internal SQL/PGlite only. Public credential list/detail IAM, mandatory SSO read audit, API/UI, browser login and installed acceptance are still missing. No public or release completion inferred.
