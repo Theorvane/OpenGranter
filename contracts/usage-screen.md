@@ -47,3 +47,20 @@ Time filters use explicitly UTC datetime controls with millisecond precision and
 Within the explicitly mounted trusted workspace, each usage model has a native Inspect model button that disposes the usage view and its downloads and opens current catalog detail through the same fresh SSO/IAM audited transport. The historical alias is only a lookup key, not permission, a route or cached catalog metadata. Revoked or unavailable model access remains hidden as not-found; auth failures still clear workspace authority. Back to models performs a fresh list. Standalone usage mounts have no navigation unless their trusted owner opts in. Detached controls cannot navigate after reload, grant renewal, expiry, clear or disposal. No public entry, session, listener or schema activation is added.
 
 Workspace navigation controls belong only to their creating render. Detached Models/Usage history controls after a view change, renewal, clear, pagehide/restoration or disposal cannot dispatch with current authority or replace the active view. Current controls remain functional; server authorization and mandatory audits are unchanged.
+
+## Usage action render lifetime (#642)
+
+Every usage button belongs to its creating render, including Apply filters, paging, retry, refresh, CSV continuation and cancellation. A detached button after rerender, renewal, clear or disposal must not dispatch with the current authority or interrupt a replacement request. Current controls still check expiry before acting. Native download links retain the existing object-URL revocation rules. See [plan](../docs/plans/642-usage-control-lifetime.md).
+
+## CSV link activation lifetime (#642)
+
+A CSV download anchor rechecks click, auxiliary-click and context-menu events and permits its native default action only for its creating render, current object URL and live trusted deadline. Suspended expiry timers cannot extend download activation. Replacement, renewal, clear and disposal block detached anchors; current unexpired downloads still work. This does not revoke bytes already downloaded or establish native-browser/installed acceptance. See [plan](../docs/plans/642-csv-download-authority.md).
+
+## Current-page cost summary (#642)
+
+The existing ready view summarizes only the currently authorized JSON page. Estimated and provider-reported decimal amounts are added exactly, independently per currency; there is no exchange-rate conversion or estimated-to-billed substitution. Coverage counts report rows carrying each cost, partial/missing/invalid usage and possible billing/duplicates. An absent amount remains Unknown (zero coverage), while an explicit zero is retained. Possible duplicates remain included and flagged, not silently removed. Totals are not an invoice, reconciliation result or all-pages export. Summary nodes are replaced with the existing rows on every load, cancellation, clear, expiry and disposal.
+
+
+## Correcting submitted filters (#642)
+
+The existing form preserves submitted raw text across validation/error rerenders rather than deriving rejected UTC text from NaN. Repeated submission of an unchanged invalid range remains invalid and cannot silently become an unbounded read. Corrected text uses the existing UTC parser and validating client. Drafts are local presentation only, cleared on expiry, denial, authority replacement and disposal; they never authorize principal access. Clear filters explicitly starts a fresh self-scoped JSON page, clears principal/model/time/page-size/cursor, discards paging history and revokes CSV/continuation. Detached reset controls retain the existing render and authority guards. No new route, session, listener or schema. See [plan](../docs/plans/642-filter-correction.md). Native browser validation/input behavior remains unverified.

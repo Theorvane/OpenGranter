@@ -1278,3 +1278,36 @@ Catalog list/detail and scoped usage JSON/CSV now share an explicit unbound serv
 ## Same-origin source review composition (#639/#642)
 
 An optional unbound source factory serves caller-owned public management assets and existing registered-key catalog/usage review routes on one origin. It adds no session, frontend activation or installed runtime. See [contract](../contracts/sso-usage-http.md).
+
+## Usage action lifetime (#642)
+
+Existing usage controls now belong to their creating render: detached filters, paging, CSV and cancellation cannot act with renewed authority or interrupt replacement work. This does not activate session/runtime/schema or complete browser login. See [plan](plans/642-usage-control-lifetime.md) and [contract](../contracts/usage-screen.md).
+
+## CSV download activation (#642)
+
+CSV link activation now rechecks the trusted deadline and render lifetime, including suspended expiry timers; stale anchors cannot invoke the default download action. No session/runtime/schema or public entry activation. See [plan](plans/642-csv-download-authority.md).
+
+## Current-page usage cost coverage (#642)
+
+The existing authorized usage view now shows exact per-currency current-page estimated and provider-reported sums separately, with missing-cost and token-usage coverage and possible-billing/duplicate counts. Missing amounts stay Unknown, duplicates remain included and flagged, and no currency conversion, invoice or all-pages total is inferred. Session, public entry, runtime and schema activation remain unchanged. See [plan](plans/642-usage-page-cost-summary.md) and [contract](../contracts/usage-screen.md).
+
+
+## Model detail to usage drilldown (#642)
+
+- Existing model detail opens existing usage history with the exact published alias; current-page CSV preserves that filter and ordinary navigation resets it.
+- Fresh usage IAM and mandatory audit remain required; catalog visibility grants no usage permission. Detached controls cannot spend renewed/expired authority.
+- Verify structural DOM and actual signed SSO loopback HTTP with embedded SQL separately from installed/native-browser acceptance. No session/runtime/schema activation. See [plan](plans/642-model-usage-drilldown.md) and [contract](../contracts/model-usage-drilldown.md).
+
+
+## Usage filter correction (#642)
+
+The existing review form preserves submitted filter text on validation failure and offers an explicit reset to a fresh self-scoped query without principal/model/time/cursor. Reset revokes CSV and prior paging; renewal and clearing remove drafts. Existing server permission and audit remain mandatory. See [contract](../contracts/usage-screen.md#correcting-submitted-filters-642) and [plan](plans/642-filter-correction.md).
+
+
+## Exact audit principal references (#642)
+
+Existing audit JSON/CSV queries and durable actor/target projection support exact bounded Unicode principal references, without normalization, new authority or relaxed non-principal identifiers. Current target IAM, explicit Deny and mandatory audit remain enforced. No SSO/session/runtime/schema activation. See [contract](../contracts/audit-principal-references.md) and [plan](plans/642-audit-unicode-principal.md).
+
+## Integrated source-only review feature line (#637)
+
+Combine the existing #716–#721 management and audit changes with the same-origin #722 review composition. The served workspace bundle, scoped APIs and durable audit must use the same source tree; a newest PR number alone does not imply inclusion. See [plan](plans/637-review-feature-integration.md). No new authentication or installed-runtime authority.
