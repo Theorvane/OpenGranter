@@ -222,4 +222,57 @@ for (const [label, create] of [
       workspace.logout();
     },
   );
+  test(
+    label + ': timer rearm failure clears displayed secret without resetting outcome gates',
+    async () => {
+      let fire = () => {};
+      let schedules = 0;
+      let notices = 0;
+      const workspace = create({
+        now: () => 1,
+        schedule: (_delay, callback) => {
+          if (++schedules > 1) throw Error('private timer');
+          fire = callback;
+          return () => {};
+        },
+        onChange: () => {
+          notices++;
+        },
+      });
+      workspace.authorize({ request: async () => json(), expiresAt: 100 });
+      assert.deepEqual(await workspace.issue(input), { state: 'issued' });
+      assert.equal(workspace.snapshot().secret?.token, 'one-time');
+      const previous = notices;
+      assert.doesNotThrow(fire);
+      assert.equal(notices, previous + 1);
+      const snapshot = workspace.snapshot();
+      assert.equal(snapshot.secret, undefined);
+      assert.equal(snapshot.state, 'expired');
+      assert.equal(snapshot.reconciliationRequired, false);
+      assert.deepEqual(await workspace.issue(input), { state: 'expired' });
+      workspace.logout();
+    },
+  );
+  test(
+    label + ': initial scheduling failure cannot retain an earlier one-time secret',
+    async () => {
+      let schedules = 0;
+      const workspace = create({
+        now: () => 1,
+        schedule: () => {
+          if (++schedules > 1) throw Error('private timer');
+          return () => {};
+        },
+      });
+      const grant = { request: async () => json(), expiresAt: 100 };
+      workspace.authorize(grant);
+      await workspace.issue(input);
+      assert.equal(workspace.snapshot().secret?.token, 'one-time');
+      assert.doesNotThrow(() => workspace.authorize(grant));
+      assert.equal(workspace.snapshot().secret, undefined);
+      assert.equal(workspace.snapshot().state, 'expired');
+      assert.deepEqual(await workspace.revoke({ credentialId: 'c' }), { state: 'expired' });
+      workspace.logout();
+    },
+  );
 }

@@ -262,4 +262,109 @@ for (const [label, create] of [
     authority.dispose();
     assert.equal(notices, 1);
   });
+  const input = { principalId: 'human', expiresAt: 9000 };
+  const json = (value: unknown) =>
+    new Response(JSON.stringify(value), {
+      status: 201,
+      headers: { 'content-type': 'application/json' },
+    });
+  test(`${label}: broken schedulers expire without dispatch or leaked errors`, async () => {
+    for (const schedule of [
+      () => {
+        throw Error('private scheduler');
+      },
+      () => undefined as unknown as () => void,
+      (_delay: number, callback: () => void) => {
+        callback();
+        return () => {};
+      },
+    ]) {
+      let calls = 0;
+      const reasons: string[] = [];
+      const authority = create(
+        {
+          request: async () => {
+            calls++;
+            return json({ credentialId: 'c', token: 't' });
+          },
+          expiresAt: 100,
+        },
+        {
+          now: () => 1,
+          schedule,
+          onInvalidate: (reason) => {
+            reasons.push(reason);
+          },
+        },
+      );
+      assert.equal(authority.isActive(), false);
+      assert.deepEqual(await authority.issue(input), { state: 'expired' });
+      authority.dispose();
+      assert.deepEqual(reasons, ['expired']);
+      assert.equal(calls, 0);
+    }
+  });
+  test(`${label}: rearm failure aborts pending mutation and ignores stale timer`, async () => {
+    let fire = () => {};
+    let finish!: (value: Response) => void;
+    let schedules = 0;
+    let calls = 0;
+    const reasons: string[] = [];
+    const authority = create(
+      {
+        request: () => {
+          calls++;
+          return new Promise<Response>((resolve) => {
+            finish = resolve;
+          });
+        },
+        expiresAt: 100,
+      },
+      {
+        now: () => 1,
+        schedule: (_delay, callback) => {
+          if (++schedules > 1) throw Error('private rearm');
+          fire = callback;
+          return () => {};
+        },
+        onInvalidate: (reason) => {
+          reasons.push(reason);
+        },
+      },
+    );
+    const pending = authority.issue(input);
+    assert.doesNotThrow(fire);
+    assert.deepEqual(await pending, { state: 'outcome_unknown' });
+    finish(json({ credentialId: 'c', token: 'late' }));
+    await new Promise((resolve) => setImmediate(resolve));
+    fire();
+    assert.deepEqual(await authority.revoke({ credentialId: 'c' }), { state: 'expired' });
+    assert.equal(calls, 1);
+    assert.equal(schedules, 2);
+    assert.deepEqual(reasons, ['expired']);
+  });
+  test(`${label}: obsolete timer cannot replace live expiry cleanup`, () => {
+    const timers: (() => void)[] = [];
+    let cancellations = 0;
+    const authority = create(
+      { request: async () => json({}), expiresAt: 100 },
+      {
+        now: () => 1,
+        schedule: (_delay, callback) => {
+          timers.push(callback);
+          return () => {
+            cancellations++;
+          };
+        },
+      },
+    );
+    timers[0]?.();
+    assert.equal(timers.length, 2);
+    timers[0]?.();
+    assert.equal(timers.length, 2);
+    authority.dispose();
+    assert.equal(cancellations, 1);
+    timers[1]?.();
+    assert.equal(timers.length, 2);
+  });
 }

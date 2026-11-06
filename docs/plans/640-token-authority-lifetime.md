@@ -26,3 +26,11 @@ Execution: corrected regression fixture against original HEAD: 0 pass / 12 fail 
 13. Verify source and supported browser bundle: success/clear, suspended expiry, network ambiguity, pending logout/regrant, stale completion, singleflight and observer failure. Keep UI activation, sessions and installed acceptance explicitly incomplete.
 
 Workspace execution: initial missing-module RED (0 pass / 1 fail; feature absent, not a prior-runtime regression). New source/artifact workspace cases 16 pass / 0 fail / 0 skip. Final management plus signed-HTTP/embedded-SQL focused suites 287 pass / 0 fail / 0 skip. Typecheck exit0, lint no errors (42 warnings/208 infos), planning/link/fixture scan, schema compatibility and diff checks pass. Native credential screen and session acquisition remain incomplete.
+
+## Credential UI scheduler integration defect (2026-11-06)
+
+14. Reproduce throwing initial/rearm schedulers, invalid cancellation handles, synchronous callbacks and stale repeated callbacks in source and supported browser artifacts before editing production. No session/runtime or frontend-owned files change.
+15. Expire authority once on scheduler failure, abort in-flight writes with unknown-outcome semantics and clear host secret notifications; suppress obsolete timer callbacks and retain valid cancellation ownership.
+16. Verify existing owning token workspace clears displayed secrets and keeps mutation ambiguity locked. Run focused UI/API tests and static checks, publish same PR for exact-head review. Native login remains blocked on the approved session contract.
+
+Scheduler execution: corrected original-HEAD regression 20 pass / 6 fail / 0 skip (private scheduler/rearm exceptions and obsolete timer 3 vs expected 2). The initial added fixture missed scoped helpers; corrected before recording this baseline. Final all management plus persisted simulator and signed workspace HTTP suites 313 pass / 0 fail / 0 skip. Existing workspace secret-display and replacement-grant tests run source and supported bundle. Typecheck, lint (42 warnings/235 infos; no errors), scripts, six compatibility pins and diff checks pass. No native-browser/session/installed-SQL evidence.

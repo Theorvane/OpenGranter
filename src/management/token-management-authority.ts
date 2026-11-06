@@ -35,6 +35,7 @@ export function createManagementTokenAuthority(
     });
   let terminal: 'expired' | 'disposed' | undefined;
   let cancel: (() => void) | undefined;
+  let timerRevision = 0;
   const client = createManagementTokenClient((path, init) => {
     // Recheck immediately at the trusted transport boundary, not only at render.
     if (!live()) throw Error('Authority unavailable');
@@ -43,6 +44,7 @@ export function createManagementTokenAuthority(
   function close(state: 'expired' | 'disposed') {
     if (terminal) return;
     terminal = state;
+    timerRevision++;
     const cleanup = cancel;
     cancel = undefined;
     client.dispose();
@@ -86,10 +88,39 @@ export function createManagementTokenAuthority(
       close('expired');
       return;
     }
-    cancel = schedule(Math.max(1, Math.min(2147483647, expiresAt - time)), () => {
-      cancel = undefined;
-      if (live()) arm();
-    });
+    const revision = ++timerRevision;
+    let installing = true;
+    try {
+      const cleanup = schedule(Math.max(1, Math.min(2147483647, expiresAt - time)), () => {
+        if (terminal || revision !== timerRevision) return;
+        // A synchronous scheduler violates the host contract; do not recurse.
+        if (installing) {
+          close('expired');
+          return;
+        }
+        timerRevision++;
+        cancel = undefined;
+        if (live()) arm();
+      });
+      installing = false;
+      if (typeof cleanup !== 'function') {
+        close('expired');
+        return;
+      }
+      if (terminal || revision !== timerRevision) {
+        try {
+          cleanup();
+        } catch {
+          // Terminal authority must remain closed even if cleanup fails.
+        }
+        return;
+      }
+      cancel = cleanup;
+    } catch {
+      installing = false;
+      // No reliable expiry cleanup means no usable mutation authority.
+      close('expired');
+    }
   }
   async function run<T extends TokenIssueResult | TokenRevokeResult>(
     operation: () => Promise<T>,
