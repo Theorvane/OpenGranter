@@ -1953,3 +1953,8 @@ Structural cancelable click events must show current downloads are permitted, ex
 - Execute mounted source and actual browser-target bundle against loopback existing audit HTTP + embedded SQL: self-only metadata, other-principal exclusion, acknowledged read audit, explicit Deny before storage, and failed audit with no content release.
 - Verify strict filters, UTC drafts/reset, descending exact returned cursor, empty/loading/cancel, bounded private failures, stale renewal and suspended-deadline download revocation. CSV remains explicit per page.
 - Native browser, SSO audit adapter/session, installed PostgreSQL/ingress and provider/paid acceptance remain separate unverified gates. See [contract](../contracts/audit-screen.md).
+
+
+## Supported audit browser artifact (#642)
+
+Audit client and screen must build through the supported management browser builder, not unrestricted esbuild. Shared pure projection/query validation preserves the server contract and error identity. Exact canonical dependency allowlisting excludes SQL adapters and runtime modules. Structural-DOM execution of that artifact is not native-browser or installed acceptance. See [plan](plans/642-audit-browser-build.md).

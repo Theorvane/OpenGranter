@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import test from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
-import { build } from 'esbuild';
+import { buildManagementBrowser } from '../scripts/build-management-browser.ts';
 import { createPostgresAuditHistoryReader } from '../src/audit/postgres-audit-history.ts';
 import { createPostgresGatewayAuditStore } from '../src/audit/postgres-gateway-audit.ts';
 import { createChatHandler } from '../src/gateway/chat-handler.ts';
@@ -140,14 +140,10 @@ for (const compiled of [false, true]) {
   test(`audit ${compiled ? 'executed browser bundle' : 'source screen'} reads real HTTP handler with scoped IAM, audit and CSV`, async () => {
     let mount = mountManagementAudit;
     if (compiled) {
-      const bundle = await build({
-        entryPoints: ['src/management/audit-app.ts'],
-        bundle: true,
-        write: false,
-        platform: 'browser',
-        format: 'esm',
+      const code = await buildManagementBrowser({
+        root: process.cwd(),
+        entry: 'src/management/audit-app.ts',
       });
-      const code = bundle.outputFiles[0]?.text;
       assert.ok(code);
       assert.doesNotMatch(code, /node:|process\.env|require\(/);
       mount = (await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`))

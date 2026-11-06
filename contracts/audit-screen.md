@@ -21,3 +21,8 @@ CSV is the existing server-projected page export and uses `x-has-more` / `x-next
 ## Evidence and exclusions
 
 `test/management-audit-screen.test.ts` executes both source and an actual browser-target bundled module against the existing real loopback HTTP handler and embedded PostgreSQL-compatible SQL reader/writer, with isolated migrations, seeded other-principal data, acknowledged read audit, Deny, audit failure and CSV. DOM is structural, NOT a native browser. These tests use test-only authority and do not establish IdP login, installed PostgreSQL, TLS/ingress, runtime activation or live-provider acceptance. No schema migration or production deployment is performed.
+
+
+## Supported audit browser artifact (#642)
+
+Audit client and screen must build through the supported management browser builder, not unrestricted esbuild. Shared pure projection/query validation preserves the server contract and error identity. Exact canonical dependency allowlisting excludes SQL adapters and runtime modules. Structural-DOM execution of that artifact is not native-browser or installed acceptance. See [plan](../docs/plans/642-audit-browser-build.md).

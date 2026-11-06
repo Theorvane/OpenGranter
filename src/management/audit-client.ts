@@ -1,4 +1,4 @@
-import { parseAuditHistoryQuery, projectAuditHistoryPage } from '../audit/history-http.ts';
+import { parseAuditHistoryQuery, projectAuditHistoryPage } from '../audit/history-public.ts';
 import type { AuditHistoryEvent } from '../audit/postgres-audit-history.ts';
 import type { CatalogRequest } from './catalog-client.ts';
 
