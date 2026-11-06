@@ -59,9 +59,14 @@ function createCatalogAuthority(
   }
   function invalidate() {
     revision++;
-    cancel?.();
+    const cleanup = cancel;
     cancel = undefined;
     expiresAt = undefined;
+    try {
+      cleanup?.();
+    } catch {
+      // Host timer cleanup must never prevent abort or protected-state clearing.
+    }
   }
   function clear(state: 'unauthenticated' | 'expired' | 'denied' | 'unavailable') {
     if (disposed) return;
@@ -69,10 +74,17 @@ function createCatalogAuthority(
     session.clear(state);
     notify();
   }
+  function clock() {
+    try {
+      return now();
+    } catch {
+      return NaN;
+    }
+  }
   function expired() {
     if (expiresAt === undefined) return false;
-    const time = now();
-    if (!Number.isFinite(time) || time >= expiresAt) {
+    const time = clock();
+    if (!Number.isFinite(time) || time < 0 || time >= expiresAt) {
       clear('expired');
       return true;
     }
@@ -80,7 +92,12 @@ function createCatalogAuthority(
   }
   function arm(current: number) {
     if (current !== revision || expiresAt === undefined || expired()) return;
-    const delay = Math.max(1, Math.min(2147483647, expiresAt - now()));
+    const time = clock();
+    if (!Number.isFinite(time) || time < 0 || time >= expiresAt) {
+      clear('expired');
+      return;
+    }
+    const delay = Math.max(1, Math.min(2147483647, expiresAt - time));
     cancel = schedule(delay, () => {
       if (current !== revision || disposed) return;
       cancel = undefined;
@@ -102,10 +119,12 @@ function createCatalogAuthority(
     authorize(grant: CatalogAuthorityGrant) {
       if (disposed) return;
       invalidate();
-      const time = now();
+      const time = clock();
       if (
         !Number.isSafeInteger(grant.expiresAt) ||
+        grant.expiresAt < 0 ||
         !Number.isFinite(time) ||
+        time < 0 ||
         grant.expiresAt <= time
       ) {
         session.clear('expired');

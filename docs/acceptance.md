@@ -1972,3 +1972,73 @@ Audit client and screen must build through the supported management browser buil
 - Source and supported browser artifact execute issue/revoke through loopback signed SSO HTTP and migrated embedded SQL; verify actual credential validity/revocation, acknowledged already-revoked results, current IAM Deny and required audit failure.
 - Reject invalid or actor-overriding inputs before dispatch; preserve exact identifiers. Test single-flight, no automatic retries, timeout/disposal/uncooperative ports, late-secret suppression, bounded fatal UTF-8 responses, private errors and reconciliation lock after unknown outcome.
 - No credential persistence, UI/session activation, native-browser login, installed SQL or deployment/provider acceptance is claimed.
+
+## Trusted token mutation lifetime (#640)
+
+Source and supported browser artifact must prevent expired/disposed dispatch, reject invalid/throwing clocks, snapshot request/expiry, rearm early timers, suppress late issue secrets, preserve unknown-outcome locking and close on 401/403. Logout/expiry after dispatch is not rollback. No native-browser session or deployment acceptance follows from these tests. See [contract](../contracts/token-authority-lifetime.md).
+
+### Token authority terminal host notification (#640)
+
+- Source and supported browser artifact notify once to clear host-held one-time secrets at expiry; observer errors cannot prevent pending abort or reopen disposed authority.
+- Actual ephemeral loopback HTTP plus signed JWT and migrated embedded SQL issue/verify/revoke, enforce changed Deny with terminal notification, suppress secret for a committed issue completed after expiry, and reject mutation on missing mandatory audit. Unknown outcome blocks subsequent dispatch; local expiry does not certify rollback.
+- Native-browser login/UI integration, approved session contract, installed PostgreSQL and deployment remain independent incomplete gates.
+
+
+## Catalog clock and logout teardown (#639)
+
+Both existing catalog authority factories, from source and the supported browser artifact, must expire and clear a previously returned private model list on throwing/negative clock; reject invalid initial clock/negative epoch grants without dispatch; and abort pending reads/notify unauthenticated even when timer cancellation throws. Structural/source evidence is not native browser login, installed SQL or deployment acceptance.
+
+## Owning credential workspace (#640)
+
+Source and supported browser artifact verify singleflight, one-time display clearing, suspended expiry, navigation during issue, grant replacement, no late secret, observer exceptions and definite denial distinct from ambiguity. Signed-JWT loopback HTTP and migrated embedded SQL verify issue/credential validity/revoke, an actual committed issue whose secret expires, and zero subsequent dispatch across logout/navigation/fresh grant. No browser session, native DOM, installed SQL or cross-tab/reload reconciliation acceptance is inferred.
+
+## Credential forms (#640)
+
+Source and supported browser bundle forms must issue/revoke via the authorized API, show explicit invalid/denied/loading/expired/reconciliation states, render secrets only as text, and clear them on hide/logout/expiry/unmount/next mutation. Detached controls cannot consume new grants; stale completions cannot show success after authority replacement; drafts clear across authorities. Pending unmount/remount cannot reset unknown outcomes. Signed-JWT loopback HTTP plus migrated PGlite verifies actual issue, credential validity, revoke and required decision rows using a structural DOM double. Native browser, host entry/session integration, installed SQL and provider acceptance remain incomplete. See [contract](../contracts/token-management-screen.md).
+
+
+## Credential navigation in the existing management host (#639/#640)
+
+- Reach actual issue/revoke forms from existing Models/Usage history/Credentials navigation; disconnected controls never dispatch. Successful navigation hides the one-time secret but leaves current authority usable.
+- Maintain exactly one private token workspace across navigation, logout and grant replacement. Interrupting a pending write aborts and locks later credential dispatch; late completion cannot reveal a secret. No reset/retry action is provided.
+- Current denial invalidates the whole host; stale/aborted denial cannot clear renewal. Expiry, pagehide, clear, dispose and failed clocks clear protected display and invalidate detached controls. Throwing timer cleanup cannot interrupt teardown. Page restoration requires fresh trusted authority.
+- Source and supported browser artifact pass structural DOM host navigation and actual signed-JWT loopback credential HTTP with migrated PGlite, issued credential verification, revoke and mandatory decision rows. The credential-only HTTP fixture does not certify catalog route composition. Native browser/login, public entry/session acquisition, installed SQL, deployment/provider acceptance and full PRD remain incomplete. See [plan](plans/640-token-host-navigation.md).
+
+## Audit host navigation (#642)
+
+- Without a grant, Audit history sends no request. With a grant, the existing audit JSON/CSV client uses the same guarded transport.
+- Current denial clears all views including credential writes; stale controls and results cannot use renewed authority. Expiry and pagehide require fresh authority.
+- Leaving audit aborts outstanding reads and revokes CSV URLs; logout and replacement grants also revoke URLs. No retained private page appears in another view.
+- Source and supported artifact tests exercise actual loopback HTTP + migrated PGlite scoped audit history, CSV, Deny and failed mandatory audit through host navigation. Authentication is a test port, not SSO/browser/installed evidence.
+- Current SSO review server lacks /v1/audit; unsupported adapters show unavailable. Public entry, approved session and installed acceptance remain separate gates.
+
+## Keyboard history filters (#642)
+
+Usage and audit screens now submit existing filters through semantic forms and Enter, sharing parsing, first-page reset and draft correction with Apply. Detached/expired forms cannot consume authority. No session/entry activation. Source/artifact event and audit HTTP evidence remain separate from native-browser acceptance. See [contract](../contracts/history-filter-submission.md) and [plan](plans/642-history-filter-submission.md).
+
+## Explicit management workspace HTTP (#640)
+
+- Signed test RFC9068 access tokens, migrated PGlite and loopback HTTP prove existing browser-token transport issuance, digest-only persistence, revoke, lifecycle events and current binding removal.
+- Verify route/method lookalikes, preserved abort/query/body validation, ignored injected authority ports, owner-scoped current Deny, lifetime cap and failed required decision audit. Original review factories still reject writes.
+- Construction remains unbound; no installed PostgreSQL, native browser, real SSO login, provider E2E or paid call is certified. See [contract](../contracts/management-workspace-http.md).
+
+## Policy simulator screen (#640)
+
+- Current persisted inherited grants and changed explicit Deny/version render through the actual internal simulator; inactive/missing/SQL-failure states never fabricate Allow.
+- Exact validated inputs, bounded projected results and text-only rendering; no automatic retries, invocation, hypothetical policy grant or public reader activation.
+- Cancellation, replacement, logout, expiry, bad clocks, failed scheduling and unmount suppress stale results and detached controls, clearing private diagnostic data. Supported browser artifact contains no SQL/server dependency.
+- Structural DOM/PGlite/build evidence is not native-browser/login/public API/installed PostgreSQL acceptance. Public reader permission/visibility/audit plus approved session/host integration remain open. See [contract](../contracts/policy-simulator-screen.md).
+
+## Reentrant credential host ownership (#640)
+
+- Expiry notification renewal during construction keeps the newest grant; source and supported browser artifact can issue only through that grant.
+- Logout during scheduling prevents dispatch and cancels the superseded timer exactly once.
+- Reentrant renewal during cancellation is not overwritten by an older replacement or logout. Unknown write outcomes still require reconciliation.
+- These are isolated host lifecycle checks, not browser SSO, installed PostgreSQL or live provider acceptance.
+
+
+## Credential mutation-entry ownership (#640)
+
+- Expiry-triggered renewal during issue or revoke validation returns disposed for that stale action, never the invalid mutation result ready. No request is dispatched and no reconciliation is fabricated.
+- Clock-triggered replacement cannot retarget a stale issue to a new grant. The next explicit action succeeds using that grant; existing uncertain-outcome locks remain unchanged.
+- Exercise source and supported browser artifact separately from native browser/session and installed PostgreSQL acceptance. See [contract](../contracts/token-authority-lifetime.md#mutation-entry-ownership).

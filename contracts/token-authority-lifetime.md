@@ -1,0 +1,37 @@
+# Trusted token mutation lifetime (#640)
+
+`createManagementTokenAuthority(grant, options?)` composes the existing [token client](token-browser-client.md) with one snapshotted trusted `CatalogAuthorityGrant`. This is not authentication, session acquisition, a browser BFF or an IAM capability. Server authentication/current IAM/mandatory audit remain authoritative. No cookies, storage, listener, UI, credential inventory, permission decision or runtime activation is added.
+
+- `issue` and `revoke` retain the client inputs/results and add `expired`. A finite nonnegative current clock and a safe nonnegative future epoch expiry are required. A throwing/invalid clock fails closed. The supplied request and expiry are captured once; mutating the original grant cannot change authority.
+- Every operation checks expiry before dispatch, immediately at the transport boundary, and after completion. A bounded timer also disposes at expiry; early timer callbacks rearm. Suspended timers do not permit new mutations or late success/secret delivery. Once expired, clock reversal does not revive authority.
+- `dispose()` terminates authority and aborts the client. The host MUST call it on logout, principal/permission change and unmount, and remove any already displayed secret. Invalidating on 401/403 prevents later dispatch but preserves that operation's denied/unauthenticated result.
+- A dispatched operation interrupted by disposal/expiry remains `outcome_unknown`, not certified rollback. A late success is not returned. Transport singleflight, deadline, response bounds, strict projection and uncertain-outcome lock remain intact. There is no renewal/reset API. Creating a fresh adapter is NOT reconciliation; the host must retain the unresolved-outcome gate across its own navigation, login or grant replacement until separately authorized operator reconciliation completes.
+- Optional snapshotted onInvalidate(reason) notifies the host exactly once on terminal expiry/disposal (including initial invalid grants and 401/403). It carries only expired/disposed, never credentials. The host should synchronously clear displayed private state without throwing; observer/cancellation exceptions are contained and cannot reopen authority or prevent in-flight abort. This notification does not erase caller-held strings or reconcile mutations. A suspended timer still needs the documented host lifecycle and operation checks.
+- No result or token is stored by this adapter. It cannot erase a string already returned to a caller or establish a secure session. Trusted scheduling callbacks must be asynchronous; schedule/cancellation functions are host infrastructure, not untrusted UI inputs.
+
+## Evidence and limits
+
+Source and the actual supported browser bundle test valid issue/revoke, snapshotted authority, expired/invalid clocks, timer suspension, early timer rearm, in-flight logout/expiry, late secret suppression, denial and uncertain-outcome locking. The authority and underlying transport also run against actual loopback SSO HTTP with signed JWT and migrated embedded SQL: issue/verify/revoke, current-policy Deny and terminal host notification, a committed issue whose secret is suppressed at expiry, mandatory-audit failure without credential creation, and the uncertain-outcome dispatch lock. This is ephemeral local API evidence, not a browser-acquired session or installed PostgreSQL. No native-browser login, installed SQL, provider call, deployment or production success is asserted. Frontend screen integration and the approved session/BFF/IdP/CSRF contract remain open.
+
+## Shared catalog screen teardown correction (#639)
+
+The existing proxy/SSO catalog authority now treats throwing or negative clocks as expired, rejects negative epoch grants, clears protected snapshots and prevents further reads. Timer cancellation exceptions cannot prevent session abort or the host clearing notification. The clock is rechecked while arming expiry as well as before reads and publication. This changes the existing screen authority, not DOM ownership, session acquisition or runtime activation. Source and supported browser artifacts cover displayed-data clearing, invalid initial clocks/grants and in-flight logout with throwing cleanup.
+
+## Owning credential workspace (#640)
+
+The DOM-independent createManagementTokenWorkspace owns one-time display state and a host-lifetime reconciliation latch. Keep one instance above navigation and grant replacement: authorize takes only a trusted grant, logout disposes authority, hideSecret clears display (and aborts/locks a pending mutation), snapshot rechecks authority expiry even with suspended timers. issue returns only issued status; the secret is available only through the owning snapshot until clearing. Revoke, next mutation, logout, expiry and grant replacement clear it. Notifications carry no secret and observer failures cannot interrupt cleanup.
+
+An ambiguous or interrupted write closes the host mutation gate before replacement returns. Logout, navigation and fresh grants cannot reopen it; there is no reset or reconciliation method. An explicit HTTP denial closes authority but does not fabricate an ambiguous write. No persistence or cross-tab/reload guarantee exists; reconstructing the workspace is not reconciliation. Server-side reconciliation remains a separate unimplemented approved contract. No session acquisition, DOM, listener or deployment is activated.
+
+## Credential UI scheduler failures
+
+Throwing schedulers (initial or rearm), non-function cancellation handles and synchronous callbacks expire mutation authority once. A scheduling exception is never exposed to the UI. Host notifications clear previously displayed secrets; in-flight aborts retain unknown-outcome/reconciliation requirements. Obsolete or repeated callbacks cannot rearm or overwrite live cleanup. Schedule remains an asynchronous trusted-host contract, not an authentication source. This hardens the existing credential workspace without activating session acquisition or changing any server permission.
+
+## Owning-host reentrant installation
+
+Host lifecycle actions may run synchronously during expiry notifications, scheduling or cancellation. Each detach captures its generation before invoking external cleanup. An older authorize/logout/navigation action must not overwrite a newer reentrant action; an authority constructed after losing ownership is immediately disposed, never published. Construction-time expiry renewal keeps the newest grant, and lifecycle logout during construction cannot resurrect mutation dispatch. Existing unknown-outcome locks and secret clearing remain unchanged. This is not grant acquisition, permission, session or runtime activation.
+
+
+## Mutation-entry ownership
+
+An issue/revoke invocation snapshots the owning authority and generation before checking suspended expiry. If that validation synchronously replaces or logs out the grant, the stale invocation returns disposed: it neither adopts a replacement principal's authority nor reports ready as a mutation result. No write dispatched, so no reconciliation latch is fabricated. A later explicit action may use the replacement grant. Existing in-flight ambiguity remains locked. Source and supported browser-artifact tests cover expiry-triggered renewal for both writes and clock-triggered replacement; this is not live SSO or browser-session acceptance.

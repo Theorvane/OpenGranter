@@ -633,3 +633,325 @@ test('browser token client source and supported artifact use signed HTTP with du
     }
   }
 });
+
+test('token authority source and supported artifact integrate signed HTTP with SQL outcomes and host clearing', async () => {
+  const { createManagementTokenAuthority: source } = await import(
+    '../src/management/token-management-authority.ts'
+  );
+  const { buildManagementBrowser } = await import('../scripts/build-management-browser.ts');
+  const javascript = await buildManagementBrowser({
+    root: process.cwd(),
+    entry: 'src/management/token-management-authority.ts',
+  });
+  const built = (await import(
+    'data:text/javascript;base64,' + Buffer.from(javascript).toString('base64')
+  )) as { createManagementTokenAuthority: typeof source };
+  for (const factory of [source, built.createManagementTokenAuthority]) {
+    const f = await fixture();
+    const server = createPostgresRfc9068SsoManagementServer(f.config);
+    const authorities: ReturnType<typeof source>[] = [];
+    try {
+      server.listen(0, '127.0.0.1');
+      await once(server, 'listening');
+      const address = server.address();
+      assert.ok(address && typeof address === 'object');
+      let calls = 0;
+      let clock = now();
+      let expireAfterResponse = false;
+      const notices: string[] = [];
+      const authority = () => {
+        const value = factory(
+          {
+            expiresAt: now() + 1000,
+            request: async (path, init) => {
+              calls++;
+              const response = await fetch('http://127.0.0.1:' + address.port + path, {
+                ...init,
+                headers: { ...init.headers, authorization: 'Bearer ' + token },
+              });
+              if (expireAfterResponse) clock = now() + 1000;
+              return response;
+            },
+          },
+          {
+            now: () => clock,
+            schedule: () => () => {},
+            onInvalidate: (reason) => {
+              notices.push(reason);
+            },
+          },
+        );
+        authorities.push(value);
+        return value;
+      };
+      const live = authority();
+      const input = { principalId: 'human-owner', expiresAt: now() + day };
+      const issued = await live.issue(input);
+      assert.equal(issued.state, 'issued');
+      if (issued.state !== 'issued') throw Error('Issuance failed');
+      assert.equal((await f.tokens.verifyCredential(issued.token))?.principalId, 'human-owner');
+      assert.deepEqual(await live.revoke({ credentialId: issued.credentialId }), {
+        state: 'revoked',
+        revoked: true,
+      });
+      assert.equal(await f.tokens.verifyCredential(issued.token), undefined);
+      await f.db.query('UPDATE iam_policies SET version=$1, statements=$2', [
+        'v2',
+        JSON.stringify([{ effect: 'Deny', actions: ['iam:Manage'], resources: ['*'] }]),
+      ]);
+      assert.deepEqual(await live.issue(input), { state: 'denied' });
+      assert.deepEqual(notices, ['disposed']);
+      assert.deepEqual(await live.issue(input), { state: 'disposed' });
+      assert.equal(calls, 3);
+      assert.equal(await f.count('proxy_credentials'), 1);
+      assert.equal(await f.count('token_management_decisions'), 3);
+      await f.db.query('UPDATE iam_policies SET version=$1, statements=$2', [
+        'v3',
+        JSON.stringify([{ effect: 'Allow', actions: ['iam:Manage'], resources: ['principal:*'] }]),
+      ]);
+      const expiring = authority();
+      expireAfterResponse = true;
+      assert.deepEqual(await expiring.issue(input), { state: 'outcome_unknown' });
+      assert.deepEqual(await expiring.issue(input), { state: 'expired' });
+      assert.deepEqual(notices, ['disposed', 'expired']);
+      // Real SQL commit survives local expiry: no automatic retry/rollback claim.
+      assert.equal(await f.count('proxy_credentials'), 2);
+      assert.equal(await f.count('token_management_decisions'), 4);
+      assert.equal(calls, 4);
+      expireAfterResponse = false;
+      clock = now();
+      const auditFailure = authority();
+      await f.db.exec('ALTER TABLE token_management_decisions RENAME TO unavailable_decisions');
+      assert.deepEqual(await auditFailure.issue(input), { state: 'outcome_unknown' });
+      assert.deepEqual(await auditFailure.revoke({ credentialId: issued.credentialId }), {
+        state: 'reconciliation_required',
+      });
+      assert.equal(calls, 5);
+      assert.equal(await f.count('proxy_credentials'), 2);
+      assert.equal(await f.count('proxy_credential_events'), 3);
+      const persisted =
+        JSON.stringify((await f.db.query('SELECT * FROM proxy_credential_events')).rows) +
+        JSON.stringify((await f.db.query('SELECT * FROM unavailable_decisions')).rows);
+      assert.equal(persisted.includes(issued.token), false);
+      assert.equal(persisted.includes(token), false);
+    } finally {
+      for (const value of authorities) value.dispose();
+      server.closeAllConnections();
+      if (server.listening) await new Promise<void>((resolve) => server.close(() => resolve()));
+      await f.db.close();
+    }
+  }
+});
+
+test('owning credential workspace source and artifact preserve real committed ambiguity across fresh grants', async () => {
+  const { createManagementTokenWorkspace: source } = await import(
+    '../src/management/token-management-workspace.ts'
+  );
+  const { buildManagementBrowser } = await import('../scripts/build-management-browser.ts');
+  const js = await buildManagementBrowser({
+    root: process.cwd(),
+    entry: 'src/management/token-management-workspace.ts',
+  });
+  const built = (await import(
+    'data:text/javascript;base64,' + Buffer.from(js).toString('base64')
+  )) as { createManagementTokenWorkspace: typeof source };
+  for (const create of [source, built.createManagementTokenWorkspace]) {
+    const f = await fixture();
+    const server = createPostgresRfc9068SsoManagementServer(f.config);
+    let clock = now();
+    const workspace = create({ now: () => clock, schedule: () => () => {} });
+    try {
+      server.listen(0, '127.0.0.1');
+      await once(server, 'listening');
+      const address = server.address();
+      assert.ok(address && typeof address === 'object');
+      let calls = 0;
+      let expireAfterResponse = false;
+      const request: Parameters<typeof workspace.authorize>[0]['request'] = async (path, init) => {
+        calls++;
+        const response = await fetch('http://127.0.0.1:' + address.port + path, {
+          ...init,
+          headers: { ...init.headers, authorization: 'Bearer ' + token },
+        });
+        if (expireAfterResponse) clock = now() + 1000;
+        return response;
+      };
+      const authorize = () => workspace.authorize({ expiresAt: now() + 1000, request });
+      const input = { principalId: 'human-owner', expiresAt: now() + day };
+      authorize();
+      assert.deepEqual(await workspace.issue(input), { state: 'issued' });
+      const secret = workspace.snapshot().secret;
+      assert.ok(secret);
+      assert.equal((await f.tokens.verifyCredential(secret.token))?.principalId, 'human-owner');
+      assert.deepEqual(await workspace.revoke({ credentialId: secret.credentialId }), {
+        state: 'revoked',
+        revoked: true,
+      });
+      assert.equal(workspace.snapshot().secret, undefined);
+      assert.equal(await f.tokens.verifyCredential(secret.token), undefined);
+      expireAfterResponse = true;
+      assert.deepEqual(await workspace.issue(input), { state: 'outcome_unknown' });
+      assert.equal(await f.count('proxy_credentials'), 2);
+      assert.equal(await f.count('token_management_decisions'), 3);
+      assert.equal(workspace.snapshot().secret, undefined);
+      workspace.hideSecret();
+      workspace.logout();
+      clock = now();
+      expireAfterResponse = false;
+      authorize();
+      assert.deepEqual(await workspace.issue(input), { state: 'reconciliation_required' });
+      assert.deepEqual(await workspace.revoke({ credentialId: secret.credentialId }), {
+        state: 'reconciliation_required',
+      });
+      assert.equal(calls, 3);
+      assert.equal(await f.count('proxy_credentials'), 2);
+    } finally {
+      workspace.logout();
+      server.closeAllConnections();
+      if (server.listening) await new Promise<void>((resolve) => server.close(() => resolve()));
+      await f.db.close();
+    }
+  }
+});
+
+test('credential forms source and supported artifact issue and revoke through signed HTTP and migrated SQL', async () => {
+  const { mountManagementTokens: source } = await import(
+    '../src/management/token-management-app.ts'
+  );
+  const { createManagementTokenWorkspace } = await import(
+    '../src/management/token-management-workspace.ts'
+  );
+  const { TokenElement } = await import('./token-management-dom-fixture.ts');
+  const { buildManagementBrowser } = await import('../scripts/build-management-browser.ts');
+  const js = await buildManagementBrowser({
+    root: process.cwd(),
+    entry: 'src/management/token-management-app.ts',
+  });
+  const built = (await import(
+    'data:text/javascript;base64,' + Buffer.from(js).toString('base64')
+  )) as { mountManagementTokens: typeof source };
+  for (const mount of [source, built.mountManagementTokens]) {
+    const f = await fixture();
+    const server = createPostgresRfc9068SsoManagementServer(f.config);
+    const workspace = createManagementTokenWorkspace({ now, schedule: () => () => {} });
+    const root = new TokenElement();
+    const app = mount(root, workspace);
+    try {
+      server.listen(0, '127.0.0.1');
+      await once(server, 'listening');
+      const address = server.address();
+      assert.ok(address && typeof address === 'object');
+      workspace.authorize({
+        expiresAt: now() + 1000,
+        request: (path, init) =>
+          fetch('http://127.0.0.1:' + address.port + path, {
+            ...init,
+            headers: { ...init.headers, authorization: 'Bearer ' + token },
+          }),
+      });
+      async function idle() {
+        for (let i = 0; i < 400 && workspace.snapshot().busy; i++)
+          await new Promise((resolve) => setTimeout(resolve, 5));
+        assert.equal(workspace.snapshot().busy, false);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      }
+      root.named('principalId').value = 'human-owner';
+      root.named('expiresAt').value = String(now() + day);
+      root.named('issue').submit();
+      await idle();
+      const secret = workspace.snapshot().secret;
+      assert.ok(secret);
+      assert.ok(root.text().includes(secret.token));
+      assert.equal((await f.tokens.verifyCredential(secret.token))?.principalId, 'human-owner');
+      root.named('credentialId').value = secret.credentialId;
+      root.named('revoke').submit();
+      await idle();
+      assert.match(root.text(), /Token revoked/);
+      assert.equal(workspace.snapshot().secret, undefined);
+      assert.ok(!root.text().includes(secret.token));
+      assert.equal(await f.tokens.verifyCredential(secret.token), undefined);
+      assert.equal(await f.count('proxy_credentials'), 1);
+      assert.equal(await f.count('token_management_decisions'), 2);
+    } finally {
+      app.dispose();
+      workspace.logout();
+      server.closeAllConnections();
+      if (server.listening) await new Promise<void>((resolve) => server.close(() => resolve()));
+      await f.db.close();
+    }
+  }
+});
+
+test('existing management host navigation issues and revokes credentials through signed HTTP and migrated SQL', async () => {
+  const { mountSsoUsageWorkspace: source } = await import(
+    '../src/management/sso-usage-workspace.ts'
+  );
+  const { TokenElement } = await import('./token-management-dom-fixture.ts');
+  const { buildManagementBrowser } = await import('../scripts/build-management-browser.ts');
+  const js = await buildManagementBrowser({
+    root: process.cwd(),
+    entry: 'src/management/sso-usage-workspace.ts',
+  });
+  const built = (await import(
+    'data:text/javascript;base64,' + Buffer.from(js).toString('base64')
+  )) as { mountSsoUsageWorkspace: typeof source };
+  for (const mount of [source, built.mountSsoUsageWorkspace]) {
+    const f = await fixture();
+    const server = createPostgresRfc9068SsoManagementServer(f.config);
+    const root = new TokenElement();
+    const app = mount(root, new EventTarget(), { now, schedule: () => () => {} });
+    try {
+      server.listen(0, '127.0.0.1');
+      await once(server, 'listening');
+      const address = server.address();
+      assert.ok(address && typeof address === 'object');
+      // This fixture composes the real credential HTTP boundary, not catalog routes.
+      // The host can navigate away from its unsupported catalog read to real forms.
+      await app.authorize({
+        expiresAt: now() + day,
+        request: (path, init) =>
+          fetch('http://127.0.0.1:' + address.port + path, {
+            ...init,
+            headers: { ...init.headers, authorization: 'Bearer ' + token },
+          }),
+      });
+      root.button('Credentials').click();
+      root.named('principalId').value = 'human-owner';
+      root.named('expiresAt').value = String(now() + day);
+      root.named('issue').submit();
+      async function waitFor(pattern: RegExp) {
+        for (let i = 0; i < 400 && !pattern.test(root.text()); i++)
+          await new Promise((resolve) => setTimeout(resolve, 5));
+        assert.match(root.text(), pattern);
+      }
+      await waitFor(/Token issued/);
+      const secret = root
+        .all()
+        .find((node) => node.attrs['aria-label'] === 'One-time proxy token secret')?.textContent;
+      assert.ok(secret);
+      const credentialId = root
+        .all()
+        .find((node) => node.textContent?.startsWith('Credential ID: '))
+        ?.textContent?.slice('Credential ID: '.length);
+      assert.ok(credentialId);
+      assert.equal((await f.tokens.verifyCredential(secret))?.principalId, 'human-owner');
+      root.button('Models').click();
+      assert.ok(!root.text().includes(secret));
+      root.button('Credentials').click();
+      assert.ok(!root.text().includes(secret));
+      root.named('credentialId').value = credentialId;
+      root.named('revoke').submit();
+      await waitFor(/Token revoked/);
+      assert.equal(await f.tokens.verifyCredential(secret), undefined);
+      assert.equal(await f.count('proxy_credentials'), 1);
+      assert.equal(await f.count('token_management_decisions'), 2);
+      app.clear();
+      assert.ok(!root.text().includes(secret));
+    } finally {
+      app.dispose();
+      server.closeAllConnections();
+      if (server.listening) await new Promise<void>((resolve) => server.close(() => resolve()));
+      await f.db.close();
+    }
+  }
+});

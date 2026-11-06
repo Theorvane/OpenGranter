@@ -1334,3 +1334,54 @@ The disconnected audit screen provides expandable current-page request/event cor
 ## Browser proxy-token administration transport (#640)
 
 Trusted management hosts can issue and revoke proxy credentials through the existing freshly authorized, audited SSO HTTP API using a source-only browser client. One-time secrets are not cached; mutations never retry automatically, and unknown outcomes lock further dispatch pending operator reconciliation. No session, UI/runtime activation or new IAM authority is introduced. See [contract](../contracts/token-browser-client.md) and [plan](plans/640-token-browser-client.md).
+
+## Trusted token mutation lifetime (#640)
+
+The browser token mutation adapter binds one snapshotted trusted request/expiry to issue/revoke, disposes on logout/expiry and suppresses late secrets even with suspended timers. No session acquisition, renewal, UI or runtime activation is introduced; uncertain mutations require separate reconciliation. See [contract](../contracts/token-authority-lifetime.md) and [plan](plans/640-token-authority-lifetime.md).
+
+### Token authority host invalidation integration (#640)
+
+The optional trusted token authority invalidation observer lets the owning UI clear an already displayed one-time secret on expiry, logout/disposal or authentication/authorization denial. Observer errors cannot prevent abort. Source and supported browser artifacts pass signed-JWT loopback HTTP with migrated embedded SQL for lifecycle, current IAM, committed-but-expired unknown outcomes and fail-closed mandatory audit. This does not deliver browser session acquisition, installed SQL or a credential screen. See contracts/token-authority-lifetime.md.
+
+
+### Catalog screen fail-closed lifetime correction (#639)
+
+Existing catalog screen authority must clear protected model data when its trusted clock throws or becomes negative. Timer cleanup failures must not block logout abort or clearing. Preserve current SSO/IAM and no-runtime-activation boundaries. See [contract](../contracts/token-authority-lifetime.md#shared-catalog-screen-teardown-correction-639).
+
+### Owning credential display and mutation gate (#640)
+
+The credential host owns one-time secret display and preserves uncertain-mutation blocking across logout, navigation and trusted grant replacement. Expiry and teardown clear display; pending navigation aborts without claiming rollback. This is a DOM-independent integration component, not the delivered credential screen or session acquisition. See [contract](../contracts/token-authority-lifetime.md#owning-credential-workspace-640).
+
+## Credential issue/revoke forms (#640)
+
+An externally owned credential workspace now drives real explicit issue/revoke forms, text-only one-time secret display, denial/loading/expiry/reconciliation states and stale-control guards. The workspace survives navigation/logout/new grants; mounting a new screen cannot reset ambiguity. No session acquisition, existing entry activation or deployment changes. Source/artifact structural DOM plus signed HTTP/migrated embedded SQL evidence is separate from native-browser and installed acceptance. See [plan](plans/640-token-screen.md) and [contract](../contracts/token-management-screen.md).
+
+
+## Credential navigation in the existing management host (#639/#640)
+
+The existing models/usage host now exposes Credentials backed by the real issue/revoke forms and one private host-lifetime workspace. Authority, one-time secret and ambiguous writes follow navigation/logout/expiry/page lifecycle without resetting reconciliation. Same generation-bound transport enforces current denials and suppresses stale denials. Entry/session/deployment activation remains unchanged and gated. See [plan](plans/640-token-host-navigation.md) and [contract](../contracts/token-management-screen.md#existing-host-navigation-639640).
+
+## Audit navigation in the existing management host (#642)
+
+The trusted source host now exposes the existing scoped audit metadata/CSV screen beside Models, Usage history and Credentials, sharing authority and clearing lifecycle. This is not installed SSO audit-route or session activation. See [contract](../contracts/management-audit-host.md) and [plan](plans/642-audit-host-navigation.md).
+
+## Keyboard history filters (#642)
+
+Usage and audit screens now submit existing filters through semantic forms and Enter, sharing parsing, first-page reset and draft correction with Apply. Detached/expired forms cannot consume authority. No session/entry activation. Source/artifact event and audit HTTP evidence remain separate from native-browser acceptance. See [contract](../contracts/history-filter-submission.md) and [plan](plans/642-history-filter-submission.md).
+
+## Explicit management workspace API composition (#640)
+
+An opt-in source-only workspace factory composes existing registered-key SSO model/usage reads with authorized proxy-token issue/revoke, preserving the separate read-only review API. Existing authentication, current owner IAM, lifetime caps and mandatory durable audit remain in the child services. No runtime, session or deployment is activated. See [contract](../contracts/management-workspace-http.md).
+
+## Persisted policy simulation screen (#640)
+
+A disconnected TypeScript screen now reads the existing current persisted simulator through a trusted host-owned read port, renders exact principal/action/resource and bounded effect/reason/policy versions, and handles missing/denied/unavailable/loading/cancel/expiry without enabling execution. Public reader authentication, visibility and access audit remain undecided; no session, endpoint or existing host is connected. See [plan](plans/640-policy-simulator-screen.md) and [screen contract](../contracts/policy-simulator-screen.md).
+
+## Credential host installation ownership (#640)
+
+Reentrant logout or grant renewal during authority construction/cleanup must not be overwritten by an older host action. Dispose superseded authority before publication and preserve mutation uncertainty and one-time display clearing. No session/runtime or permission change. See [contract](../contracts/token-authority-lifetime.md#owning-host-reentrant-installation).
+
+
+## Credential mutation-entry ownership (#640)
+
+A stale credential action cannot adopt renewed authority during validation. Snapshot authority identity/generation before checking suspended expiry; undispatched stale actions return disposed without inventing reconciliation, while a later explicit action can use the new grant. See [contract](../contracts/token-authority-lifetime.md#mutation-entry-ownership). No session, runtime or permission change.
