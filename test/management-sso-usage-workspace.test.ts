@@ -51,12 +51,12 @@ function response(path: string) {
     ? Response.json({ object: 'list', data: [model] })
     : Response.json({ object: 'list', data: [], has_more: false, next_cursor: null });
 }
-function fixture() {
+function fixture(mount = mountSsoUsageWorkspace) {
   const root = new Element();
   const lifecycle = new EventTarget();
   let time = 100;
   const jobs: (() => void)[] = [];
-  const app = mountSsoUsageWorkspace(root, lifecycle, {
+  const app = mount(root, lifecycle, {
     now: () => time,
     schedule: (_delay, callback) => {
       jobs.push(callback);
@@ -241,7 +241,10 @@ test('workspace switches signed SSO HTTP views against shared SQL and durable au
     entry: 'src/management/sso-usage-workspace.ts',
   });
   const server = createPostgresSsoReviewBrowserServer({ ...ports, javascript });
-  const f = fixture();
+  const built = await import(
+    'data:text/javascript;base64,' + Buffer.from(javascript).toString('base64')
+  );
+  const f = fixture(built.mountSsoUsageWorkspace);
   const originalRevoke = URL.revokeObjectURL;
   const revoked: string[] = [];
   URL.revokeObjectURL = (url) => {
@@ -318,8 +321,22 @@ test('workspace switches signed SSO HTTP views against shared SQL and durable au
     f.root.click('Usage history');
     await until(/human/);
     assert.match(f.root.text(), /Unknown/);
+    assert.match(f.root.text(), /Current page only — not an invoice/);
+    assert.match(f.root.text(), /Estimated cost coverage: 0 of 1 records/);
+    assert.match(f.root.text(), /Reported cost coverage: 0 of 1 records/);
+    const oldRefresh = f.root.find('Refresh current page');
+    assert.ok(oldRefresh);
     f.root.click('Export current page CSV');
     await until(/Download usage.csv/);
+    const afterExport = paths.length;
+    oldRefresh.events.click?.();
+    await settle();
+    assert.equal(
+      paths.length,
+      afterExport,
+      'compiled detached control cannot replace exported page',
+    );
+    assert.match(f.root.text(), /Download usage.csv/);
     f.root.click('Inspect model team/chat');
     await until(/Model ID/);
     assert.equal(revoked.length, 1, 'model navigation revokes the CSV download');

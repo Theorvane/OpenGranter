@@ -1307,3 +1307,7 @@ The existing review form preserves submitted filter text on validation failure a
 ## Exact audit principal references (#642)
 
 Existing audit JSON/CSV queries and durable actor/target projection support exact bounded Unicode principal references, without normalization, new authority or relaxed non-principal identifiers. Current target IAM, explicit Deny and mandatory audit remain enforced. No SSO/session/runtime/schema activation. See [contract](../contracts/audit-principal-references.md) and [plan](plans/642-audit-unicode-principal.md).
+
+## Integrated source-only review feature line (#637)
+
+Combine the existing #716–#721 management and audit changes with the same-origin #722 review composition. The served workspace bundle, scoped APIs and durable audit must use the same source tree; a newest PR number alone does not imply inclusion. See [plan](plans/637-review-feature-integration.md). No new authentication or installed-runtime authority.
