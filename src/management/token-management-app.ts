@@ -31,6 +31,7 @@ export function mountManagementTokens(root: UsageElement, workspace: Workspace) 
   let expiry = '';
   let credential = '';
   let pendingRevocation: string | undefined;
+  let pendingIssuance: { principalId: string; expiresAt: number } | undefined;
   const element = (tag: string, text?: string) => {
     const node = root.ownerDocument.createElement(tag);
     if (text !== undefined) node.textContent = text;
@@ -121,24 +122,62 @@ export function mountManagementTokens(root: UsageElement, workspace: Workspace) 
     };
     submit(issue, 'Issue token', () => {
       pendingRevocation = undefined;
+      pendingIssuance = undefined;
       principal = principalInput.value ?? '';
       expiry = expiryInput.value ?? '';
-      if (!principal || !/^\d+$/u.test(expiry) || !Number.isSafeInteger(Number(expiry))) {
+      if (
+        !principal ||
+        !/^\d+$/u.test(expiry) ||
+        !Number.isSafeInteger(Number(expiry)) ||
+        !Number.isFinite(new Date(Number(expiry)).getTime())
+      ) {
         outcome = 'invalid_input';
         render();
         return;
       }
       outcome = '';
-      void complete(
-        snapshot.authorityRevision,
-        workspace.issue({ principalId: principal, expiresAt: Number(expiry) }),
-      );
+      pendingIssuance = { principalId: principal, expiresAt: Number(expiry) };
+      render();
     });
     section.append(issue);
+    if (pendingIssuance !== undefined && state === 'ready') {
+      const target = pendingIssuance;
+      const review = element('section');
+      review.setAttribute('aria-label', 'Confirm token issuance');
+      review.append(
+        element('h3', 'Review token issuance'),
+        element('p', 'Principal ID to issue for: ' + target.principalId),
+        element('p', 'Expiry (epoch milliseconds): ' + target.expiresAt),
+        element('p', 'Expiry (UTC): ' + new Date(target.expiresAt).toISOString()),
+        element(
+          'p',
+          'This preview does not verify principal existence, permission or allowed lifetime. The server checks these when you confirm.',
+        ),
+      );
+      const confirm = element('button', 'Confirm issuance');
+      confirm.setAttribute('type', 'button');
+      confirm.addEventListener('click', () => {
+        if (!allowed() || pendingIssuance !== target) return;
+        pendingIssuance = undefined;
+        outcome = '';
+        void complete(snapshot.authorityRevision, workspace.issue(target));
+      });
+      const cancel = element('button', 'Cancel issuance');
+      cancel.setAttribute('type', 'button');
+      cancel.addEventListener('click', () => {
+        if (!allowed() || pendingIssuance !== target) return;
+        pendingIssuance = undefined;
+        outcome = '';
+        render();
+      });
+      review.append(confirm, cancel);
+      section.append(review);
+    }
     const revoke = element('form');
     revoke.setAttribute('name', 'revoke');
     const credentialInput = input(revoke, 'credentialId', 'Credential ID', credential);
     submit(revoke, 'Revoke token', () => {
+      pendingIssuance = undefined;
       credential = credentialInput.value ?? '';
       pendingRevocation = credential || undefined;
       outcome = credential ? '' : 'invalid_credential';
@@ -196,6 +235,7 @@ export function mountManagementTokens(root: UsageElement, workspace: Workspace) 
   }
   let authorityRevision = workspace.snapshot().authorityRevision;
   const unsubscribe = workspace.subscribe(() => {
+    pendingIssuance = undefined;
     pendingRevocation = undefined;
     const current = workspace.snapshot();
     if (current.authorityRevision !== authorityRevision || current.state !== 'ready') {
@@ -212,6 +252,7 @@ export function mountManagementTokens(root: UsageElement, workspace: Workspace) 
     dispose() {
       if (disposed) return;
       disposed = true;
+      pendingIssuance = undefined;
       pendingRevocation = undefined;
       ++revision;
       unsubscribe();

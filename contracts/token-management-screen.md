@@ -25,3 +25,8 @@ The private host uses the optional workspace onAuthorityFailure notification, de
 ## Explicit revoke review (#640)
 
 Credential submission now opens a request-free exact-ID review rather than immediately sending revoke. Confirm revocation sends the captured ID only; Cancel revocation sends nothing. Workspace notifications, issue action and lifecycle changes invalidate the review. Current server authorization is rechecked on dispatch; review confers no permission or existence guarantee. See [revocation confirmation contract](token-revoke-confirmation.md).
+
+
+## Issuance review (#640)
+
+Issue token opens a request-free exact-principal/expiry review; Confirm issuance invokes the existing mutation exactly once. Cancel issuance discards review without a request. Epoch and UTC preview do not grant authority or validate current lifetime. Review cannot survive opposite action, workspace notification, lifecycle or detached controls. Existing host tests explicitly confirm before expecting dispatch; dedicated source/artifact and HTTP tests assert no dispatch before confirmation. See [plan](../docs/plans/640-issue-confirmation.md) and [contract](token-issue-confirmation.md).
