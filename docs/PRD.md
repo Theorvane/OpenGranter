@@ -1364,3 +1364,7 @@ The existing models/usage host now exposes Credentials backed by the real issue/
 ## Audit navigation in the existing management host (#642)
 
 The trusted source host now exposes the existing scoped audit metadata/CSV screen beside Models, Usage history and Credentials, sharing authority and clearing lifecycle. This is not installed SSO audit-route or session activation. See [contract](../contracts/management-audit-host.md) and [plan](plans/642-audit-host-navigation.md).
+
+## Keyboard history filters (#642)
+
+Usage and audit screens now submit existing filters through semantic forms and Enter, sharing parsing, first-page reset and draft correction with Apply. Detached/expired forms cannot consume authority. No session/entry activation. Source/artifact event and audit HTTP evidence remain separate from native-browser acceptance. See [contract](../contracts/history-filter-submission.md) and [plan](plans/642-history-filter-submission.md).

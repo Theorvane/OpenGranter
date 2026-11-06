@@ -283,6 +283,21 @@ for (const [compiled, host] of [
         audit.filter((entry) => (entry as { kind: string }).kind === 'audit-history-read').length,
         1,
       );
+      const filterForm = root.all().find((node) => node.tag === 'form');
+      assert.ok(filterForm);
+      const principal = filterForm.all().find((node) => node.tag === 'input');
+      assert.ok(principal);
+      principal.value = '사용자';
+      let prevented = false;
+      filterForm.listeners.submit?.({
+        preventDefault() {
+          prevented = true;
+        },
+      });
+      assert.equal(prevented, true);
+      await until(() => root.text().includes('Refresh current page'));
+      assert.equal(queries.length, 2);
+      assert.doesNotMatch(root.text(), /OTHER_PRIVATE_REQUEST|PRIVATE/);
       root.button('Export current page CSV').click();
       await until(() => root.all().some((n) => n.tag === 'a'));
       const link = root.all().find((n) => n.tag === 'a');
@@ -294,7 +309,7 @@ for (const [compiled, host] of [
       root.button('Refresh current page').click();
       await until(() => root.text().includes('Access denied'));
       assert.doesNotMatch(root.text(), /credential-1|Request correlation/);
-      assert.equal(queries.length, 2);
+      assert.equal(queries.length, 3);
       deny = false;
       failedAudit = true;
       await app.connect(request);

@@ -2011,3 +2011,7 @@ Source and supported browser bundle forms must issue/revoke via the authorized A
 - Leaving audit aborts outstanding reads and revokes CSV URLs; logout and replacement grants also revoke URLs. No retained private page appears in another view.
 - Source and supported artifact tests exercise actual loopback HTTP + migrated PGlite scoped audit history, CSV, Deny and failed mandatory audit through host navigation. Authentication is a test port, not SSO/browser/installed evidence.
 - Current SSO review server lacks /v1/audit; unsupported adapters show unavailable. Public entry, approved session and installed acceptance remain separate gates.
+
+## Keyboard history filters (#642)
+
+Usage and audit screens now submit existing filters through semantic forms and Enter, sharing parsing, first-page reset and draft correction with Apply. Detached/expired forms cannot consume authority. No session/entry activation. Source/artifact event and audit HTTP evidence remain separate from native-browser acceptance. See [contract](../contracts/history-filter-submission.md) and [plan](plans/642-history-filter-submission.md).

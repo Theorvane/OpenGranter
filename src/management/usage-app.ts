@@ -85,7 +85,8 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
     const node = element('button', text);
     node.setAttribute('type', 'button');
     const rendered = renderRevision;
-    node.addEventListener('click', () => {
+    node.addEventListener('click', (event) => {
+      event?.preventDefault();
       // Detached controls must not consume renewed authority or cancel newer work.
       if (disposed || rendered !== renderRevision || expired()) return;
       action();
@@ -118,7 +119,11 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
       main.append(message);
     }
     if (client && !['unauthenticated', 'expired', 'denied'].includes(state)) {
-      const form = element('div');
+      const form = element('form');
+      form.setAttribute('aria-label', 'Usage history filters');
+      // Application validation keeps rejected values editable and consistent.
+      form.setAttribute('novalidate', '');
+      form.setAttribute('autocomplete', 'off');
       const inputs: Record<string, UsageElement> = {};
       for (const [key, label, kind] of [
         ['principalId', 'Principal ID', 'text'],
@@ -151,23 +156,34 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
         form.append(wrapper);
         inputs[key] = input;
       }
+      const rendered = renderRevision;
+      const apply = () => {
+        if (disposed || rendered !== renderRevision || expired()) return;
+        draftFilters = Object.fromEntries(
+          Object.entries(inputs).map(([key, input]) => [key, input.value ?? '']),
+        );
+        const next: Record<string, string | number> = {};
+        for (const [key, input] of Object.entries(inputs)) {
+          const value = (input.value ?? '').trim();
+          if (value)
+            next[key] = ['fromMs', 'toMs'].includes(key)
+              ? parseUsageUtcInput(value)
+              : key === 'limit'
+                ? Number(value)
+                : value;
+        }
+        void load(next);
+      };
+      form.addEventListener('submit', (event) => {
+        // Prevent navigation even for a stale/detached form.
+        event?.preventDefault();
+        apply();
+      });
+      const applyButton = button('Apply filters', apply);
+      // Click consumes its default submit above, so Enter/click cannot double-fetch.
+      applyButton.setAttribute('type', 'submit');
       form.append(
-        button('Apply filters', () => {
-          draftFilters = Object.fromEntries(
-            Object.entries(inputs).map(([key, input]) => [key, input.value ?? '']),
-          );
-          const next: Record<string, string | number> = {};
-          for (const [key, input] of Object.entries(inputs)) {
-            const value = (input.value ?? '').trim();
-            if (value)
-              next[key] = ['fromMs', 'toMs'].includes(key)
-                ? parseUsageUtcInput(value)
-                : key === 'limit'
-                  ? Number(value)
-                  : value;
-          }
-          void load(next);
-        }),
+        applyButton,
         button('Clear filters', () => {
           draftFilters = undefined;
           void load({});
