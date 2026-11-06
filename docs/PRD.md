@@ -1385,3 +1385,7 @@ Reentrant logout or grant renewal during authority construction/cleanup must not
 ## Credential mutation-entry ownership (#640)
 
 A stale credential action cannot adopt renewed authority during validation. Snapshot authority identity/generation before checking suspended expiry; undispatched stale actions return disposed without inventing reconciliation, while a later explicit action can use the new grant. See [contract](../contracts/token-authority-lifetime.md#mutation-entry-ownership). No session, runtime or permission change.
+
+## Principal usage drilldown (#642)
+
+Usage row principal actions request the existing scoped API with exact identifiers and submitted model/time/size bounds, resetting paging and stale CSV state. Explicit principal filtering still requires existing ReadAll authorization, even for self; there is no downgrade to ReadSelf. No session, directory permission or runtime activation. See [plan](plans/642-principal-usage-drilldown.md) and [contract](../contracts/principal-usage-drilldown.md).

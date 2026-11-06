@@ -277,6 +277,15 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
             record.possibleDuplicate ? 'Yes' : 'No',
           ].entries()) {
             const cell = element('td', text);
+            if (index === 1) {
+              cell.replaceChildren(
+                button('Filter usage for principal ' + record.principalId, () => {
+                  const { cursor: _cursor, ...scope } = filters;
+                  draftFilters = undefined;
+                  void load({ ...scope, principalId: record.principalId });
+                }),
+              );
+            }
             if (index === 2 && options.onInspectModel) {
               const current = revision;
               cell.replaceChildren(
