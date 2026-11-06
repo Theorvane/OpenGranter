@@ -1315,3 +1315,8 @@ Combine the existing #716–#721 management and audit changes with the same-orig
 ## Usage request correlation (#642)
 
 Inspect current-page attempts grouped by exact principal/request pair, retaining repeated records and uncertainty markers without treating correlation as billing reconciliation or full history. See [plan](plans/642-request-correlation.md) and [contract](../contracts/usage-screen.md#current-page-request-correlation-642). No new authority or runtime activation.
+
+
+## Source-only audit metadata screen (#642)
+
+Implement the missing audit list/detail/filter/paging and explicit page-CSV screen against the existing scoped `/v1/audit` API. Reuse strict audit projection, exact cursor semantics and deadline/authority cleanup. This disconnected port is not added to the SSO workspace or activated at runtime; the SSO audit integration remains pending approved contracts. See [contract](../contracts/audit-screen.md) and [plan](plans/642-audit-screen.md).
