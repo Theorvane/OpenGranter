@@ -9,6 +9,8 @@ export interface TokenWorkspaceOptions extends Omit<TokenAuthorityOptions, 'onIn
   readonly onChange?: () => void;
 }
 export interface TokenWorkspaceSnapshot {
+  /** Monotonic host-lifetime authority generation, not a credential. */
+  readonly authorityRevision: number;
   readonly state: 'ready' | 'expired' | 'disposed';
   readonly busy: boolean;
   readonly reconciliationRequired: boolean;
@@ -27,7 +29,15 @@ export function createManagementTokenWorkspace(options: TokenWorkspaceOptions = 
   let busy = false;
   let uncertain = false;
   let secret: TokenWorkspaceSnapshot['secret'];
+  const listeners = new Set<() => void>();
   function notify() {
+    for (const listener of [...listeners]) {
+      try {
+        listener();
+      } catch {
+        /* Observers cannot interrupt teardown. */
+      }
+    }
     try {
       options.onChange?.();
     } catch {
@@ -77,6 +87,13 @@ export function createManagementTokenWorkspace(options: TokenWorkspaceOptions = 
     return result;
   }
   return {
+    /** Secret-free notifications. Host/screen must unsubscribe on unmount. */
+    subscribe(listener: () => void) {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
     authorize(grant: CatalogAuthorityGrant) {
       detach();
       state = 'ready';
@@ -111,6 +128,7 @@ export function createManagementTokenWorkspace(options: TokenWorkspaceOptions = 
       // Recheck even when an expiry timer was suspended by the browser.
       authority?.isActive();
       return Object.freeze({
+        authorityRevision: generation,
         state,
         busy,
         reconciliationRequired: uncertain,

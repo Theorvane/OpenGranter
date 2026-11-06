@@ -1991,3 +1991,7 @@ Both existing catalog authority factories, from source and the supported browser
 ## Owning credential workspace (#640)
 
 Source and supported browser artifact verify singleflight, one-time display clearing, suspended expiry, navigation during issue, grant replacement, no late secret, observer exceptions and definite denial distinct from ambiguity. Signed-JWT loopback HTTP and migrated embedded SQL verify issue/credential validity/revoke, an actual committed issue whose secret expires, and zero subsequent dispatch across logout/navigation/fresh grant. No browser session, native DOM, installed SQL or cross-tab/reload reconciliation acceptance is inferred.
+
+## Credential forms (#640)
+
+Source and supported browser bundle forms must issue/revoke via the authorized API, show explicit invalid/denied/loading/expired/reconciliation states, render secrets only as text, and clear them on hide/logout/expiry/unmount/next mutation. Detached controls cannot consume new grants; stale completions cannot show success after authority replacement; drafts clear across authorities. Pending unmount/remount cannot reset unknown outcomes. Signed-JWT loopback HTTP plus migrated PGlite verifies actual issue, credential validity, revoke and required decision rows using a structural DOM double. Native browser, host entry/session integration, installed SQL and provider acceptance remain incomplete. See [contract](../contracts/token-management-screen.md).

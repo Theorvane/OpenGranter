@@ -1351,3 +1351,7 @@ Existing catalog screen authority must clear protected model data when its trust
 ### Owning credential display and mutation gate (#640)
 
 The credential host owns one-time secret display and preserves uncertain-mutation blocking across logout, navigation and trusted grant replacement. Expiry and teardown clear display; pending navigation aborts without claiming rollback. This is a DOM-independent integration component, not the delivered credential screen or session acquisition. See [contract](../contracts/token-authority-lifetime.md#owning-credential-workspace-640).
+
+## Credential issue/revoke forms (#640)
+
+An externally owned credential workspace now drives real explicit issue/revoke forms, text-only one-time secret display, denial/loading/expiry/reconciliation states and stale-control guards. The workspace survives navigation/logout/new grants; mounting a new screen cannot reset ambiguity. No session acquisition, existing entry activation or deployment changes. Source/artifact structural DOM plus signed HTTP/migrated embedded SQL evidence is separate from native-browser and installed acceptance. See [plan](plans/640-token-screen.md) and [contract](../contracts/token-management-screen.md).
