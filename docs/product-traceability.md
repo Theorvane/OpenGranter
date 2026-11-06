@@ -58,3 +58,7 @@ Existing proxy and bearer-SSO usage JSON/CSV now intersect optional exact reques
 ## Audit-to-usage review navigation (#642)
 
 The trusted source workspace can open usage from a projected audit event using exact request/principal and submitted model/UTC/page size, discarding audit cursors/drafts/CSV. A fresh usage read still needs existing explicit-principal ReadAll; audit visibility does not grant usage access or imply causality, completeness or settled billing. Normal navigation and authority replacement clear trace scope. No runtime/session/entry/API activation. See [plan](plans/642-audit-usage-navigation.md) and [contract](../contracts/audit-usage-navigation.md). Source/artifact DOM evidence is separate from native-browser and installed acceptance.
+
+## Reverse request review (#642)
+
+[Usage-to-audit source](../src/management/sso-usage-workspace.ts), [contract](../contracts/usage-audit-navigation.md), and [source/bundle DOM cases](../test/management-usage-audit-navigation.test.ts) add reverse exact-scope inspection with fresh audit authorization. The SSO workspace server does not mount proxy-authenticated /v1/audit. This explicit API/auth integration gap is not resolved by trusted-port UI tests; installed/browser/live acceptance remains missing.

@@ -1,0 +1,5 @@
+# Usage to audit navigation contract (#642)
+
+The optional trusted action uses the validated row principalId/requestId and the submitted model/fromMs/toMs/limit, never unsubmitted draft text, cursor, usage aggregates or row-derived model. Explicit audit principal filtering must retain server audit:Read authorization on that target; usage:ReadSelf/ReadAll never imply it. Fresh audit reads and CSV keep exactly the selected scope. Ordinary navigation and authority replacement discard the scope. Detached, cleared, denied, hidden, expired and disposed actions cannot dispatch.
+
+Audit initial hints are captured at mount, stripped of cursor and validated by the existing client. Invalid hints fail locally without broad fallback. No auth/session/API/provider or retention changes. Current /v1/audit uses proxy-token authentication, not SSO; connecting it to the SSO workspace remains HOLD until an approved adapter/API contract exists. Tests with trusted ports are not installed SSO/browser acceptance.

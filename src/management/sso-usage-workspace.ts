@@ -1,4 +1,5 @@
 import { mountManagementAudit } from './audit-app.ts';
+import type { AuditFilters } from './audit-client.ts';
 import type { CatalogAuthorityGrant } from './catalog-authority.ts';
 import type { CatalogRequest } from './catalog-client.ts';
 import { mountSsoManagementCatalog } from './sso-catalog-app.ts';
@@ -22,7 +23,10 @@ type Cleared = 'unauthenticated' | 'expired' | 'denied';
 export function mountSsoUsageWorkspace(
   root: UsageElement,
   lifecycle: Pick<EventTarget, 'addEventListener' | 'removeEventListener'>,
-  options: Omit<UsageAuthorityOptions, 'onInspectModel' | 'initialFilters'> = {},
+  options: Omit<
+    UsageAuthorityOptions,
+    'onInspectModel' | 'onInspectAuditRequest' | 'initialFilters'
+  > = {},
 ) {
   const now = options.now ?? Date.now;
   const schedule =
@@ -50,6 +54,7 @@ export function mountSsoUsageWorkspace(
   let view: View = 'models';
   let modelId: string | undefined;
   let usageScope: Omit<UsageFilters, 'cursor'> | undefined;
+  let auditScope: Omit<AuditFilters, 'cursor'> | undefined;
   let reason: Cleared = 'unauthenticated';
   let active = true;
   let disposed = false;
@@ -65,6 +70,7 @@ export function mountSsoUsageWorkspace(
     grant = undefined;
     modelId = undefined;
     usageScope = undefined;
+    auditScope = undefined;
     const cleanup = cancelTimer;
     cancelTimer = undefined;
     tokens.logout();
@@ -124,6 +130,7 @@ export function mountSsoUsageWorkspace(
         view = target;
         modelId = undefined;
         usageScope = undefined;
+        auditScope = undefined;
         // A suspended timer must not let navigation dispatch with an old grant.
         if (grant && !valid()) return;
         void render();
@@ -151,28 +158,40 @@ export function mountSsoUsageWorkspace(
               view = 'usage';
               modelId = id;
               usageScope = undefined;
+              auditScope = undefined;
               void render();
             },
           })
         : view === 'audit'
           ? mountManagementAudit(content, {
               ...options,
+              ...(auditScope ? { initialFilters: auditScope } : {}),
               onInspectUsageRequest(scope) {
                 if (disposed || !active || app !== mounted || !valid()) return;
                 view = 'usage';
                 modelId = undefined;
                 usageScope = { ...scope };
+                auditScope = undefined;
                 void render();
               },
             })
           : mountManagementUsage(content, {
               ...options,
               ...(usageScope ? { initialFilters: usageScope } : {}),
+              onInspectAuditRequest(scope) {
+                if (disposed || !active || app !== mounted || !valid()) return;
+                view = 'audit';
+                modelId = undefined;
+                usageScope = undefined;
+                auditScope = { ...scope };
+                void render();
+              },
               onInspectModel(id) {
                 if (disposed || !active || app !== mounted || !valid()) return;
                 view = 'models';
                 modelId = id;
                 usageScope = undefined;
+                auditScope = undefined;
                 void render();
               },
             });
@@ -237,6 +256,7 @@ export function mountSsoUsageWorkspace(
       view = 'models';
       modelId = undefined;
       usageScope = undefined;
+      auditScope = undefined;
       const current = generation;
       // Let definite mutation denials complete before host logout, so they
       // clear all authority without fabricating an interrupted-write latch.
