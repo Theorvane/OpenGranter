@@ -1965,3 +1965,10 @@ Audit client and screen must build through the supported management browser buil
 - Exact compound principal/request grouping handles delimiter collisions and shared request IDs without mixing identities; preserves bigint event IDs, repeated events and server order. HTML-like identifiers render only as text.
 - Trace is absent on empty/loading/error pages and removed across pagination, renewal, denial, expiry, clear and unmount.
 - Existing real loopback HTTP + embedded SQL tests verify multi-event grouping, other-principal isolation, acknowledged audit reads, CSV, Deny and failed audit in source and supported artifact. This is structural DOM, not native-browser/installed/provider acceptance.
+
+
+## Browser proxy-token administration transport (#640)
+
+- Source and supported browser artifact execute issue/revoke through loopback signed SSO HTTP and migrated embedded SQL; verify actual credential validity/revocation, acknowledged already-revoked results, current IAM Deny and required audit failure.
+- Reject invalid or actor-overriding inputs before dispatch; preserve exact identifiers. Test single-flight, no automatic retries, timeout/disposal/uncooperative ports, late-secret suppression, bounded fatal UTF-8 responses, private errors and reconciliation lock after unknown outcome.
+- No credential persistence, UI/session activation, native-browser login, installed SQL or deployment/provider acceptance is claimed.
