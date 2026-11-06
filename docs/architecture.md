@@ -1445,3 +1445,8 @@ The Fetch gateway sets no-store on audit/usage JSON successes and every safe err
 ## Exact scoped usage request tracing (#642)
 
 Usage JSON/CSV on existing proxy and SSO paths accepts exact request_id intersecting the freshly authorized principal/model/UTC/cursor scope. The screen adds a request filter and per-attempt trace action, preserving submitted bounds and resetting stale paging/CSV. SQL hidden lookahead and browser JSON mismatches fail closed; existing IAM and mandatory audit remain authoritative. This is attempt evidence, not reconciled billing or a global trace. No session/schema/runtime/provider activation. See [contract](../contracts/usage-request-filter.md) and [plan](plans/642-usage-request-filter.md). Local registered-key/PGlite/HTTP and source/artifact evidence is not native-browser, live SSO or installed-PostgreSQL acceptance.
+
+
+## Audit-to-usage review navigation (#642)
+
+The trusted source workspace can open usage from a projected audit event using exact request/principal and submitted model/UTC/page size, discarding audit cursors/drafts/CSV. A fresh usage read still needs existing explicit-principal ReadAll; audit visibility does not grant usage access or imply causality, completeness or settled billing. Normal navigation and authority replacement clear trace scope. No runtime/session/entry/API activation. See [plan](plans/642-audit-usage-navigation.md) and [contract](../contracts/audit-usage-navigation.md). Source/artifact DOM evidence is separate from native-browser and installed acceptance.

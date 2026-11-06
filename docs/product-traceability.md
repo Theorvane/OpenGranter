@@ -53,3 +53,8 @@ R0 exit requires independent review and agreed contract ownership. This document
 ## Exact scoped request tracing in usage (#642)
 
 Existing proxy and bearer-SSO usage JSON/CSV now intersect optional exact request_id with authorized principal/model/UTC/keyset scope. Parameterized SQL validates hidden lookahead; browser JSON rejects off-request attempts. Usage input and trace actions preserve submitted scope, clear cursor/history/CSV and retain unknown/duplicate billing markers. See [plan](plans/642-usage-request-filter.md) and [contract](../contracts/usage-request-filter.md). Evidence includes migrated local PGlite, registered test JWT over loopback HTTP, and source/bundled DOM harnesses, not installed PostgreSQL, live company SSO, native-browser login or deployment acceptance.
+
+
+## Audit-to-usage review navigation (#642)
+
+The trusted source workspace can open usage from a projected audit event using exact request/principal and submitted model/UTC/page size, discarding audit cursors/drafts/CSV. A fresh usage read still needs existing explicit-principal ReadAll; audit visibility does not grant usage access or imply causality, completeness or settled billing. Normal navigation and authority replacement clear trace scope. No runtime/session/entry/API activation. See [plan](plans/642-audit-usage-navigation.md) and [contract](../contracts/audit-usage-navigation.md). Source/artifact DOM evidence is separate from native-browser and installed acceptance.

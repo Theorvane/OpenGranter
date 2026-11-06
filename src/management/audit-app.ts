@@ -3,9 +3,12 @@ import { renderAuditEventMetadata, renderAuditRequestGroups } from './audit-requ
 import type { CatalogAuthorityGrant } from './catalog-authority.ts';
 import type { CatalogRequest } from './catalog-client.ts';
 import type { UsageElement } from './usage-app.ts';
+import type { UsageFilters } from './usage-client.ts';
 import { formatUsageTime, parseUsageUtcInput, usageUtcInput } from './usage-time.ts';
 
 export interface AuditAuthorityOptions {
+  /** Trusted navigation only; audit visibility never grants usage read permission. */
+  readonly onInspectUsageRequest?: (scope: Omit<UsageFilters, 'cursor'>) => void;
   readonly now?: () => number;
   /** Must invoke callbacks asynchronously and return cancellation. */
   readonly schedule?: (delay: number, callback: () => void) => () => void;
@@ -254,6 +257,17 @@ export function mountManagementAudit(root: UsageElement, options: AuditAuthority
               void load({ ...scope, requestId: event.requestId });
             }),
           );
+          if (options.onInspectUsageRequest)
+            details.append(
+              button('View usage for request ' + event.requestId, () => {
+                const { cursor: _cursor, ...scope } = filters;
+                options.onInspectUsageRequest?.({
+                  ...scope,
+                  principalId: event.principalId,
+                  requestId: event.requestId,
+                });
+              }),
+            );
           const alias = event.details.modelAlias;
           if (typeof alias === 'string' && alias.length > 0)
             details.append(

@@ -18,6 +18,8 @@ export interface UsageElement {
   focus(): void;
 }
 export interface UsageAuthorityOptions {
+  /** Query hints only, never authority; snapshotted at mount without a cursor. */
+  readonly initialFilters?: Omit<UsageFilters, 'cursor'>;
   /** Optional trusted workspace navigation, never an authorization decision. */
   readonly onInspectModel?: (id: string) => void;
   readonly now?: () => number;
@@ -29,6 +31,7 @@ export interface UsageAuthorityOptions {
  * changes and dispose on unmount. No session, token storage or runtime activation.
  */
 export function mountManagementUsage(root: UsageElement, options: UsageAuthorityOptions = {}) {
+  const { cursor: _cursor, ...initialFilters }: UsageFilters = { ...options.initialFilters };
   const now = options.now ?? Date.now;
   const schedule =
     options.schedule ??
@@ -478,7 +481,7 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
       client = createManagementUsageClient(grant.request);
       arm(authorityRevision);
       // A published catalog alias is only a filter, never read authority.
-      await load(modelId === undefined ? {} : { model: modelId });
+      await load(modelId === undefined ? { ...initialFilters } : { model: modelId });
     },
     /** Low-level port: caller must supply and clear its own lifecycle. */
     async connect(request: CatalogRequest) {
