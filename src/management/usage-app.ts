@@ -397,8 +397,14 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
   }
   function clear(reason: 'unauthenticated' | 'expired' | 'denied' = 'unauthenticated') {
     ++authorityRevision;
-    cancelExpiry?.();
+    const cancel = cancelExpiry;
     cancelExpiry = undefined;
+    // Optional timer cleanup must never prevent mandatory authority/data cleanup.
+    try {
+      cancel?.();
+    } catch {
+      // Keep private scheduler failures out of the UI and continue clearing.
+    }
     expiresAt = undefined;
     ++revision;
     client?.invalidate();

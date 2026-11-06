@@ -68,3 +68,7 @@ The existing form preserves submitted raw text across validation/error rerenders
 ## Current-page request correlation (#642)
 
 The authorized ready usage view may correlate records by the exact pair (principal ID, request ID). It preserves every row and page order, reports distinct attempt count separately from row count, and shows content-free attempt metadata and server-provided uncertainty flags. Correlation is current-page only: it does not certify complete request history, retry order, settled billing or deduplication. IDs are text, not HTML or authority; there is no automatic fetch or all-pages aggregation. Loading, errors, logout, renewal and expiry retire the panel with the owning page.
+
+## Cancellation failure isolation (#642)
+
+Expiry cancellation is optional resource cleanup, never a prerequisite for authority invalidation. A throwing cancellation handle is detached once and contained without showing its private error. Logout, denied/expired clearing and disposal still invalidate reads, erase protected records/filters, remove CSV links, revoke object URLs and prevent detached controls from dispatching. Source and supported browser-artifact regressions cover each lifecycle path; they do not certify native-browser sessions or installed E2E. See [plan](../docs/plans/642-usage-cleanup-isolation.md).
