@@ -1,0 +1,3 @@
+# Audit model drilldown (#642)
+
+Only projected audit events with a nonempty string modelAlias expose Filter audit for model followed by the alias as inert text. Activation requests the existing audit API with that exact alias and submitted principal/time/limit, not unsent edits. Reset page cursor/history, drafts and CSV continuation and revoke old download URLs. Existing loading/empty/error states, server audit:Read authorization and mandatory metadata auditing remain unchanged. No weaker-scope fallback after denial. Existing render/authority guards reject stale, renewed, expired and disposed controls; late results cannot restore private rows. No content retention, session activation or new API. Source/artifact tests are not native browser or installed evidence.

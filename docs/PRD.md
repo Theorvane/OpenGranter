@@ -1389,3 +1389,7 @@ A stale credential action cannot adopt renewed authority during validation. Snap
 ## Principal usage drilldown (#642)
 
 Usage row principal actions request the existing scoped API with exact identifiers and submitted model/time/size bounds, resetting paging and stale CSV state. Explicit principal filtering still requires existing ReadAll authorization, even for self; there is no downgrade to ReadSelf. No session, directory permission or runtime activation. See [plan](plans/642-principal-usage-drilldown.md) and [contract](../contracts/principal-usage-drilldown.md).
+
+## Audit model filtering action (#642)
+
+Projected model-bearing audit events expose a guarded action to query the existing audit API for that exact alias, retaining submitted principal/UTC/page size and clearing paging/drafts/CSV. Non-model events do not invent aliases. Existing server IAM, metadata projection and mandatory audit remain authoritative; no session, retention, endpoint or schema change. See [contract](../contracts/audit-model-drilldown.md) and [plan](plans/642-audit-model-drilldown.md). Verify source/artifact actions, scope reset, stale/expired controls, denial and late results independently of native browser/install acceptance.
