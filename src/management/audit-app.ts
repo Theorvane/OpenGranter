@@ -7,6 +7,8 @@ import type { UsageFilters } from './usage-client.ts';
 import { formatUsageTime, parseUsageUtcInput, usageUtcInput } from './usage-time.ts';
 
 export interface AuditAuthorityOptions {
+  /** Query hints only, never authority; snapshotted at mount without a cursor. */
+  readonly initialFilters?: Omit<AuditFilters, 'cursor'>;
   /** Trusted navigation only; audit visibility never grants usage read permission. */
   readonly onInspectUsageRequest?: (scope: Omit<UsageFilters, 'cursor'>) => void;
   readonly now?: () => number;
@@ -18,6 +20,7 @@ export interface AuditAuthorityOptions {
  * changes and dispose on unmount. No session, token storage or runtime activation.
  */
 export function mountManagementAudit(root: UsageElement, options: AuditAuthorityOptions = {}) {
+  const { cursor: _cursor, ...initialFilters }: AuditFilters = { ...options.initialFilters };
   const now = options.now ?? Date.now;
   const schedule =
     options.schedule ??
@@ -447,14 +450,14 @@ export function mountManagementAudit(root: UsageElement, options: AuditAuthority
       expiresAt = grant.expiresAt;
       client = createManagementAuditClient(grant.request);
       arm(authorityRevision);
-      await load({});
+      await load({ ...initialFilters });
     },
     /** Low-level port: caller must supply and clear its own lifecycle. */
     async connect(request: CatalogRequest) {
       if (disposed) return;
       clear();
       client = createManagementAuditClient(request);
-      await load({});
+      await load({ ...initialFilters });
     },
     clear,
     dispose() {

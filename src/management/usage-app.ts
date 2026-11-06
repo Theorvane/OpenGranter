@@ -1,3 +1,4 @@
+import type { AuditFilters } from './audit-client.ts';
 import type { CatalogAuthorityGrant } from './catalog-authority.ts';
 import type { CatalogRequest } from './catalog-client.ts';
 import { renderUsageAttemptDetails } from './usage-attempt-details.ts';
@@ -18,6 +19,8 @@ export interface UsageElement {
   focus(): void;
 }
 export interface UsageAuthorityOptions {
+  /** Trusted navigation only; usage visibility never grants audit read permission. */
+  readonly onInspectAuditRequest?: (scope: Omit<AuditFilters, 'cursor'>) => void;
   /** Query hints only, never authority; snapshotted at mount without a cursor. */
   readonly initialFilters?: Omit<UsageFilters, 'cursor'>;
   /** Optional trusted workspace navigation, never an authorization decision. */
@@ -303,6 +306,24 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
             row.append(cell);
           }
           const inspection = element('td');
+          if (options.onInspectAuditRequest) {
+            const current = revision;
+            inspection.append(
+              button('View audit for request ' + record.requestId, () => {
+                if (disposed || !client || revision !== current || expired() || state !== 'ready')
+                  return;
+                const { model, fromMs, toMs, limit } = filters;
+                options.onInspectAuditRequest?.({
+                  principalId: record.principalId,
+                  requestId: record.requestId,
+                  ...(model === undefined ? {} : { model }),
+                  ...(fromMs === undefined ? {} : { fromMs }),
+                  ...(toMs === undefined ? {} : { toMs }),
+                  ...(limit === undefined ? {} : { limit }),
+                });
+              }),
+            );
+          }
           inspection.append(
             button('Trace usage request ' + record.requestId, () => {
               const { cursor: _cursor, ...scope } = filters;

@@ -1413,3 +1413,7 @@ Usage JSON/CSV on existing proxy and SSO paths accepts exact request_id intersec
 ## Audit-to-usage review navigation (#642)
 
 The trusted source workspace can open usage from a projected audit event using exact request/principal and submitted model/UTC/page size, discarding audit cursors/drafts/CSV. A fresh usage read still needs existing explicit-principal ReadAll; audit visibility does not grant usage access or imply causality, completeness or settled billing. Normal navigation and authority replacement clear trace scope. No runtime/session/entry/API activation. See [plan](plans/642-audit-usage-navigation.md) and [contract](../contracts/audit-usage-navigation.md). Source/artifact DOM evidence is separate from native-browser and installed acceptance.
+
+## Usage-to-audit review navigation (#642)
+
+The trusted source workspace can inspect audit metadata for an exact usage-row principal/request pair, retaining submitted model/UTC/page-size bounds and discarding draft/cursor/export state. Audit authorization remains independent; never broaden on denial. See [plan](plans/642-usage-audit-navigation.md) and [contract](../contracts/usage-audit-navigation.md). The proxy-authenticated audit API is not mounted by the SSO workspace server; approved integration remains a release gate. No installed session/browser or live acceptance is established.
