@@ -137,6 +137,12 @@ function createCatalogAuthority(
       notify();
     },
     clear,
+    cancel() {
+      if (disposed || expired() || expiresAt === undefined) return;
+      if (session.snapshot().state !== 'loading') return;
+      session.cancel();
+      notify();
+    },
     snapshot(): ManagementCatalogSnapshot {
       expired();
       return session.snapshot();

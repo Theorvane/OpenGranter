@@ -1,5 +1,9 @@
 # Architecture Draft
 
+## Catalog read cancellation (#639)
+
+Session cancellation invalidates only the pending transport/read epoch and publishes a cancelled snapshot. The observer retains its trusted deadline and timer; cancellation cannot renew authority or undo server audit. SSO DOM actions compare snapshot identity after checking expiry. No API, session acquisition, credential bridge, IAM, storage or runtime activation changes. See [contract](../contracts/catalog-read-cancellation.md).
+
 ## Model-response v4 provenance review (#543)
 
 Use the existing structural projector/fixed-source transport without widening traversal or ignoring nullable keys. Pair the response pin v4 with its validator gate; remove only the seven reviewed markers and refresh its canonical source/projection digests. Restore markers in independent tests to reconstruct the complete previous digest. Other five pin bytes, all runtime source and operational schemas remain unchanged. See [plan](plans/543-model-response-drift.md) and [contract](../contracts/model-response-schema.md#reviewed-version4-checkpoint-543).

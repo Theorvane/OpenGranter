@@ -3,6 +3,7 @@ import {
   type CatalogAuthorityOptions,
   createSsoManagementCatalogAuthority,
 } from './catalog-authority.ts';
+import type { ManagementCatalogSnapshot } from './catalog-session.ts';
 import { type CatalogElement, renderCatalogView } from './catalog-view.ts';
 
 /** Explicit SSO DOM composition only. No fetch, credential acquisition, session
@@ -16,16 +17,23 @@ export function mountSsoManagementCatalog(
   } = {},
 ) {
   let navigate = false;
-  const actions = {
+  const actionsFor = (snapshot: ManagementCatalogSnapshot) => ({
     list() {
+      if (authority.snapshot() !== snapshot) return;
       navigate = true;
       void authority.list();
     },
     detail(id: string) {
+      if (authority.snapshot() !== snapshot) return;
       navigate = true;
       void authority.detail(id);
     },
-  };
+    cancel() {
+      if (authority.snapshot() !== snapshot) return;
+      navigate = true;
+      authority.cancel();
+    },
+  });
   const authority = createSsoManagementCatalogAuthority({
     ...options,
     onChange(snapshot) {
@@ -33,7 +41,7 @@ export function mountSsoManagementCatalog(
         root,
         snapshot,
         {
-          ...actions,
+          ...actionsFor(snapshot),
           ...(options.onInspectUsage && snapshot.state === 'detail'
             ? {
                 inspectUsage(id: string) {
@@ -50,7 +58,7 @@ export function mountSsoManagementCatalog(
       if (snapshot.state !== 'loading' && snapshot.state !== 'idle') navigate = false;
     },
   });
-  renderCatalogView(root, authority.snapshot(), actions);
+  renderCatalogView(root, authority.snapshot(), actionsFor(authority.snapshot()));
   return {
     /** Never promote UI input to a trusted grant. */
     async authorize(grant: CatalogAuthorityGrant, modelId?: string) {

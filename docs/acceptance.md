@@ -1,5 +1,12 @@
 # Acceptance and Verification Scenarios
 
+## Cancellable catalog reads (#639)
+
+- Cancel hanging list/detail requests, suppress late data, and explicitly retry under the original grant deadline. Do not restore private detail or undo committed audit.
+- Reject detached cancel/list/detail controls after newer navigation, renewal, expiry, logout and disposal. Preserve Deny and unauthenticated outcomes.
+- Verify source and supported bundle events plus signed test-JWT loopback HTTP with migrated PGlite; these do not certify native-browser login, installed PostgreSQL or company SSO.
+- See [plan](plans/639-catalog-cancel.md) and [contract](../contracts/catalog-read-cancellation.md).
+
 ## Reviewed model response marker removal (#543)
 
 - Independently verify v4 provenance, exactly seven complete optional type/format shapes without nullable:true, and the complete previous v3 digest after restoring those markers. Current structure matching v2 must not allow stale v2/v3 pins.

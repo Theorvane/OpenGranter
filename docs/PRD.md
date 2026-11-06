@@ -1,5 +1,9 @@
 # OpenGranter Product Requirements
 
+## Cancellable catalog reads (#639)
+
+Authenticated model list/detail loading can be cancelled without discarding or extending trusted authority. Late data and detached navigation cannot overwrite newer views. Retry uses current server IAM and mandatory audit; cancellation does not undo a committed read/audit. Browser session acquisition and installed acceptance remain unimplemented. See [plan](plans/639-catalog-cancel.md) and [contract](../contracts/catalog-read-cancellation.md).
+
 ## Reviewed model response source checkpoint (#543)
 
 Reconcile only the model-response structural pin to reviewed version4 after seven redundant nullable:true markers disappear from the official source. Retain explicit null type arrays and all runtime restrictions. Source/version/provenance tracking must reject stale pins even when an older projection happens to match current structure. Other five pins and all product runtime behavior remain unchanged. See [plan](plans/543-model-response-drift.md) and [contract](../contracts/model-response-schema.md#reviewed-version4-checkpoint-543).

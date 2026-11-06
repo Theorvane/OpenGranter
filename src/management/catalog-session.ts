@@ -8,7 +8,7 @@ import {
 
 type LockedState = 'unauthenticated' | 'expired' | 'denied' | 'unavailable';
 export type ManagementCatalogSnapshot =
-  | { readonly state: LockedState | 'idle' | 'empty' | 'missing' | 'disposed' }
+  | { readonly state: LockedState | 'idle' | 'empty' | 'missing' | 'cancelled' | 'disposed' }
   | { readonly state: 'loading'; readonly view: 'list' | 'detail' }
   | { readonly state: 'list'; readonly models: readonly CatalogModel[] }
   | { readonly state: 'detail'; readonly model: CatalogModel };
@@ -72,6 +72,12 @@ function createCatalogSession(createClient: typeof createManagementCatalogClient
       snapshot = Object.freeze({ state: 'idle' });
     },
     clear,
+    cancel() {
+      if (disposed || snapshot.state !== 'loading') return;
+      revision++;
+      client?.invalidate();
+      snapshot = Object.freeze({ state: 'cancelled' });
+    },
     list: () =>
       read(
         'list',
