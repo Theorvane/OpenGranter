@@ -68,3 +68,9 @@ The existing form preserves submitted raw text across validation/error rerenders
 ## Current-page token aggregates (#642)
 
 The existing page summary displays independent prompt, completion and total token sums with per-counter known-record coverage. Exact integer arithmetic preserves sums above Number.MAX_SAFE_INTEGER. Explicit zero is known; absent counters remain Unknown if none are known. Never derive total from prompt plus completion, reconcile provider reports, remove duplicates, accumulate other pages or fetch additional data. The owning page lifecycle removes summaries on replacement, clear, expiry and disposal. This source/artifact capability does not activate a browser session or certify installed acceptance.
+
+## Current-page model summaries (#642)
+
+Each ready page groups existing validated rows by exact modelAlias in first-seen order. Expand a model to inspect the same exact per-currency estimated/reported cost totals and independently reported token counters with coverage as the page summary. Missing values stay unknown, zero stays zero, and duplicate attempts remain included. No cross-page aggregation, identity grouping, additional fetch, settlement, currency conversion, inferred total or reconciliation is introduced. Aliases render as text only. Groups are replaced on navigation/loading and removed with the owning screen on authority loss/disposal; stale reads cannot restore them. Empty pages show no model groups.
+
+Plan: [model usage summary](../docs/plans/642-model-usage-summary.md).
