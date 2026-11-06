@@ -1,4 +1,5 @@
 import { type AuditFilters, type AuditPage, createManagementAuditClient } from './audit-client.ts';
+import { renderAuditEventMetadata, renderAuditRequestGroups } from './audit-request-groups.ts';
 import type { CatalogAuthorityGrant } from './catalog-authority.ts';
 import type { CatalogRequest } from './catalog-client.ts';
 import type { UsageElement } from './usage-app.ts';
@@ -214,21 +215,13 @@ export function mountManagementAudit(root: UsageElement, options: AuditAuthority
           const cell = element('td');
           const details = element('details');
           details.append(element('summary', `Inspect event ${event.eventId}`));
-          const fields = element('dl');
-          for (const [label, value] of [
-            ['Credential ID', event.credentialId],
-            ['Policy versions', JSON.stringify(event.policyVersions)],
-            ['Allowlisted details', JSON.stringify(event.details)],
-          ]) {
-            fields.append(element('dt', label), element('dd', value));
-          }
-          details.append(fields);
+          details.append(renderAuditEventMetadata(root.ownerDocument, event));
           cell.append(details);
           row.append(cell);
           body.append(row);
         }
         table.append(body);
-        main.append(table);
+        main.append(table, renderAuditRequestGroups(root.ownerDocument, page.events));
       }
       if (previous.length) {
         const target = previous.at(-1);
