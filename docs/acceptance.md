@@ -1946,3 +1946,10 @@ Structural cancelable click events must show current downloads are permitted, ex
 - Exact principal/request pairs remain isolated, even when request IDs collide. All rows remain visible; record and distinct-attempt counts are separate.
 - Render models, routes, outcomes, UTC times, provider/candidate metadata and unknown/duplicate/billing uncertainty as safe text. Never infer cross-page completeness, ordering, deduplication or settled charges.
 - The mounted ready view owns the panel lifetime; pending refresh and authority changes remove prior content. No new HTTP requests or permissions.
+
+
+## Source-only audit metadata screen (#642)
+
+- Execute mounted source and actual browser-target bundle against loopback existing audit HTTP + embedded SQL: self-only metadata, other-principal exclusion, acknowledged read audit, explicit Deny before storage, and failed audit with no content release.
+- Verify strict filters, UTC drafts/reset, descending exact returned cursor, empty/loading/cancel, bounded private failures, stale renewal and suspended-deadline download revocation. CSV remains explicit per page.
+- Native browser, SSO audit adapter/session, installed PostgreSQL/ingress and provider/paid acceptance remain separate unverified gates. See [contract](../contracts/audit-screen.md).
