@@ -1398,3 +1398,8 @@ Projected model-bearing audit events expose a guarded action to query the existi
 ## Exact principal-scoped audit request tracing (#642)
 
 The existing audit JSON/CSV read intersects optional exact request_id with the freshly authorized principal, model, UTC range and keyset cursor. The audit screen exposes exact request filtering and a per-event trace action retaining submitted scope while resetting paging and CSV. Reprojection rejects mismatched rows at SQL, HTTP, CSV and browser boundaries; a request ID is never identity or a permission grant. Existing audit:Read and mandatory access audit remain authoritative. No session, runtime, DDL, retention or paid-provider change. See [plan](plans/642-audit-request-filter.md) and [contract](../contracts/audit-request-filter.md). Tests cover strict inputs, real loopback HTTP with migrated PGlite and injected authentication, SQL isolation/lookahead, denied reads, audit failure, source/artifact lifecycle and CSV continuation; these are not live SSO, installed PostgreSQL or native-browser acceptance.
+
+
+## Private history cache safety (#642)
+
+The existing audit and usage JSON/CSV APIs prohibit response storage, including denial, invalid input, unavailable mandatory audit and transport fallback. This does not grant access, enable a session or add routes. See [plan](plans/642-history-no-store.md) and [contract](../contracts/history-no-store.md).

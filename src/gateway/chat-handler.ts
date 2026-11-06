@@ -93,6 +93,7 @@ import {
   createClientErrorResponse,
 } from './client-errors.ts';
 import { normalizeClientTextMessages } from './client-text-messages.ts';
+import { isHistoryPath } from './history-path.ts';
 import { compareModelBenchmarks } from './model-benchmark-order.ts';
 import {
   type OpenRouterModelMetadata,
@@ -691,7 +692,9 @@ export function createChatHandler<T>(
       retryAfterSeconds?: number,
     ) => {
       const response = createClientErrorResponse(status, code, id, format, retryAfterSeconds);
-      if (isModelDiscoveryPath(url.pathname)) response.headers.set('cache-control', 'no-store');
+      if (isModelDiscoveryPath(url.pathname) || isHistoryPath(url.pathname)) {
+        response.headers.set('cache-control', 'no-store');
+      }
       return response;
     };
     const chatRequest =
@@ -864,7 +867,7 @@ export function createChatHandler<T>(
           has_more: page.nextCursor !== null,
           next_cursor: page.nextCursor,
         },
-        { status: 200, headers: { 'x-request-id': requestId } },
+        { status: 200, headers: { 'x-request-id': requestId, 'cache-control': 'no-store' } },
       );
     }
 
@@ -992,7 +995,7 @@ export function createChatHandler<T>(
       }
       return Response.json(
         { object: 'list', data, has_more: hasMore, next_cursor: nextCursor },
-        { status: 200, headers: { 'x-request-id': requestId } },
+        { status: 200, headers: { 'x-request-id': requestId, 'cache-control': 'no-store' } },
       );
     }
 

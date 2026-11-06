@@ -6,6 +6,7 @@ import {
   clientErrorFormat,
   createClientErrorResponse,
 } from './client-errors.ts';
+import { isHistoryPath } from './history-path.ts';
 import { isModelDiscoveryPath } from './model-discovery-path.ts';
 
 /** Adapt an already-composed Fetch-style request boundary to a Node HTTP socket server. */
@@ -22,12 +23,12 @@ export function createNodeRequestServer(
     incoming.once('aborted', abort);
     outgoing.once('close', onClose);
     let errorFormat: ClientErrorFormat = 'opengranter';
-    let discoveryRequest = false;
+    let privateReadRequest = false;
     try {
       const path = incoming.url?.startsWith('/') ? incoming.url : '/';
       const pathname = new URL(`http://localhost${path}`).pathname;
       errorFormat = clientErrorFormat(pathname);
-      discoveryRequest = isModelDiscoveryPath(pathname);
+      privateReadRequest = isModelDiscoveryPath(pathname) || isHistoryPath(pathname);
       const headers = new Headers();
       for (let index = 0; index < incoming.rawHeaders.length; index += 2) {
         const name = incoming.rawHeaders[index];
@@ -52,7 +53,7 @@ export function createNodeRequestServer(
       response.headers.forEach((value, name) => {
         outgoing.setHeader(name, value);
       });
-      if (discoveryRequest) outgoing.setHeader('cache-control', 'no-store');
+      if (privateReadRequest) outgoing.setHeader('cache-control', 'no-store');
       if (response.body) {
         await pipeline(Readable.fromWeb(response.body), outgoing);
       } else {
@@ -72,7 +73,7 @@ export function createNodeRequestServer(
         response.headers.forEach((value, name) => {
           outgoing.setHeader(name, value);
         });
-        if (discoveryRequest) outgoing.setHeader('cache-control', 'no-store');
+        if (privateReadRequest) outgoing.setHeader('cache-control', 'no-store');
         outgoing.end(await response.text());
       }
     } finally {
