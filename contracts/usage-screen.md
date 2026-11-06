@@ -76,3 +76,7 @@ Expiry cancellation is optional resource cleanup, never a prerequisite for autho
 ## Indeterminate trusted clock (#642)
 
 A trusted clock that throws, returns a negative epoch or a nonfinite value cannot prove the grant is still valid. Initial authorization performs no request; subsequent deadline checks (actions, timers, download activation and read completion) clear protected rows, filters, transport and CSV links as expired without displaying the exception. The timer delay calculation also checks its second clock sample before scheduling. Low-level connect retains externally owned clearing; this does not supply a session or change server authorization. See [plan](../docs/plans/642-review-clock-failure.md).
+
+## Current-page token aggregates (#642)
+
+The existing page summary displays independent prompt, completion and total token sums with per-counter known-record coverage. Exact integer arithmetic preserves sums above Number.MAX_SAFE_INTEGER. Explicit zero is known; absent counters remain Unknown if none are known. Never derive total from prompt plus completion, reconcile provider reports, remove duplicates, accumulate other pages or fetch additional data. The owning page lifecycle removes summaries on replacement, clear, expiry and disposal. This source/artifact capability does not activate a browser session or certify installed acceptance.

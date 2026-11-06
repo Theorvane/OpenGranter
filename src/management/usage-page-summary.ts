@@ -58,6 +58,31 @@ export function renderUsagePageSummary(
     'Estimated totals: ' + totals(records, 'estimatedCost'),
     'Reported cost coverage: ' + reported + ' of ' + records.length + ' records',
     'Reported totals: ' + totals(records, 'upstreamBilledCost'),
+    ...(
+      [
+        ['Prompt', 'promptTokens'],
+        ['Completion', 'completionTokens'],
+        ['Total', 'totalTokens'],
+      ] as const
+    ).map(([label, key]) => {
+      const known = records.flatMap((row) => {
+        const count = row.usage[key];
+        return count === null ? [] : [BigInt(count)];
+      });
+      const total = known.length === 0 ? 'Unknown' : String(known.reduce((a, b) => a + b, 0n));
+      return (
+        label +
+        ' tokens: ' +
+        total +
+        '; coverage: ' +
+        known.length +
+        ' of ' +
+        records.length +
+        ' records'
+      );
+    }),
+    'Known counters only; missing counters are unknown, not zero or inferred.',
+    'Duplicate rows remain included; not reconciled usage.',
     ...(['reported', 'partial', 'missing', 'invalid'] as const).map(
       (state) =>
         state.charAt(0).toUpperCase() +
