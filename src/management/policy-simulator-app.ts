@@ -108,7 +108,9 @@ export function mountManagementPolicySimulator(
   }
   function currentTime() {
     try {
-      return now();
+      const time = now();
+      // An impossible epoch cannot prove the host reader is still valid.
+      return Number.isFinite(time) && time >= 0 ? time : Number.NaN;
     } catch {
       return Number.NaN;
     }

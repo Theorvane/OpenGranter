@@ -1,0 +1,6 @@
+# Fail closed on negative policy simulator clocks (#640)
+
+1. Reproduce the existing disconnected diagnostic screen accepting a negative trusted epoch during connection, submission, pending completion, timer firing and the second scheduling sample. Test both TypeScript source and the supported self-contained browser artifact. Include explicit zero as a valid epoch and recovery only through a fresh host connection.
+2. Normalize negative, throwing and nonfinite trusted clock readings to an indeterminate value at the existing clock helper, leaving server reader authorization, policy evaluation and HTTP/session decisions unchanged. A clock failure clears the reader, drafts, decision, timer and pending operation before detached controls or late responses can dispatch/publish.
+3. Run meaningful RED/GREEN tests, existing persisted-policy simulator regressions, typecheck, lint, planning/link/secret checks and full checks. Report structural DOM/artifact evidence separately from native browser and installed authentication, neither of which this fix supplies.
+4. Publish an isolated PR and request independent exact-head formal review. Require all parent dependencies, exact-head required CI and valid formal approval before merge.
