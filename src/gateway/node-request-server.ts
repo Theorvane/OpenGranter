@@ -23,11 +23,13 @@ export function createNodeRequestServer(
     outgoing.once('close', onClose);
     let errorFormat: ClientErrorFormat = 'opengranter';
     let discoveryRequest = false;
+    let managementRequest = false;
     try {
       const path = incoming.url?.startsWith('/') ? incoming.url : '/';
       const pathname = new URL(`http://localhost${path}`).pathname;
       errorFormat = clientErrorFormat(pathname);
       discoveryRequest = isModelDiscoveryPath(pathname);
+      managementRequest = pathname === '/management' || pathname.startsWith('/management/');
       const headers = new Headers();
       for (let index = 0; index < incoming.rawHeaders.length; index += 2) {
         const name = incoming.rawHeaders[index];
@@ -52,7 +54,8 @@ export function createNodeRequestServer(
       response.headers.forEach((value, name) => {
         outgoing.setHeader(name, value);
       });
-      if (discoveryRequest) outgoing.setHeader('cache-control', 'no-store');
+      if (discoveryRequest || managementRequest) outgoing.setHeader('cache-control', 'no-store');
+      if (managementRequest) outgoing.setHeader('x-content-type-options', 'nosniff');
       if (response.body) {
         await pipeline(Readable.fromWeb(response.body), outgoing);
       } else {
@@ -72,7 +75,8 @@ export function createNodeRequestServer(
         response.headers.forEach((value, name) => {
           outgoing.setHeader(name, value);
         });
-        if (discoveryRequest) outgoing.setHeader('cache-control', 'no-store');
+        if (discoveryRequest || managementRequest) outgoing.setHeader('cache-control', 'no-store');
+        if (managementRequest) outgoing.setHeader('x-content-type-options', 'nosniff');
         outgoing.end(await response.text());
       }
     } finally {
