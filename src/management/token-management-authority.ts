@@ -108,6 +108,8 @@ export function createManagementTokenAuthority(
   return {
     issue: (input: Parameters<typeof client.issue>[0]) => run(() => client.issue(input)),
     revoke: (input: Parameters<typeof client.revoke>[0]) => run(() => client.revoke(input)),
+    // Host snapshots must also recheck suspended expiry before displaying secrets.
+    isActive: () => live(),
     dispose: () => close('disposed'),
   };
 }

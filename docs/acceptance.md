@@ -1987,3 +1987,7 @@ Source and supported browser artifact must prevent expired/disposed dispatch, re
 ## Catalog clock and logout teardown (#639)
 
 Both existing catalog authority factories, from source and the supported browser artifact, must expire and clear a previously returned private model list on throwing/negative clock; reject invalid initial clock/negative epoch grants without dispatch; and abort pending reads/notify unauthenticated even when timer cancellation throws. Structural/source evidence is not native browser login, installed SQL or deployment acceptance.
+
+## Owning credential workspace (#640)
+
+Source and supported browser artifact verify singleflight, one-time display clearing, suspended expiry, navigation during issue, grant replacement, no late secret, observer exceptions and definite denial distinct from ambiguity. Signed-JWT loopback HTTP and migrated embedded SQL verify issue/credential validity/revoke, an actual committed issue whose secret expires, and zero subsequent dispatch across logout/navigation/fresh grant. No browser session, native DOM, installed SQL or cross-tab/reload reconciliation acceptance is inferred.

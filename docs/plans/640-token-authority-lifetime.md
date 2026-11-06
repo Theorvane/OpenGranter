@@ -18,3 +18,11 @@
 10. Verify both source factories and supported browser artifacts with meaningful RED/GREEN; run focused authority/screen/API tests and static checks. Update this same PR, not another dependency stack. Native-browser/session acceptance remains blocked and distinct.
 
 Execution: corrected regression fixture against original HEAD: 0 pass / 12 fail / 0 skip (throw/negative clock and cancellation defects). Initial SSO fixture ownership was corrected before this baseline. Final focused management + signed-HTTP/embedded-SQL suites: 270 pass / 0 fail / 0 skip. Typecheck, lint (42 warnings/196 infos; no errors), planning/link/fixture checks, schema compatibility and diff checks pass. No new native-browser, installed SQL, session or live-provider evidence.
+
+## Owning credential workspace integration
+
+11. Implement one host-owned credential workspace, independent of DOM and login. Keep its reconciliation latch across grant replacement, logout and navigation. No reset/reconcile claim or browser storage.
+12. Own one-time secret display state; hide on navigation, expiry, logout and next mutation. Suppress stale completions after replacing authority. A pending request interrupted by replacement must immediately close the workspace mutation gate, before asynchronous completion.
+13. Verify source and supported browser bundle: success/clear, suspended expiry, network ambiguity, pending logout/regrant, stale completion, singleflight and observer failure. Keep UI activation, sessions and installed acceptance explicitly incomplete.
+
+Workspace execution: initial missing-module RED (0 pass / 1 fail; feature absent, not a prior-runtime regression). New source/artifact workspace cases 16 pass / 0 fail / 0 skip. Final management plus signed-HTTP/embedded-SQL focused suites 287 pass / 0 fail / 0 skip. Typecheck exit0, lint no errors (42 warnings/208 infos), planning/link/fixture scan, schema compatibility and diff checks pass. Native credential screen and session acquisition remain incomplete.

@@ -16,3 +16,9 @@ Source and the actual supported browser bundle test valid issue/revoke, snapshot
 ## Shared catalog screen teardown correction (#639)
 
 The existing proxy/SSO catalog authority now treats throwing or negative clocks as expired, rejects negative epoch grants, clears protected snapshots and prevents further reads. Timer cancellation exceptions cannot prevent session abort or the host clearing notification. The clock is rechecked while arming expiry as well as before reads and publication. This changes the existing screen authority, not DOM ownership, session acquisition or runtime activation. Source and supported browser artifacts cover displayed-data clearing, invalid initial clocks/grants and in-flight logout with throwing cleanup.
+
+## Owning credential workspace (#640)
+
+The DOM-independent createManagementTokenWorkspace owns one-time display state and a host-lifetime reconciliation latch. Keep one instance above navigation and grant replacement: authorize takes only a trusted grant, logout disposes authority, hideSecret clears display (and aborts/locks a pending mutation), snapshot rechecks authority expiry even with suspended timers. issue returns only issued status; the secret is available only through the owning snapshot until clearing. Revoke, next mutation, logout, expiry and grant replacement clear it. Notifications carry no secret and observer failures cannot interrupt cleanup.
+
+An ambiguous or interrupted write closes the host mutation gate before replacement returns. Logout, navigation and fresh grants cannot reopen it; there is no reset or reconciliation method. An explicit HTTP denial closes authority but does not fabricate an ambiguous write. No persistence or cross-tab/reload guarantee exists; reconstructing the workspace is not reconciliation. Server-side reconciliation remains a separate unimplemented approved contract. No session acquisition, DOM, listener or deployment is activated.

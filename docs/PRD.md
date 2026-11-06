@@ -1347,3 +1347,7 @@ The optional trusted token authority invalidation observer lets the owning UI cl
 ### Catalog screen fail-closed lifetime correction (#639)
 
 Existing catalog screen authority must clear protected model data when its trusted clock throws or becomes negative. Timer cleanup failures must not block logout abort or clearing. Preserve current SSO/IAM and no-runtime-activation boundaries. See [contract](../contracts/token-authority-lifetime.md#shared-catalog-screen-teardown-correction-639).
+
+### Owning credential display and mutation gate (#640)
+
+The credential host owns one-time secret display and preserves uncertain-mutation blocking across logout, navigation and trusted grant replacement. Expiry and teardown clear display; pending navigation aborts without claiming rollback. This is a DOM-independent integration component, not the delivered credential screen or session acquisition. See [contract](../contracts/token-authority-lifetime.md#owning-credential-workspace-640).
