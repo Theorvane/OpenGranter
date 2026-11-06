@@ -344,6 +344,8 @@ test('workspace switches signed SSO HTTP views against shared SQL and durable au
     assert.doesNotMatch(f.root.text(), /Inspect attempt|private-upstream/);
     f.root.click('View usage for this model');
     await until(/Inspect attempt/);
+    assert.match(f.root.text(), /Request correlation/);
+    assert.match(f.root.text(), /not complete request history or reconciled billing/);
     assert.equal(paths.at(-1), '/management/v1/usage?model=team%2Fchat&format=json');
     f.root.click('Inspect model team/chat');
     await until(/Model ID/);
@@ -384,6 +386,8 @@ test('workspace switches signed SSO HTTP views against shared SQL and durable au
     await cookie.text();
     f.root.click('Usage history');
     await until(/Inspect attempt/);
+    assert.match(f.root.text(), /Request correlation/);
+    assert.match(f.root.text(), /not complete request history or reconciled billing/);
     const detached = f.root.find('Inspect model team/chat');
     assert.ok(detached);
     await db.exec('DELETE FROM iam_role_policies');

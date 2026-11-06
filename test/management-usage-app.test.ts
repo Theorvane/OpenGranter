@@ -276,7 +276,9 @@ test('authorized per-attempt details preserve unknowns and clear with identity',
     calls++;
     return response([observed, { ...observed, attemptId: 'attempt-B' }]);
   });
-  const details = root.all().filter((node) => node.tag === 'details');
+  const table = root.all().find((node) => node.tag === 'table');
+  assert.ok(table);
+  const details = table.all().filter((node) => node.tag === 'details');
   assert.equal(details.length, 2, 'one native detail for each authorized attempt');
   const first = details[0];
   assert.ok(first);
@@ -322,7 +324,11 @@ test('attempt inspection disappears during reload, HTTP denial, and disposal', a
       finish = resolve;
     });
   });
-  assert.equal(root.all().filter((node) => node.tag === 'details').length, 1);
+  assert.equal(
+    root.all().filter((node) => node.tag === 'summary' && node.textContent === 'Inspect attempt')
+      .length,
+    2,
+  );
   assert.match(root.text(), /Unknown/u);
   root.button('Retry / first page').click();
   assert.equal(root.all().filter((node) => node.tag === 'details').length, 0);
@@ -331,7 +337,11 @@ test('attempt inspection disappears during reload, HTTP denial, and disposal', a
   await waitFor(() => root.text().includes('Access denied.'));
   assert.doesNotMatch(root.text(), /attempt|credential|candidate/u);
   await app.connect(async () => response());
-  assert.equal(root.all().filter((node) => node.tag === 'details').length, 1);
+  assert.equal(
+    root.all().filter((node) => node.tag === 'summary' && node.textContent === 'Inspect attempt')
+      .length,
+    2,
+  );
   app.dispose();
   assert.equal(root.children.length, 0);
 });
