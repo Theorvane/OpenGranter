@@ -1,0 +1,7 @@
+# Audit-to-usage review navigation (#642)
+
+An optional trusted audit host callback exposes View usage for request on projected events. It carries exact requestId and event principalId plus only submitted model, inclusive fromMs, exclusive toMs and limit. It never derives a model from event metadata, reuses an audit cursor, consumes unsubmitted drafts or infers a causal/billing relationship. An audit event can legitimately have no usage attempt.
+
+The source-only workspace switches to usage, disposing audit/CSV state, and makes a new authorized usage read. Existing usage ReadAll is required for explicit principal filtering even for self. Audit visibility is not usage permission; denial clears host authority and must not retry implicit self or unfiltered usage. No grant/credential moves into query parameters. Existing server IAM and mandatory audit remain authoritative.
+
+The usage mount snapshots initial filters as query hints, drops any cursor and validates through the existing client. Existing catalog model navigation remains supported. Plain navigation, logout, grant replacement, pagehide, expiry and disposal discard trace scope. Detached or expired event controls cannot dispatch or consume renewed authority. Source and built-artifact DOM harnesses prove navigation logic, not native browser or company SSO acceptance. This adds no session/runtime/entry/API/schema/provider activation.
