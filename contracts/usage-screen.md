@@ -72,3 +72,7 @@ The authorized ready usage view may correlate records by the exact pair (princip
 ## Cancellation failure isolation (#642)
 
 Expiry cancellation is optional resource cleanup, never a prerequisite for authority invalidation. A throwing cancellation handle is detached once and contained without showing its private error. Logout, denied/expired clearing and disposal still invalidate reads, erase protected records/filters, remove CSV links, revoke object URLs and prevent detached controls from dispatching. Source and supported browser-artifact regressions cover each lifecycle path; they do not certify native-browser sessions or installed E2E. See [plan](../docs/plans/642-usage-cleanup-isolation.md).
+
+## Indeterminate trusted clock (#642)
+
+A trusted clock that throws, returns a negative epoch or a nonfinite value cannot prove the grant is still valid. Initial authorization performs no request; subsequent deadline checks (actions, timers, download activation and read completion) clear protected rows, filters, transport and CSV links as expired without displaying the exception. The timer delay calculation also checks its second clock sample before scheduling. Low-level connect retains externally owned clearing; this does not supply a session or change server authorization. See [plan](../docs/plans/642-review-clock-failure.md).

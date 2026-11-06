@@ -35,12 +35,21 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
       const timer = setTimeout(callback, delay);
       return () => clearTimeout(timer);
     });
+  // An unreadable trusted clock cannot establish a still-valid deadline.
+  function clock() {
+    try {
+      const time = now();
+      return Number.isFinite(time) && time >= 0 ? time : NaN;
+    } catch {
+      return NaN;
+    }
+  }
   let expiresAt: number | undefined;
   let cancelExpiry: (() => void) | undefined;
   let authorityRevision = 0;
   function expired() {
     if (expiresAt === undefined) return false;
-    const time = now();
+    const time = clock();
     if (!Number.isFinite(time) || time >= expiresAt) {
       clear('expired');
       return true;
@@ -49,7 +58,12 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
   }
   function arm(current: number) {
     if (current !== authorityRevision || disposed || expiresAt === undefined || expired()) return;
-    const delay = Math.max(1, Math.min(2147483647, expiresAt - now()));
+    const remaining = expiresAt - clock();
+    if (!Number.isFinite(remaining) || remaining <= 0) {
+      clear('expired');
+      return;
+    }
+    const delay = Math.max(1, Math.min(2147483647, remaining));
     cancelExpiry = schedule(delay, () => {
       if (current !== authorityRevision || disposed) return;
       cancelExpiry = undefined;
@@ -423,7 +437,7 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
     async authorize(grant: CatalogAuthorityGrant, modelId?: string) {
       if (disposed) return;
       clear();
-      const time = now();
+      const time = clock();
       if (
         !Number.isSafeInteger(grant.expiresAt) ||
         !Number.isFinite(time) ||

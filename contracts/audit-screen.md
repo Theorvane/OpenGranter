@@ -34,3 +34,7 @@ The ready nonempty audit page also provides native expandable request traces. Gr
 ## Timer cancellation failure isolation (#642)
 
 Expiry cancellation is best-effort, not a prerequisite for security cleanup. Clear for logout/denial/expiry and disposal detach the cancellation handle once and suppress its private exception while completing request invalidation, protected metadata/filter removal, DOM clearing and CSV object-URL revocation. Generation invalidation continues to reject stale timer callbacks and controls. This changes no session or deployment boundary. Source and supported-artifact regressions cover all four cleanup entry points. See [plan](../docs/plans/642-audit-cleanup-isolation.md).
+
+## Indeterminate trusted clock (#642)
+
+A trusted clock that throws, returns a negative epoch or a nonfinite value cannot prove the grant is still valid. Initial authorization performs no request; subsequent deadline checks (actions, timers, download activation and read completion) clear protected rows, filters, transport and CSV links as expired without displaying the exception. The timer delay calculation also checks its second clock sample before scheduling. Low-level connect retains externally owned clearing; this does not supply a session or change server authorization. See [plan](../docs/plans/642-review-clock-failure.md).
