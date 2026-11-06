@@ -1,3 +1,4 @@
+import { mountManagementAudit } from './audit-app.ts';
 import type { CatalogAuthorityGrant } from './catalog-authority.ts';
 import type { CatalogRequest } from './catalog-client.ts';
 import { mountSsoManagementCatalog } from './sso-catalog-app.ts';
@@ -9,7 +10,7 @@ import {
   type UsageElement,
 } from './usage-app.ts';
 
-type View = 'models' | 'usage' | 'tokens';
+type View = 'models' | 'usage' | 'tokens' | 'audit';
 type Cleared = 'unauthenticated' | 'expired' | 'denied';
 
 /** Explicit trusted composition, not a session or public authority API.
@@ -54,6 +55,7 @@ export function mountSsoUsageWorkspace(
     | ReturnType<typeof mountSsoManagementCatalog>
     | ReturnType<typeof mountManagementUsage>
     | ReturnType<typeof mountManagementTokens>
+    | ReturnType<typeof mountManagementAudit>
     | undefined;
 
   function removeAuthority() {
@@ -106,6 +108,7 @@ export function mountSsoUsageWorkspace(
     for (const [target, label] of [
       ['models', 'Models'],
       ['usage', 'Usage history'],
+      ['audit', 'Audit history'],
       ['tokens', 'Credentials'],
     ] as const) {
       const button = element('button', label);
@@ -146,15 +149,17 @@ export function mountSsoUsageWorkspace(
               void render();
             },
           })
-        : mountManagementUsage(content, {
-            ...options,
-            onInspectModel(id) {
-              if (disposed || !active || app !== mounted || !valid()) return;
-              view = 'models';
-              modelId = id;
-              void render();
-            },
-          });
+        : view === 'audit'
+          ? mountManagementAudit(content, options)
+          : mountManagementUsage(content, {
+              ...options,
+              onInspectModel(id) {
+                if (disposed || !active || app !== mounted || !valid()) return;
+                view = 'models';
+                modelId = id;
+                void render();
+              },
+            });
     app = mounted;
     if (!grant) {
       mounted.clear(reason);

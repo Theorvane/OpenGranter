@@ -1360,3 +1360,7 @@ An externally owned credential workspace now drives real explicit issue/revoke f
 ## Credential navigation in the existing management host (#639/#640)
 
 The existing models/usage host now exposes Credentials backed by the real issue/revoke forms and one private host-lifetime workspace. Authority, one-time secret and ambiguous writes follow navigation/logout/expiry/page lifecycle without resetting reconciliation. Same generation-bound transport enforces current denials and suppresses stale denials. Entry/session/deployment activation remains unchanged and gated. See [plan](plans/640-token-host-navigation.md) and [contract](../contracts/token-management-screen.md#existing-host-navigation-639640).
+
+## Audit navigation in the existing management host (#642)
+
+The trusted source host now exposes the existing scoped audit metadata/CSV screen beside Models, Usage history and Credentials, sharing authority and clearing lifecycle. This is not installed SSO audit-route or session activation. See [contract](../contracts/management-audit-host.md) and [plan](plans/642-audit-host-navigation.md).

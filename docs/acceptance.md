@@ -2003,3 +2003,11 @@ Source and supported browser bundle forms must issue/revoke via the authorized A
 - Maintain exactly one private token workspace across navigation, logout and grant replacement. Interrupting a pending write aborts and locks later credential dispatch; late completion cannot reveal a secret. No reset/retry action is provided.
 - Current denial invalidates the whole host; stale/aborted denial cannot clear renewal. Expiry, pagehide, clear, dispose and failed clocks clear protected display and invalidate detached controls. Throwing timer cleanup cannot interrupt teardown. Page restoration requires fresh trusted authority.
 - Source and supported browser artifact pass structural DOM host navigation and actual signed-JWT loopback credential HTTP with migrated PGlite, issued credential verification, revoke and mandatory decision rows. The credential-only HTTP fixture does not certify catalog route composition. Native browser/login, public entry/session acquisition, installed SQL, deployment/provider acceptance and full PRD remain incomplete. See [plan](plans/640-token-host-navigation.md).
+
+## Audit host navigation (#642)
+
+- Without a grant, Audit history sends no request. With a grant, the existing audit JSON/CSV client uses the same guarded transport.
+- Current denial clears all views including credential writes; stale controls and results cannot use renewed authority. Expiry and pagehide require fresh authority.
+- Leaving audit aborts outstanding reads and revokes CSV URLs; logout and replacement grants also revoke URLs. No retained private page appears in another view.
+- Source and supported artifact tests exercise actual loopback HTTP + migrated PGlite scoped audit history, CSV, Deny and failed mandatory audit through host navigation. Authentication is a test port, not SSO/browser/installed evidence.
+- Current SSO review server lacks /v1/audit; unsupported adapters show unavailable. Public entry, approved session and installed acceptance remain separate gates.

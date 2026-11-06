@@ -11,6 +11,7 @@ import { createChatHandler } from '../src/gateway/chat-handler.ts';
 import { mountManagementAudit } from '../src/management/audit-app.ts';
 import { createManagementAuditClient } from '../src/management/audit-client.ts';
 import type { CatalogRequest } from '../src/management/catalog-client.ts';
+import { mountSsoUsageWorkspace } from '../src/management/sso-usage-workspace.ts';
 import type { UsageElement } from '../src/management/usage-app.ts';
 
 class Element implements UsageElement {
@@ -136,18 +137,27 @@ test('audit client contains private failures, bounds responses and cancels uncoo
   assert.deepEqual(await pending, { state: 'cancelled' });
 });
 
-for (const compiled of [false, true]) {
-  test(`audit ${compiled ? 'executed browser bundle' : 'source screen'} reads real HTTP handler with scoped IAM, audit and CSV`, async () => {
+for (const [compiled, host] of [
+  [false, false],
+  [true, false],
+  [false, true],
+  [true, true],
+]) {
+  test(`audit ${compiled ? 'executed browser bundle' : 'source screen'} reads real HTTP handler with scoped IAM, audit and CSV (host=${host})`, async () => {
     let mount = mountManagementAudit;
+    let mountHost = mountSsoUsageWorkspace;
     if (compiled) {
       const code = await buildManagementBrowser({
         root: process.cwd(),
-        entry: 'src/management/audit-app.ts',
+        entry: host ? 'src/management/sso-usage-workspace.ts' : 'src/management/audit-app.ts',
       });
       assert.ok(code);
       assert.doesNotMatch(code, /node:|process\.env|require\(/);
-      mount = (await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`))
-        .mountManagementAudit;
+      const bundle = await import(
+        `data:text/javascript;base64,${Buffer.from(code).toString('base64')}`
+      );
+      if (host) mountHost = bundle.mountSsoUsageWorkspace;
+      else mount = bundle.mountManagementAudit;
     }
 
     const db = new PGlite();
@@ -231,7 +241,21 @@ for (const compiled of [false, true]) {
     const request: CatalogRequest = (path, init) =>
       fetch(`http://127.0.0.1:${address.port}${path}`, init);
     const root = new Element();
-    const app = mount(root);
+    const hostApp = host ? mountHost(root, new EventTarget()) : undefined;
+    const auditApp = host ? undefined : mount(root);
+    const app = {
+      dispose() {
+        hostApp?.dispose();
+        auditApp?.dispose();
+      },
+      async connect(request: CatalogRequest) {
+        if (hostApp) {
+          await hostApp.authorize({ request, expiresAt: Date.now() + 60000 });
+          root.button('Audit history').click();
+          await until(() => /Refresh current page|Audit unavailable/.test(root.text()));
+        } else await auditApp?.connect(request);
+      },
+    };
     try {
       assert.match(root.text(), /Sign-in required/);
       await app.connect(request);
@@ -255,7 +279,10 @@ for (const compiled of [false, true]) {
       assert.match(trace.text(), /Events on this page: 2/);
       assert.doesNotMatch(trace.text(), /OTHER_PRIVATE_REQUEST|PRIVATE/);
       assert.equal(queries.length, 1);
-      assert.equal(audit.length, 1);
+      assert.equal(
+        audit.filter((entry) => (entry as { kind: string }).kind === 'audit-history-read').length,
+        1,
+      );
       root.button('Export current page CSV').click();
       await until(() => root.all().some((n) => n.tag === 'a'));
       const link = root.all().find((n) => n.tag === 'a');
