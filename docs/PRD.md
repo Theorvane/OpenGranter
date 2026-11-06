@@ -1320,3 +1320,8 @@ Inspect current-page attempts grouped by exact principal/request pair, retaining
 ## Source-only audit metadata screen (#642)
 
 Implement the missing audit list/detail/filter/paging and explicit page-CSV screen against the existing scoped `/v1/audit` API. Reuse strict audit projection, exact cursor semantics and deadline/authority cleanup. This disconnected port is not added to the SSO workspace or activated at runtime; the SSO audit integration remains pending approved contracts. See [contract](../contracts/audit-screen.md) and [plan](plans/642-audit-screen.md).
+
+
+## Supported audit browser artifact (#642)
+
+Audit client and screen must build through the supported management browser builder, not unrestricted esbuild. Shared pure projection/query validation preserves the server contract and error identity. Exact canonical dependency allowlisting excludes SQL adapters and runtime modules. Structural-DOM execution of that artifact is not native-browser or installed acceptance. See [plan](plans/642-audit-browser-build.md).
