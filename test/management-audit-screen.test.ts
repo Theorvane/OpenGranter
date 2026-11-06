@@ -391,7 +391,7 @@ test('audit screen preserves rejected UTC drafts, resets self scope, and renders
     });
     assert.match(root.text(), /No audit events/);
     const inputs = root.all().filter((node) => node.tag === 'input');
-    assert.equal(inputs.length, 5);
+    assert.equal(inputs.length, 6);
     required(inputs[0]).value = '사용자';
     required(inputs[2]).value = 'not-a-date';
     root.button('Apply filters').click();

@@ -132,6 +132,7 @@ export function mountManagementAudit(root: UsageElement, options: AuditAuthority
         ['fromMs', 'From (UTC)', 'datetime-local'],
         ['toMs', 'To (UTC, exclusive)', 'datetime-local'],
         ['limit', 'Page size (1–100)', 'number'],
+        ['requestId', 'Request ID', 'text'],
       ] as const) {
         const wrapper = element('label', label);
         const input = element('input');
@@ -246,6 +247,13 @@ export function mountManagementAudit(root: UsageElement, options: AuditAuthority
           const details = element('details');
           details.append(element('summary', `Inspect event ${event.eventId}`));
           details.append(renderAuditEventMetadata(root.ownerDocument, event));
+          details.append(
+            button('Trace audit request ' + event.requestId, () => {
+              const { cursor: _cursor, ...scope } = filters;
+              draftFilters = undefined;
+              void load({ ...scope, requestId: event.requestId });
+            }),
+          );
           const alias = event.details.modelAlias;
           if (typeof alias === 'string' && alias.length > 0)
             details.append(

@@ -1,0 +1,9 @@
+# Exact audit request filtering (#642)
+
+GET /v1/audit accepts optional request_id in JSON and CSV reads. It is an exact case-sensitive match, never a substring or pattern: /^[A-Za-z0-9][A-Za-z0-9._+:/@-]*$/ with 1–256 characters. Empty, whitespace, control characters, SQL syntax, overlong and duplicate values fail closed. Existing strict query validation remains.
+
+The filter intersects the freshly authorized target principal, model, inclusive from_ms, exclusive to_ms and opaque keyset cursor. No cross-principal global trace is exposed. Existing audit:Read and mandatory access audit remain authoritative. Query input is never interpolated into SQL. Every output boundary rejects an off-filter row, including the database lookahead row, rather than filtering a partial page or exporting a broader scope.
+
+The source audit screen exposes Request ID plus an explicit Trace audit request action on a projected event. Selection retains submitted principal/model/time/page size, discards prior cursor/history/unsubmitted drafts and revokes CSV. Subsequent JSON/CSV continuation carries the exact request filter. Empty results mean no matching events in this authorized scope, not proof that the request never existed. Current-page correlation does not become a complete causal trace. No new endpoint, IAM action, cookie/session adapter, DDL, retention or runtime activation.
+
+Acceptance: strict parser inputs; parameterized SQL and cross-principal isolation with matching/nonmatching/interleaved events; keyset continuation and range/model intersection; injected off-filter rows rejected at SQL/HTTP/client/CSV boundaries; denied requests do not read SQL; mandatory audit failure withholds output; source and built artifact filter submission/trace lifecycle/CSV scope; no native-browser or real-SSO claim from these tests.

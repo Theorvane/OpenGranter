@@ -34,7 +34,16 @@ export function parseAuditHistoryQuery(url: URL): AuditHistoryFilters & {
 } {
   for (const key of url.searchParams.keys()) {
     if (
-      !['principal_id', 'limit', 'cursor', 'from_ms', 'to_ms', 'format', 'model'].includes(key) ||
+      ![
+        'principal_id',
+        'limit',
+        'cursor',
+        'from_ms',
+        'to_ms',
+        'format',
+        'model',
+        'request_id',
+      ].includes(key) ||
       url.searchParams.getAll(key).length !== 1
     ) {
       throw new InvalidAuditHistoryQuery();
@@ -55,7 +64,12 @@ export function parseAuditHistoryQuery(url: URL): AuditHistoryFilters & {
   const range = parseAuditTimeRange(url.searchParams);
   if (range === null) throw new InvalidAuditHistoryQuery();
   const modelAlias = url.searchParams.get('model');
-  const filters = { ...range, ...(modelAlias === null ? {} : { modelAlias }) };
+  const requestId = url.searchParams.get('request_id');
+  const filters = {
+    ...range,
+    ...(modelAlias === null ? {} : { modelAlias }),
+    ...(requestId === null ? {} : { requestId }),
+  };
   if (!validAuditHistoryFilters(filters)) throw new InvalidAuditHistoryQuery();
   return {
     ...filters,
@@ -102,7 +116,12 @@ export function projectAuditHistoryPage(
       input.occurredAt,
     );
     if (
-      !matchesAuditHistoryFilters(projected.occurredAt, projected.details, range) ||
+      !matchesAuditHistoryFilters(
+        projected.occurredAt,
+        projected.details,
+        range,
+        projected.requestId,
+      ) ||
       projected.principalId !== targetPrincipalId ||
       projected.credentialId === null ||
       projected.policyVersions === null

@@ -5,6 +5,7 @@ import type { CatalogRequest } from './catalog-client.ts';
 export interface AuditFilters {
   readonly principalId?: string;
   readonly model?: string;
+  readonly requestId?: string;
   readonly fromMs?: number;
   readonly toMs?: number;
   readonly limit?: number;
@@ -67,6 +68,7 @@ function path(filters: AuditFilters, format: 'json' | 'csv'): string | undefined
   for (const [key, value] of [
     ['principal_id', filters.principalId],
     ['model', filters.model],
+    ['request_id', filters.requestId],
     ['from_ms', filters.fromMs],
     ['to_ms', filters.toMs],
     ['limit', filters.limit],
@@ -155,6 +157,7 @@ function jsonPage(raw: string, filters: AuditFilters): AuditPage | undefined {
       ...(filters.fromMs === undefined ? {} : { fromMs: filters.fromMs }),
       ...(filters.toMs === undefined ? {} : { toMs: filters.toMs }),
       ...(filters.model === undefined ? {} : { modelAlias: filters.model }),
+      ...(filters.requestId === undefined ? {} : { requestId: filters.requestId }),
     },
   );
   return { events: projected.events, ...page };
