@@ -62,3 +62,7 @@ The trusted source workspace can open usage from a projected audit event using e
 ## Reverse request review (#642)
 
 [Usage-to-audit source](../src/management/sso-usage-workspace.ts), [contract](../contracts/usage-audit-navigation.md), and [source/bundle DOM cases](../test/management-usage-audit-navigation.test.ts) add reverse exact-scope inspection with fresh audit authorization. The SSO workspace server does not mount proxy-authenticated /v1/audit. This explicit API/auth integration gap is not resolved by trusted-port UI tests; installed/browser/live acceptance remains missing.
+
+## Destructive credential action review (#640)
+
+[Token screen](../src/management/token-management-app.ts) adds request-free exact-ID review/cancel before explicit revoke. [Source/bundle cases](../test/management-token-revoke-confirmation.test.ts) cover targeting, lifecycle and stale controls; [signed HTTP/PGlite tests](../test/postgres-sso-management-http.test.ts) prove actual revocation and current Deny after review with decision audit. See [contract](../contracts/token-revoke-confirmation.md). Native-browser session and installed acceptance remain missing; this is not a session activation.

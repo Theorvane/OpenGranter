@@ -865,6 +865,14 @@ test('credential forms source and supported artifact issue and revoke through si
       assert.equal((await f.tokens.verifyCredential(secret.token))?.principalId, 'human-owner');
       root.named('credentialId').value = secret.credentialId;
       root.named('revoke').submit();
+      assert.equal(await f.count('token_management_decisions'), 1);
+      assert.ok(await f.tokens.verifyCredential(secret.token));
+      root.button('Cancel revocation').click();
+      assert.equal(await f.count('token_management_decisions'), 1);
+      root.named('revoke').submit();
+      // Editing after review cannot retarget the confirmed mutation.
+      root.named('credentialId').value = 'not-the-reviewed-id';
+      root.button('Confirm revocation').click();
       await idle();
       assert.match(root.text(), /Token revoked/);
       assert.equal(workspace.snapshot().secret, undefined);
@@ -872,6 +880,35 @@ test('credential forms source and supported artifact issue and revoke through si
       assert.equal(await f.tokens.verifyCredential(secret.token), undefined);
       assert.equal(await f.count('proxy_credentials'), 1);
       assert.equal(await f.count('token_management_decisions'), 2);
+      // A confirmation is not an authorization snapshot: current server IAM still wins.
+      root.named('principalId').value = 'human-owner';
+      root.named('expiresAt').value = String(now() + day);
+      root.named('issue').submit();
+      await idle();
+      const retained = workspace.snapshot().secret;
+      assert.ok(retained);
+      root.named('credentialId').value = retained.credentialId;
+      root.named('revoke').submit();
+      assert.equal(await f.count('token_management_decisions'), 3);
+      await f.db.query('UPDATE iam_policies SET version = $1, statements = $2::jsonb', [
+        'deny-after-review',
+        JSON.stringify([{ effect: 'Deny', actions: ['iam:Manage'], resources: ['*'] }]),
+      ]);
+      root.button('Confirm revocation').click();
+      await idle();
+      assert.match(root.text(), /Access denied/);
+      assert.ok(await f.tokens.verifyCredential(retained.token));
+      assert.equal(workspace.snapshot().secret, undefined);
+      assert.equal(await f.count('token_management_decisions'), 4);
+      assert.deepEqual(
+        (
+          await f.db.query(
+            'SELECT outcome, policy_versions FROM token_management_decisions WHERE operation = $1 ORDER BY event_id DESC LIMIT 1',
+            ['revoke'],
+          )
+        ).rows,
+        [{ outcome: 'denied', policy_versions: [{ id: 'manage', version: 'deny-after-review' }] }],
+      );
     } finally {
       app.dispose();
       workspace.logout();
@@ -941,6 +978,14 @@ test('existing management host navigation issues and revokes credentials through
       assert.ok(!root.text().includes(secret));
       root.named('credentialId').value = credentialId;
       root.named('revoke').submit();
+      assert.equal(await f.count('token_management_decisions'), 1);
+      assert.ok(await f.tokens.verifyCredential(secret));
+      root.button('Cancel revocation').click();
+      assert.equal(await f.count('token_management_decisions'), 1);
+      root.named('revoke').submit();
+      // Editing after review cannot retarget the confirmed mutation.
+      root.named('credentialId').value = 'not-the-reviewed-id';
+      root.button('Confirm revocation').click();
       await waitFor(/Token revoked/);
       assert.equal(await f.tokens.verifyCredential(secret), undefined);
       assert.equal(await f.count('proxy_credentials'), 1);

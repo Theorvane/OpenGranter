@@ -96,6 +96,7 @@ for (const [label, mount] of [
       assert.doesNotMatch(f.root.text(), /one-time|Reconciliation required/);
       f.root.named('credentialId').value = 'c';
       f.root.named('revoke').submit();
+      f.root.button('Confirm revocation').click();
       await settle();
       assert.match(f.root.text(), /Token revoked/);
       assert.equal(f.paths.filter((path) => path.includes('/proxy-tokens')).length, 2);

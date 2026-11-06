@@ -81,6 +81,7 @@ for (const [label, mount] of [
       assert.equal(h.root.all().filter((n) => n.tag === 'script').length, 0);
       h.root.named('credentialId').value = 'c';
       h.root.named('revoke').submit();
+      h.root.button('Confirm revocation').click();
       await settle();
       assert.match(h.root.text(), /Token revoked/);
       assert.doesNotMatch(h.root.text(), /one-time/);
