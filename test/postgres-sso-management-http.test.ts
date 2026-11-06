@@ -569,3 +569,67 @@ test('configured public factory snapshots all settings once, including admin key
     await f.db.close();
   }
 });
+
+test('browser token client source and supported artifact use signed HTTP with durable IAM, lifecycle and revocation', async () => {
+  const { createManagementTokenClient: source } = await import(
+    '../src/management/token-management-client.ts'
+  );
+  const { buildManagementBrowser } = await import('../scripts/build-management-browser.ts');
+  const javascript = await buildManagementBrowser({
+    root: process.cwd(),
+    entry: 'src/management/token-management-client.ts',
+  });
+  const built = (await import(
+    `data:text/javascript;base64,${Buffer.from(javascript).toString('base64')}`
+  )) as { createManagementTokenClient: typeof source };
+  for (const factory of [source, built.createManagementTokenClient]) {
+    const f = await fixture();
+    const server = createPostgresRfc9068SsoManagementServer(f.config);
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    const address = server.address();
+    assert.ok(address && typeof address === 'object');
+    const client = factory((path, init) =>
+      fetch(`http://127.0.0.1:${address.port}${path}`, {
+        ...init,
+        headers: { ...init.headers, authorization: `Bearer ${token}` },
+      }),
+    );
+    try {
+      const issued = await client.issue({ principalId: 'human-owner', expiresAt: now() + day });
+      assert.equal(issued.state, 'issued');
+      if (issued.state !== 'issued') throw Error('Issuance failed');
+      assert.equal((await f.tokens.verifyCredential(issued.token))?.principalId, 'human-owner');
+      assert.deepEqual(await client.revoke({ credentialId: issued.credentialId }), {
+        state: 'revoked',
+        revoked: true,
+      });
+      assert.equal(await f.tokens.verifyCredential(issued.token), undefined);
+      assert.deepEqual(await client.revoke({ credentialId: issued.credentialId }), {
+        state: 'revoked',
+        revoked: false,
+      });
+      assert.equal(await f.count('proxy_credentials'), 1);
+      assert.equal(await f.count('token_management_decisions'), 3);
+      await f.db.query('UPDATE iam_policies SET version=$1, statements=$2', [
+        'v2',
+        JSON.stringify([{ effect: 'Deny', actions: ['iam:Manage'], resources: ['*'] }]),
+      ]);
+      assert.deepEqual(await client.issue({ principalId: 'human-owner', expiresAt: now() + day }), {
+        state: 'denied',
+      });
+      assert.equal(await f.count('proxy_credentials'), 1);
+      assert.equal(await f.count('token_management_decisions'), 4);
+      await f.db.exec('ALTER TABLE token_management_decisions RENAME TO unavailable_decisions');
+      assert.deepEqual(await client.issue({ principalId: 'human-owner', expiresAt: now() + day }), {
+        state: 'outcome_unknown',
+      });
+      assert.equal(await f.count('proxy_credentials'), 1);
+    } finally {
+      client.dispose();
+      server.closeAllConnections();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+      await f.db.close();
+    }
+  }
+});

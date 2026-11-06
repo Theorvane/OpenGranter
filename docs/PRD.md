@@ -1329,3 +1329,8 @@ Audit client and screen must build through the supported management browser buil
 ## Current-page audit request trace (#642)
 
 The disconnected audit screen provides expandable current-page request/event correlation from authorized metadata, preserving principal isolation, returned order and repeats without inferring complete execution history. No extra read, SSO activation or retention is introduced. See [plan](plans/642-audit-request-trace.md) and [contract](../contracts/audit-screen.md#current-page-request-correlation-642).
+
+
+## Browser proxy-token administration transport (#640)
+
+Trusted management hosts can issue and revoke proxy credentials through the existing freshly authorized, audited SSO HTTP API using a source-only browser client. One-time secrets are not cached; mutations never retry automatically, and unknown outcomes lock further dispatch pending operator reconciliation. No session, UI/runtime activation or new IAM authority is introduced. See [contract](../contracts/token-browser-client.md) and [plan](plans/640-token-browser-client.md).
