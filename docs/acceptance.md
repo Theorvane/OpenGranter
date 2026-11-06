@@ -1940,3 +1940,9 @@ Structural cancelable click events must show current downloads are permitted, ex
 
 - Execute the built workspace module fetched from the same-origin source server with explicitly injected signed test authority, embedded SQL and durable audit. Assert unknown-cost page coverage, discarded refresh isolation across CSV export, model/usage drilldown, CSV revocation and fresh IAM denial together.
 - Baseline #722 fails the page-summary assertion; integrated source passes. Structural DOM execution is not native-browser login, installed PostgreSQL or provider E2E. See [plan](plans/637-review-feature-integration.md).
+
+## Current-page request correlation (#642)
+
+- Exact principal/request pairs remain isolated, even when request IDs collide. All rows remain visible; record and distinct-attempt counts are separate.
+- Render models, routes, outcomes, UTC times, provider/candidate metadata and unknown/duplicate/billing uncertainty as safe text. Never infer cross-page completeness, ordering, deduplication or settled charges.
+- The mounted ready view owns the panel lifetime; pending refresh and authority changes remove prior content. No new HTTP requests or permissions.

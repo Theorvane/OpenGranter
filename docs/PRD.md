@@ -1311,3 +1311,7 @@ Existing audit JSON/CSV queries and durable actor/target projection support exac
 ## Integrated source-only review feature line (#637)
 
 Combine the existing #716–#721 management and audit changes with the same-origin #722 review composition. The served workspace bundle, scoped APIs and durable audit must use the same source tree; a newest PR number alone does not imply inclusion. See [plan](plans/637-review-feature-integration.md). No new authentication or installed-runtime authority.
+
+## Usage request correlation (#642)
+
+Inspect current-page attempts grouped by exact principal/request pair, retaining repeated records and uncertainty markers without treating correlation as billing reconciliation or full history. See [plan](plans/642-request-correlation.md) and [contract](../contracts/usage-screen.md#current-page-request-correlation-642). No new authority or runtime activation.
