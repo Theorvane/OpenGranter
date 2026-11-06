@@ -1403,3 +1403,8 @@ The existing audit JSON/CSV read intersects optional exact request_id with the f
 ## Private history cache safety (#642)
 
 The existing audit and usage JSON/CSV APIs prohibit response storage, including denial, invalid input, unavailable mandatory audit and transport fallback. This does not grant access, enable a session or add routes. See [plan](plans/642-history-no-store.md) and [contract](../contracts/history-no-store.md).
+
+
+## Exact scoped usage request tracing (#642)
+
+Usage JSON/CSV on existing proxy and SSO paths accepts exact request_id intersecting the freshly authorized principal/model/UTC/cursor scope. The screen adds a request filter and per-attempt trace action, preserving submitted bounds and resetting stale paging/CSV. SQL hidden lookahead and browser JSON mismatches fail closed; existing IAM and mandatory audit remain authoritative. This is attempt evidence, not reconciled billing or a global trace. No session/schema/runtime/provider activation. See [contract](../contracts/usage-request-filter.md) and [plan](plans/642-usage-request-filter.md). Local registered-key/PGlite/HTTP and source/artifact evidence is not native-browser, live SSO or installed-PostgreSQL acceptance.

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { once } from 'node:events';
 import test from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
 import {
@@ -398,6 +399,96 @@ test('oversized stored attempt ID cannot create an unusable next-page cursor', a
     });
     assert.equal(f.events.at(-1)?.count, 0);
   } finally {
+    await f.db.close();
+  }
+});
+
+test('SSO request filter carries exact scoped JSON/CSV and audit failures withhold data', async () => {
+  const f = await fixture();
+  try {
+    for (const format of ['json', 'csv']) {
+      const result = await f.service.read(
+        token,
+        'trace',
+        '?request_id=chat-request&model=chat&from_ms=100&to_ms=200&limit=1&format=' + format,
+      );
+      assert.equal(result.state, 'ready');
+      if (result.state !== 'ready') throw Error('ready required');
+      assert.equal(result.hasMore, true);
+      if (result.format === 'json')
+        assert.deepEqual(
+          result.data.map((r) => r.attemptId),
+          ['attempt-b'],
+        );
+      else {
+        assert.match(result.csv, /attempt-b/);
+        assert.doesNotMatch(result.csv, /attempt-c|foreign/);
+      }
+    }
+    assert.deepEqual(await f.service.read(token, 'missing', '?request_id=missing'), {
+      state: 'ready',
+      format: 'json',
+      data: [],
+      hasMore: false,
+      nextCursor: null,
+    });
+    assert.deepEqual(
+      await f.service.read(token, 'denied', '?request_id=chat-request&principal_id=other'),
+      { state: 'forbidden' },
+    );
+    f.failAudit();
+    assert.deepEqual(await f.service.read(token, 'audit-fail', '?request_id=chat-request'), {
+      state: 'audit_unavailable',
+    });
+  } finally {
+    await f.db.close();
+  }
+});
+
+test('registered-key SQL service over real HTTP traces JSON and CSV without foreign rows', async () => {
+  const { createSsoUsageHistoryServer } = await import('../src/gateway/sso-usage-history-http.ts');
+  const f = await fixture();
+  const server = createSsoUsageHistoryServer({
+    newRequestId: () => 'http-trace',
+    usage: f.service,
+  });
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  const address = server.address();
+  if (!address || typeof address === 'string') throw Error('no address');
+  const url =
+    'http://127.0.0.1:' +
+    address.port +
+    '/management/v1/usage?request_id=chat-request&model=chat&from_ms=100&to_ms=200&limit=1';
+  try {
+    const response = await fetch(url, { headers: { authorization: 'Bearer ' + token } });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    const body = (await response.json()) as { data: { attemptId: string }[]; next_cursor: string };
+    assert.deepEqual(
+      body.data.map((r: { attemptId: string }) => r.attemptId),
+      ['attempt-b'],
+    );
+    const csv = await fetch(url + '&format=csv&cursor=' + encodeURIComponent(body.next_cursor), {
+      headers: { authorization: 'Bearer ' + token },
+    });
+    assert.equal(csv.status, 200);
+    const text = await csv.text();
+    assert.match(text, /attempt-a/);
+    assert.doesNotMatch(text, /attempt-b|attempt-c|foreign/);
+    const denied = await fetch(url + '&principal_id=other', {
+      headers: { authorization: 'Bearer ' + token },
+    });
+    assert.equal(denied.status, 403);
+    f.failAudit();
+    const unavailable = await fetch(url, { headers: { authorization: 'Bearer ' + token } });
+    assert.equal(unavailable.status, 503);
+    assert.doesNotMatch(await unavailable.text(), /attempt-a|chat-request/);
+  } finally {
+    server.closeAllConnections();
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
     await f.db.close();
   }
 });

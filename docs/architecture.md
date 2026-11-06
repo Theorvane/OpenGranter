@@ -1440,3 +1440,8 @@ The existing audit JSON/CSV read intersects optional exact request_id with the f
 ## History response storage boundary (#642)
 
 The Fetch gateway sets no-store on audit/usage JSON successes and every safe error for exact history paths. The Node adapter independently enforces it before headers are sent, including unexpected handler failure fallback, overriding accidental permissive fallback cache policy. CSV already prohibits storage. IAM and mandatory audit ordering are unchanged; unsupported /api aliases remain unsupported. See [contract](../contracts/history-no-store.md).
+
+
+## Exact scoped usage request tracing (#642)
+
+Usage JSON/CSV on existing proxy and SSO paths accepts exact request_id intersecting the freshly authorized principal/model/UTC/cursor scope. The screen adds a request filter and per-attempt trace action, preserving submitted bounds and resetting stale paging/CSV. SQL hidden lookahead and browser JSON mismatches fail closed; existing IAM and mandatory audit remain authoritative. This is attempt evidence, not reconciled billing or a global trace. No session/schema/runtime/provider activation. See [contract](../contracts/usage-request-filter.md) and [plan](plans/642-usage-request-filter.md). Local registered-key/PGlite/HTTP and source/artifact evidence is not native-browser, live SSO or installed-PostgreSQL acceptance.
