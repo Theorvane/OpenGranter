@@ -159,4 +159,67 @@ for (const [label, create] of [
       h.workspace.logout();
     },
   );
+
+  test(
+    label + ': definite denial notifies host after completion without locking fresh authority',
+    async () => {
+      for (const status of [401, 403]) {
+        const states: string[] = [];
+        const workspace = create({
+          now: () => 1,
+          schedule: () => () => {},
+          onAuthorityFailure: (state) => {
+            states.push(state);
+            assert.equal(workspace.snapshot().busy, false);
+            workspace.logout();
+            throw Error('private observer');
+          },
+        });
+        workspace.authorize({
+          expiresAt: 100,
+          request: async () => new Response(null, { status }),
+        });
+        assert.equal(
+          (await workspace.issue(input)).state,
+          status === 401 ? 'unauthenticated' : 'denied',
+        );
+        assert.deepEqual(states, [status === 401 ? 'unauthenticated' : 'denied']);
+        assert.equal(workspace.snapshot().reconciliationRequired, false);
+        workspace.authorize({ expiresAt: 100, request: async () => json() });
+        assert.equal((await workspace.issue(input)).state, 'issued');
+        workspace.logout();
+      }
+    },
+  );
+  test(
+    label + ': reentrant renewal during final denial notification suppresses old host invalidation',
+    async () => {
+      let failures = 0;
+      const workspace = create({
+        now: () => 1,
+        schedule: () => () => {},
+        onAuthorityFailure: () => {
+          failures++;
+        },
+      });
+      workspace.authorize({
+        expiresAt: 100,
+        request: async () => new Response(null, { status: 403 }),
+      });
+      let renewed = false;
+      const unsubscribe = workspace.subscribe(() => {
+        const state = workspace.snapshot();
+        if (!renewed && !state.busy && state.state === 'disposed') {
+          renewed = true;
+          workspace.authorize({ expiresAt: 100, request: async () => json() });
+        }
+      });
+      await workspace.issue(input);
+      assert.equal(renewed, true);
+      assert.equal(failures, 0);
+      assert.equal((await workspace.issue(input)).state, 'issued');
+      unsubscribe();
+      workspace.logout();
+    },
+  );
 }

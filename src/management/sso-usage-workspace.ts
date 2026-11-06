@@ -1,13 +1,15 @@
 import type { CatalogAuthorityGrant } from './catalog-authority.ts';
 import type { CatalogRequest } from './catalog-client.ts';
 import { mountSsoManagementCatalog } from './sso-catalog-app.ts';
+import { mountManagementTokens } from './token-management-app.ts';
+import { createManagementTokenWorkspace } from './token-management-workspace.ts';
 import {
   mountManagementUsage,
   type UsageAuthorityOptions,
   type UsageElement,
 } from './usage-app.ts';
 
-type View = 'models' | 'usage';
+type View = 'models' | 'usage' | 'tokens';
 type Cleared = 'unauthenticated' | 'expired' | 'denied';
 
 /** Explicit trusted composition, not a session or public authority API.
@@ -27,6 +29,18 @@ export function mountSsoUsageWorkspace(
       const timer = setTimeout(callback, delay);
       return () => clearTimeout(timer);
     });
+  // One host lifetime: navigation, logout and grants must not reset ambiguity.
+  const tokens = createManagementTokenWorkspace({
+    ...options,
+    onAuthorityFailure: (state) => clear(state),
+  });
+  function clock() {
+    try {
+      return now();
+    } catch {
+      return NaN;
+    }
+  }
   let grant: CatalogAuthorityGrant | undefined;
   let cancelTimer: (() => void) | undefined;
   let generation = 0;
@@ -39,19 +53,26 @@ export function mountSsoUsageWorkspace(
   let app:
     | ReturnType<typeof mountSsoManagementCatalog>
     | ReturnType<typeof mountManagementUsage>
+    | ReturnType<typeof mountManagementTokens>
     | undefined;
 
   function removeAuthority() {
     generation++;
     grant = undefined;
     modelId = undefined;
-    cancelTimer?.();
+    const cleanup = cancelTimer;
     cancelTimer = undefined;
+    tokens.logout();
+    try {
+      cleanup?.();
+    } catch {
+      /* Teardown must still clear protected DOM. */
+    }
   }
   function valid() {
     if (!grant) return false;
-    const time = now();
-    if (!Number.isFinite(time) || time >= grant.expiresAt) {
+    const time = clock();
+    if (!Number.isFinite(time) || time < 0 || time >= grant.expiresAt) {
       clear('expired');
       return false;
     }
@@ -59,7 +80,7 @@ export function mountSsoUsageWorkspace(
   }
   function arm(current: number) {
     if (current !== generation || !valid() || !grant) return;
-    cancelTimer = schedule(Math.max(1, Math.min(2147483647, grant.expiresAt - now())), () => {
+    cancelTimer = schedule(Math.max(1, Math.min(2147483647, grant.expiresAt - clock())), () => {
       if (disposed || current !== generation) return;
       cancelTimer = undefined;
       arm(current);
@@ -85,6 +106,7 @@ export function mountSsoUsageWorkspace(
     for (const [target, label] of [
       ['models', 'Models'],
       ['usage', 'Usage history'],
+      ['tokens', 'Credentials'],
     ] as const) {
       const button = element('button', label);
       button.setAttribute('type', 'button');
@@ -102,7 +124,17 @@ export function mountSsoUsageWorkspace(
       navigation.append(button);
     }
     const content = element('div');
-    root.replaceChildren(navigation, content);
+    if (view === 'tokens' && !grant && reason !== 'unauthenticated') {
+      const status = element('p', reason === 'denied' ? 'Access denied.' : 'Session expired.');
+      status.setAttribute('role', 'status');
+      root.replaceChildren(navigation, status, content);
+    } else {
+      root.replaceChildren(navigation, content);
+    }
+    if (view === 'tokens') {
+      app = mountManagementTokens(content, tokens);
+      return;
+    }
     const mounted =
       view === 'models'
         ? mountSsoManagementCatalog(content, {
@@ -128,15 +160,18 @@ export function mountSsoUsageWorkspace(
       mounted.clear(reason);
       return;
     }
-    // The transport checks server authority freshly. No identity or bearer is
-    // obtained here. Capture the generation so old 401/403 cannot clear renewal.
+    await mounted.authorize(transport(grant), modelId);
+  }
+  // The transport checks server authority freshly. The same guarded grant feeds
+  // reads and mutations; stale denials never invalidate replacement authority.
+  function transport(supplied: CatalogAuthorityGrant, mutation = false): CatalogAuthorityGrant {
     const current = generation;
-    const supplied = grant;
     const request: CatalogRequest = async (path, init) => {
       if (disposed || current !== generation || !active || !valid())
         throw Error('Management authority unavailable');
       const response = await supplied.request(path, init);
       if (
+        !mutation &&
         current === generation &&
         !init.signal?.aborted &&
         (response.status === 401 || response.status === 403)
@@ -145,7 +180,7 @@ export function mountSsoUsageWorkspace(
       }
       return response;
     };
-    await mounted.authorize({ request, expiresAt: supplied.expiresAt }, modelId);
+    return { request, expiresAt: supplied.expiresAt };
   }
   const hide = () => {
     if (disposed) return;
@@ -164,11 +199,13 @@ export function mountSsoUsageWorkspace(
       removeAuthority();
       app?.dispose();
       const { request, expiresAt } = supplied;
-      const time = now();
+      const time = clock();
       if (
         typeof request !== 'function' ||
         !Number.isSafeInteger(expiresAt) ||
         !Number.isFinite(time) ||
+        time < 0 ||
+        expiresAt < 0 ||
         expiresAt <= time
       ) {
         clear('expired');
@@ -179,6 +216,9 @@ export function mountSsoUsageWorkspace(
       view = 'models';
       modelId = undefined;
       const current = generation;
+      // Let definite mutation denials complete before host logout, so they
+      // clear all authority without fabricating an interrupted-write latch.
+      tokens.authorize(transport(grant, true));
       arm(current);
       if (current === generation) await render();
     },

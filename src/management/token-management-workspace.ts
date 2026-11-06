@@ -7,6 +7,8 @@ import {
 export interface TokenWorkspaceOptions extends Omit<TokenAuthorityOptions, 'onInvalidate'> {
   /** Read snapshot to render. No credential is passed to notifications. */
   readonly onChange?: () => void;
+  /** Definite authentication denial, after single-flight completion; no secret. */
+  readonly onAuthorityFailure?: (state: 'unauthenticated' | 'denied') => void;
 }
 export interface TokenWorkspaceSnapshot {
   /** Monotonic host-lifetime authority generation, not a credential. */
@@ -84,6 +86,13 @@ export function createManagementTokenWorkspace(options: TokenWorkspaceOptions = 
       return { state: 'issued' } as const;
     }
     notify();
+    if (epoch === generation && (result.state === 'unauthenticated' || result.state === 'denied')) {
+      try {
+        options.onAuthorityFailure?.(result.state);
+      } catch {
+        // A host observer cannot change a definite response into an unknown write.
+      }
+    }
     return result;
   }
   return {

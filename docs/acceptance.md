@@ -1995,3 +1995,11 @@ Source and supported browser artifact verify singleflight, one-time display clea
 ## Credential forms (#640)
 
 Source and supported browser bundle forms must issue/revoke via the authorized API, show explicit invalid/denied/loading/expired/reconciliation states, render secrets only as text, and clear them on hide/logout/expiry/unmount/next mutation. Detached controls cannot consume new grants; stale completions cannot show success after authority replacement; drafts clear across authorities. Pending unmount/remount cannot reset unknown outcomes. Signed-JWT loopback HTTP plus migrated PGlite verifies actual issue, credential validity, revoke and required decision rows using a structural DOM double. Native browser, host entry/session integration, installed SQL and provider acceptance remain incomplete. See [contract](../contracts/token-management-screen.md).
+
+
+## Credential navigation in the existing management host (#639/#640)
+
+- Reach actual issue/revoke forms from existing Models/Usage history/Credentials navigation; disconnected controls never dispatch. Successful navigation hides the one-time secret but leaves current authority usable.
+- Maintain exactly one private token workspace across navigation, logout and grant replacement. Interrupting a pending write aborts and locks later credential dispatch; late completion cannot reveal a secret. No reset/retry action is provided.
+- Current denial invalidates the whole host; stale/aborted denial cannot clear renewal. Expiry, pagehide, clear, dispose and failed clocks clear protected display and invalidate detached controls. Throwing timer cleanup cannot interrupt teardown. Page restoration requires fresh trusted authority.
+- Source and supported browser artifact pass structural DOM host navigation and actual signed-JWT loopback credential HTTP with migrated PGlite, issued credential verification, revoke and mandatory decision rows. The credential-only HTTP fixture does not certify catalog route composition. Native browser/login, public entry/session acquisition, installed SQL, deployment/provider acceptance and full PRD remain incomplete. See [plan](plans/640-token-host-navigation.md).

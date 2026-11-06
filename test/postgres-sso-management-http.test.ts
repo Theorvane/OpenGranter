@@ -881,3 +881,77 @@ test('credential forms source and supported artifact issue and revoke through si
     }
   }
 });
+
+test('existing management host navigation issues and revokes credentials through signed HTTP and migrated SQL', async () => {
+  const { mountSsoUsageWorkspace: source } = await import(
+    '../src/management/sso-usage-workspace.ts'
+  );
+  const { TokenElement } = await import('./token-management-dom-fixture.ts');
+  const { buildManagementBrowser } = await import('../scripts/build-management-browser.ts');
+  const js = await buildManagementBrowser({
+    root: process.cwd(),
+    entry: 'src/management/sso-usage-workspace.ts',
+  });
+  const built = (await import(
+    'data:text/javascript;base64,' + Buffer.from(js).toString('base64')
+  )) as { mountSsoUsageWorkspace: typeof source };
+  for (const mount of [source, built.mountSsoUsageWorkspace]) {
+    const f = await fixture();
+    const server = createPostgresRfc9068SsoManagementServer(f.config);
+    const root = new TokenElement();
+    const app = mount(root, new EventTarget(), { now, schedule: () => () => {} });
+    try {
+      server.listen(0, '127.0.0.1');
+      await once(server, 'listening');
+      const address = server.address();
+      assert.ok(address && typeof address === 'object');
+      // This fixture composes the real credential HTTP boundary, not catalog routes.
+      // The host can navigate away from its unsupported catalog read to real forms.
+      await app.authorize({
+        expiresAt: now() + day,
+        request: (path, init) =>
+          fetch('http://127.0.0.1:' + address.port + path, {
+            ...init,
+            headers: { ...init.headers, authorization: 'Bearer ' + token },
+          }),
+      });
+      root.button('Credentials').click();
+      root.named('principalId').value = 'human-owner';
+      root.named('expiresAt').value = String(now() + day);
+      root.named('issue').submit();
+      async function waitFor(pattern: RegExp) {
+        for (let i = 0; i < 400 && !pattern.test(root.text()); i++)
+          await new Promise((resolve) => setTimeout(resolve, 5));
+        assert.match(root.text(), pattern);
+      }
+      await waitFor(/Token issued/);
+      const secret = root
+        .all()
+        .find((node) => node.attrs['aria-label'] === 'One-time proxy token secret')?.textContent;
+      assert.ok(secret);
+      const credentialId = root
+        .all()
+        .find((node) => node.textContent?.startsWith('Credential ID: '))
+        ?.textContent?.slice('Credential ID: '.length);
+      assert.ok(credentialId);
+      assert.equal((await f.tokens.verifyCredential(secret))?.principalId, 'human-owner');
+      root.button('Models').click();
+      assert.ok(!root.text().includes(secret));
+      root.button('Credentials').click();
+      assert.ok(!root.text().includes(secret));
+      root.named('credentialId').value = credentialId;
+      root.named('revoke').submit();
+      await waitFor(/Token revoked/);
+      assert.equal(await f.tokens.verifyCredential(secret), undefined);
+      assert.equal(await f.count('proxy_credentials'), 1);
+      assert.equal(await f.count('token_management_decisions'), 2);
+      app.clear();
+      assert.ok(!root.text().includes(secret));
+    } finally {
+      app.dispose();
+      server.closeAllConnections();
+      if (server.listening) await new Promise<void>((resolve) => server.close(() => resolve()));
+      await f.db.close();
+    }
+  }
+});

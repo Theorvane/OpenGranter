@@ -1355,3 +1355,8 @@ The credential host owns one-time secret display and preserves uncertain-mutatio
 ## Credential issue/revoke forms (#640)
 
 An externally owned credential workspace now drives real explicit issue/revoke forms, text-only one-time secret display, denial/loading/expiry/reconciliation states and stale-control guards. The workspace survives navigation/logout/new grants; mounting a new screen cannot reset ambiguity. No session acquisition, existing entry activation or deployment changes. Source/artifact structural DOM plus signed HTTP/migrated embedded SQL evidence is separate from native-browser and installed acceptance. See [plan](plans/640-token-screen.md) and [contract](../contracts/token-management-screen.md).
+
+
+## Credential navigation in the existing management host (#639/#640)
+
+The existing models/usage host now exposes Credentials backed by the real issue/revoke forms and one private host-lifetime workspace. Authority, one-time secret and ambiguous writes follow navigation/logout/expiry/page lifecycle without resetting reconciliation. Same generation-bound transport enforces current denials and suppresses stale denials. Entry/session/deployment activation remains unchanged and gated. See [plan](plans/640-token-host-navigation.md) and [contract](../contracts/token-management-screen.md#existing-host-navigation-639640).
