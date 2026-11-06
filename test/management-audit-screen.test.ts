@@ -311,6 +311,29 @@ for (const [compiled, host] of [
       assert.doesNotMatch(root.text(), /credential-1|Request correlation/);
       assert.equal(queries.length, 3);
       deny = false;
+      // New model action traverses real HTTP, migrated PGlite, IAM and mandatory audit.
+      await writer.append({
+        ...event,
+        kind: 'route-unavailable',
+        modelAlias: 'team/model:alpha+v1',
+      });
+      await app.connect(request);
+      root.button('Filter audit for model team/model:alpha+v1').click();
+      await until(() => root.text().includes('Refresh current page'));
+      assert.equal((queries.at(-1) as { modelAlias?: string }).modelAlias, 'team/model:alpha+v1');
+      assert.equal((queries.at(-1) as { principalId?: string }).principalId, '사용자');
+      assert.doesNotMatch(root.text(), /models-listed|OTHER_PRIVATE_REQUEST/);
+      const persisted = await db.query<{ details: { count?: number } }>(
+        "SELECT details FROM gateway_audit_events WHERE kind = 'audit-history-read' ORDER BY event_id DESC LIMIT 1",
+      );
+      assert.equal(persisted.rows[0]?.details.count, 1);
+      const beforeDeny = queries.length;
+      deny = true;
+      root.button('Filter audit for model team/model:alpha+v1').click();
+      await until(() => root.text().includes('Access denied'));
+      assert.equal(queries.length, beforeDeny); // denied before database read; no fallback
+      assert.doesNotMatch(root.text(), /team\/model:alpha/);
+      deny = false;
       failedAudit = true;
       await app.connect(request);
       assert.match(root.text(), /Audit unavailable/);

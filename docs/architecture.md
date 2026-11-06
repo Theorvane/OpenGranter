@@ -1426,3 +1426,7 @@ The operator command adds isolated official-CLI device login, status and logout 
 ## Principal usage row actions (#642)
 
 The usage screen reuses its render-owned guarded button and existing usage client for exact principal filtering. Server ReadAll and mandatory audit remain authoritative even for explicit self filters; no principal-directory or session capability is introduced. See [contract](../contracts/principal-usage-drilldown.md).
+
+## Audit model filtering action (#642)
+
+Projected model-bearing audit events expose a guarded action to query the existing audit API for that exact alias, retaining submitted principal/UTC/page size and clearing paging/drafts/CSV. Non-model events do not invent aliases. Existing server IAM, metadata projection and mandatory audit remain authoritative; no session, retention, endpoint or schema change. See [contract](../contracts/audit-model-drilldown.md) and [plan](plans/642-audit-model-drilldown.md). Verify source/artifact actions, scope reset, stale/expired controls, denial and late results independently of native browser/install acceptance.

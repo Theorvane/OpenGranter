@@ -246,6 +246,15 @@ export function mountManagementAudit(root: UsageElement, options: AuditAuthority
           const details = element('details');
           details.append(element('summary', `Inspect event ${event.eventId}`));
           details.append(renderAuditEventMetadata(root.ownerDocument, event));
+          const alias = event.details.modelAlias;
+          if (typeof alias === 'string' && alias.length > 0)
+            details.append(
+              button('Filter audit for model ' + alias, () => {
+                const { cursor: _cursor, ...scope } = filters;
+                draftFilters = undefined;
+                void load({ ...scope, model: alias });
+              }),
+            );
           cell.append(details);
           row.append(cell);
           body.append(row);

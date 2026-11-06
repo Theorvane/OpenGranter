@@ -2046,3 +2046,7 @@ Usage and audit screens now submit existing filters through semantic forms and E
 ## Principal usage drilldown (#642)
 
 A usage row principal action requests the exact selected principal while retaining submitted model/UTC/size filters, clearing cursor/history/drafts/CSV continuation. Unsafe text remains inert and encoded once. Detached, expired or disposed actions cannot read; late responses cannot restore cleared data. Verify actual ReadSelf-only denial (including explicit self selection) and scoped ReadAll success through signed SSO HTTP with mandatory audit; never retry with weaker scope. See [contract](../contracts/principal-usage-drilldown.md). Native browser/session and installed acceptance remain separate.
+
+## Audit model filtering action (#642)
+
+Projected model-bearing audit events expose a guarded action to query the existing audit API for that exact alias, retaining submitted principal/UTC/page size and clearing paging/drafts/CSV. Non-model events do not invent aliases. Existing server IAM, metadata projection and mandatory audit remain authoritative; no session, retention, endpoint or schema change. See [contract](../contracts/audit-model-drilldown.md) and [plan](plans/642-audit-model-drilldown.md). Verify source/artifact actions, scope reset, stale/expired controls, denial and late results independently of native browser/install acceptance.
