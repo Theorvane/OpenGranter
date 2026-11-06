@@ -1435,3 +1435,8 @@ Projected model-bearing audit events expose a guarded action to query the existi
 ## Exact audit request filter boundary (#642)
 
 The existing audit JSON/CSV read intersects optional exact request_id with the freshly authorized principal, model, UTC range and keyset cursor. The audit screen exposes exact request filtering and a per-event trace action retaining submitted scope while resetting paging and CSV. Reprojection rejects mismatched rows at SQL, HTTP, CSV and browser boundaries; a request ID is never identity or a permission grant. Existing audit:Read and mandatory access audit remain authoritative. No session, runtime, DDL, retention or paid-provider change. See [plan](plans/642-audit-request-filter.md) and [contract](../contracts/audit-request-filter.md). Tests cover strict inputs, real loopback HTTP with migrated PGlite and injected authentication, SQL isolation/lookahead, denied reads, audit failure, source/artifact lifecycle and CSV continuation; these are not live SSO, installed PostgreSQL or native-browser acceptance.
+
+
+## History response storage boundary (#642)
+
+The Fetch gateway sets no-store on audit/usage JSON successes and every safe error for exact history paths. The Node adapter independently enforces it before headers are sent, including unexpected handler failure fallback, overriding accidental permissive fallback cache policy. CSV already prohibits storage. IAM and mandatory audit ordering are unchanged; unsupported /api aliases remain unsupported. See [contract](../contracts/history-no-store.md).
