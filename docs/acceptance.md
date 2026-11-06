@@ -1972,3 +1972,7 @@ Audit client and screen must build through the supported management browser buil
 - Source and supported browser artifact execute issue/revoke through loopback signed SSO HTTP and migrated embedded SQL; verify actual credential validity/revocation, acknowledged already-revoked results, current IAM Deny and required audit failure.
 - Reject invalid or actor-overriding inputs before dispatch; preserve exact identifiers. Test single-flight, no automatic retries, timeout/disposal/uncooperative ports, late-secret suppression, bounded fatal UTF-8 responses, private errors and reconciliation lock after unknown outcome.
 - No credential persistence, UI/session activation, native-browser login, installed SQL or deployment/provider acceptance is claimed.
+
+## Trusted token mutation lifetime (#640)
+
+Source and supported browser artifact must prevent expired/disposed dispatch, reject invalid/throwing clocks, snapshot request/expiry, rearm early timers, suppress late issue secrets, preserve unknown-outcome locking and close on 401/403. Logout/expiry after dispatch is not rollback. No native-browser session or deployment acceptance follows from these tests. See [contract](../contracts/token-authority-lifetime.md).

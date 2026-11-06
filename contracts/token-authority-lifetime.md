@@ -1,0 +1,13 @@
+# Trusted token mutation lifetime (#640)
+
+`createManagementTokenAuthority(grant, options?)` composes the existing [token client](token-browser-client.md) with one snapshotted trusted `CatalogAuthorityGrant`. This is not authentication, session acquisition, a browser BFF or an IAM capability. Server authentication/current IAM/mandatory audit remain authoritative. No cookies, storage, listener, UI, credential inventory, permission decision or runtime activation is added.
+
+- `issue` and `revoke` retain the client inputs/results and add `expired`. A finite nonnegative current clock and a safe nonnegative future epoch expiry are required. A throwing/invalid clock fails closed. The supplied request and expiry are captured once; mutating the original grant cannot change authority.
+- Every operation checks expiry before dispatch, immediately at the transport boundary, and after completion. A bounded timer also disposes at expiry; early timer callbacks rearm. Suspended timers do not permit new mutations or late success/secret delivery. Once expired, clock reversal does not revive authority.
+- `dispose()` terminates authority and aborts the client. The host MUST call it on logout, principal/permission change and unmount, and remove any already displayed secret. Invalidating on 401/403 prevents later dispatch but preserves that operation's denied/unauthenticated result.
+- A dispatched operation interrupted by disposal/expiry remains `outcome_unknown`, not certified rollback. A late success is not returned. Transport singleflight, deadline, response bounds, strict projection and uncertain-outcome lock remain intact. There is no renewal/reset API. Creating a fresh adapter is NOT reconciliation; the host must retain the unresolved-outcome gate across its own navigation, login or grant replacement until separately authorized operator reconciliation completes.
+- No result or token is stored by this adapter. It cannot erase a string already returned to a caller or establish a secure session. Trusted scheduling callbacks must be asynchronous; schedule/cancellation functions are host infrastructure, not untrusted UI inputs.
+
+## Evidence and limits
+
+Source and the actual supported browser bundle test valid issue/revoke, snapshotted authority, expired/invalid clocks, timer suspension, early timer rearm, in-flight logout/expiry, late secret suppression, denial and uncertain-outcome locking. The underlying transport's loopback SSO HTTP and signed-JWT/migrated embedded-SQL tests remain separate evidence. No native-browser login, installed SQL, provider call, deployment or production success is asserted. Frontend screen integration and the approved session/BFF/IdP/CSRF contract remain open.
