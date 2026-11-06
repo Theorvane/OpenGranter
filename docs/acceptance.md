@@ -2028,3 +2028,10 @@ Usage and audit screens now submit existing filters through semantic forms and E
 - Exact validated inputs, bounded projected results and text-only rendering; no automatic retries, invocation, hypothetical policy grant or public reader activation.
 - Cancellation, replacement, logout, expiry, bad clocks, failed scheduling and unmount suppress stale results and detached controls, clearing private diagnostic data. Supported browser artifact contains no SQL/server dependency.
 - Structural DOM/PGlite/build evidence is not native-browser/login/public API/installed PostgreSQL acceptance. Public reader permission/visibility/audit plus approved session/host integration remain open. See [contract](../contracts/policy-simulator-screen.md).
+
+## Reentrant credential host ownership (#640)
+
+- Expiry notification renewal during construction keeps the newest grant; source and supported browser artifact can issue only through that grant.
+- Logout during scheduling prevents dispatch and cancels the superseded timer exactly once.
+- Reentrant renewal during cancellation is not overwritten by an older replacement or logout. Unknown write outcomes still require reconciliation.
+- These are isolated host lifecycle checks, not browser SSO, installed PostgreSQL or live provider acceptance.

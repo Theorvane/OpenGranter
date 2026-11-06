@@ -47,12 +47,13 @@ export function createManagementTokenWorkspace(options: TokenWorkspaceOptions = 
     }
   }
   function detach() {
-    generation++;
+    const epoch = ++generation;
     if (busy) uncertain = true;
     secret = undefined;
     const old = authority;
     authority = undefined;
     old?.dispose();
+    return epoch;
   }
   async function run(
     operation: (
@@ -104,10 +105,10 @@ export function createManagementTokenWorkspace(options: TokenWorkspaceOptions = 
       };
     },
     authorize(grant: CatalogAuthorityGrant) {
-      detach();
+      const epoch = detach();
+      if (generation !== epoch) return;
       state = 'ready';
-      const epoch = generation;
-      authority = createManagementTokenAuthority(grant, {
+      const next = createManagementTokenAuthority(grant, {
         ...(options.now ? { now: options.now } : {}),
         ...(options.schedule ? { schedule: options.schedule } : {}),
         onInvalidate: (reason) => {
@@ -118,16 +119,25 @@ export function createManagementTokenWorkspace(options: TokenWorkspaceOptions = 
           notify();
         },
       });
+      // Construction can synchronously notify expiry; a host may renew or logout.
+      // Never publish an authority after a newer lifecycle action took ownership.
+      if (generation !== epoch) {
+        next.dispose();
+        return;
+      }
+      authority = next;
       notify();
     },
     logout() {
-      detach();
+      const epoch = detach();
+      if (generation !== epoch) return;
       state = 'disposed';
       notify();
     },
     hideSecret() {
       if (busy) {
-        detach();
+        const epoch = detach();
+        if (generation !== epoch) return;
         state = 'disposed';
       }
       secret = undefined;

@@ -34,3 +34,11 @@ Workspace execution: initial missing-module RED (0 pass / 1 fail; feature absent
 16. Verify existing owning token workspace clears displayed secrets and keeps mutation ambiguity locked. Run focused UI/API tests and static checks, publish same PR for exact-head review. Native login remains blocked on the approved session contract.
 
 Scheduler execution: corrected original-HEAD regression 20 pass / 6 fail / 0 skip (private scheduler/rearm exceptions and obsolete timer 3 vs expected 2). The initial added fixture missed scoped helpers; corrected before recording this baseline. Final all management plus persisted simulator and signed workspace HTTP suites 313 pass / 0 fail / 0 skip. Existing workspace secret-display and replacement-grant tests run source and supported bundle. Typecheck, lint (42 warnings/235 infos; no errors), scripts, six compatibility pins and diff checks pass. No native-browser/session/installed-SQL evidence.
+
+## Reentrant owning-host installation correction (2026-11-06 18:00 KST)
+
+17. Reproduce a current expiry notification renewing the grant during construction, lifecycle logout during scheduling, and cancellation-time replacement. Record source/artifact RED before production changes.
+18. Make detach return its captured generation; never let an older authorize/logout overwrite a reentrant newer host action. Dispose a constructed authority whose installation lost ownership before publishing it. Preserve one-time display and unknown-write locks.
+19. Verify supported browser artifacts and existing signed HTTP tests; update the same PR, not a new disconnected stack. Session, permissions, runtime and activation remain unchanged.
+
+Reentrant execution: original HEAD3435c19 with new public source/artifact tests produced 24 pass / 8 fail / 0 skip (expired renewal returned ready instead of issued, logout resurrected issuance, obsolete replacement won, and older logout overwrote newer ready state). Corrected owning workspace gives 32 pass / 0 fail / 0 skip. All management plus signed workspace HTTP focused tests give 316 pass / 0 fail / 0 skip. Typecheck and lint pass in the standard full-check prelude; planning/links/fixture scan and six compatibility pins pass separately. Full repository tests are running, not yet certified. No native browser, live IdP, installed PostgreSQL or provider result.

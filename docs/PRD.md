@@ -1376,3 +1376,7 @@ An opt-in source-only workspace factory composes existing registered-key SSO mod
 ## Persisted policy simulation screen (#640)
 
 A disconnected TypeScript screen now reads the existing current persisted simulator through a trusted host-owned read port, renders exact principal/action/resource and bounded effect/reason/policy versions, and handles missing/denied/unavailable/loading/cancel/expiry without enabling execution. Public reader authentication, visibility and access audit remain undecided; no session, endpoint or existing host is connected. See [plan](plans/640-policy-simulator-screen.md) and [screen contract](../contracts/policy-simulator-screen.md).
+
+## Credential host installation ownership (#640)
+
+Reentrant logout or grant renewal during authority construction/cleanup must not be overwritten by an older host action. Dispose superseded authority before publication and preserve mutation uncertainty and one-time display clearing. No session/runtime or permission change. See [contract](../contracts/token-authority-lifetime.md#owning-host-reentrant-installation).

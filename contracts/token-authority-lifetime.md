@@ -26,3 +26,7 @@ An ambiguous or interrupted write closes the host mutation gate before replaceme
 ## Credential UI scheduler failures
 
 Throwing schedulers (initial or rearm), non-function cancellation handles and synchronous callbacks expire mutation authority once. A scheduling exception is never exposed to the UI. Host notifications clear previously displayed secrets; in-flight aborts retain unknown-outcome/reconciliation requirements. Obsolete or repeated callbacks cannot rearm or overwrite live cleanup. Schedule remains an asynchronous trusted-host contract, not an authentication source. This hardens the existing credential workspace without activating session acquisition or changing any server permission.
+
+## Owning-host reentrant installation
+
+Host lifecycle actions may run synchronously during expiry notifications, scheduling or cancellation. Each detach captures its generation before invoking external cleanup. An older authorize/logout/navigation action must not overwrite a newer reentrant action; an authority constructed after losing ownership is immediately disposed, never published. Construction-time expiry renewal keeps the newest grant, and lifecycle logout during construction cannot resurrect mutation dispatch. Existing unknown-outcome locks and secret clearing remain unchanged. This is not grant acquisition, permission, session or runtime activation.

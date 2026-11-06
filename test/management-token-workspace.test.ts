@@ -275,4 +275,98 @@ for (const [label, create] of [
       workspace.logout();
     },
   );
+  test(label + ': construction-time expiry renewal retains the newest grant', async () => {
+    let renewed = false;
+    let calls = 0;
+    const workspace = create({ now: () => 1, schedule: () => () => {} });
+    const unsubscribe = workspace.subscribe(() => {
+      if (!renewed && workspace.snapshot().state === 'expired') {
+        renewed = true;
+        workspace.authorize({
+          expiresAt: 100,
+          request: async () => {
+            calls++;
+            return json();
+          },
+        });
+      }
+    });
+    workspace.authorize({
+      expiresAt: 0,
+      request: async () => {
+        throw Error('obsolete grant');
+      },
+    });
+    assert.equal(renewed, true);
+    assert.deepEqual(await workspace.issue(input), { state: 'issued' });
+    assert.equal(calls, 1);
+    unsubscribe();
+    workspace.logout();
+  });
+  test(label + ': lifecycle logout during installation cannot resurrect mutations', async () => {
+    let calls = 0;
+    let cancellations = 0;
+    const workspace = create({
+      now: () => 1,
+      schedule: () => {
+        workspace.logout();
+        return () => {
+          cancellations++;
+        };
+      },
+    });
+    workspace.authorize({
+      expiresAt: 100,
+      request: async () => {
+        calls++;
+        return json();
+      },
+    });
+    assert.deepEqual(await workspace.issue(input), { state: 'disposed' });
+    assert.equal(workspace.snapshot().secret, undefined);
+    assert.equal(calls, 0);
+    assert.equal(cancellations, 1);
+  });
+  test(label + ': cancellation-time renewal wins over an older replacement', async () => {
+    let replace = true;
+    const calls: string[] = [];
+    const grant = (name: string) => ({
+      expiresAt: 100,
+      request: async () => {
+        calls.push(name);
+        return json();
+      },
+    });
+    const workspace = create({
+      now: () => 1,
+      schedule: () => () => {
+        if (replace) {
+          replace = false;
+          workspace.authorize(grant('newest'));
+        }
+      },
+    });
+    workspace.authorize(grant('initial'));
+    workspace.authorize(grant('obsolete'));
+    assert.deepEqual(await workspace.issue(input), { state: 'issued' });
+    assert.deepEqual(calls, ['newest']);
+    workspace.logout();
+  });
+  test(label + ': cancellation-time renewal wins over an older logout', async () => {
+    let replace = true;
+    const workspace = create({
+      now: () => 1,
+      schedule: () => () => {
+        if (replace) {
+          replace = false;
+          workspace.authorize({ expiresAt: 100, request: async () => json() });
+        }
+      },
+    });
+    workspace.authorize({ expiresAt: 100, request: async () => json() });
+    workspace.logout();
+    assert.equal(workspace.snapshot().state, 'ready');
+    assert.deepEqual(await workspace.issue(input), { state: 'issued' });
+    workspace.logout();
+  });
 }
