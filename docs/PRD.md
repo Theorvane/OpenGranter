@@ -1430,3 +1430,8 @@ The credential screen now reviews the exact submitted credential ID before a sep
 ## Explicit credential issuance review (#640)
 
 The credential screen now reviews exact principal ID and explicit expiry (epoch milliseconds plus ISO UTC) before a separate confirmation sends the existing issue POST. Cancel makes no request; edits cannot retarget the captured operation. Invalid/unrepresentable dates cannot open review. Every workspace notification and opposite action clears intent. Current server IAM/lifetime/principal checks, atomic audit and unknown-outcome lock remain authoritative. No new session, API, schema, runtime or provider activation. See [plan](plans/640-issue-confirmation.md) and [contract](../contracts/token-issue-confirmation.md).
+
+
+## Credential upload rejection cleanup (#640)
+
+Existing issue/revoke handlers complete a known invalid-body rejection without awaiting underlying stream cancellation. Oversized/invalid UTF-8/aborted uploads cannot dispatch mutation; cleanup is best-effort and observed, with reader locks released. No new upload deadline, session, runtime, route or schema. See [plan](plans/640-management-body-cleanup.md) and [contract](../contracts/management-body-cleanup.md). Public-handler regressions and registered test-JWT/PGlite composition are separate from actual loopback HTTP current-IAM checks and from native-browser/installed PostgreSQL acceptance.

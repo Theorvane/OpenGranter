@@ -77,3 +77,8 @@ The trusted source workspace can open usage from a projected audit event using e
 ## Credential issuance target and expiry (#640)
 
 [Token screen](../src/management/token-management-app.ts) now provides request-free exact-principal/UTC-expiry review, explicit confirm/cancel and lifecycle invalidation. [Source/artifact tests](../test/management-token-issue-confirmation.test.ts) plus [signed HTTP/PGlite cases](../test/postgres-sso-management-http.test.ts) distinguish local review from current server IAM/audit. Native-browser/session/installed acceptance and original PRD completion remain open. See [plan](plans/640-issue-confirmation.md) and [contract](../contracts/token-issue-confirmation.md).
+
+
+## Credential upload rejection cleanup (#640)
+
+Existing issue/revoke handlers complete a known invalid-body rejection without awaiting underlying stream cancellation. Oversized/invalid UTF-8/aborted uploads cannot dispatch mutation; cleanup is best-effort and observed, with reader locks released. No new upload deadline, session, runtime, route or schema. See [plan](plans/640-management-body-cleanup.md) and [contract](../contracts/management-body-cleanup.md). Public-handler regressions and registered test-JWT/PGlite composition are separate from actual loopback HTTP current-IAM checks and from native-browser/installed PostgreSQL acceptance.
