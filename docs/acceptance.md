@@ -2060,3 +2060,8 @@ The existing audit JSON/CSV read intersects optional exact request_id with the f
 ## History cache safety (#642)
 
 Verify no-store on exact /v1/audit and /v1/usage JSON/CSV success, unauthenticated/denied/invalid/reader/audit errors and unsupported methods. Real loopback HTTP checks cover normal and default/custom thrown-handler fallbacks. Existing body/cursor/audit semantics and unrelated caching remain unchanged. Tests are injected-auth socket checks, not native browser or installed SSO acceptance.
+
+
+## Exact scoped usage request tracing (#642)
+
+Usage JSON/CSV on existing proxy and SSO paths accepts exact request_id intersecting the freshly authorized principal/model/UTC/cursor scope. The screen adds a request filter and per-attempt trace action, preserving submitted bounds and resetting stale paging/CSV. SQL hidden lookahead and browser JSON mismatches fail closed; existing IAM and mandatory audit remain authoritative. This is attempt evidence, not reconciled billing or a global trace. No session/schema/runtime/provider activation. See [contract](../contracts/usage-request-filter.md) and [plan](plans/642-usage-request-filter.md). Local registered-key/PGlite/HTTP and source/artifact evidence is not native-browser, live SSO or installed-PostgreSQL acceptance.

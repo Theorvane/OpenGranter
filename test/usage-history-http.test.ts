@@ -494,3 +494,16 @@ test('valid injected equal-time UTF-8 pages support JSON and CSV continuation', 
     else assert.equal(((await response.json()) as { next_cursor: string }).next_cursor, expected);
   }
 });
+
+test('exact request filter reaches proxy JSON/CSV and rejects off-request rows', async () => {
+  for (const format of ['json', 'csv']) {
+    const { handler, state } = fixture();
+    const response = await handler(request('?request_id=chat-1&format=' + format));
+    assert.equal(response.status, 200);
+    assert.equal(state.queries[0]?.requestId, 'chat-1');
+    const wrong = fixture();
+    const denied = await wrong.handler(request('?request_id=not-this-request&format=' + format));
+    assert.equal(denied.status, 503);
+    assert.doesNotMatch(await denied.text(), /attempt-1/);
+  }
+});

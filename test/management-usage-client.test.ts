@@ -250,3 +250,24 @@ test('deadline covers uncooperative request and stream', async (t) => {
     assert.deepEqual(await pending, { state: 'unavailable' });
   }
 });
+
+test('exact request transport on JSON/CSV and mismatched JSON rejection', async () => {
+  const seen: string[] = [];
+  const client = createManagementUsageClient(async (path) => {
+    seen.push(path);
+    if (path.includes('format=csv'))
+      return new Response('safe,csv', {
+        headers: { 'content-type': 'text/csv', 'x-usage-has-more': 'false' },
+      });
+    return Response.json(page);
+  });
+  assert.equal((await client.list({ requestId: 'request' })).state, 'ready');
+  assert.equal((await client.list({ requestId: 'different' })).state, 'unavailable');
+  assert.equal((await client.csv({ requestId: 'request' })).state, 'ready');
+  assert.equal(new URL(seen[2] ?? '', 'http://local').searchParams.get('request_id'), 'request');
+  const count = seen.length;
+  for (const requestId of ['', 'x y', 'a'.repeat(257), 'x\n'])
+    assert.equal((await client.list({ requestId })).state, 'invalid_query');
+  assert.equal(seen.length, count);
+  client.invalidate();
+});

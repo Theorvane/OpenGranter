@@ -48,3 +48,8 @@ Developer/service-account gateway paths do not replace platform/team administrat
 5. **R5/R6:** reconcile compatibility backlog, then installed browser/gateway/security/usage/restart acceptance using approved credentials/client/model and maximum paid budget. No automatic paid fallback.
 
 R0 exit requires independent review and agreed contract ownership. This document alone does not close #638 or authorize unresolved security policy. See [plan](plans/638-product-traceability.md).
+
+
+## Exact scoped request tracing in usage (#642)
+
+Existing proxy and bearer-SSO usage JSON/CSV now intersect optional exact request_id with authorized principal/model/UTC/keyset scope. Parameterized SQL validates hidden lookahead; browser JSON rejects off-request attempts. Usage input and trace actions preserve submitted scope, clear cursor/history/CSV and retain unknown/duplicate billing markers. See [plan](plans/642-usage-request-filter.md) and [contract](../contracts/usage-request-filter.md). Evidence includes migrated local PGlite, registered test JWT over loopback HTTP, and source/bundled DOM harnesses, not installed PostgreSQL, live company SSO, native-browser login or deployment acceptance.
