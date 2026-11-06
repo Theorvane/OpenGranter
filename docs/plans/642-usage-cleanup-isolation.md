@@ -13,3 +13,4 @@
 - GREEN: 8/8 source/artifact lifecycle regressions pass, no skips; /tmp/og-2100-usage-green.log.
 - Focused usage, integration, workspace and browser build: 71/71 pass, no skips; /tmp/og-2100-usage-focused.log. Typecheck passed; formatter reports informational suggestions only.
 - Full mandatory check is run separately and must be verified before any success claim.
+- Strengthened stale-control assertion by capturing the currently rendered refresh control immediately before clear (not an already detached pre-export control). All 8 still PASS; /tmp/og-2100-usage-green-strengthened.log. Background fullcheck was started at initial 30541db before this test-only strengthening; do not call it exact latest-HEAD proof. CI checks final HEAD separately.

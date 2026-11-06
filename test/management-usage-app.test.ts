@@ -1610,12 +1610,12 @@ for (const artifact of [false, true]) {
         },
       });
       assert.match(root.text(), /human/);
-      const refresh = root.button('Refresh current page');
       root.button('Export current page CSV').click();
       await waitFor(() => root.all().some((node) => node.tag === 'a'));
       const href = root.all().find((node) => node.tag === 'a')?.attrs.href;
       assert.ok(href);
       assert.equal((await fetch(href)).status, 200);
+      const refresh = root.button('Refresh current page');
       assert.doesNotThrow(() => (reason === 'dispose' ? app.dispose() : app.clear(reason)));
       assert.equal(cancellations, 1);
       assert.doesNotMatch(root.text(), /human|candidate|PRIVATE/);
