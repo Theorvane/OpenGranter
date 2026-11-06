@@ -1,5 +1,11 @@
 # Product delivery evidence matrix
 
+## Catalog loading cancellation checkpoint (#639)
+
+- Source: catalog-session.ts, catalog-authority.ts, catalog-view.ts and sso-catalog-app.ts.
+- Contract: [catalog read cancellation](../contracts/catalog-read-cancellation.md). Evidence: management-catalog-cancellation.test.ts (source/bundle), postgres-sso-model-catalog-http.test.ts (signed test JWT, loopback HTTP, migrated PGlite, durable audit, current Deny and identity-binding removal).
+- No native-browser login, installed database or deployed runtime evidence; #639 session acquisition and full release remain open.
+
 Baseline: `ebd46c2d5cde2d992ceb081ecbb05d3ae3590a74` (origin/main inspected 2026-11-01, Asia/Seoul). Issue #638; parent #637. Source inventory awaiting independent review, not a release result.
 
 ## Evidence rules

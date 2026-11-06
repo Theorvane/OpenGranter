@@ -14,6 +14,7 @@ export interface CatalogElement {
 export type CatalogViewState = ManagementCatalogSnapshot;
 export interface CatalogActions {
   list(): void;
+  cancel?(): void;
   detail(alias: string): void;
   inspectUsage?(alias: string): void;
 }
@@ -52,21 +53,28 @@ export function renderCatalogView(
     value.state === 'loading' ||
     value.state === 'idle' ||
     value.state === 'unavailable' ||
-    value.state === 'missing'
+    value.state === 'missing' ||
+    value.state === 'cancelled'
   ) {
     const message = element(
       'p',
       value.state === 'loading' || value.state === 'idle'
         ? 'Loading models…'
-        : value.state === 'missing'
-          ? 'Model not found.'
-          : 'Model catalog unavailable. Try again later.',
+        : value.state === 'cancelled'
+          ? 'Catalog request cancelled. Cancellation does not undo a server read or audit.'
+          : value.state === 'missing'
+            ? 'Model not found.'
+            : 'Model catalog unavailable. Try again later.',
     );
     message.setAttribute(
       'role',
-      value.state === 'loading' || value.state === 'idle' ? 'status' : 'alert',
+      value.state === 'loading' || value.state === 'idle' || value.state === 'cancelled'
+        ? 'status'
+        : 'alert',
     );
     main.append(message);
+    if (value.state === 'loading' && actions.cancel)
+      main.append(button('Cancel catalog request', actions.cancel));
     if (value.state !== 'loading' && value.state !== 'idle')
       main.append(button('Back to models', actions.list));
   } else if (value.state === 'list' || value.state === 'empty') {

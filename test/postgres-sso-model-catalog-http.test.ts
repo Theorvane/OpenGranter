@@ -6,6 +6,7 @@ import {
   createPostgresSsoModelCatalogHandler,
   createPostgresSsoModelCatalogServer,
 } from '../src/gateway/postgres-sso-model-catalog-http.ts';
+import { createSsoManagementCatalogAuthority } from '../src/management/catalog-authority.ts';
 import { createSsoManagementCatalogClient } from '../src/management/catalog-client.ts';
 import { loadPostgresMigrationSources } from '../src/storage/postgres-migration-sources.ts';
 import { createSsoAccessTokenFixture } from './sso-access-token-fixture.ts';
@@ -249,6 +250,87 @@ test('SSO UI transport consumes real signed-JWT HTTP with fresh IAM and durable 
     assert.equal(paths[1], '/management/v1/models/team%2Fchat');
     client.invalidate();
   } finally {
+    if (server.listening)
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    await f.db.close();
+  }
+});
+
+test('cancelled catalog read retains committed audit and retries under current persisted IAM', async () => {
+  const f = await fixture();
+  const server = createPostgresSsoModelCatalogServer(f.ports);
+  const authority = createSsoManagementCatalogAuthority({
+    onChange() {},
+    now: () => 1000,
+    schedule: () => () => {},
+  });
+  let release!: () => void;
+  try {
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    let received!: () => void;
+    const committed = new Promise<void>((done) => {
+      received = done;
+    });
+    const hold = new Promise<void>((done) => {
+      release = done;
+    });
+    let reads = 0;
+    let signal!: AbortSignal;
+    authority.authorize({
+      expiresAt: 2000,
+      request: async (path, init) => {
+        reads++;
+        assert.ok(init.signal);
+        signal = init.signal;
+        const headers = new Headers(init.headers);
+        headers.set('authorization', `Bearer ${f.token}`);
+        const response = await fetch(`http://127.0.0.1:${address.port}${path}`, {
+          ...init,
+          headers,
+        });
+        if (reads === 1) {
+          received();
+          await hold;
+        }
+        return response;
+      },
+    });
+    const pending = authority.list();
+    await committed;
+    const count = async () =>
+      (
+        await f.db.query<{ count: number }>(
+          'SELECT count(*)::int AS count FROM sso_catalog_audit_events',
+        )
+      ).rows[0]?.count;
+    assert.equal(await count(), 1);
+    authority.cancel();
+    assert.equal(signal.aborted, true);
+    assert.equal(authority.snapshot().state, 'cancelled');
+    await pending;
+    release();
+    await new Promise((done) => setTimeout(done, 0));
+    assert.equal(authority.snapshot().state, 'cancelled');
+    assert.equal(await count(), 1); // A cancelled UI read cannot undo mandatory server audit.
+    await f.db.exec(`UPDATE iam_policies SET version = 'v2', statements =
+      '[{"effect":"Deny","actions":["llm:InvokeModel"],"resources":["model:*"]}]' WHERE policy_id = 'allow'`);
+    await authority.list();
+    assert.equal(authority.snapshot().state, 'empty');
+    assert.equal(await count(), 2);
+    await f.db.exec('DELETE FROM iam_sso_identity_bindings');
+    await authority.list();
+    assert.equal(authority.snapshot().state, 'unauthenticated');
+    assert.equal(await count(), 3);
+    assert.equal(reads, 3);
+  } finally {
+    release?.();
+    authority.dispose();
+    server.closeAllConnections();
     if (server.listening)
       await new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),
