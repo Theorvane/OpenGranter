@@ -1477,3 +1477,8 @@ Existing issue/revoke handlers complete a known invalid-body rejection without a
 ## Credential metadata read primitive (#640)
 
 The internal reader selects only nonsecret columns from migration002. SQL uses exact principal scope, numeric creation-time ordering and UTF8 C-collated credential IDs; application validation rejects every corrupt/cross-scope/out-of-order row including lookahead. Input is captured before awaiting SQL. One extra row produces the last-visible continuation. Observation time never grants authentication validity. No public route, authorization implication, audit override, schema or runtime activation. See [contract](../contracts/credential-inventory.md).
+
+
+## Trusted credential metadata detail (#640)
+
+createPostgresProxyCredentialDetail binds exact principal and credential ID in the existing credential table. Its only projection is lifecycle metadata (no digest). It validates full output cardinality/scope/time relations, captures input before async SQL and returns fixed private errors. Missing and other-principal IDs both return null. Explicit observation time classifies expiry, not an as-of database snapshot. This internal reader must not be wired to a public route without reviewed read IAM and durable SSO read-audit contracts; no new schema/runtime/session activation.

@@ -2100,3 +2100,12 @@ Existing issue/revoke handlers complete a known invalid-body rejection without a
 ## Internal credential inventory (#640)
 
 Require strict pre-SQL input validation, fixed private errors, redacted allowlist projection, inclusive expiry/revocation precedence, whole-page validation including lookahead and captured query values across await. Actual migration002/PGlite must demonstrate cross-principal isolation, stable numeric and UTF8 keyset traversal, exact expiry and fresh persisted revocation. This is internal SQL evidence only: public SSO authorization/audit/API/UI, installed PostgreSQL and native-browser acceptance remain release gates. See [plan](plans/640-credential-inventory.md).
+
+
+## Exact credential metadata detail (#640)
+
+- Exact principal+credential match returns IDs/timestamps/state only; another principal and unknown ID return null without global existence disclosure.
+- Inclusive expiry and revocation precedence; current revocation is observed freshly, not inferred from a prior list page.
+- Invalid inputs never reach SQL; malformed cardinality, scope, IDs and timestamps fail privately without partial metadata. Capture input before SQL await.
+- Actual migration002 + existing token service: issue -> inventory -> detail -> revoke -> fresh detail and verification denial; reads create no lifecycle events. Source/PGlite evidence is not authenticated HTTP, native-browser login, installed PostgreSQL or deployment acceptance.
+- Public read authority/audit/API/UI remain gated and missing. Existing issue/revoke permissions do not confer read permission.
