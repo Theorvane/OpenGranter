@@ -20,6 +20,22 @@ export function renderUsageAttemptDetails(
     ['Latency (ms)', record.latencyMs],
     ['Prompt tokens', record.usage.promptTokens],
     ['Completion tokens', record.usage.completionTokens],
+    ['Total tokens', record.usage.totalTokens],
+    ['Usage status', record.usage.status],
+    [
+      'Estimated cost',
+      record.estimatedCost
+        ? record.estimatedCost.amountDecimal + ' ' + record.estimatedCost.currency
+        : null,
+    ],
+    [
+      'Reported cost',
+      record.upstreamBilledCost
+        ? record.upstreamBilledCost.amountDecimal + ' ' + record.upstreamBilledCost.currency
+        : null,
+    ],
+    ['Possibly billed', record.possiblyBilled ? 'Yes' : 'No'],
+    ['Server-marked possible duplicate', record.possibleDuplicate ? 'Yes' : 'No'],
     ['Estimated price version', record.estimatedCost?.priceVersion],
     ['Reported billing source', record.upstreamBilledCost?.source],
   ] as const) {
@@ -29,6 +45,11 @@ export function renderUsageAttemptDetails(
     description.textContent = value === null || value === undefined ? 'Unknown' : String(value);
     fields.append(term, description);
   }
-  details.append(summary, fields);
+  const caveat = document.createElement('p');
+  caveat.textContent =
+    'Attempt evidence only, not settled billing or reconciliation. ' +
+    'Estimated and reported costs are independent; missing amounts are unknown, not zero. ' +
+    'Server-marked possible duplicates remain included.';
+  details.append(summary, fields, caveat);
   return details;
 }
