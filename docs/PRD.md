@@ -1318,3 +1318,7 @@ Combine the existing #716–#721 management and audit changes with the same-orig
 ## Public Models/Usage entry (#637)
 
 The actual public management bundle mounts the existing Models/Usage workspace rather than the catalog-only page. Navigation remains signed out without explicit trusted authority; no login, cookie/token bridge or ambient grant API is introduced. Existing page lifecycle isolation applies to both views. See [plan](plans/637-public-workspace-entry.md).
+
+## Integrated authorized usage summaries (#637)
+
+The public Models/Usage feature line reuses the existing exact current-page token coverage and per-model cost/token renderers. Summaries consume only already authorized rows, make no extra request and retire with page authority. No session or runtime activation. See [plan](plans/637-usage-summary-integration.md).

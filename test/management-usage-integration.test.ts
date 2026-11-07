@@ -47,6 +47,7 @@ const record = buildUsageRecord({
   outcome: 'succeeded',
   possiblyBilled: true,
   possibleDuplicate: false,
+  providerUsage: { prompt_tokens: 7, total_tokens: 99 },
 });
 
 test('usage client through signed SSO, real HTTP, database, fresh IAM and mandatory audit', async () => {
@@ -124,6 +125,11 @@ test('usage client through signed SSO, real HTTP, database, fresh IAM and mandat
       });
       assert.match(root.text(), /human/);
       assert.match(root.text(), /Unknown/);
+      assert.match(root.text(), /Usage by model — current page only/);
+      assert.match(root.text(), /Prompt tokens: 7; coverage: 1 of 1 records/);
+      assert.match(root.text(), /Completion tokens: Unknown; coverage: 0 of 1 records/);
+      assert.match(root.text(), /Total tokens: 99; coverage: 1 of 1 records/);
+      assert.match(root.text(), /Known counters only/);
       time = 2;
       expire?.();
       assert.match(root.text(), /Session expired/);
