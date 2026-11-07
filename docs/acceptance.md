@@ -2017,3 +2017,7 @@ The existing common SQL audit store accepts only one own returned row with an ow
   audit failure. Authentication is injected local test identity, not real SSO.
 - Browser UI, installed PostgreSQL, session integration and provider calls remain
   separate acceptance gates. See [contract](../contracts/audit-read-client.md).
+
+## Opt-in audit review page (#784)
+
+Verify disconnected no-request mount; exact submitted filters and UTC validation; first/next opaque paging; fixed text-only metadata; loading and empty messages; Deny/unauthenticated/unavailable/cancelled states without stale data; supersession, detached callbacks, clear and dispose. Verify source and restricted browser artifact. Headless loopback synthetic-identity API evidence is not real SSO or installed deployment acceptance.

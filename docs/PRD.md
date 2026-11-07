@@ -1379,3 +1379,7 @@ responses, projected metadata, denial/error states and invalidation prevent
 stale data exposure. No login, SSO bridge, UI mounting, endpoint, IAM grant,
 retention or runtime activation is added. See [contract](../contracts/audit-read-client.md)
 and [plan](plans/782-audit-read-client.md).
+
+## Opt-in audit review view (#784)
+
+An explicit bounded audit client can power a disconnected-by-default read-only page with principal/model/UTC filters, first/next pagination, loading/empty/private failure states and lifecycle clearing. Fixed metadata columns only; no session bridge or public workspace activation. See [contract](../contracts/audit-review-page.md) and [plan](plans/784-audit-page.md). Login, export and installed acceptance remain open.
