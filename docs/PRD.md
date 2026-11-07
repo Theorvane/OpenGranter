@@ -1391,3 +1391,6 @@ The opt-in audit review page can prepare a current-page CSV only after a fresh b
 
 ## Management catalog landmark integration (#637 / #639)
 The catalog is a labelled region inside the existing public management main landmark, not a nested document main. All data, empty/loading/error states and heading focus retain existing behavior. No session or API change. See [contract](../contracts/sso-administration-browser.md#catalog-landmark-integration-637--639).
+
+## Account presentation after suspended expiry (#637 / #639)
+The existing trusted workspace checks current authority when Account response/body work resumes, not only when an expiry timer or navigation fires. Late identity is suppressed at the absolute deadline or an invalid host clock, and shared credential authority is cleared. Stale work cannot invalidate a replacement grant. No new session/login/API/schema/runtime activation. See [contract](../contracts/current-principal-workspace.md#suspended-timer-presentation-boundary).

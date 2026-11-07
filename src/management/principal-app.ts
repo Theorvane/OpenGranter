@@ -4,7 +4,10 @@ import type { UsageElement } from './usage-app.ts';
 /** Current active-human identity only, never an IAM grant or a browser session.
  * The host owns trusted authority, expiry and teardown. No automatic retry.
  */
-export function mountManagementPrincipal(root: UsageElement) {
+export function mountManagementPrincipal(
+  root: UsageElement,
+  options: { readonly isAuthorityCurrent?: () => boolean } = {},
+) {
   let disposed = false;
   let revision = 0;
   let pending: AbortController | undefined;
@@ -43,7 +46,13 @@ export function mountManagementPrincipal(root: UsageElement) {
       const current = revision;
       const controller = new AbortController();
       pending = controller;
-      const live = () => !disposed && revision === current && !controller.signal.aborted;
+      // Check local staleness first: old work must never invalidate renewed host authority.
+      // The host clock may have expired while browser timers were suspended.
+      const live = () =>
+        !disposed &&
+        revision === current &&
+        !controller.signal.aborted &&
+        (options.isAuthorityCurrent?.() ?? true);
       const discard = (response: Response) => {
         try {
           void response.body?.cancel().catch(() => {});

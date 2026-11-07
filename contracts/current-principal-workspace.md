@@ -9,3 +9,6 @@ Loading, sign-in-required, denied and unavailable states replace prior private i
 Acceptance: source and built public module traverse signed test SSO, actual loopback HTTP and migrated PGlite. Reads require no IAM attachment and create none. Current inactive principal and removed binding yield 401; missing required anonymous auth audit yields 503. Private subject/issuer/JWT are absent from stored audit. Catalog-only requests in this identity-specific test are explicitly stubbed.
 
 These are local test results, not native-browser/real-IdP login, installed PostgreSQL, session approval, provider calls or deployment acceptance. No endpoint, policy grant, migration or runtime activation is added.
+
+### Suspended-timer presentation boundary
+The host rechecks current trusted authority at each Account response/body continuation and immediately before identity presentation, even when the expiry callback has not run. Expired or invalid host clocks clear shared authority; a late payload cannot display identity or retain credential access. Local stale-work checks run first so an obsolete Account completion cannot clear a replacement grant. This is local lifecycle enforcement, not session acquisition or server authorization.

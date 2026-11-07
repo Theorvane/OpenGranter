@@ -2029,3 +2029,8 @@ Prepare must freshly read the submitted scope/cursor; edited drafts do not chang
 
 ## Management catalog landmark integration (#637 / #639)
 Source and restricted browser catalog renderers retain exactly one owner main and one labelled Model catalog section across idle/loading/empty/list/detail/missing/unavailable. Native browser integration through the existing same-origin administration handler must retain one main while Models/Account and confirmed credentials use actual signed-test-SSO HTTP and migrated PGlite. These checks do not certify real SSO login, installed PostgreSQL, schema approval or deployment.
+
+## Account suspended-expiry continuation (#637 / #639)
+- Source and restricted-built workspace tests hold Account response and body separately, advance the trusted clock without firing timers, and require expired/invalid/throwing/negative clocks to clear identity and shared authority. Old completions must not expire renewed grants.
+- Native Chromium with actual same-origin administration HTTP, migrated PGlite, explicit isolated candidate Account audit DDL and runner-signed test SSO holds a successful audited /me response until local expiry. Identity remains absent; credential issuance is disabled and no mutation is dispatched.
+- This is not company login, schema promotion, installed PostgreSQL, provider or deployment acceptance. The temporary loopback listener closes after execution.
