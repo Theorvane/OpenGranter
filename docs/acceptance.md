@@ -1994,3 +1994,9 @@ Source and built-public-module acceptance exercise signed test SSO, real loopbac
 ## Explicit same-origin administration composition (#637 / #640)
 
 The separately selected, unbound administration browser factory combines existing public assets, current-principal/model/usage reads and exact POST credential issue/revoke. Existing read-only factories and runtime defaults are unchanged. Each private operation retains fresh signed SSO, IAM and mandatory audit; cookies/public assets grant no authority. Source/built workspace acceptance uses actual same-origin loopback HTTP and migrated PGlite without catalog/identity response stubs, including fresh Deny and audit rollback. No session/CSRF/CORS decision, schema promotion, listener activation, native-browser, installed database or provider success is implied. See [contract](../contracts/sso-administration-browser.md) and [plan](plans/637-administration-browser.md).
+
+## Existing host durable Account acceptance (#778)
+- Both existing browser factories with explicit principalAuditClient serve Account200 with principalId only after a dedicated identity-audit row, even without the legacy gateway audit table.
+- Invalid supplied client fails construction. Capture configuration once. Required audit rejection or malformed acknowledgement returns private503 without identity; recovered SQL restores success. Fresh revoked binding gives anonymous401; identity-store failure gives anonymous503.
+- Static artifacts and invalid method make no SQL queries. Unchanged legacy/default review, scoped model/usage and credential allowlist/issue/revoke suites remain required.
+- Source and built Account workspace use actual same-origin signed-SSO HTTP and migrated PGlite, with no read stubs, across success, unavailable audit, recovery and revoked binding. This is emulated DOM evidence, not a native browser or installed PostgreSQL/SSO/provider certification.

@@ -2,10 +2,12 @@ import type { Server } from 'node:http';
 import { createManagementBrowserHandler } from '../management/browser-http.ts';
 import { createClientErrorResponse } from './client-errors.ts';
 import { createNodeRequestServer } from './node-request-server.ts';
-import { createPostgresSsoReviewHandler } from './postgres-sso-review-http.ts';
-import type { PostgresSsoUsageHistoryHttpPorts } from './postgres-sso-usage-history-http.ts';
+import {
+  createPostgresSsoReviewHandler,
+  type PostgresSsoReviewHttpPorts,
+} from './postgres-sso-review-http.ts';
 
-export interface PostgresSsoReviewBrowserPorts extends PostgresSsoUsageHistoryHttpPorts {
+export interface PostgresSsoReviewBrowserPorts extends PostgresSsoReviewHttpPorts {
   /** Caller-owned, reviewed PUBLIC build artifact. Never credentials or user HTML. */
   readonly javascript: string;
 }
