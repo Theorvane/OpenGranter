@@ -1370,3 +1370,12 @@ The existing review and administration browser factories accept explicit princip
 
 ## Required gateway audit acknowledgement (#780)
 The existing common SQL audit store accepts only one own returned row with an own positive signed-bigint event_id (canonical decimal string or positive safe integer driver representation). Malformed or missing acknowledgement fails closed with GatewayAuditUnavailable; existing management authentication denial returns audit_unavailable rather than an ordinary denial. SQL, schemas, IAM, session and runtime activation remain unchanged. This verifies the acknowledgement shape, not transaction commit or exactly-once persistence. See [plan](plans/780-gateway-audit-ack.md).
+
+## Opt-in audit history read client (#782)
+
+An explicitly authorized request port can consume existing GET /v1/audit JSON
+with exact principal/model/time filters and opaque pagination. Bounded private
+responses, projected metadata, denial/error states and invalidation prevent
+stale data exposure. No login, SSO bridge, UI mounting, endpoint, IAM grant,
+retention or runtime activation is added. See [contract](../contracts/audit-read-client.md)
+and [plan](plans/782-audit-read-client.md).
