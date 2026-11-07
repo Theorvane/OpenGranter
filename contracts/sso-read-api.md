@@ -20,3 +20,7 @@ Identity success does not authorize catalog reads. Explicit model Deny can yield
 ## Evidence and limits
 
 Tests use actual Node loopback HTTP, in-memory signed JWTs and explicitly migrated PGlite with the separately installed proposed identity table. They check principal/list/detail, changed Deny, binding revocation, missing/expired credentials, failed audit suppression, zero-work unmatched paths/methods, invalid shapes, capture and override rejection. This is not installed PostgreSQL, browser login, session/CSRF/CORS, live IdP, runtime acceptance or deployment certification. Browser-facing credential/session integration remains separately owned and gated.
+
+## Existing Account compatibility (#774)
+
+Exact GET `/management/v1/me` is also supported with the existing Account payload `{ principalId: <current human ID> }`, and no additional fields. It shares the same fresh registered-key verifier, exact active-human binding, required awaited identity audit, denial/failure privacy and malformed-shape validation as `/management/v1/principal`. The original path and `{id,kind}` projection remain unchanged. Lookalikes, trailing slash and other methods remain zero-private-work404. No URL rewriting, cookie session, new identity authority, runtime mount, schema installation or frontend change occurs. This closes a concrete wire-contract mismatch with the existing Account workspace; it does not certify that workspace in a native browser or install either server.

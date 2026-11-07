@@ -410,3 +410,67 @@ test('abort during authentication still awaits safe audit and suppresses identit
   await error(await createSsoCurrentPrincipalHandler(f.ports)(req), 400, 'invalid_request');
   assert.equal(f.events.length, 1);
 });
+
+test('Account me waits for the common durable audit before releasing its exact payload', async () => {
+  const f = fixture();
+  let acknowledge!: () => void;
+  let entered!: () => void;
+  const started = new Promise<void>((resolve) => {
+    entered = resolve;
+  });
+  const committed = new Promise<void>((resolve) => {
+    acknowledge = resolve;
+  });
+  f.ports.writeAudit = async (event) => {
+    f.events.push(event);
+    entered();
+    await committed;
+  };
+  let settled = false;
+  const response = createSsoCurrentPrincipalHandler(f.ports)(
+    new Request('http://localhost/management/v1/me', {
+      headers: { authorization: `Bearer ${token}` },
+    }),
+  ).then((result) => {
+    settled = true;
+    return result;
+  });
+  await started;
+  assert.equal(settled, false);
+  assert.deepEqual(f.events, [
+    { requestId: 'server-request', outcome: 'ready', principalId: 'human-self' },
+  ]);
+  acknowledge();
+  assert.deepEqual(await (await response).json(), { principalId: 'human-self' });
+});
+
+test('Account me rejects framing and query before private authentication or audit', async () => {
+  let calls = 0;
+  const handler = createSsoCurrentPrincipalHandler({
+    newRequestId: () => 'shape',
+    authenticate: async () => {
+      calls++;
+      return 'private';
+    },
+    writeAudit: async () => {
+      calls++;
+    },
+  });
+  for (const headers of [
+    { 'content-length': '1' },
+    { 'transfer-encoding': 'chunked' },
+    { 'content-length': 'invalid' },
+  ]) {
+    await error(
+      await handler(new Request('http://localhost/management/v1/me', { headers })),
+      400,
+      'invalid_request',
+    );
+  }
+  await error(
+    await handler(new Request('http://localhost/management/v1/me?principalId=other')),
+    400,
+    'invalid_request',
+  );
+  assert.equal(calls, 0);
+});

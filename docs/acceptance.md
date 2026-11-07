@@ -1863,3 +1863,7 @@ The shared Node HTTP bridge forces no-store and nosniff on exact /management and
 - Missing/expired credentials beyond existing tolerance require anonymous durable audits and401. Missing required audit tables suppress the affected read with private503, without fabricating authority or exposing secrets.
 - Unmatched paths/methods do no private work; malformed selected paths/aborted requests fail400 before SQL. Configuration is captured, overrides ignored and throwing getters have fixed startup diagnostics.
 - No native-browser, installed PostgreSQL, live IdP/session/CSRF/CORS, default migration/runtime activation or deployment acceptance is implied. See [plan](plans/772-sso-read-api.md) and [contract](../contracts/sso-read-api.md).
+
+## Account identity wire compatibility (#774)
+
+The explicit unbound SSO read API supports the existing Account GET `/management/v1/me` exact `{principalId}` contract through the same fresh authentication and required identity SQL audit as `/management/v1/principal`. Identity without IAM still cannot obtain catalog models. Acceptance covers actual loopback HTTP, both payloads, persisted audit, revoked/invalid identity and audit-failure suppression. Unknown/malformed routes remain private. No frontend/runtime/session/schema activation, native-browser, installed PostgreSQL, real IdP or deployment acceptance follows. See [plan](plans/774-account-me-contract.md) and [contract](../contracts/sso-current-principal-http.md).
