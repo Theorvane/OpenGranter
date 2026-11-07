@@ -25,3 +25,8 @@ Issue #770; follows [identity HTTP](sso-current-principal-http.md).
 ## Evidence boundary
 
 Locally signed JWTs, migrated PGlite, file-backed close/reopen and actual Node loopback HTTP establish local public-boundary persistence behavior, not installed PostgreSQL fsync guarantees, company SSO, browser session acceptance, approved migration installation or live model use. Existing callback mode remains available only with the same required genuinely durable ownership contract.
+
+
+## Acknowledgement shape validation (#776)
+
+The required SQL append confirms persistence only from an own rows property containing an actual single-row array with own index zero, a non-array row object and an own positive PostgreSQL bigint event_id string. Inherited IDs, array rows and array-like result sets fail with the existing fixed store error. The HTTP identity boundary returns503 audit_unavailable without principal or token data. Valid PostgreSQL/PGlite acknowledgements retain the same behavior. This validates the acknowledgement, not an exactly-once guarantee or a caller transaction commit.

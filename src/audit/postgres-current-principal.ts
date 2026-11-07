@@ -80,16 +80,30 @@ export function createPostgresCurrentPrincipalAuditStore(
            VALUES ($1, $2, $3, $4) RETURNING event_id::text AS event_id`,
           [occurredAt, projected.requestId, projected.outcome, projected.principalId],
         );
-        const row = result.rows[0];
         if (
-          result.rows.length !== 1 ||
+          typeof result !== 'object' ||
+          result === null ||
+          Array.isArray(result) ||
+          !Object.hasOwn(result, 'rows')
+        )
+          throw new CurrentPrincipalAuditUnavailable();
+        const rows = result.rows;
+        if (!Array.isArray(rows) || rows.length !== 1 || !Object.hasOwn(rows, 0))
+          throw new CurrentPrincipalAuditUnavailable();
+        const row: unknown = rows[0];
+        if (
           typeof row !== 'object' ||
           row === null ||
-          !('event_id' in row) ||
-          typeof row.event_id !== 'string' ||
-          row.event_id.length > 19 ||
-          !/^[1-9][0-9]*$/u.test(row.event_id) ||
-          BigInt(row.event_id) > 9_223_372_036_854_775_807n
+          Array.isArray(row) ||
+          !Object.hasOwn(row, 'event_id')
+        )
+          throw new CurrentPrincipalAuditUnavailable();
+        const eventId = (row as Record<string, unknown>).event_id;
+        if (
+          typeof eventId !== 'string' ||
+          eventId.length > 19 ||
+          !/^[1-9][0-9]*$/u.test(eventId) ||
+          BigInt(eventId) > 9_223_372_036_854_775_807n
         )
           throw new CurrentPrincipalAuditUnavailable();
       } catch {
