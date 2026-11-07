@@ -276,7 +276,11 @@ test('authorized per-attempt details preserve unknowns and clear with identity',
     calls++;
     return response([observed, { ...observed, attemptId: 'attempt-B' }]);
   });
-  const details = root.all().filter((node) => node.tag === 'details');
+  const details = root
+    .all()
+    .filter(
+      (node) => node.tag === 'details' && node.children[0]?.textContent === 'Inspect attempt',
+    );
   assert.equal(details.length, 2, 'one native detail for each authorized attempt');
   const first = details[0];
   assert.ok(first);
@@ -305,7 +309,14 @@ test('authorized per-attempt details preserve unknowns and clear with identity',
   assert.match(root.text(), /0\.000000000000000002 USD/u);
   assert.equal(calls, 1, 'inspection uses the existing authorized page only');
   app.clear('expired');
-  assert.equal(root.all().filter((node) => node.tag === 'details').length, 0);
+  assert.equal(
+    root
+      .all()
+      .filter(
+        (node) => node.tag === 'details' && node.children[0]?.textContent === 'Inspect attempt',
+      ).length,
+    0,
+  );
   assert.doesNotMatch(root.text(), /attempt-A|price-v2|<script>/u);
   app.dispose();
 });
@@ -322,16 +333,37 @@ test('attempt inspection disappears during reload, HTTP denial, and disposal', a
       finish = resolve;
     });
   });
-  assert.equal(root.all().filter((node) => node.tag === 'details').length, 1);
+  assert.equal(
+    root
+      .all()
+      .filter(
+        (node) => node.tag === 'details' && node.children[0]?.textContent === 'Inspect attempt',
+      ).length,
+    1,
+  );
   assert.match(root.text(), /Unknown/u);
   root.button('Retry / first page').click();
-  assert.equal(root.all().filter((node) => node.tag === 'details').length, 0);
+  assert.equal(
+    root
+      .all()
+      .filter(
+        (node) => node.tag === 'details' && node.children[0]?.textContent === 'Inspect attempt',
+      ).length,
+    0,
+  );
   assert.ok(finish);
   finish(new Response(null, { status: 403 }));
   await waitFor(() => root.text().includes('Access denied.'));
   assert.doesNotMatch(root.text(), /attempt|credential|candidate/u);
   await app.connect(async () => response());
-  assert.equal(root.all().filter((node) => node.tag === 'details').length, 1);
+  assert.equal(
+    root
+      .all()
+      .filter(
+        (node) => node.tag === 'details' && node.children[0]?.textContent === 'Inspect attempt',
+      ).length,
+    1,
+  );
   app.dispose();
   assert.equal(root.children.length, 0);
 });
@@ -543,7 +575,13 @@ test('operator cancellation aborts CSV, removes records and ignores late blob cr
   );
   await new Promise((resolve) => setTimeout(resolve, 20));
   assert.equal(
-    root.all().some((node) => node.tag === 'a' || node.tag === 'details'),
+    root
+      .all()
+      .some(
+        (node) =>
+          node.tag === 'a' ||
+          (node.tag === 'details' && node.children[0]?.textContent === 'Inspect attempt'),
+      ),
     false,
   );
   assert.doesNotMatch(root.text(), /private late csv|Inspect attempt/u);

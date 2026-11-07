@@ -1958,3 +1958,7 @@ Structural cancelable click events must show current downloads are permitted, ex
 - Build and execute the actual public entry: Models and Usage history navigation must be present, remain signed out through view changes/pagehide/pageshow, and make zero ambient HTTP requests or exported global authority APIs. Missing app roots remain inert.
 - Combined existing source must retain signed fixture HTTP/embedded-SQL principal, usage/drilldown/CSV, fresh IAM denial, mandatory audit and static isolation regressions. No browser IdP/login, installed PostgreSQL, schema promotion or provider calls are certified.
 - Entry-only baseline fails the workspace navigation assertion; the existing workspace mount passes. See [plan](plans/637-public-workspace-entry.md).
+
+## Integrated authorized usage summaries (#637)
+
+Mounted usage reached through signed SSO, loopback HTTP and migrated embedded SQL displays current-page model groups and known-token coverage; missing counters remain Unknown and expiry clears protected data. Existing summary tests cover exact large integers, duplicate inclusion, page replacement and supported browser artifacts. This is not native-browser or installed PostgreSQL/provider acceptance. See [plan](plans/637-usage-summary-integration.md).
