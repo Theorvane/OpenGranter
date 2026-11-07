@@ -139,7 +139,9 @@ export function mountSsoUsageWorkspace(
       return;
     }
     if (view === 'account') {
-      const mounted = mountManagementPrincipal(content);
+      const mounted = mountManagementPrincipal(content, {
+        isAuthorityCurrent: () => app === mounted && active && valid(),
+      });
       app = mounted;
       if (grant) await mounted.authorize(transport(grant));
       else mounted.clear(reason);
@@ -158,6 +160,7 @@ export function mountSsoUsageWorkspace(
           })
         : mountManagementUsage(content, {
             ...options,
+            isAuthorityCurrent: (): boolean => app === mounted && active && valid(),
             onInspectModel(id) {
               if (disposed || !active || app !== mounted || !valid()) return;
               view = 'models';

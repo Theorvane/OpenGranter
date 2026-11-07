@@ -2017,3 +2017,30 @@ The existing common SQL audit store accepts only one own returned row with an ow
   audit failure. Authentication is injected local test identity, not real SSO.
 - Browser UI, installed PostgreSQL, session integration and provider calls remain
   separate acceptance gates. See [contract](../contracts/audit-read-client.md).
+
+## Opt-in audit review page (#784)
+
+Verify disconnected no-request mount; exact submitted filters and UTC validation; first/next opaque paging; fixed text-only metadata; loading and empty messages; Deny/unauthenticated/unavailable/cancelled states without stale data; supersession, detached callbacks, clear and dispose. Verify source and restricted browser artifact. Headless loopback synthetic-identity API evidence is not real SSO or installed deployment acceptance.
+
+Audit previous-page acceptance (#784): verify three-page forward/back navigation re-fetches exact submitted filters and opaque cursor, ignores unsubmitted draft changes, removes old rows during load, and discards navigation on denial/new filters/clear. Superseded completions and detached buttons cannot restore records or history. Public bundled module and synthetic loopback Chromium evidence are separate from real IdP/installed deployment acceptance.
+
+## Current-page audit CSV (#784)
+Prepare must freshly read the submitted scope/cursor; edited drafts do not change it. Only the latest successful page publishes a formula-safe six-column download (empty means headers only). Loading, denial, invalid filters, stale completions, clear and disposal cannot retain or revive a download. New queries revoke previous Blob URLs; saved files cannot be recalled. Test restricted browser bundle and actual loopback gateway/Chromium download separately from real SSO/installed PostgreSQL/provider acceptance, which remain unverified. See [plan](plans/784-audit-page.md).
+
+## Management catalog landmark integration (#637 / #639)
+Source and restricted browser catalog renderers retain exactly one owner main and one labelled Model catalog section across idle/loading/empty/list/detail/missing/unavailable. Native browser integration through the existing same-origin administration handler must retain one main while Models/Account and confirmed credentials use actual signed-test-SSO HTTP and migrated PGlite. These checks do not certify real SSO login, installed PostgreSQL, schema approval or deployment.
+
+## Account suspended-expiry continuation (#637 / #639)
+- Source and restricted-built workspace tests hold Account response and body separately, advance the trusted clock without firing timers, and require expired/invalid/throwing/negative clocks to clear identity and shared authority. Old completions must not expire renewed grants.
+- Native Chromium with actual same-origin administration HTTP, migrated PGlite, explicit isolated candidate Account audit DDL and runner-signed test SSO holds a successful audited /me response until local expiry. Identity remains absent; credential issuance is disabled and no mutation is dispatched.
+- This is not company login, schema promotion, installed PostgreSQL, provider or deployment acceptance. The temporary loopback listener closes after execution.
+
+## Shared Usage completion boundary (#637 / #642)
+- Source and restricted built workspace: delayed response/body for usage JSON and fresh CSV with suspended expiry timers and deadline/NaN/throwing/negative clocks clear protected output and shared credential authority. Clock recovery cannot re-enable Issue token; stale completion cannot invalidate a renewed grant.
+- Native Chromium with actual administration HTTP, migrated PGlite, explicit isolated candidate usage/Account audit DDL and runner-signed SSO: hold usage200 until trusted expiry, then suppress data, retain disabled credential issuance after clock recovery, one durable usage audit, no mutations or page errors. This is not company SSO, installed PostgreSQL, schema approval or deployed acceptance.
+
+## Account explicit read recovery (#637 / #639)
+Source and built workspace: unavailable503, malformed response, network failure and timeout show Retry current principal; one click dispatches one fresh GET and loading removes the control. Detached controls, double clicks, renewal, navigation, logout, pagehide, disposal and suspended expiry cannot reuse authority;401/403 expose no retry. Actual administration HTTP plus migrated PGlite and isolated candidate Account audit DDL must recover audit503 to identity200 with exactly one explicit read and two durable successful audit events. Signed test SSO and temporary Chromium loopback are not company login, installed schema approval or deployment acceptance.
+
+## Catalog navigation lifecycle (#637 / #639)
+Detached list/detail/refresh/retry controls must not send reads, consume replacement grants or cancel current reads after superseding navigation, logout, renewal, disposal or expiry. Active controls still perform fresh authorized reads; verify source, browser bundle and actual HTTP browser separately.

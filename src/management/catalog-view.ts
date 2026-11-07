@@ -16,6 +16,7 @@ export interface CatalogActions {
   list(): void;
   detail(alias: string): void;
   inspectUsage?(alias: string): void;
+  retry?(): void;
 }
 
 /** Native buttons preserve keyboard activation; untrusted values enter textContent only. */
@@ -44,7 +45,8 @@ export function renderCatalogView(
     mountManagementBoundaryView(root, value.state);
     return;
   }
-  const main = element('main');
+  const main = element('section');
+  main.setAttribute('aria-label', 'Model catalog');
   const title = element('h1', 'Models available to your identity');
   title.setAttribute('tabindex', '-1');
   main.append(title);
@@ -67,6 +69,8 @@ export function renderCatalogView(
       value.state === 'loading' || value.state === 'idle' ? 'status' : 'alert',
     );
     main.append(message);
+    if (value.state === 'unavailable' && actions.retry)
+      main.append(button('Retry model lookup', actions.retry));
     if (value.state !== 'loading' && value.state !== 'idle')
       main.append(button('Back to models', actions.list));
   } else if (value.state === 'list' || value.state === 'empty') {

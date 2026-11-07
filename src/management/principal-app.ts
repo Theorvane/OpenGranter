@@ -4,7 +4,10 @@ import type { UsageElement } from './usage-app.ts';
 /** Current active-human identity only, never an IAM grant or a browser session.
  * The host owns trusted authority, expiry and teardown. No automatic retry.
  */
-export function mountManagementPrincipal(root: UsageElement) {
+export function mountManagementPrincipal(
+  root: UsageElement,
+  options: { readonly isAuthorityCurrent?: () => boolean } = {},
+) {
   let disposed = false;
   let revision = 0;
   let pending: AbortController | undefined;
@@ -13,7 +16,7 @@ export function mountManagementPrincipal(root: UsageElement) {
     pending?.abort();
     pending = undefined;
   }
-  function render(message: string) {
+  function render(message: string, retry?: () => void) {
     const heading = root.ownerDocument.createElement('h1');
     heading.textContent = 'Account';
     const status = root.ownerDocument.createElement('p');
@@ -22,6 +25,17 @@ export function mountManagementPrincipal(root: UsageElement) {
     const warning = root.ownerDocument.createElement('p');
     warning.textContent = 'Identity is not permission to administer resources.';
     root.replaceChildren(heading, status, warning);
+    if (retry) {
+      const rendered = revision;
+      const button = root.ownerDocument.createElement('button');
+      button.textContent = 'Retry current principal';
+      button.setAttribute('type', 'button');
+      button.addEventListener('click', () => {
+        if (disposed || revision !== rendered || !(options.isAuthorityCurrent?.() ?? true)) return;
+        retry();
+      });
+      root.append(button);
+    }
   }
   function clear(reason: 'unauthenticated' | 'expired' | 'denied' = 'unauthenticated') {
     if (disposed) return;
@@ -37,13 +51,19 @@ export function mountManagementPrincipal(root: UsageElement) {
   clear();
   return {
     clear,
-    async authorize(grant: CatalogAuthorityGrant) {
+    authorize: async function authorize(grant: CatalogAuthorityGrant) {
       if (disposed) return;
       cancel();
       const current = revision;
       const controller = new AbortController();
       pending = controller;
-      const live = () => !disposed && revision === current && !controller.signal.aborted;
+      // Check local staleness first: old work must never invalidate renewed host authority.
+      // The host clock may have expired while browser timers were suspended.
+      const live = () =>
+        !disposed &&
+        revision === current &&
+        !controller.signal.aborted &&
+        (options.isAuthorityCurrent?.() ?? true);
       const discard = (response: Response) => {
         try {
           void response.body?.cancel().catch(() => {});
@@ -52,11 +72,15 @@ export function mountManagementPrincipal(root: UsageElement) {
         }
       };
       render('Loading current principal…');
+      const unavailable = () =>
+        render('Current principal unavailable.', () => {
+          void authorize(grant);
+        });
       // Deadline settles even if a transport or response reader ignores cancellation.
       const timer = setTimeout(() => {
         if (!live()) return;
-        render('Current principal unavailable.');
         cancel();
+        unavailable();
       }, 30_000);
       const interrupted = new Promise<void>((resolve) =>
         controller.signal.addEventListener('abort', () => resolve(), { once: true }),
@@ -77,13 +101,9 @@ export function mountManagementPrincipal(root: UsageElement) {
           }
           if (response.status !== 200) {
             discard(response);
-            render(
-              response.status === 401
-                ? 'Sign-in required.'
-                : response.status === 403
-                  ? 'Access denied.'
-                  : 'Current principal unavailable.',
-            );
+            if (response.status === 401) clear('unauthenticated');
+            else if (response.status === 403) clear('denied');
+            else unavailable();
             return;
           }
           const length = response.headers.get('content-length');
@@ -144,7 +164,7 @@ export function mountManagementPrincipal(root: UsageElement) {
           }
           if (live()) render('Current principal: ' + principalId);
         } catch {
-          if (live()) render('Current principal unavailable.');
+          if (live()) unavailable();
         }
       };
       try {
