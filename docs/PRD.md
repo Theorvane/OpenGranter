@@ -1221,3 +1221,16 @@ An optional PostgreSQL handler/non-listening server factory composes registered 
 ## Owned management catalog listener (#641)
 
 Explicit SSO management startup now serves existing authorized catalog list/detail on its single migrated database connection, alongside owner-scoped token operations and optional static browser assets. Catalog replies require fresh IAM and durable attributed audit; no browser session, inference or new deployment is granted. See [plan](plans/641-catalog-runtime.md) and [contract](../contracts/sso-management-runtime.md).
+
+
+## Management transport privacy (#639)
+
+The shared Node HTTP bridge forces no-store and nosniff on exact /management and slash descendants, including handler errors and custom fallback responses. This preserves existing status/body/authentication/audit behavior and activates no routes or session. See [contract](../contracts/management-http-privacy.md) and [plan](plans/639-management-http-privacy.md). Loopback socket evidence is not native-browser, company SSO or installed ingress acceptance.
+
+## Management error-path containment (#639)
+
+The shared HTTP bridge contains broken custom fallback factories/bodies before sending headers or bytes, retaining a fixed private-error envelope and management response privacy. This is a transport reliability slice, not browser login/session activation. See [plan](plans/639-management-fallback-containment.md).
+
+## Management response isolation (#639)
+
+Pre-commit Node response failures discard staged response metadata before fixed errors are sent. Successful headers and streaming remain unchanged. No session, authentication, policy or deployment decision is introduced. See [plan](plans/639-node-response-headers.md).

@@ -1422,3 +1422,8 @@ Explicit strict:false Gemini schema transport additionally permits ASCII digits 
 ## Codex operator OAuth first slice (#635)
 
 The operator command adds isolated official-CLI device login, status and logout only. It does not register a subscription-backed inference provider, change OpenRouter/OpenAI-compatible APIs, or bypass IAM, limits, audit or usage. Success does not establish model entitlement or live acceptance. A separate app-server/Responses adapter and authenticated streaming/tool-call E2E remain pending. See the [operator guide](guides/codex-oauth.md), [contract](../contracts/codex-oauth.md), and [plan](plans/635-codex-device-oauth.md).
+
+
+## Management transport privacy (#639)
+
+The shared Node HTTP bridge forces no-store and nosniff on exact /management and slash descendants, including handler errors and custom fallback responses. This preserves existing status/body/authentication/audit behavior and activates no routes or session. See [contract](../contracts/management-http-privacy.md) and [plan](plans/639-management-http-privacy.md). Loopback socket evidence is not native-browser, company SSO or installed ingress acceptance.
