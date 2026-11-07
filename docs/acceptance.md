@@ -1856,3 +1856,10 @@ The shared Node HTTP bridge forces no-store and nosniff on exact /management and
 - Public Fetch and actual Node HTTP using local signed JWTs and migrated PGlite must persist only server request ID, timestamp, outcome and authenticated principal for ready; authentication failure/unavailability have null identity. Verify deactivation, SQL failure, missing table and pending INSERT never bypass required persistence.
 - Verify strict mode ambiguity rejection, captured configuration, invalid events/clock/acknowledgements, private errors, unknown extra fields and file-backed close/reopen. Default migration sources must remain unchanged; optional DDL is not installed automatically.
 - Local SQL reopen is not installed PostgreSQL durability, native-browser/company-IdP session acceptance, deployment authorization or full product completion. See [plan](plans/770-principal-audit.md) and [contract](../contracts/current-principal-audit.md).
+
+## Same-listener SSO read integration (#772)
+
+- Actual loopback HTTP serves principal, list and encoded detail on one explicitly bound test server. Changed model Deny hides models without changing the caller identity; fresh binding revocation denies both.
+- Missing/expired credentials beyond existing tolerance require anonymous durable audits and401. Missing required audit tables suppress the affected read with private503, without fabricating authority or exposing secrets.
+- Unmatched paths/methods do no private work; malformed selected paths/aborted requests fail400 before SQL. Configuration is captured, overrides ignored and throwing getters have fixed startup diagnostics.
+- No native-browser, installed PostgreSQL, live IdP/session/CSRF/CORS, default migration/runtime activation or deployment acceptance is implied. See [plan](plans/772-sso-read-api.md) and [contract](../contracts/sso-read-api.md).

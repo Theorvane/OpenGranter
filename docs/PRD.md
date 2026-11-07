@@ -1244,3 +1244,7 @@ An opt-in server-facing Bearer HTTP factory now supplies the current-principal c
 ## Durable current-principal audit option (#770)
 
 The identity-only current-principal factory accepts an explicit SQL audit client as an alternative to its required durable callback. It persists a nonsecret success/anonymous-failure record before any identity release. Proposed dedicated audit DDL is opt-in and excluded from automatic migrations; installation and database commit semantics remain owner responsibilities. No session, runtime mount or IAM grant is added. See [plan](plans/770-principal-audit.md) and [contract](../contracts/current-principal-audit.md).
+
+## Same-listener identity and published model reads (#772)
+
+An explicitly configured unbound SSO read API now composes current active-human identity and independently IAM-filtered model list/detail. Both retain fresh RFC9068 authentication and mandatory dedicated SQL audit; identity is never a model or management permission grant. No frontend/runtime/session activation, automatic schema installation or provider work follows. See [plan](plans/772-sso-read-api.md) and [contract](../contracts/sso-read-api.md).
