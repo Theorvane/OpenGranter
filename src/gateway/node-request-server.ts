@@ -1,4 +1,4 @@
-import { createServer, type Server } from 'node:http';
+import { createServer, type Server, validateHeaderValue } from 'node:http';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import {
@@ -68,16 +68,31 @@ export function createNodeRequestServer(
       if (outgoing.headersSent) {
         outgoing.destroy();
       } else {
-        const response =
-          errorResponse?.() ??
-          createClientErrorResponse(500, 'internal_error', undefined, errorFormat);
+        let response: Response;
+        let body: string;
+        try {
+          response =
+            errorResponse?.() ??
+            createClientErrorResponse(500, 'internal_error', undefined, errorFormat);
+          // Prepare the whole fallback before committing any custom status, headers or bytes.
+          // A broken factory/body must not reject the async Node request listener.
+          if (response.status < 200 || response.status > 599) throw new Error('Invalid fallback');
+          response.headers.forEach((value, name) => {
+            validateHeaderValue(name, value);
+          });
+          body = await response.text();
+        } catch {
+          response = createClientErrorResponse(500, 'internal_error', undefined, errorFormat);
+          body = await response.text();
+        }
+        if (outgoing.destroyed) return;
         outgoing.statusCode = response.status;
         response.headers.forEach((value, name) => {
           outgoing.setHeader(name, value);
         });
         if (discoveryRequest || managementRequest) outgoing.setHeader('cache-control', 'no-store');
         if (managementRequest) outgoing.setHeader('x-content-type-options', 'nosniff');
-        outgoing.end(await response.text());
+        outgoing.end(body);
       }
     } finally {
       incoming.removeListener('aborted', abort);

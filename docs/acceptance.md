@@ -1832,3 +1832,8 @@ The shared Node HTTP bridge forces no-store and nosniff on exact /management and
 
 - Assert management 200/201, 401/403/404/503 and unexpected 500 fallback responses carry no-store and nosniff over a real Node socket, overriding unsafe child headers without changing body/status/request IDs or Bearer challenge.
 - Assert /management-public and query-only management strings retain unrelated cache policy; existing discovery and proxy error-format regressions remain green.
+
+## Management transport fallback containment (#639)
+
+- Real loopback HTTP with an isolated process verifies throwing factories, invalid fallback status/header, partially errored streams and consumed bodies produce fixed 500 responses with no custom fallback metadata or private error text. Repeat requests demonstrate process survival.
+- Management no-store/nosniff and compatible discovery no-store/error shape survive fallback failure. Existing valid custom responses remain supported. These are transport checks, not browser SSO, installed PostgreSQL or provider acceptance.
