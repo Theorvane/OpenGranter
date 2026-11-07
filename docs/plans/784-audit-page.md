@@ -131,3 +131,10 @@
 3. Offer Retry audit request only after unavailable/cancelled; use a copy of submitted filters/cursor, never edited drafts, retained rows, automatic retry or CSV replay. Retry starts a fresh bounded HTTP request with existing IAM and mandatory audit. Reset retry state on new/invalid filters, clear, replacement and disposal.
 4. Cover double-click/detached controls, denied/unauthenticated no retry, CSV cancellation, stale response and exact submitted scope. Exercise actual browser client with existing local audit HTTP and test authority; no public SSO/session activation.
 5. Run bounded regression/typecheck/lint/planning checks, commit and request exact-head review/CI. No merge without formal approval and dependency gates.
+
+
+## Audit query-only navigation recovery (#637 / #642)
+1. Reproduce loss of backward navigation when an existing cursor read or CSV preparation fails or is cancelled, in source and bundled views.
+2. Retain only submitted query history while loading or explicitly recoverable; never retain rows, downloads or response bodies. An explicit retry performs a fresh existing bounded read, preserves the selected cursor, and restores Previous page only after success.
+3. Verify multi-page backward traversal, repeated unavailable/cancelled results, previous-page failure, CSV retry without download replay, draft isolation and recovery removal on invalid/new filters, denial, clear, replacement and disposal. Exercise actual HTTP mandatory-audit failure in native Chromium.
+4. Require exact-head CI, independent formal approval and inherited dependency gates. No auth/session/API/schema/runtime activation changes.

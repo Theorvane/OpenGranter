@@ -607,3 +607,138 @@ test('CSV cancellation retries a read only and cannot revive a stale download', 
   assert.doesNotMatch(root.text(), /Download current-page CSV/);
   app.dispose();
 });
+
+for (const bundled of [false, true]) {
+  const mountNavigation = async (root: Element) => {
+    if (!bundled) return mountManagementAudit(root);
+    const code = await buildManagementBrowser({
+      root: process.cwd(),
+      entry: 'src/management/audit-page.ts',
+    });
+    const module = await import(
+      `data:text/javascript;base64,${Buffer.from(code).toString('base64')}`
+    );
+    return module.mountManagementAudit(root);
+  };
+  for (const failure of [
+    'unavailable',
+    'cancelled',
+    'pending-cancel',
+    'csv-unavailable',
+    'csv-cancel',
+  ] as const) {
+    test(`${bundled ? 'built' : 'source'}: ${failure} retry restores only submitted backward queries`, async () => {
+      const root = new Element();
+      const app = await mountNavigation(root);
+      const seen: AuditFilters[] = [];
+      let fail = false;
+      let finish: ((value: AuditClientResult) => void) | undefined;
+      app.connect({
+        list: async (query: AuditFilters = {}) => {
+          seen.push({ ...query });
+          if (fail) {
+            if (failure === 'pending-cancel' || failure === 'csv-cancel')
+              return new Promise<AuditClientResult>((resolve) => {
+                finish = resolve;
+              });
+            return { state: failure === 'cancelled' ? 'cancelled' : 'unavailable' };
+          }
+          return ready(query.cursor === '4' ? null : query.cursor === '8' ? '4' : '8');
+        },
+        invalidate() {},
+      });
+      root.input('Principal ID').value = 'human';
+      root.input('Model').value = 'm';
+      root.button('Apply filters').listeners.click?.();
+      await settle();
+      root.button('Next page').listeners.click?.();
+      await settle();
+      if (failure.startsWith('csv')) {
+        root.button('Next page').listeners.click?.();
+        await settle();
+      }
+      fail = true;
+      root
+        .button(failure.startsWith('csv') ? 'Prepare current-page CSV' : 'Next page')
+        .listeners.click?.();
+      if (failure === 'pending-cancel' || failure === 'csv-cancel') {
+        root.button('Cancel request').listeners.click?.();
+        finish?.(ready());
+      }
+      await settle();
+      assert.doesNotMatch(root.text(), /<img|Previous page|Download current-page CSV/);
+      root.input('Model').value = 'unsubmitted';
+      fail = false;
+      const retry = root.button('Retry audit request');
+      retry.listeners.click?.();
+      retry.listeners.click?.();
+      await settle();
+      assert.deepEqual(seen.at(-1), { principalId: 'human', model: 'm', limit: 25, cursor: '4' });
+      assert.doesNotMatch(root.text(), /Download current-page CSV/);
+      root.button('Previous page').listeners.click?.();
+      await settle();
+      assert.equal(seen.at(-1)?.cursor, '8');
+      root.button('Previous page').listeners.click?.();
+      await settle();
+      assert.equal(seen.at(-1)?.cursor, undefined);
+      assert.equal(
+        root.all().some((n) => n.textContent === 'Previous page'),
+        false,
+      );
+      app.dispose();
+    });
+  }
+  test(`${bundled ? 'built' : 'source'}: repeated failure on Previous page restores exact remaining stack, new filters discard it`, async () => {
+    const root = new Element();
+    const app = await mountNavigation(root);
+    const seen: AuditFilters[] = [];
+    let fail = false;
+    app.connect({
+      list: async (query: AuditFilters = {}) => {
+        seen.push({ ...query });
+        if (fail) return { state: 'unavailable' };
+        return ready(query.cursor === '4' ? null : query.cursor === '8' ? '4' : '8');
+      },
+      invalidate() {},
+    });
+    root.button('Apply filters').listeners.click?.();
+    await settle();
+    root.button('Next page').listeners.click?.();
+    await settle();
+    root.button('Next page').listeners.click?.();
+    await settle();
+    fail = true;
+    root.button('Previous page').listeners.click?.();
+    await settle();
+    root.button('Retry audit request').listeners.click?.();
+    await settle();
+    fail = false;
+    root.button('Retry audit request').listeners.click?.();
+    await settle();
+    assert.equal(seen.at(-1)?.cursor, '8');
+    root.button('Previous page').listeners.click?.();
+    await settle();
+    assert.equal(seen.at(-1)?.cursor, undefined);
+    root.button('Next page').listeners.click?.();
+    await settle();
+    fail = true;
+    root.button('Next page').listeners.click?.();
+    await settle();
+    const stale = root.button('Retry audit request');
+    fail = false;
+    root.input('Model').value = 'new-model';
+    root.button('Apply filters').listeners.click?.();
+    await settle();
+    const before = seen.length;
+    stale.listeners.click?.();
+    await settle();
+    assert.equal(seen.length, before);
+    assert.equal(seen.at(-1)?.model, 'new-model');
+    assert.equal(seen.at(-1)?.cursor, undefined);
+    assert.equal(
+      root.all().some((n) => n.textContent === 'Previous page'),
+      false,
+    );
+    app.dispose();
+  });
+}

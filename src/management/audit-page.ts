@@ -22,6 +22,8 @@ export function mountManagementAudit(root: UsageElement) {
   let result: AuditClientResult | undefined;
   let loading = false;
   let retryQuery: AuditFilters | undefined;
+  // Query-only navigation context. Never retain rows or export bodies for recovery.
+  let recoveryHistory: readonly AuditFilters[] = [];
   let downloadUrl: string | undefined;
   function revokeDownload() {
     if (downloadUrl) URL.revokeObjectURL(downloadUrl);
@@ -93,6 +95,7 @@ export function mountManagementAudit(root: UsageElement) {
           previous = [];
           loading = false;
           retryQuery = undefined;
+          recoveryHistory = [];
           status = 'Invalid filters';
           render();
           return;
@@ -122,7 +125,7 @@ export function mountManagementAudit(root: UsageElement) {
       if (retry)
         button('Retry audit request', () => {
           // A new read, not an automatic replay of export or unsubmitted controls.
-          void load({ ...retry });
+          void load({ ...retry }, recoveryHistory);
         });
       if (result?.state === 'ready') {
         const exportQuery = { ...filters };
@@ -223,6 +226,7 @@ export function mountManagementAudit(root: UsageElement) {
     revokeDownload();
     active.invalidate();
     filters = { ...query };
+    recoveryHistory = history.map((entry) => ({ ...entry }));
     previous = [];
     result = undefined;
     loading = true;
@@ -260,6 +264,7 @@ export function mountManagementAudit(root: UsageElement) {
     loading = false;
     retryQuery =
       response.state === 'unavailable' || response.state === 'cancelled' ? { ...query } : undefined;
+    if (!retryQuery) recoveryHistory = [];
     result = response;
     switch (response.state) {
       case 'ready':
@@ -293,6 +298,7 @@ export function mountManagementAudit(root: UsageElement) {
     filters = {};
     loading = false;
     retryQuery = undefined;
+    recoveryHistory = [];
     previous = [];
     drafts = { principal: '', model: '', from: '', to: '' };
     status = 'Authentication required';

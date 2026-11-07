@@ -1419,3 +1419,7 @@ The existing audit screen and bounded client can both be built as browser module
 
 ## Audit review explicit recovery (#637 / #642)
 The existing opt-in audit page supports cancelling pending reads/CSV preparation and explicit retry of unavailable/cancelled reads. Retry preserves submitted scope/cursor, executes a fresh server-authorized read, and never replays CSV or denied/authentication failures. This does not activate public SSO/session or complete installed acceptance. See [contract](../contracts/audit-review-page.md) and [plan](plans/784-audit-page.md).
+
+
+## Audit backward-navigation recovery (#637 / #642)
+Explicit retry of failed/cancelled existing audit reads restores submitted query-only backward history after success, without restoring old rows, replaying CSV, or consuming draft filters. Failures still hide rows and navigation; new scope or authority changes remove recovery context. No public SSO mount or deployment acceptance is implied. See [contract](../contracts/audit-review-page.md).
