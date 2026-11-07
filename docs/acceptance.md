@@ -1842,3 +1842,7 @@ The shared Node HTTP bridge forces no-store and nosniff on exact /management and
 
 - Actual loopback HTTP invalid status/header and consumed body cases yield fixed errors without failed-response cookies, redirects, encodings, framing or private headers. Repeated requests demonstrate survival.
 - Valid responses retain intended status, headers and body. These checks do not certify browser sign-in or installed acceptance.
+
+## Non-blocking credential body rejection (#764)
+
+For both authenticated issue and revoke, oversized and invalid UTF-8 streams with pending cancellation settle as no-store 400 invalid_request without mutation. Cancellation is attempted and the reader lock is released before cleanup completes. Existing successful mutations, authentication-first validation, denial and required-audit outcomes stay unchanged. See [plan](plans/764-credential-body-cleanup.md).
