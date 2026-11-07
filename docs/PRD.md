@@ -1322,3 +1322,7 @@ The actual public management bundle mounts the existing Models/Usage workspace r
 ## Integrated authorized usage summaries (#637)
 
 The public Models/Usage feature line reuses the existing exact current-page token coverage and per-model cost/token renderers. Summaries consume only already authorized rows, make no extra request and retire with page authority. No session or runtime activation. See [plan](plans/637-usage-summary-integration.md).
+
+## Integrated scoped model usage filter (#637)
+
+The existing public Models/Usage source line reuses the model summary filter action against the existing authorized usage API. It retains submitted scope, resets paging and drafts, and requires fresh server IAM plus mandatory audit. Revocation clears summaries and stale controls cannot make reads; an explicit renewed trusted grant remains separate from browser login. No session/runtime/schema activation. See [plan](plans/637-model-filter-integration.md).

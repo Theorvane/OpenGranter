@@ -5,3 +5,10 @@
 3. Integrate existing controls, then extend signed SSO real HTTP and migrated embedded SQL acceptance: explicit click, exact alias, fresh IAM and mandatory audit, expiry/stale-control denial.
 4. GREEN: focused tests, browser-artifact build, typecheck, lint and full check. Native-browser/installed PostgreSQL/IdP/provider evidence stays separate.
 5. Submit dependent PR; exact-head CI, valid independent formal approval and ancestor gates are required before merge.
+
+## Integration evidence boundaries
+
+- Existing frontend renderer/action code is reused; only absent request-group render context was excluded. No duplicate component or unrelated ancestor API was imported.
+- Source and browser-artifact tests cover submitted scope, cursor/history/CSV reset, stale controls and authority lifecycle.
+- Signed test-SSO real loopback HTTP with migrated PGlite additionally proves exact-alias filter and fresh IAM revocation with mandatory audit. This is not installed PostgreSQL, a native browser or an approved session/IdP deployment.
+- After a server denial the app correctly retires its grant; expiry acceptance uses an explicitly renewed test grant rather than expecting denial to retain authority.
