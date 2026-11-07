@@ -11,7 +11,9 @@ import { type CatalogElement, renderCatalogView } from './catalog-view.ts';
  */
 export function mountSsoManagementCatalog(
   root: CatalogElement,
-  options: Omit<CatalogAuthorityOptions, 'onChange'> = {},
+  options: Omit<CatalogAuthorityOptions, 'onChange'> & {
+    readonly onInspectUsage?: (id: string) => void;
+  } = {},
 ) {
   let navigate = false;
   const actions = {
@@ -27,7 +29,24 @@ export function mountSsoManagementCatalog(
   const authority = createSsoManagementCatalogAuthority({
     ...options,
     onChange(snapshot) {
-      renderCatalogView(root, snapshot, actions, navigate);
+      renderCatalogView(
+        root,
+        snapshot,
+        {
+          ...actions,
+          ...(options.onInspectUsage && snapshot.state === 'detail'
+            ? {
+                inspectUsage(id: string) {
+                  // snapshot() checks expiry even when timers were suspended. Detached
+                  // detail controls cannot act after navigation, renewal or teardown.
+                  if (authority.snapshot() !== snapshot) return;
+                  options.onInspectUsage?.(id);
+                },
+              }
+            : {}),
+        },
+        navigate,
+      );
       if (snapshot.state !== 'loading' && snapshot.state !== 'idle') navigate = false;
     },
   });

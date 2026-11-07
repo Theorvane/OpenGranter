@@ -3,14 +3,14 @@ import { once } from 'node:events';
 import test from 'node:test';
 import { createSsoUsageHistoryServer } from '../src/gateway/sso-usage-history-http.ts';
 import { mountManagementUsage, type UsageElement } from '../src/management/usage-app.ts';
-import { buildUsageRecord } from '../src/usage/record-usage.ts';
+import { buildUsageRecord, type UsageRecord } from '../src/usage/record-usage.ts';
 
 class Element implements UsageElement {
   textContent: string | null = null;
   value = '';
   children: Element[] = [];
   attrs: Record<string, string> = {};
-  listeners: Record<string, () => void> = {};
+  listeners: Record<string, (event?: { preventDefault(): void }) => void> = {};
   ownerDocument = { createElement: (tag: string) => new Element(tag) };
   readonly tag: string;
   constructor(tag = 'div') {
@@ -25,7 +25,7 @@ class Element implements UsageElement {
   replaceChildren(...nodes: Element[]) {
     this.children = nodes;
   }
-  addEventListener(type: string, listener: () => void) {
+  addEventListener(type: string, listener: (event?: { preventDefault(): void }) => void) {
     this.listeners[type] = listener;
   }
   click() {
@@ -1032,5 +1032,537 @@ test('model inspection is opt-in safe text and detached controls cannot navigate
     inspect.click();
     assert.deepEqual(seen, [row.modelAlias], action);
     app.dispose();
+  }
+});
+
+test('detached usage controls cannot replay filters, paging or CSV under renewed authority over HTTP', async () => {
+  const seen: string[] = [];
+  const server = createSsoUsageHistoryServer({
+    newRequestId: () => 'render-lifetime',
+    usage: {
+      async read(_token, _id, query) {
+        seen.push(query);
+        return {
+          state: 'ready',
+          format: 'json',
+          data: [row],
+          hasMore: true,
+          nextCursor: cursor,
+        };
+      },
+    },
+  });
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  const address = server.address();
+  if (!address || typeof address === 'string') throw Error('no address');
+  const root = new Element();
+  const app = mountManagementUsage(root, { now: () => 100, schedule: () => () => {} });
+  const grant = {
+    expiresAt: 200,
+    request: (path: string, init: RequestInit) =>
+      fetch(`http://127.0.0.1:${address.port}${path}`, {
+        ...init,
+        headers: { ...init.headers, authorization: 'Bearer test-port' },
+      }),
+  };
+  try {
+    await app.authorize(grant);
+    const old = [
+      'Apply filters',
+      'Next page',
+      'Export current page CSV',
+      'Refresh current page',
+      'Retry / first page',
+    ].map((label) => root.button(label));
+    const input = root.all().find((node) => node.tag === 'input');
+    assert.ok(input);
+    input.value = 'old-principal';
+    await app.authorize(grant);
+    assert.equal(seen.length, 2);
+    for (const control of old) control.click();
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    assert.equal(seen.length, 2, 'old controls must not dispatch using renewed authority');
+    assert.doesNotMatch(root.text(), /Loading|Preparing/);
+    root.button('Apply filters').click();
+    await waitFor(() => seen.length === 3 && root.text().includes('Usage records'));
+    assert.equal(new URLSearchParams(seen[2]).has('principal_id'), false);
+  } finally {
+    app.dispose();
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
+  }
+});
+
+test('detached cancel cannot abort a replacement usage request', async () => {
+  const root = new Element();
+  const app = mountManagementUsage(root);
+  let finish!: (value: Response) => void;
+  const first = app.connect(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  const oldCancel = root.button('Cancel request');
+  finish(response());
+  await first;
+  let replacementSignal: AbortSignal | null | undefined;
+  let complete!: (value: Response) => void;
+  const replacement = app.connect((_path, init) => {
+    replacementSignal = init.signal;
+    return new Promise((resolve) => {
+      complete = resolve;
+    });
+  });
+  try {
+    oldCancel.click();
+    assert.equal(replacementSignal?.aborted, false);
+    assert.match(root.text(), /Loading usage/);
+    complete(response([]));
+    await replacement;
+    assert.match(root.text(), /No usage records/);
+    root.button('Refresh current page').click();
+    const freshCancel = root.button('Cancel request');
+    freshCancel.click();
+    assert.equal(replacementSignal?.aborted, true);
+    assert.match(root.text(), /Request cancelled/);
+    complete(response());
+  } finally {
+    app.dispose();
+  }
+});
+
+test('CSV link activation checks trusted deadline even when expiry timer is suspended', async () => {
+  const f = authorityFixture();
+  const revoked: string[] = [];
+  const original = URL.revokeObjectURL;
+  URL.revokeObjectURL = (url) => {
+    revoked.push(url);
+    original(url);
+  };
+  try {
+    await f.app.authorize({
+      expiresAt: 2000,
+      request: async (path) =>
+        path.includes('format=csv')
+          ? new Response('private,csv', {
+              headers: { 'content-type': 'text/csv', 'x-usage-has-more': 'false' },
+            })
+          : response(),
+    });
+    f.root.button('Export current page CSV').click();
+    await waitFor(() => f.root.text().includes('Download usage.csv'));
+    const link = f.root.all().find((node) => node.tag === 'a');
+    assert.ok(link);
+    const url = link.attrs.href;
+    assert.ok(url);
+    const fresh = new Event('click', { cancelable: true });
+    link.listeners.click?.(fresh);
+    assert.equal(fresh.defaultPrevented, false);
+    f.setTime(2000); // Do not fire the scheduled expiry callback.
+    for (const type of ['auxclick', 'click', 'contextmenu']) {
+      const expired = new Event(type, { cancelable: true });
+      link.listeners[type]?.(expired);
+      assert.equal(expired.defaultPrevented, true, type);
+    }
+    assert.match(f.root.text(), /Session expired/);
+    assert.ok(revoked.includes(url));
+    assert.doesNotMatch(f.root.text(), /Download usage.csv/);
+  } finally {
+    f.app.dispose();
+    URL.revokeObjectURL = original;
+  }
+});
+
+test('detached CSV links cannot activate after replacement, renewal, clearing or disposal', async () => {
+  const f = authorityFixture();
+  const grant = {
+    expiresAt: 2000,
+    request: async (path: string) =>
+      path.includes('format=csv')
+        ? new Response('private,csv', {
+            headers: { 'content-type': 'text/csv', 'x-usage-has-more': 'false' },
+          })
+        : response(),
+  };
+  async function exportLink() {
+    f.root.button('Export current page CSV').click();
+    await waitFor(() => f.root.text().includes('Download usage.csv'));
+    const link = f.root.all().find((node) => node.tag === 'a');
+    assert.ok(link);
+    return link;
+  }
+  function blocked(link: Element) {
+    for (const type of ['click', 'auxclick', 'contextmenu']) {
+      const event = new Event(type, { cancelable: true });
+      link.listeners[type]?.(event);
+      assert.equal(event.defaultPrevented, true, type);
+    }
+  }
+  try {
+    await f.app.authorize(grant);
+    const replaced = await exportLink();
+    const renewed = await exportLink();
+    blocked(replaced);
+    await f.app.authorize(grant);
+    blocked(renewed);
+    assert.doesNotMatch(f.root.text(), /Session expired/);
+    const cleared = await exportLink();
+    f.app.clear();
+    blocked(cleared);
+    await f.app.authorize(grant);
+    const disposed = await exportLink();
+    f.app.dispose();
+    blocked(disposed);
+  } finally {
+    f.app.dispose();
+  }
+});
+
+test('current-page summary consumes HTTP rows with exact separate costs and coverage', async () => {
+  const rows: UsageRecord[] = [
+    {
+      ...row,
+      estimatedCost: { amountDecimal: '9007199254740993.1', currency: 'USD', priceVersion: 'p1' },
+      upstreamBilledCost: { amountDecimal: '0.20', currency: 'USD', source: 'direct-provider' },
+    },
+    {
+      ...row,
+      attemptId: 'second',
+      estimatedCost: { amountDecimal: '0.20', currency: 'USD', priceVersion: 'p2' },
+      upstreamBilledCost: { amountDecimal: '0', currency: 'EUR', source: 'openrouter' },
+      possibleDuplicate: true,
+    },
+    {
+      ...row,
+      attemptId: 'third',
+      estimatedCost: { amountDecimal: '0.000000000000000001', currency: 'EUR', priceVersion: 'p3' },
+    },
+    {
+      ...row,
+      attemptId: 'fourth',
+      usage: { status: 'partial', promptTokens: 1, completionTokens: null, totalTokens: null },
+    },
+  ];
+  const server = createSsoUsageHistoryServer({
+    newRequestId: () => 'summary',
+    usage: {
+      async read() {
+        return { state: 'ready', format: 'json', data: rows, hasMore: false, nextCursor: null };
+      },
+    },
+  });
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  const address = server.address();
+  assert.ok(address && typeof address !== 'string');
+  const root = new Element();
+  const app = mountManagementUsage(root);
+  try {
+    await app.connect((path, init) =>
+      fetch('http://127.0.0.1:' + address.port + path, {
+        ...init,
+        headers: { ...init.headers, authorization: 'Bearer test-port' },
+      }),
+    );
+    const summary = root
+      .all()
+      .find((node) => node.attrs['aria-label'] === 'Current page cost summary');
+    assert.ok(summary);
+    const text = summary.text();
+    assert.match(text, /9007199254740993\.3 USD/);
+    assert.match(text, /0\.000000000000000001 EUR/);
+    assert.match(text, /0\.2 USD/);
+    assert.match(text, /0 EUR/);
+    assert.match(text, /Estimated cost coverage: 3 of 4 records/);
+    assert.match(text, /Reported cost coverage: 2 of 4 records/);
+    assert.match(text, /Partial usage: 1/);
+    assert.match(text, /Missing usage: 3/);
+    assert.match(text, /Possible duplicates: 1/);
+    assert.match(text, /Possibly billed: 4/);
+    assert.match(text, /not an invoice or all-pages total/);
+    root.button('Refresh current page').click();
+    assert.equal(
+      root.all().some((node) => node.attrs['aria-label'] === 'Current page cost summary'),
+      false,
+    );
+    await waitFor(() => root.text().includes('Current page only'));
+    app.clear('expired');
+    assert.doesNotMatch(root.text(), /9007199254740993|Current page only/);
+  } finally {
+    app.dispose();
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+});
+
+test('empty and unknown page costs never become invented zero totals', async () => {
+  const root = new Element();
+  const app = mountManagementUsage(root);
+  await app.connect(async () => response());
+  assert.match(root.text(), /Estimated cost coverage: 0 of 1 records/);
+  assert.match(root.text(), /Estimated totals: Unknown/);
+  assert.match(root.text(), /Reported totals: Unknown/);
+  await app.connect(async () => response([]));
+  assert.match(root.text(), /Estimated cost coverage: 0 of 0 records/);
+  assert.match(root.text(), /Estimated totals: Unknown/);
+  assert.doesNotMatch(root.text(), /0 USD/);
+  app.dispose();
+  assert.doesNotMatch(root.text(), /Current page only/);
+});
+
+test('page totals handle decimal carry, maximum ledger amounts and explicit zero', async () => {
+  const root = new Element();
+  const app = mountManagementUsage(root);
+  const amounts = ['0.1', '0.2', '0.70'];
+  await app.connect(async () =>
+    response(
+      amounts.map((amountDecimal) => ({
+        ...row,
+        estimatedCost: { amountDecimal, currency: 'USD', priceVersion: 'p' },
+      })),
+    ),
+  );
+  const summary = () => {
+    const found = root
+      .all()
+      .find((node) => node.attrs['aria-label'] === 'Current page cost summary');
+    assert.ok(found);
+    return found.text();
+  };
+  assert.match(summary(), /Estimated totals: 1 USD/);
+  assert.doesNotMatch(summary(), /1\.0|0\.300000/);
+  await app.connect(async () =>
+    response([
+      { ...row, estimatedCost: { amountDecimal: '0.000', currency: 'USD', priceVersion: 'p' } },
+    ]),
+  );
+  assert.match(summary(), /Estimated totals: 0 USD/);
+  assert.match(summary(), /Estimated cost coverage: 1 of 1 records/);
+  const max = '9'.repeat(128);
+  await app.connect(async () =>
+    response(
+      Array.from({ length: 100 }, (_, index) => ({
+        ...row,
+        attemptId: String(index),
+        estimatedCost: { amountDecimal: max, currency: 'USD', priceVersion: 'p' },
+      })),
+    ),
+  );
+  assert.ok(summary().includes('Estimated totals: ' + (BigInt(max) * 100n).toString() + ' USD'));
+  assert.match(summary(), /Estimated cost coverage: 100 of 100 records/);
+  app.dispose();
+});
+
+test('trusted initial model filter survives paging and refresh, validates locally, and resets on renewal', async () => {
+  const root = new Element();
+  const app = mountManagementUsage(root, { now: () => 1 });
+  const alias = 'team/chat+?&=한글';
+  const seen: URLSearchParams[] = [];
+  const grant = {
+    expiresAt: 1000,
+    request: async (path: string) => {
+      const query = new URL('https://local.invalid' + path).searchParams;
+      seen.push(query);
+      return Response.json({
+        object: 'list',
+        data: [{ ...row, modelAlias: alias }],
+        has_more: !query.has('cursor'),
+        next_cursor: query.has('cursor') ? null : cursor,
+      });
+    },
+  };
+  try {
+    await app.authorize(grant, alias);
+    assert.equal(seen[0]?.get('model'), alias);
+    assert.equal(seen[0]?.has('principal_id'), false);
+    root.button('Next page').click();
+    await waitFor(() => root.text().includes('Previous page'));
+    root.button('Refresh current page').click();
+    await waitFor(() => seen.length === 3 && root.text().includes('Previous page'));
+    assert.ok(
+      seen
+        .slice(1)
+        .every((query) => query.get('model') === alias && query.get('cursor') === cursor),
+    );
+    root.button('Previous page').click();
+    await waitFor(() => seen.length === 4 && root.text().includes('Next page'));
+    assert.equal(seen[3]?.has('cursor'), false);
+    assert.equal(seen[3]?.get('model'), alias);
+    await app.authorize(grant, 'bad\nfilter');
+    assert.equal(seen.length, 4, 'invalid initial filters never dispatch');
+    assert.match(root.text(), /Invalid usage filters/);
+    await app.authorize(grant);
+    assert.equal(seen[4]?.has('model'), false);
+  } finally {
+    app.dispose();
+  }
+});
+
+test('invalid usage drafts survive repeated submission and correction keeps exact scope', async () => {
+  const root = new Element();
+  const app = mountManagementUsage(root);
+  const seen: URLSearchParams[] = [];
+  const input = (label: string) => {
+    const found = root.all().find((node) => node.tag === 'label' && node.textContent === label)
+      ?.children[0];
+    assert.ok(found, label);
+    return found;
+  };
+  try {
+    await app.connect(async (path) => {
+      seen.push(new URL('https://local.invalid' + path).searchParams);
+      return response();
+    });
+    input('Model').value = 'team/chat+?&=한글';
+    input('From (UTC)').value = '2023-02-29T00:00';
+    input('To (UTC, exclusive)').value = '2024-03-01T00:00:00.001';
+    input('Page size (1–100)').value = '101';
+    root.button('Apply filters').click();
+    await waitFor(() => root.text().includes('Invalid usage filters'));
+    assert.equal(input('From (UTC)').value, '2023-02-29T00:00');
+    assert.equal(input('Page size (1–100)').value, '101');
+    root.button('Apply filters').click();
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(seen.length, 1, 'repeat does not broaden a rejected range into an HTTP read');
+    input('From (UTC)').value = '2024-02-29T00:00:00.001';
+    input('Page size (1–100)').value = '25';
+    root.button('Apply filters').click();
+    await waitFor(() => seen.length === 2 && root.text().includes('Inspect attempt'));
+    assert.equal(seen[1]?.get('from_ms'), String(Date.parse('2024-02-29T00:00:00.001Z')));
+    assert.equal(seen[1]?.get('to_ms'), String(Date.parse('2024-03-01T00:00:00.001Z')));
+    assert.equal(seen[1]?.get('model'), 'team/chat+?&=한글');
+    assert.equal(seen[1]?.get('limit'), '25');
+  } finally {
+    app.dispose();
+  }
+});
+
+test('explicit clear filters starts a fresh self-scoped page and stale reset cannot use renewal', async () => {
+  const root = new Element();
+  const app = mountManagementUsage(root, { now: () => 1 });
+  const seen: URLSearchParams[] = [];
+  const grant = {
+    expiresAt: 1000,
+    request: async (path: string) => {
+      seen.push(new URL('https://local.invalid' + path).searchParams);
+      return response();
+    },
+  };
+  try {
+    await app.authorize(grant, 'scoped-model');
+    const staleReset = root.button('Clear filters');
+    staleReset.click();
+    await waitFor(() => seen.length === 2 && root.text().includes('Inspect attempt'));
+    assert.equal(seen[1]?.toString(), 'format=json');
+    assert.ok(
+      root
+        .all()
+        .filter((node) => node.tag === 'input')
+        .every((node) => node.value === ''),
+    );
+    await app.authorize(grant, 'renewed-model');
+    staleReset.click();
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(seen.length, 3);
+    assert.equal(seen[2]?.get('model'), 'renewed-model');
+    app.clear();
+    assert.doesNotMatch(root.text(), /Clear filters|renewed-model/);
+  } finally {
+    app.dispose();
+  }
+});
+
+test('HTTP clear filters retires scoped CSV and cursor without inventing principal authority', async () => {
+  const seen: URLSearchParams[] = [];
+  const server = createSsoUsageHistoryServer({
+    newRequestId: () => 'filter-correction-http',
+    usage: {
+      async read(_token, _id, query) {
+        const params = new URLSearchParams(query);
+        seen.push(params);
+        if (params.get('format') === 'csv')
+          return {
+            state: 'ready',
+            format: 'csv',
+            csv: 'model\r\nchat\r\n',
+            hasMore: true,
+            nextCursor: cursor,
+          };
+        return {
+          state: 'ready',
+          format: 'json',
+          data: [row],
+          hasMore: !params.has('cursor'),
+          nextCursor: params.has('cursor') ? null : cursor,
+        };
+      },
+    },
+  });
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  const address = server.address();
+  assert.ok(address && typeof address !== 'string');
+  const root = new Element();
+  const app = mountManagementUsage(root);
+  try {
+    await app.connect((path, init) =>
+      fetch('http://127.0.0.1:' + address.port + path, {
+        ...init,
+        headers: { ...init.headers, authorization: 'Bearer isolated-test-port' },
+      }),
+    );
+    for (const [label, value] of [
+      ['Principal ID', 'human'],
+      ['Model', 'team/chat'],
+      ['From (UTC)', '1970-01-01T00:00:00.001'],
+    ]) {
+      const input = root.all().find((node) => node.tag === 'label' && node.textContent === label)
+        ?.children[0];
+      assert.ok(input);
+      assert.equal(typeof value, 'string');
+      input.value = value ?? '';
+    }
+    root.button('Apply filters').click();
+    await waitFor(() => seen.length === 2 && root.text().includes('Next page'));
+    root.button('Next page').click();
+    await waitFor(() => root.text().includes('Previous page'));
+    root.button('Export current page CSV').click();
+    await waitFor(() => root.text().includes('Download usage.csv'));
+    const href = root.all().find((node) => node.tag === 'a')?.attrs.href;
+    assert.ok(href);
+    assert.equal(seen.at(-1)?.get('cursor'), cursor);
+    assert.equal(seen.at(-1)?.get('principal_id'), 'human');
+    root.button('Clear filters').click();
+    await waitFor(() => seen.length === 5 && root.text().includes('Next page'));
+    assert.equal(seen.at(-1)?.toString(), 'format=json');
+    assert.doesNotMatch(root.text(), /Previous page|Download usage.csv|Export next CSV page/);
+    await assert.rejects(fetch(href));
+    const model = root.all().find((node) => node.tag === 'label' && node.textContent === 'Model')
+      ?.children[0];
+    assert.ok(model);
+    model.value = 'private-draft';
+    root.button('Apply filters').click();
+    await waitFor(() => seen.length === 6 && root.text().includes('Next page'));
+    app.clear('expired');
+    assert.doesNotMatch(root.text(), /private-draft|Clear filters|Inspect attempt/);
+    await app.connect((path, init) =>
+      fetch('http://127.0.0.1:' + address.port + path, {
+        ...init,
+        headers: { ...init.headers, authorization: 'Bearer isolated-test-port' },
+      }),
+    );
+    assert.equal(seen.at(-1)?.toString(), 'format=json');
+    assert.ok(
+      root
+        .all()
+        .filter((node) => node.tag === 'input')
+        .every((node) => node.value === ''),
+    );
+  } finally {
+    app.dispose();
+    server.close();
+    await once(server, 'close');
   }
 });
