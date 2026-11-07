@@ -1366,3 +1366,7 @@ The separately selected, unbound administration browser factory combines existin
 
 ## Opt-in durable Account integration (#778)
 The existing review and administration browser factories accept explicit principalAuditClient to use fresh identity plus required dedicated SQL audit for exact GET /management/v1/me, returning the existing Account principalId envelope. Omission preserves legacy defaults. This reuses #777 in the existing host; it does not install its proposed audit DDL or select a session, runtime, IAM grant or deployment.
+
+
+## Required gateway audit acknowledgement (#780)
+The existing common SQL audit store accepts only one own returned row with an own positive signed-bigint event_id (canonical decimal string or positive safe integer driver representation). Malformed or missing acknowledgement fails closed with GatewayAuditUnavailable; existing management authentication denial returns audit_unavailable rather than an ordinary denial. SQL, schemas, IAM, session and runtime activation remain unchanged. This verifies the acknowledgement shape, not transaction commit or exactly-once persistence. See [plan](plans/780-gateway-audit-ack.md).

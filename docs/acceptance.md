@@ -2000,3 +2000,7 @@ The separately selected, unbound administration browser factory combines existin
 - Invalid supplied client fails construction. Capture configuration once. Required audit rejection or malformed acknowledgement returns private503 without identity; recovered SQL restores success. Fresh revoked binding gives anonymous401; identity-store failure gives anonymous503.
 - Static artifacts and invalid method make no SQL queries. Unchanged legacy/default review, scoped model/usage and credential allowlist/issue/revoke suites remain required.
 - Source and built Account workspace use actual same-origin signed-SSO HTTP and migrated PGlite, with no read stubs, across success, unavailable audit, recovery and revoked binding. This is emulated DOM evidence, not a native browser or installed PostgreSQL/SSO/provider certification.
+
+
+## Required gateway audit acknowledgement (#780)
+The existing common SQL audit store accepts only one own returned row with an own positive signed-bigint event_id (canonical decimal string or positive safe integer driver representation). Malformed or missing acknowledgement fails closed with GatewayAuditUnavailable; existing management authentication denial returns audit_unavailable rather than an ordinary denial. SQL, schemas, IAM, session and runtime activation remain unchanged. This verifies the acknowledgement shape, not transaction commit or exactly-once persistence. See [plan](plans/780-gateway-audit-ack.md).
