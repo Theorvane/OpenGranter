@@ -1867,3 +1867,11 @@ The shared Node HTTP bridge forces no-store and nosniff on exact /management and
 ## Account identity wire compatibility (#774)
 
 The explicit unbound SSO read API supports the existing Account GET `/management/v1/me` exact `{principalId}` contract through the same fresh authentication and required identity SQL audit as `/management/v1/principal`. Identity without IAM still cannot obtain catalog models. Acceptance covers actual loopback HTTP, both payloads, persisted audit, revoked/invalid identity and audit-failure suppression. Unknown/malformed routes remain private. No frontend/runtime/session/schema activation, native-browser, installed PostgreSQL, real IdP or deployment acceptance follows. See [plan](plans/774-account-me-contract.md) and [contract](../contracts/sso-current-principal-http.md).
+
+
+## Malformed identity audit acknowledgements (#776)
+
+- Reproduce erroneous200 from signed-token/current-binding identity HTTP when a SQL adapter returns an inherited event ID without an actual acknowledged row.
+- Require503 audit_unavailable with no identity/token; reject array-like rows, array rows, inherited row index and inherited result rows.
+- Actual Node Account socket must fail closed with no local audit row, then recover to200 and a real SQL row using a valid acknowledgement.
+- Preserve ordinary success, denial, SQL failure, pending append and exact Account projection tests. This is local HTTP/PGlite evidence only, not installed PostgreSQL or browser/session certification. See [plan](plans/776-principal-audit-ack.md).

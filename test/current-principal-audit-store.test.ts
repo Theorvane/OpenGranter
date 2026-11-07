@@ -144,3 +144,29 @@ test('success and anonymous failures require confirmed bigint acknowledgement', 
     [0, 'r', 'unavailable', null],
   ]);
 });
+
+for (const rows of [
+  { 0: { event_id: '1' }, length: 1 },
+  [Object.create({ event_id: '1' })],
+  [Object.assign([], { event_id: '1' })],
+  Object.assign(new Array(1), { __proto__: { 0: { event_id: '1' } } }),
+]) {
+  test('malformed SQL row structure cannot confirm required identity audit', async () => {
+    const store = createStore({ query: async () => ({ rows }) } as never, () => 1);
+    await assert.rejects(store.append(event), {
+      name: 'CurrentPrincipalAuditUnavailable',
+      message: 'Current principal audit store unavailable',
+    });
+  });
+}
+
+for (const acknowledgement of [
+  Object.create({ rows: [{ event_id: '1' }] }),
+  Object.assign([], { rows: [{ event_id: '1' }] }),
+  null,
+]) {
+  test('malformed SQL result envelope fails closed', async () => {
+    const store = createStore({ query: async () => acknowledgement } as never, () => 1);
+    await assert.rejects(store.append(event), { name: 'CurrentPrincipalAuditUnavailable' });
+  });
+}

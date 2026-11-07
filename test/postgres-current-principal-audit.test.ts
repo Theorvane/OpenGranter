@@ -295,6 +295,8 @@ test('invalid SQL acknowledgement and rejection suppress successful authenticate
     for (const query of [
       async () => ({ rows: [] }),
       async () => ({ rows: [{ event_id: '0' }] }),
+      async () => ({ rows: [Object.create({ event_id: '1' })] }),
+      async () => ({ rows: [Object.assign([], { event_id: '1' })] }),
       async () => {
         throw new Error('PRIVATE database');
       },
@@ -308,6 +310,57 @@ test('invalid SQL acknowledgement and rejection suppress successful authenticate
       assert.equal(text.includes('human-current'), false);
     }
   } finally {
+    await db.close();
+  }
+});
+
+test('Account socket never releases identity for a prototype-only audit acknowledgement', async () => {
+  const db = new PGlite();
+  const { createPostgresRfc9068SsoCurrentPrincipalServer } = await import(
+    '../src/gateway/postgres-sso-current-principal-http.ts'
+  );
+  let server: ReturnType<typeof createPostgresRfc9068SsoCurrentPrincipalServer> | undefined;
+  try {
+    await prepare(db);
+    let malformed = true;
+    server = createPostgresRfc9068SsoCurrentPrincipalServer({
+      ...ports(db),
+      auditClient: {
+        query: async (text, params) =>
+          malformed ? { rows: [Object.create({ event_id: '1' })] } : sql(db).query(text, params),
+      },
+    });
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    const address = server.address();
+    assert.ok(address && typeof address === 'object');
+    const url = `http://127.0.0.1:${address.port}/management/v1/me`;
+    const headers = { authorization: `Bearer ${token}` };
+    const failure = await fetch(url, { headers });
+    assert.equal(failure.status, 503);
+    assert.equal(failure.headers.get('cache-control'), 'no-store');
+    assert.equal(failure.headers.get('set-cookie'), null);
+    const text = await failure.text();
+    assert.equal(JSON.parse(text).error.code, 'audit_unavailable');
+    for (const secret of [token, jwt.subject, 'human-current'])
+      assert.equal(text.includes(secret), false);
+    assert.equal(
+      (await db.query('SELECT * FROM sso_current_principal_audit_events')).rows.length,
+      0,
+    );
+    malformed = false;
+    const success = await fetch(url, { headers });
+    assert.equal(success.status, 200);
+    assert.deepEqual(await success.json(), { principalId: 'human-current' });
+    assert.equal(
+      (await db.query('SELECT * FROM sso_current_principal_audit_events')).rows.length,
+      1,
+    );
+  } finally {
+    if (server) {
+      server.closeAllConnections();
+      await new Promise<void>((resolve) => server?.close(() => resolve()));
+    }
     await db.close();
   }
 });

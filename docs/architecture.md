@@ -1445,3 +1445,8 @@ The opt-in postgres-sso-read-api module projects captured registered-key configu
 ## Account identity wire compatibility (#774)
 
 The explicit unbound SSO read API supports the existing Account GET `/management/v1/me` exact `{principalId}` contract through the same fresh authentication and required identity SQL audit as `/management/v1/principal`. Identity without IAM still cannot obtain catalog models. Acceptance covers actual loopback HTTP, both payloads, persisted audit, revoked/invalid identity and audit-failure suppression. Unknown/malformed routes remain private. No frontend/runtime/session/schema activation, native-browser, installed PostgreSQL, real IdP or deployment acceptance follows. See [plan](plans/774-account-me-contract.md) and [contract](../contracts/sso-current-principal-http.md).
+
+
+## Identity audit acknowledgement boundary (#776)
+
+The existing SQL store rejects inherited/array/array-like acknowledgement rows before releasing identity. This preserves the existing required-await boundary and does not create a new server, schema, session or startup option. See [plan](plans/776-principal-audit-ack.md).
