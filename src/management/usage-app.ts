@@ -18,6 +18,8 @@ export interface UsageElement {
   focus(): void;
 }
 export interface UsageAuthorityOptions {
+  /** Trusted host presentation check; never an IAM grant or session. */
+  readonly isAuthorityCurrent?: () => boolean;
   /** Optional trusted workspace navigation, never an authorization decision. */
   readonly onInspectModel?: (id: string) => void;
   readonly now?: () => number;
@@ -36,13 +38,26 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
       const timer = setTimeout(callback, delay);
       return () => clearTimeout(timer);
     });
+  function clock() {
+    try {
+      return now();
+    } catch {
+      return NaN;
+    }
+  }
   let expiresAt: number | undefined;
   let cancelExpiry: (() => void) | undefined;
   let authorityRevision = 0;
   function expired() {
     if (expiresAt === undefined) return false;
-    const time = now();
-    if (!Number.isFinite(time) || time >= expiresAt) {
+    const time = clock();
+    // Local callers reject stale revisions before consulting the host. The
+    // host may dispose this view while clearing all shared authority.
+    if (options.isAuthorityCurrent && !options.isAuthorityCurrent()) {
+      if (!disposed) clear('expired');
+      return true;
+    }
+    if (!Number.isFinite(time) || time < 0 || time >= expiresAt) {
       clear('expired');
       return true;
     }
@@ -50,7 +65,12 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
   }
   function arm(current: number) {
     if (current !== authorityRevision || disposed || expiresAt === undefined || expired()) return;
-    const delay = Math.max(1, Math.min(2147483647, expiresAt - now()));
+    const time = clock();
+    if (!Number.isFinite(time) || time < 0 || time >= expiresAt) {
+      clear('expired');
+      return;
+    }
+    const delay = Math.max(1, Math.min(2147483647, expiresAt - time));
     cancelExpiry = schedule(delay, () => {
       if (current !== authorityRevision || disposed) return;
       cancelExpiry = undefined;
@@ -429,10 +449,11 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
     async authorize(grant: CatalogAuthorityGrant, modelId?: string) {
       if (disposed) return;
       clear();
-      const time = now();
+      const time = clock();
       if (
         !Number.isSafeInteger(grant.expiresAt) ||
         !Number.isFinite(time) ||
+        time < 0 ||
         grant.expiresAt <= time
       ) {
         clear('expired');

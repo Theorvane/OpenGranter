@@ -160,6 +160,7 @@ export function mountSsoUsageWorkspace(
           })
         : mountManagementUsage(content, {
             ...options,
+            isAuthorityCurrent: (): boolean => app === mounted && active && valid(),
             onInspectModel(id) {
               if (disposed || !active || app !== mounted || !valid()) return;
               view = 'models';

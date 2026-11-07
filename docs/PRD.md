@@ -1394,3 +1394,6 @@ The catalog is a labelled region inside the existing public management main land
 
 ## Account presentation after suspended expiry (#637 / #639)
 The existing trusted workspace checks current authority when Account response/body work resumes, not only when an expiry timer or navigation fires. Late identity is suppressed at the absolute deadline or an invalid host clock, and shared credential authority is cleared. Stale work cannot invalidate a replacement grant. No new session/login/API/schema/runtime activation. See [contract](../contracts/current-principal-workspace.md#suspended-timer-presentation-boundary).
+
+## Usage completion and shared authority (#637 / #642)
+The existing management Usage view and fresh page CSV must not publish after trusted host expiry, including suspended browser timers and invalid/throwing/negative clocks. A recovered clock cannot restore cleared credential authority, and old completions cannot clear a renewed grant. This is a bounded existing-workspace fix, not browser login or deployment acceptance. See [plan](plans/784-audit-page.md#usage-authority-integration-follow-up-637--642).

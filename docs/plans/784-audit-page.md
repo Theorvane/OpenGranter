@@ -49,3 +49,14 @@
 - Actual Chromium156 through the existing administration host: Account200, confirmed issue201/revoke200, fresh Deny403 with no second credential, encoded model list/detail200 and policy-scoped empty list, inactive identity Account401 clears identity, required dedicated Account audit-table failure Account503 hides identity, pagehide clears authority, one main plus one named catalog region, zero JavaScript errors.
 - Harness corrections before final success: exact Account locator, explicit isolated candidate Account DDL, explicit renewed test grant after Deny and waiting for catalog completion before identity revocation. Initial failures are not production-success evidence.
 - Loopback listener closes after smoke; no persistent execution URL. Signed test authority is supplied only by the runner, not browser login. No installed schema approval, company IdP, live provider or deployment claim. Whole local check remains previously resource-failed; new exact-head CI and formal approval are required.
+
+## Usage authority integration follow-up (#637 / #642)
+1. Reproduce usage response/body completion with suspended timers and deadline, nonfinite, throwing or negative trusted clocks in source and built workspace. Assert expired UI and no retained credential mutation authority.
+2. Add a guarded host presentation callback to the existing Usage mount, evaluated after local revision/disposal checks. Harden Usage clock reads and initial deadlines; do not alter session, APIs, schema or runtime activation.
+3. Verify replacement grants cannot be invalidated by stale continuations; retain loading/empty/error and fresh CSV behavior. Run focused regressions, native actual-HTTP browser smoke and checks.
+4. Commit on existing PR785; require new exact-head CI and formal approval. No merge or deployment without existing gates.
+
+### Usage integration execution evidence (2026-11-08 KST)
+- Meaningful pre-fix RED:16/16 source+built response/body cases fail; final suite includes JSON/CSV and renewed-grant isolation. Invalid clock throws leaked as unhandled rejection, negative clock published a page, and even ordinary expiry left shared credential authority recoverable after clock correction.
+- Native Chromium156: actual usage200 and one durable usage audit held across absolute expiry with no timer firing; protected output cleared and Issue token remained disabled after clock recovery. No mutation dispatch or page errors. First harness lacked explicit candidate usage audit DDL and correctly received503; corrected isolated runner only.
+- Session, API, IAM, SQL migration and runtime activation remain unchanged. Browser listener closes after smoke; no persistent user URL.
