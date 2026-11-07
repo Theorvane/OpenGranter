@@ -51,12 +51,12 @@ function response(path: string) {
     ? Response.json({ object: 'list', data: [model] })
     : Response.json({ object: 'list', data: [], has_more: false, next_cursor: null });
 }
-function fixture() {
+function fixture(mount = mountSsoUsageWorkspace) {
   const root = new Element();
   const lifecycle = new EventTarget();
   let time = 100;
   const jobs: (() => void)[] = [];
-  const app = mountSsoUsageWorkspace(root, lifecycle, {
+  const app = mount(root, lifecycle, {
     now: () => time,
     schedule: (_delay, callback) => {
       jobs.push(callback);
@@ -241,7 +241,10 @@ test('workspace switches signed SSO HTTP views against shared SQL and durable au
     entry: 'src/management/sso-usage-workspace.ts',
   });
   const server = createPostgresSsoReviewBrowserServer({ ...ports, javascript });
-  const f = fixture();
+  const built = await import(
+    'data:text/javascript;base64,' + Buffer.from(javascript).toString('base64')
+  );
+  const f = fixture(built.mountSsoUsageWorkspace);
   const originalRevoke = URL.revokeObjectURL;
   const revoked: string[] = [];
   URL.revokeObjectURL = (url) => {
@@ -318,13 +321,32 @@ test('workspace switches signed SSO HTTP views against shared SQL and durable au
     f.root.click('Usage history');
     await until(/human/);
     assert.match(f.root.text(), /Unknown/);
+    assert.match(f.root.text(), /Current page only — not an invoice/);
+    assert.match(f.root.text(), /Estimated cost coverage: 0 of 1 records/);
+    assert.match(f.root.text(), /Reported cost coverage: 0 of 1 records/);
+    const oldRefresh = f.root.find('Refresh current page');
+    assert.ok(oldRefresh);
     f.root.click('Export current page CSV');
     await until(/Download usage.csv/);
+    const afterExport = paths.length;
+    oldRefresh.events.click?.();
+    await settle();
+    assert.equal(
+      paths.length,
+      afterExport,
+      'compiled detached control cannot replace exported page',
+    );
+    assert.match(f.root.text(), /Download usage.csv/);
     f.root.click('Inspect model team/chat');
     await until(/Model ID/);
     assert.equal(revoked.length, 1, 'model navigation revokes the CSV download');
     assert.doesNotMatch(f.root.text(), /Download usage.csv/);
     assert.doesNotMatch(f.root.text(), /Inspect attempt|private-upstream/);
+    f.root.click('View usage for this model');
+    await until(/Inspect attempt/);
+    assert.equal(paths.at(-1), '/management/v1/usage?model=team%2Fchat&format=json');
+    f.root.click('Inspect model team/chat');
+    await until(/Model ID/);
     f.root.click('Back to models');
     await until(/Models available/);
     await until(/team\/chat/);
@@ -333,10 +355,12 @@ test('workspace switches signed SSO HTTP views against shared SQL and durable au
       '/management/v1/usage?format=json',
       '/management/v1/usage?format=csv',
       '/management/v1/models/team%2Fchat',
+      '/management/v1/usage?model=team%2Fchat&format=json',
+      '/management/v1/models/team%2Fchat',
       '/management/v1/models',
     ]);
-    assert.equal((await db.query('SELECT * FROM sso_catalog_audit_events')).rows.length, 3);
-    assert.equal((await db.query('SELECT * FROM sso_usage_audit_events')).rows.length, 2);
+    assert.equal((await db.query('SELECT * FROM sso_catalog_audit_events')).rows.length, 4);
+    assert.equal((await db.query('SELECT * FROM sso_usage_audit_events')).rows.length, 3);
     // Same production source handler serves detail/export, not a test router.
     const review = (path: string, headers: Record<string, string> = {}) =>
       fetch(`http://127.0.0.1:${address.port}${path}`, {
@@ -374,15 +398,43 @@ test('workspace switches signed SSO HTTP views against shared SQL and durable au
     f.root.click('Models');
     await settle();
     assert.match(f.root.text(), /Access denied/);
-    assert.equal(paths.length, 8);
+    assert.equal(paths.length, 10);
     const audits = await db.query<{ outcome: string }>(
       'SELECT outcome FROM sso_usage_audit_events ORDER BY event_id',
     );
     assert.deepEqual(
       audits.rows.map((row) => row.outcome),
-      ['ready', 'ready', 'ready', 'forbidden', 'unauthenticated', 'ready', 'forbidden'],
+      ['ready', 'ready', 'ready', 'ready', 'forbidden', 'unauthenticated', 'ready', 'forbidden'],
     );
     assert.doesNotMatch(f.root.text(), /private-upstream|Bearer|credential/);
+    // Catalog remains visible while usage permission is independently revoked.
+    await db.exec("INSERT INTO iam_role_policies VALUES ('reader','allow')");
+    await db.query('UPDATE iam_policies SET statements=$1 WHERE policy_id=$2', [
+      JSON.stringify([
+        {
+          effect: 'Allow',
+          actions: ['llm:InvokeModel', 'llm:UseProvider'],
+          resources: ['model:*', 'provider:openai'],
+        },
+      ]),
+      'allow',
+    ]);
+    await f.app.authorize({
+      expiresAt: 1000,
+      request: (path, init) => {
+        paths.push(path);
+        return fetch('http://127.0.0.1:' + address.port + path, {
+          ...init,
+          headers: { ...init.headers, authorization: 'Bearer ' + token },
+        });
+      },
+    });
+    f.root.click('team/chat');
+    await until(/Model ID/);
+    f.root.click('View usage for this model');
+    await until(/Access denied/);
+    assert.equal(paths.at(-1), '/management/v1/usage?model=team%2Fchat&format=json');
+    assert.doesNotMatch(f.root.text(), /Inspect attempt|private-upstream|credential/);
     // Missing durable audit fails closed independently on each route.
     await db.exec('DROP TABLE sso_usage_audit_events');
     const failedUsage = await review('/management/v1/usage');
@@ -500,6 +552,79 @@ test('detached workspace navigation cannot spend renewed authority or replace th
       assert.equal(paths.length, count + 1, change + ': current navigation still works');
       assert.match(f.root.text(), /No usage records/);
     }
+    f.app.dispose();
+  }
+});
+
+test('model detail drills into exact usage filter and CSV without treating catalog visibility as permission', async () => {
+  for (const denied of [false, true]) {
+    const f = fixture();
+    const paths: string[] = [];
+    await f.app.authorize({
+      expiresAt: 300,
+      request: async (path) => {
+        paths.push(path);
+        if (path.includes('/models/')) return Response.json(model);
+        if (path.includes('/usage') && denied) return new Response(null, { status: 403 });
+        if (path.includes('format=csv'))
+          return new Response('model\r\nteam/chat\r\n', {
+            headers: { 'content-type': 'text/csv', 'x-usage-has-more': 'false' },
+          });
+        return response(path);
+      },
+    });
+    f.root.click(model.id);
+    await settle();
+    f.root.click('View usage for this model');
+    await settle();
+    assert.equal(paths[2], '/management/v1/usage?model=team%2Fchat&format=json');
+    if (denied) {
+      assert.match(f.root.text(), /Access denied/);
+      assert.doesNotMatch(f.root.text(), /team\/chat|Export current page/);
+    } else {
+      f.root.click('Export current page CSV');
+      await settle();
+      assert.equal(paths[3], '/management/v1/usage?model=team%2Fchat&format=csv');
+      f.root.click('Models');
+      await settle();
+      f.root.click('Usage history');
+      await settle();
+      assert.equal(paths.at(-1), '/management/v1/usage?format=json');
+    }
+    f.app.dispose();
+  }
+});
+
+test('detached model-to-usage controls cannot use renewed or expired authority', async () => {
+  for (const change of ['back', 'renew', 'expiry', 'hide', 'clear', 'dispose']) {
+    const f = fixture();
+    const paths: string[] = [];
+    const grant = {
+      expiresAt: 300,
+      request: async (path: string) => {
+        paths.push(path);
+        return path.includes('/models/') ? Response.json(model) : response(path);
+      },
+    };
+    await f.app.authorize(grant);
+    f.root.click(model.id);
+    await settle();
+    const old = f.root.find('View usage for this model');
+    assert.ok(old);
+    if (change === 'back') {
+      f.root.click('Back to models');
+      await settle();
+    }
+    if (change === 'renew') await f.app.authorize(grant);
+    if (change === 'expiry') f.time(300);
+    if (change === 'hide') f.lifecycle.dispatchEvent(new Event('pagehide'));
+    if (change === 'clear') f.app.clear();
+    if (change === 'dispose') f.app.dispose();
+    const count = paths.length;
+    old.events.click?.();
+    await settle();
+    assert.equal(paths.length, count, change);
+    if (change === 'expiry') assert.match(f.root.text(), /Session expired/);
     f.app.dispose();
   }
 });

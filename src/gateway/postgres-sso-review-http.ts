@@ -1,6 +1,7 @@
 import type { Server } from 'node:http';
 import { createClientErrorResponse } from './client-errors.ts';
 import { createNodeRequestServer } from './node-request-server.ts';
+import { createPostgresRfc9068SsoManagementHandler } from './postgres-sso-management-http.ts';
 import { createPostgresSsoModelCatalogHandler } from './postgres-sso-model-catalog-http.ts';
 import {
   createPostgresSsoUsageHistoryHandler,
@@ -19,9 +20,12 @@ export function createPostgresSsoReviewHandler(
   const configuration = { client, now, issuer, audience, jwks, newRequestId };
   const catalog = createPostgresSsoModelCatalogHandler(configuration);
   const usage = createPostgresSsoUsageHistoryHandler(configuration);
+  const principal = createPostgresRfc9068SsoManagementHandler(configuration);
   return async (request) => {
     const path = new URL(request.url).pathname;
     if (request.method === 'GET') {
+      // Identity projection only: never dispatch token issue/revoke operations.
+      if (path === '/management/v1/me') return principal(request);
       if (path === '/management/v1/usage') return usage(request);
       if (path === '/management/v1/models' || path.startsWith('/management/v1/models/'))
         return catalog(request);

@@ -1897,3 +1897,64 @@ The existing usage screen offers Export next CSV page only after a successful CS
 - Public assets require no SQL, grant no cookie authority, retain restrictive CSP/no-store, and reject queries/framing without SPA fallback.
 - One loopback origin serves the public workspace artifact and signed model list/detail, scoped usage/CSV backed by embedded SQL and durable audits; fresh IAM denial and audit failure remain fail-closed.
 - Not native-browser login, session activation, installed PostgreSQL or provider acceptance. Caller must separately supply an approved trusted adapter. See [plan](plans/639-review-static-composition.md).
+## Management current-principal API (#639 incremental slice)
+
+- GET /management/v1/me with a verified RFC 9068 access token and current active-human binding returns exactly {principalId}, no-store and a server-generated request ID, with no cookies or permission grant.
+- Every request revalidates identity; inactive/deleted bindings and rejected tokens return 401 after required anonymous current-principal authentication-denial audit. Verification dependency failures return 503; failed audit returns 503 audit_unavailable. No token or claim is reflected.
+- Query/body input is rejected after authentication, including real HTTP nonzero Content-Length and chunked transfer framing; Content-Length: 0 remains valid. Unsupported methods return 404. Identity alone is not authorization for any list, detail or mutation.
+- Evidence: test/sso-current-principal-http.test.ts and test/postgres-sso-management-http.test.ts. Browser sessions, owned runtime activation, installed UI and release acceptance remain open.
+
+## Same-origin current-principal integration (#639)
+
+- Public assets and exact GET /management/v1/me share the existing unbound review server. Signed registered-key authority projects only principalId with no-store and a server request ID; cookies alone remain unauthenticated.
+- Re-read active principal/binding on each request. Required anonymous denial audit must complete; audit outage returns fixed 503. Identity grants no catalog permission.
+- Query rejection follows authentication; token issue/revoke, POST identity and path lookalikes stay 404 without SQL. Embedded SQL and signed-fixture loopback are not browser login, installed PostgreSQL or company IdP acceptance. See [plan](plans/639-review-current-principal.md).
+
+## Usage action lifetime (#642)
+
+- Retain filter/paging/CSV/refresh/retry controls, renew the grant and click the detached controls: no additional HTTP requests, old principal filters or cursor replay. Fresh controls remain functional.
+- Retain Cancel request from an old loading render, begin a replacement read and click the old control: new read remains pending and completes; current Cancel still aborts it.
+- No session, public entry, schema or installed-runtime activation. Structural DOM and loopback HTTP do not certify native-browser/IdP acceptance. See [plan](plans/642-usage-control-lifetime.md).
+
+## CSV link activation (#642)
+
+Structural cancelable click events must show current downloads are permitted, expired downloads prevent the default action and revoke the URL even without firing timers, and detached links cannot activate after export replacement, authority renewal, clear or disposal. This is not native-browser or installed acceptance. See [plan](plans/642-csv-download-authority.md).
+
+## Current-page usage cost coverage (#642)
+
+- The existing usage screen consumes loopback HTTP JSON rows and renders estimated versus reported per-currency sums exactly, including amounts above Number precision and sub-cent values. Missing costs remain Unknown; an explicit zero remains known. Coverage and possible-duplicate/billing markers are page-only, not reconciled invoices.
+- Structural DOM tests verify decimal carry, 100 maximum-length ledger amounts, empty/unknown pages and clearing on refresh/expiry/disposal. Existing trusted workspace/registered-key embedded-SQL HTTP integration remains passing. This does not certify native browser login, installed PostgreSQL, schema promotion or paid-provider billing.
+- Evidence: RED 33 pass/2 expected missing-summary failures; focused GREEN 57/57 zero skips, TypeScript PASS. Exact-head CI and formal independent approval are required before merge.
+
+
+## Model detail to usage drilldown (#642)
+
+- Existing model detail opens existing usage history with the exact published alias; current-page CSV preserves that filter and ordinary navigation resets it.
+- Fresh usage IAM and mandatory audit remain required; catalog visibility grants no usage permission. Detached controls cannot spend renewed/expired authority.
+- Verify structural DOM and actual signed SSO loopback HTTP with embedded SQL separately from installed/native-browser acceptance. No session/runtime/schema activation. See [plan](plans/642-model-usage-drilldown.md) and [contract](../contracts/model-usage-drilldown.md).
+
+
+## Usage filter correction (#642)
+
+- Rejected UTC text survives rerender; repeated invalid submission dispatches no HTTP; correction keeps exact UTC/model/page-size scope.
+- Explicit reset sends only format=json through the existing protected endpoint, invalidates cursor/history/download/continuation, and does not inject principal authority.
+- Detached reset cannot use renewal. Expiry, clearing and replacement discard drafts. Loopback HTTP/structural DOM evidence is separate from native-browser/installed SSO acceptance.
+- [Plan](plans/642-filter-correction.md), [contract](../contracts/usage-screen.md#correcting-submitted-filters-642).
+
+
+## Exact audit principal references (#642)
+
+- Test exact Korean/supplementary principals, distinct composed/decomposed IDs, blank/C0/DEL/C1/overlength rejection and unchanged non-principal identifier restrictions.
+- Exercise actual loopback HTTP with PGlite-backed audit insert/read for scoped JSON and CSV keyset pages; fresh target Deny prevents reads and failed mandatory audit suppresses records.
+- No installed PostgreSQL, native browser/IdP, SSO audit route, runtime activation or full #637 completion is certified. See [contract](../contracts/audit-principal-references.md).
+
+## Integrated source-only review feature line (#637)
+
+- Execute the built workspace module fetched from the same-origin source server with explicitly injected signed test authority, embedded SQL and durable audit. Assert unknown-cost page coverage, discarded refresh isolation across CSV export, model/usage drilldown, CSV revocation and fresh IAM denial together.
+- Baseline #722 fails the page-summary assertion; integrated source passes. Structural DOM execution is not native-browser login, installed PostgreSQL or provider E2E. See [plan](plans/637-review-feature-integration.md).
+
+## Public management workspace entry (#637)
+
+- Build and execute the actual public entry: Models and Usage history navigation must be present, remain signed out through view changes/pagehide/pageshow, and make zero ambient HTTP requests or exported global authority APIs. Missing app roots remain inert.
+- Combined existing source must retain signed fixture HTTP/embedded-SQL principal, usage/drilldown/CSV, fresh IAM denial, mandatory audit and static isolation regressions. No browser IdP/login, installed PostgreSQL, schema promotion or provider calls are certified.
+- Entry-only baseline fails the workspace navigation assertion; the existing workspace mount passes. See [plan](plans/637-public-workspace-entry.md).

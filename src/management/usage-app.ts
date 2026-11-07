@@ -2,6 +2,7 @@ import type { CatalogAuthorityGrant } from './catalog-authority.ts';
 import type { CatalogRequest } from './catalog-client.ts';
 import { renderUsageAttemptDetails } from './usage-attempt-details.ts';
 import { createManagementUsageClient, type UsageFilters, type UsagePage } from './usage-client.ts';
+import { renderUsagePageSummary } from './usage-page-summary.ts';
 import { formatUsageTime, parseUsageUtcInput, usageUtcInput } from './usage-time.ts';
 
 export interface UsageElement {
@@ -11,7 +12,7 @@ export interface UsageElement {
   setAttribute(name: string, value: string): void;
   append(...nodes: UsageElement[]): void;
   replaceChildren(...nodes: UsageElement[]): void;
-  addEventListener(type: string, listener: () => void): void;
+  addEventListener(type: string, listener: (event?: { preventDefault(): void }) => void): void;
   focus(): void;
 }
 export interface UsageAuthorityOptions {
@@ -56,8 +57,12 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
   }
   let client: ReturnType<typeof createManagementUsageClient> | undefined;
   let revision = 0;
+  let renderRevision = 0;
   let disposed = false;
   let filters: UsageFilters = {};
+  // Submitted text belongs to this authority, not to numeric transport values.
+  // In particular NaN must not erase a rejected UTC range on rerender.
+  let draftFilters: Readonly<Record<string, string>> | undefined;
   let page: UsagePage | undefined;
   let previous: readonly UsageFilters[] = [];
   let state = 'unauthenticated';
@@ -78,11 +83,17 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
   const button = (text: string, action: () => void) => {
     const node = element('button', text);
     node.setAttribute('type', 'button');
-    node.addEventListener('click', action);
+    const rendered = renderRevision;
+    node.addEventListener('click', () => {
+      // Detached controls must not consume renewed authority or cancel newer work.
+      if (disposed || rendered !== renderRevision || expired()) return;
+      action();
+    });
     return node;
   };
   function render(moveFocus = false) {
     if (disposed) return;
+    ++renderRevision;
     const main = element('section');
     const heading = element('h1', 'Usage history');
     heading.setAttribute('tabindex', '-1');
@@ -119,11 +130,12 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
         const input = element('input');
         input.setAttribute('type', kind);
         input.value =
-          kind === 'datetime-local'
+          draftFilters?.[key] ??
+          (kind === 'datetime-local'
             ? filters[key] === undefined
               ? ''
               : usageUtcInput(filters[key] as number)
-            : String(filters[key] ?? '');
+            : String(filters[key] ?? ''));
         if (kind === 'datetime-local') {
           input.setAttribute('min', '1970-01-01T00:00');
           input.setAttribute('max', '9999-12-31T23:59:59.999');
@@ -140,6 +152,9 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
       }
       form.append(
         button('Apply filters', () => {
+          draftFilters = Object.fromEntries(
+            Object.entries(inputs).map(([key, input]) => [key, input.value ?? '']),
+          );
           const next: Record<string, string | number> = {};
           for (const [key, input] of Object.entries(inputs)) {
             const value = (input.value ?? '').trim();
@@ -151,6 +166,10 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
                   : value;
           }
           void load(next);
+        }),
+        button('Clear filters', () => {
+          draftFilters = undefined;
+          void load({});
         }),
       );
       main.append(form);
@@ -165,6 +184,7 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
         );
     }
     if (state === 'ready' && page) {
+      main.append(renderUsagePageSummary(root.ownerDocument, page.records));
       if (!page.records.length) {
         const empty = element('p', 'No usage records.');
         empty.setAttribute('role', 'status');
@@ -265,6 +285,15 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
         const download = element('a', 'Download usage.csv');
         download.setAttribute('href', csvUrl);
         download.setAttribute('download', 'usage.csv');
+        const rendered = renderRevision;
+        const url = csvUrl;
+        for (const type of ['click', 'auxclick', 'contextmenu'])
+          download.addEventListener(type, (event) => {
+            // Native anchors have a default action: button guards do not protect it.
+            // Check the trusted deadline even if the expiry timer was suspended.
+            if (disposed || rendered !== renderRevision || url !== csvUrl || expired())
+              event?.preventDefault();
+          });
         main.append(download);
         const note = element(
           'p',
@@ -356,6 +385,7 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
     client?.invalidate();
     client = undefined;
     filters = {};
+    draftFilters = undefined;
     previous = [];
     page = undefined;
     revoke();
@@ -365,7 +395,7 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
   render();
   return {
     /** Trusted session integration. Deadline is not authentication or an IAM grant. */
-    async authorize(grant: CatalogAuthorityGrant) {
+    async authorize(grant: CatalogAuthorityGrant, modelId?: string) {
       if (disposed) return;
       clear();
       const time = now();
@@ -380,7 +410,8 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
       expiresAt = grant.expiresAt;
       client = createManagementUsageClient(grant.request);
       arm(authorityRevision);
-      await load({});
+      // A published catalog alias is only a filter, never read authority.
+      await load(modelId === undefined ? {} : { model: modelId });
     },
     /** Low-level port: caller must supply and clear its own lifecycle. */
     async connect(request: CatalogRequest) {

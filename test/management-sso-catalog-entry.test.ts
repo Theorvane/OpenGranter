@@ -7,7 +7,11 @@ import { buildManagementBrowser } from '../scripts/build-management-browser.ts';
 class Element {
   textContent: string | null = null;
   children: Element[] = [];
+  events: Record<string, () => void> = {};
   ownerDocument = { createElement: () => new Element() };
+  find(text: string): Element | undefined {
+    return this.textContent === text ? this : this.children.map((n) => n.find(text)).find(Boolean);
+  }
   setAttribute() {}
   append(...nodes: Element[]) {
     this.children.push(...nodes);
@@ -15,7 +19,9 @@ class Element {
   replaceChildren(...nodes: Element[]) {
     this.children = nodes;
   }
-  addEventListener() {}
+  addEventListener(name: string, callback: () => void) {
+    this.events[name] = callback;
+  }
   focus() {}
   text(): string {
     return [this.textContent ?? '', ...this.children.map((n) => n.text())].join(' ');
@@ -48,7 +54,15 @@ test('actual SSO public entry stays signed out across page lifecycle without amb
     const keys = Object.keys(context);
     // Use lexical module scope because the builder emits ESM.
     runInNewContext('(() => {' + javascript + '})()', context);
-    if (present) assert.match(root.text(), /Sign-in required/);
+    if (present) {
+      assert.match(root.text(), /Sign-in required/);
+      assert.ok(root.find('Models'), 'public entry exposes existing workspace navigation');
+      const usage = root.find('Usage history');
+      assert.ok(usage, 'public entry exposes existing usage view');
+      usage.events.click?.();
+      assert.match(root.text(), /Sign-in required/);
+      root.find('Models')?.events.click?.();
+    }
     lifecycle.dispatchEvent(new Event('pagehide'));
     lifecycle.dispatchEvent(new Event('pageshow'));
     lifecycle.dispatchEvent(new Event('pageshow'));
