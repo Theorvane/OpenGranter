@@ -325,6 +325,37 @@ export function projectGatewayAuditEvent(value: unknown, now: number) {
   };
 }
 
+function requireAuditAcknowledgement(value: unknown): void {
+  if (
+    typeof value !== 'object' ||
+    value === null ||
+    Array.isArray(value) ||
+    !Object.hasOwn(value, 'rows')
+  )
+    throw new GatewayAuditUnavailable();
+  const rows = (value as Record<string, unknown>).rows;
+  if (!Array.isArray(rows) || rows.length !== 1 || !Object.hasOwn(rows, 0))
+    throw new GatewayAuditUnavailable();
+  const row: unknown = rows[0];
+  if (
+    typeof row !== 'object' ||
+    row === null ||
+    Array.isArray(row) ||
+    !Object.hasOwn(row, 'event_id')
+  )
+    throw new GatewayAuditUnavailable();
+  const id = (row as Record<string, unknown>).event_id;
+  if (typeof id === 'number' && Number.isSafeInteger(id) && id > 0) return;
+  if (
+    typeof id === 'string' &&
+    id.length <= 19 &&
+    /^[1-9][0-9]*$/u.test(id) &&
+    BigInt(id) <= 9_223_372_036_854_775_807n
+  )
+    return;
+  throw new GatewayAuditUnavailable();
+}
+
 /** PostgreSQL append port for existing gateway and routing metadata events. */
 export function createPostgresGatewayAuditStore(
   client: GatewayAuditSqlClient,
@@ -355,7 +386,7 @@ export function createPostgresGatewayAuditStore(
             JSON.stringify(projected.details),
           ],
         );
-        if (result.rows.length !== 1) throw new GatewayAuditUnavailable();
+        requireAuditAcknowledgement(result);
       } catch {
         throw new GatewayAuditUnavailable();
       }

@@ -1457,3 +1457,7 @@ The separately selected, unbound administration browser factory combines existin
 
 ## Existing review Account audit selection (#778)
 PostgresSsoReviewHttpPorts carries optional principalAuditClient through the existing review/browser and administration compositions. An own supplied option is captured once; invalid supplied values fail construction, never silently choose legacy identity. The reused #777 current-principal factory owns fresh registered-key authentication and awaited acknowledged SQL audit. Absent option preserves legacy management identity; catalog/usage and credential dispatch are unchanged. Caller owns reviewed dedicated DDL and committed/autocommit SQL. No additional host or startup path is added.
+
+
+## Required gateway audit acknowledgement (#780)
+The existing common SQL audit store accepts only one own returned row with an own positive signed-bigint event_id (canonical decimal string or positive safe integer driver representation). Malformed or missing acknowledgement fails closed with GatewayAuditUnavailable; existing management authentication denial returns audit_unavailable rather than an ordinary denial. SQL, schemas, IAM, session and runtime activation remain unchanged. This verifies the acknowledgement shape, not transaction commit or exactly-once persistence. See [plan](plans/780-gateway-audit-ack.md).
