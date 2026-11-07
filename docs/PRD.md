@@ -1230,3 +1230,7 @@ The shared Node HTTP bridge forces no-store and nosniff on exact /management and
 ## Management error-path containment (#639)
 
 The shared HTTP bridge contains broken custom fallback factories/bodies before sending headers or bytes, retaining a fixed private-error envelope and management response privacy. This is a transport reliability slice, not browser login/session activation. See [plan](plans/639-management-fallback-containment.md).
+
+## Management response isolation (#639)
+
+Pre-commit Node response failures discard staged response metadata before fixed errors are sent. Successful headers and streaming remain unchanged. No session, authentication, policy or deployment decision is introduced. See [plan](plans/639-node-response-headers.md).
