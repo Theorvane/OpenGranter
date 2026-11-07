@@ -1403,3 +1403,6 @@ The current-principal screen offers an explicit fresh read after unavailable tra
 
 ## Catalog navigation lifetime (#637 / #639)
 Existing catalog controls reject superseded render snapshots before using current transport authority, including renewed grants and suspended expiry timers. See [contract](../contracts/catalog-navigation-lifetime.md). No browser session or runtime activation is implied.
+
+## Catalog explicit error recovery (#637 / #639)
+Unavailable model list/detail reads support an explicit fresh lookup of the selected target without forcing a return to the list. No automatic retry or retry for denial/missing; stale controls cannot consume replacement authority. Existing SSO/IAM/required audit remain unchanged. See [contract](../contracts/catalog-navigation-lifetime.md#explicit-unavailable-recovery).

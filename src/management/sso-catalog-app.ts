@@ -16,12 +16,15 @@ export function mountSsoManagementCatalog(
   } = {},
 ) {
   let navigate = false;
+  let selectedModel: string | undefined;
   const actions = {
     list() {
+      selectedModel = undefined;
       navigate = true;
       void authority.list();
     },
     detail(id: string) {
+      selectedModel = id;
       navigate = true;
       void authority.detail(id);
     },
@@ -29,6 +32,7 @@ export function mountSsoManagementCatalog(
   const authority = createSsoManagementCatalogAuthority({
     ...options,
     onChange(snapshot) {
+      const retryModel = selectedModel;
       renderCatalogView(
         root,
         snapshot,
@@ -43,6 +47,15 @@ export function mountSsoManagementCatalog(
             if (authority.snapshot() !== snapshot) return;
             actions.detail(id);
           },
+          ...(snapshot.state === 'unavailable'
+            ? {
+                retry() {
+                  if (authority.snapshot() !== snapshot) return;
+                  if (retryModel === undefined) actions.list();
+                  else actions.detail(retryModel);
+                },
+              }
+            : {}),
           ...(options.onInspectUsage && snapshot.state === 'detail'
             ? {
                 inspectUsage(id: string) {
@@ -63,6 +76,7 @@ export function mountSsoManagementCatalog(
   return {
     /** Never promote UI input to a trusted grant. */
     async authorize(grant: CatalogAuthorityGrant, modelId?: string) {
+      selectedModel = modelId;
       authority.authorize(grant);
       navigate = modelId !== undefined;
       if (modelId !== undefined) await authority.detail(modelId);

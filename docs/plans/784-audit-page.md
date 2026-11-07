@@ -82,3 +82,14 @@
 - Meaningful pre-fix RED18 failures/24 existing guards pass. Source and bundled suite42/42 and combined catalog/Account/workspace/actual HTTP regressions105/105 pass, zero skips.
 - Native Chromium156 through actual administration HTTP, migrated PGlite and runner-signed SSO: list200/detail200, double click exactly one detail read, three detached controls after renewal produce zero reads, current navigation still reads200, suspended-timer expiry produces zero reads. Zero page errors. Loopback listener closes after smoke; not company IdP login or installed acceptance.
 - Initial typecheck caught nullable test AbortSignal capture; corrected to undefined. No production contract widening. Prior whole-localcheck resource failures remain; exact-head CI/formal approval still required.
+
+## Catalog explicit error recovery (#637 / #639)
+1. Reproduce inability to retry an unavailable list or selected detail with source and bundled UI, including HTTP mandatory-audit failure. Denied and missing results must not offer retry.
+2. Add an explicit Retry model lookup action only for unavailable; retain the selected target, use existing fresh authenticated/audited GET and reject detached controls. No automatic retries or API/session/schema/runtime changes.
+3. Verify detail recovery without an intermediate list request, loading suppression, malformed-body recovery, renewal/clear/expiry/navigation/disposal isolation and actual HTTP browser recovery.
+4. Publish on PR785; require superseding exact-head CI, formal review and inherited dependency gates before merge.
+
+### Catalog recovery execution evidence (2026-11-08 KST)
+- Pre-fix RED18 failures/6 denial guards pass. A mistaken test-only API prefix was corrected to the existing /management/v1/models contract; no API path changed. New source/built suite24/24; with prior lifetime suite66/66 zero skipped.
+- Native Chromium156 through actual administration HTTP and migrated PGlite: list200, mandatory catalog audit failure detail503, explicit retry detail200 without intermediate list or automatic retry. Double click sends one GET; detached retry sends none. Successful list/detail audits are durably present; failed audit did not expose detail. Zero page errors. Loopback listener closes after smoke, not a persistent URL. Runner-signed SSO is not company login/installed acceptance.
+- Production edits stay in existing catalog view/composition; session/API/IAM/schema/runtime activation unchanged. Require new exact-head CI, independent formal approval and dependency gates.
