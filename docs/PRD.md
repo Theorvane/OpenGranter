@@ -1239,3 +1239,8 @@ Pre-commit Node response failures discard staged response metadata before fixed 
 ## Explicit current human identity read (#768)
 
 An opt-in server-facing Bearer HTTP factory now supplies the current-principal context primitive for #639: fresh registered-key RFC9068 verification and active-human binding, returning only the current ID and human kind after required awaited audit. It supplies no role, policy, session, administrative permission or automatic runtime mount. Caller-owned durable audit, browser session integration and installed acceptance remain open. See [plan](plans/768-current-principal.md) and [contract](../contracts/sso-current-principal-http.md).
+
+
+## Durable current-principal audit option (#770)
+
+The identity-only current-principal factory accepts an explicit SQL audit client as an alternative to its required durable callback. It persists a nonsecret success/anonymous-failure record before any identity release. Proposed dedicated audit DDL is opt-in and excluded from automatic migrations; installation and database commit semantics remain owner responsibilities. No session, runtime mount or IAM grant is added. See [plan](plans/770-principal-audit.md) and [contract](../contracts/current-principal-audit.md).

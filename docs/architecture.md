@@ -1432,3 +1432,8 @@ The shared Node HTTP bridge forces no-store and nosniff on exact /management and
 ## Explicit current-principal HTTP boundary (#768)
 
 A separate opt-in GET /management/v1/principal handler reuses the registered-key verifier and exact fresh active-human binding. Its sole successful projection is the authenticated ID and human kind; it does not load policy metadata or infer IAM rights. Required caller-owned durable audit is awaited for success, denial and unavailability; audit failure suppresses identity. The PostgreSQL composition disallows caller authentication overrides. No schema, automatic runtime mount, session/BFF/CSRF/CORS or ingress decision is made. The returned Node server is unbound, with database and audit lifetimes owned by the integrator. This is a current-identity API primitive, not browser login/session completion. See [contract](../contracts/sso-current-principal-http.md).
+
+
+## Explicit durable identity audit adapter (#770)
+
+Current-principal PostgreSQL composition accepts exactly one own writeAudit or auditClient field and captures the selected port. SQL mode awaits a parameterized INSERT into dedicated sso_current_principal_audit_events and requires one valid positive bigint acknowledgement; private SQL/clock errors suppress identity. The proposed optional DDL is not registered in the default migration manifest and no runtime automatically enables it. An autocommit/durably committed client is required; uncommitted transaction rollback is not detectable. Separate identity reads and audit writes do not promise atomic revocation or exactly-once delivery. Readers/retention/session contracts remain unresolved. See [contract](../contracts/current-principal-audit.md).

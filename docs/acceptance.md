@@ -1849,3 +1849,10 @@ The shared Node HTTP bridge forces no-store and nosniff on exact /management and
 - Explicit GET /management/v1/principal returns only the authenticated active human ID and kind after fresh registered-key RFC9068 verification and current exact binding. Client-selected IDs, cookies and verifier/authenticator overrides cannot substitute authority.
 - Require awaited nonsecret success/denial/unavailable audit before responding; audit failure suppresses identity. Cover missing/rejected JWT, expiry/audience/issuer/kid, inactive/unbound/service principal, rebinding, database failure, malformed trusted result, abort and body framing.
 - Verify public Fetch and actual Node loopback HTTP using local signed test JWTs and migrated PGlite; keep this separate from native-browser, installed PostgreSQL or company-IdP acceptance. Caller-owned durable audit integration remains required. No schema, runtime mount, session, browser grant, provider call or administrative permission is enabled. See [plan](plans/768-current-principal.md) and [contract](../contracts/sso-current-principal-http.md).
+
+
+## Concrete current-principal audit persistence (#770)
+
+- Public Fetch and actual Node HTTP using local signed JWTs and migrated PGlite must persist only server request ID, timestamp, outcome and authenticated principal for ready; authentication failure/unavailability have null identity. Verify deactivation, SQL failure, missing table and pending INSERT never bypass required persistence.
+- Verify strict mode ambiguity rejection, captured configuration, invalid events/clock/acknowledgements, private errors, unknown extra fields and file-backed close/reopen. Default migration sources must remain unchanged; optional DDL is not installed automatically.
+- Local SQL reopen is not installed PostgreSQL durability, native-browser/company-IdP session acceptance, deployment authorization or full product completion. See [plan](plans/770-principal-audit.md) and [contract](../contracts/current-principal-audit.md).

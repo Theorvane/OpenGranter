@@ -10,3 +10,7 @@
 - The factory captures ports once. The PostgreSQL factory does not permit a supplied verifier/authenticator override. Node server is unbound; no runtime/ingress/migration/schema/browser/session activation occurs.
 
 No authorization, routing, limits, provider, secret, credential mutation or usage work is performed. Current active-human identity does not imply iam:Manage, invoke permissions or any administrative role. No promise of atomic revocation after the binding read. Session expiry/CSRF/CORS/IdP and durable audit integration remain independent required deployment work.
+
+## Concrete PostgreSQL audit option (#770)
+
+The PostgreSQL factory now requires exactly one own writeAudit callback or auditClient configuration field. SQL mode uses the concrete dedicated identity audit store and awaits its acknowledged INSERT; optional proposed DDL is not installed automatically. Callback mode preserves the same durable obligation. See [durability and failure contract](current-principal-audit.md). No runtime mount or session grant follows.
