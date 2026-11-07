@@ -54,6 +54,8 @@ const record = buildUsageRecord({
   possiblyBilled: true,
   possibleDuplicate: false,
   providerUsage: { prompt_tokens: 7, total_tokens: 99 },
+  estimatedCost: { amountDecimal: "0.000000000000000001", currency: "USD", priceVersion: "price-v1" },
+  upstreamBilledCost: { amountDecimal: "0", currency: "EUR", source: "direct-provider" },
 });
 
 test('usage client through signed SSO, real HTTP, database, fresh IAM and mandatory audit', async () => {
@@ -158,6 +160,20 @@ test('usage client through signed SSO, real HTTP, database, fresh IAM and mandat
       assert.match(root.text(), /Completion tokens: Unknown; coverage: 0 of 1 records/);
       assert.match(root.text(), /Total tokens: 99; coverage: 1 of 1 records/);
       assert.match(root.text(), /Known counters only/);
+      const attempt = root.all().find((node) => node.children[0]?.textContent === "Inspect attempt");
+      assert.ok(attempt);
+      assert.match(attempt.text(), /Total tokens 99/);
+      assert.match(attempt.text(), /Completion tokens Unknown/);
+      assert.match(attempt.text(), /Usage status partial/);
+      assert.match(attempt.text(), /Estimated cost 0\.000000000000000001 USD/);
+      assert.match(attempt.text(), /Reported cost 0 EUR/);
+      assert.match(attempt.text(), /Estimated price version price-v1/);
+      assert.match(attempt.text(), /Reported billing source direct-provider/);
+      assert.match(attempt.text(), /Possibly billed Yes/);
+      assert.match(attempt.text(), /Server-marked possible duplicate No/);
+      assert.match(attempt.text(), /not settled billing or reconciliation/);
+      assert.doesNotMatch(attempt.text(), /credential|policyVersions/);
+      assert.equal(appQueries.length, 2, "attempt inspection adds no request");
       // Fresh server IAM, not the existing rendered button, decides each read.
       const currentFilter = root
         .all()
@@ -168,7 +184,7 @@ test('usage client through signed SSO, real HTTP, database, fresh IAM and mandat
       for (let i = 0; i < 100 && !root.text().includes('Access denied'); i++)
         await new Promise((resolve) => setTimeout(resolve, 10));
       assert.match(root.text(), /Access denied/);
-      assert.doesNotMatch(root.text(), /Usage by model/);
+      assert.doesNotMatch(root.text(), /Usage by model|Inspect attempt|price-v1|0 EUR/);
       const reads = appQueries.length;
       filter.listeners.click?.();
       currentFilter.listeners.click?.();
@@ -187,7 +203,7 @@ test('usage client through signed SSO, real HTTP, database, fresh IAM and mandat
       time = 2;
       expire?.();
       assert.match(root.text(), /Session expired/);
-      assert.doesNotMatch(root.text(), /human/);
+      assert.doesNotMatch(root.text(), /human|Inspect attempt|price-v1|0 EUR/);
     } finally {
       app.dispose();
     }
