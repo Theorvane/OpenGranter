@@ -345,6 +345,30 @@ test('workspace switches signed SSO HTTP views against shared SQL and durable au
     f.root.click('View usage for this model');
     await until(/Inspect attempt/);
     assert.equal(paths.at(-1), '/management/v1/usage?model=team%2Fchat&format=json');
+    // Explicit self selection must not silently downgrade ReadAll to ReadSelf.
+    f.root.click('Filter usage for principal human');
+    await until(/Access denied/);
+    assert.equal(paths.at(-1), '/management/v1/usage?principal_id=human&model=team%2Fchat&format=json');
+    assert.doesNotMatch(f.root.text(), /Inspect attempt|Export current page/);
+    const deniedCount = paths.length;
+    await settle();
+    assert.equal(paths.length, deniedCount, 'no weaker-scope retry');
+    // Test-only policy update; production reads fresh IAM on every request.
+    await db.query('UPDATE iam_policies SET statements=$1 WHERE policy_id=$2', [
+      JSON.stringify([{ effect: 'Allow', actions: ['llm:InvokeModel', 'llm:UseProvider', 'usage:ReadSelf', 'usage:ReadAll'], resources: ['model:*', 'provider:openai', 'principal:human'] }]), 'allow',
+    ]);
+    await f.app.authorize({ expiresAt: 1000, request: (path, init) => {
+      paths.push(path);
+      return fetch(origin + path, { ...init, headers: { ...init.headers, authorization: 'Bearer ' + token } });
+    } });
+    f.root.click('team/chat');
+    await until(/Model ID/);
+    f.root.click('View usage for this model');
+    await until(/Inspect attempt/);
+    f.root.click('Filter usage for principal human');
+    await until(/Inspect attempt/);
+    assert.equal(paths.at(-1), '/management/v1/usage?principal_id=human&model=team%2Fchat&format=json');
+    assert.doesNotMatch(f.root.text(), /Previous page/);
     f.root.click('Inspect model team/chat');
     await until(/Model ID/);
     f.root.click('Back to models');
@@ -356,11 +380,16 @@ test('workspace switches signed SSO HTTP views against shared SQL and durable au
       '/management/v1/usage?format=csv',
       '/management/v1/models/team%2Fchat',
       '/management/v1/usage?model=team%2Fchat&format=json',
+      '/management/v1/usage?principal_id=human&model=team%2Fchat&format=json',
+      '/management/v1/models',
+      '/management/v1/models/team%2Fchat',
+      '/management/v1/usage?model=team%2Fchat&format=json',
+      '/management/v1/usage?principal_id=human&model=team%2Fchat&format=json',
       '/management/v1/models/team%2Fchat',
       '/management/v1/models',
     ]);
-    assert.equal((await db.query('SELECT * FROM sso_catalog_audit_events')).rows.length, 4);
-    assert.equal((await db.query('SELECT * FROM sso_usage_audit_events')).rows.length, 3);
+    assert.equal((await db.query('SELECT * FROM sso_catalog_audit_events')).rows.length, 6);
+    assert.equal((await db.query('SELECT * FROM sso_usage_audit_events')).rows.length, 6);
     // Same production source handler serves detail/export, not a test router.
     const review = (path: string, headers: Record<string, string> = {}) =>
       fetch(`http://127.0.0.1:${address.port}${path}`, {
@@ -398,13 +427,13 @@ test('workspace switches signed SSO HTTP views against shared SQL and durable au
     f.root.click('Models');
     await settle();
     assert.match(f.root.text(), /Access denied/);
-    assert.equal(paths.length, 10);
+    assert.equal(paths.length, 15);
     const audits = await db.query<{ outcome: string }>(
       'SELECT outcome FROM sso_usage_audit_events ORDER BY event_id',
     );
     assert.deepEqual(
       audits.rows.map((row) => row.outcome),
-      ['ready', 'ready', 'ready', 'ready', 'forbidden', 'unauthenticated', 'ready', 'forbidden'],
+      ['ready', 'ready', 'ready', 'forbidden', 'ready', 'ready', 'ready', 'forbidden', 'unauthenticated', 'ready', 'forbidden'],
     );
     assert.doesNotMatch(f.root.text(), /private-upstream|Bearer|credential/);
     // Catalog remains visible while usage permission is independently revoked.
