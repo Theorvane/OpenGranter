@@ -1,17 +1,20 @@
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { createManagementBrowserServer } from '../management/browser-http.ts';
+import { createManagementBrowserHandler } from '../management/browser-http.ts';
 import type { PostgresConnection } from '../storage/postgres-connection.ts';
 import { loadPostgresMigrationSources } from '../storage/postgres-migration-sources.ts';
 import { applyPostgresMigrations } from '../storage/postgres-migrations.ts';
 import type { BundledPostgresServerPorts } from './bundled-postgres-server.ts';
+import { createClientErrorResponse } from './client-errors.ts';
 import { createNodePostgresDirectChatServer } from './node-postgres-chat-server.ts';
 import { createNodePostgresDualRouteChatServer } from './node-postgres-dual-chat-server.ts';
+import { createNodeRequestServer } from './node-request-server.ts';
 import type { PostgresDualRouteChatHandlerPorts } from './postgres-dual-chat-handler.ts';
 import {
   createPostgresRfc9068SsoManagementHandler,
-  createPostgresRfc9068SsoManagementServer,
+  type createPostgresRfc9068SsoManagementServer,
 } from './postgres-sso-management-http.ts';
+import { createPostgresSsoModelCatalogHandler } from './postgres-sso-model-catalog-http.ts';
 
 interface GatewayRuntimeInfrastructure {
   readonly host: string;
@@ -187,11 +190,23 @@ export async function startPostgresSsoManagementGateway(ports: PostgresSsoManage
     ...managementPorts
   } = ports;
   return startOwnedPostgresGateway(ports, async (client) => {
-    if (browserJavascript === undefined)
-      return createPostgresRfc9068SsoManagementServer({ ...managementPorts, client });
-    return createManagementBrowserServer({
-      javascript: browserJavascript,
-      application: createPostgresRfc9068SsoManagementHandler({ ...managementPorts, client }),
+    const tokens = createPostgresRfc9068SsoManagementHandler({ ...managementPorts, client });
+    const catalog = createPostgresSsoModelCatalogHandler({ ...managementPorts, client });
+    const application = (request: Request) => {
+      const path = new URL(request.url).pathname;
+      return path === '/management/v1/models' || path.startsWith('/management/v1/models/')
+        ? catalog(request)
+        : tokens(request);
+    };
+    const handler =
+      browserJavascript === undefined
+        ? application
+        : createManagementBrowserHandler({ javascript: browserJavascript, application });
+    // Preserve the SSO management adapter contract even when Fetch construction fails.
+    return createNodeRequestServer(handler, () => {
+      const response = createClientErrorResponse(503, 'internal_error');
+      response.headers.set('cache-control', 'no-store');
+      return response;
     });
   });
 }

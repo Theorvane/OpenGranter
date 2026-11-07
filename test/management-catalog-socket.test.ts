@@ -44,27 +44,28 @@ for (const kind of ['managed', 'delegated'] as const) {
   });
 }
 
-test('session invalidation while body parsing suppresses released catalog', async () => {
-  let resolve!: (value: unknown) => void;
+test('session invalidation while body consumption suppresses protected catalog', async () => {
+  let cancelled = 0;
   let started!: () => void;
-  const parsing = new Promise<void>((done) => {
+  const reading = new Promise<void>((done) => {
     started = done;
   });
   const client = createManagementCatalogClient(
     async () =>
-      ({
-        status: 200,
-        json: () => {
-          started();
-          return new Promise((done) => {
-            resolve = done;
-          });
-        },
-      }) as Response,
+      new Response(
+        new ReadableStream<Uint8Array>({
+          pull() {
+            started();
+          },
+          cancel() {
+            cancelled++;
+          },
+        }),
+      ),
   );
   const pending = client.list();
-  await parsing;
+  await reading;
   client.invalidate();
-  resolve({ data: [{ id: 'private', object: 'model', created: 0, owned_by: 'owner' }] });
   assert.deepEqual(await pending, { state: 'cancelled' });
+  assert.equal(cancelled, 1);
 });

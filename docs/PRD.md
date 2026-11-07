@@ -1205,3 +1205,32 @@ Explicit strict:false Gemini schema transport additionally permits ASCII digits 
 ## Codex operator OAuth first slice (#635)
 
 The operator command adds isolated official-CLI device login, status and logout only. It does not register a subscription-backed inference provider, change OpenRouter/OpenAI-compatible APIs, or bypass IAM, limits, audit or usage. Success does not establish model entitlement or live acceptance. A separate app-server/Responses adapter and authenticated streaming/tool-call E2E remain pending. See the [operator guide](guides/codex-oauth.md), [contract](../contracts/codex-oauth.md), and [plan](plans/635-codex-device-oauth.md).
+
+## Durable SSO catalog metadata audit (#641)
+
+A dedicated PostgreSQL append adapter preserves actual SSO principal/policy attribution without fabricated proxy credentials. Migration 012 adds metadata-only storage; it does not mount a runtime or establish retention, export or installed acceptance. See [contract](../contracts/sso-catalog-audit.md) and [plan](plans/641-sso-catalog-audit.md).
+
+## SSO catalog body-free reads (#641)
+
+The server-facing SSO catalog list/detail GET boundary rejects body framing before service work, including real Node requests whose bodies are discarded during Fetch adaptation. Existing authentication, IAM and required audit semantics remain unchanged. See [plan](plans/641-catalog-request-framing.md) and [HTTP contract](../contracts/sso-model-catalog-http.md).
+
+## Durable SSO catalog HTTP composition (#641)
+
+An optional PostgreSQL handler/non-listening server factory composes registered RFC9068 authentication, fresh IAM/catalog and mandatory dedicated SSO audit without an externally supplied audit callback. It adds no session, permission, ingress or runtime activation. See [plan](plans/641-durable-catalog-http.md).
+
+## Owned management catalog listener (#641)
+
+Explicit SSO management startup now serves existing authorized catalog list/detail on its single migrated database connection, alongside owner-scoped token operations and optional static browser assets. Catalog replies require fresh IAM and durable attributed audit; no browser session, inference or new deployment is granted. See [plan](plans/641-catalog-runtime.md) and [contract](../contracts/sso-management-runtime.md).
+
+
+## Management transport privacy (#639)
+
+The shared Node HTTP bridge forces no-store and nosniff on exact /management and slash descendants, including handler errors and custom fallback responses. This preserves existing status/body/authentication/audit behavior and activates no routes or session. See [contract](../contracts/management-http-privacy.md) and [plan](plans/639-management-http-privacy.md). Loopback socket evidence is not native-browser, company SSO or installed ingress acceptance.
+
+## Management error-path containment (#639)
+
+The shared HTTP bridge contains broken custom fallback factories/bodies before sending headers or bytes, retaining a fixed private-error envelope and management response privacy. This is a transport reliability slice, not browser login/session activation. See [plan](plans/639-management-fallback-containment.md).
+
+## Management response isolation (#639)
+
+Pre-commit Node response failures discard staged response metadata before fixed errors are sent. Successful headers and streaming remain unchanged. No session, authentication, policy or deployment decision is introduced. See [plan](plans/639-node-response-headers.md).

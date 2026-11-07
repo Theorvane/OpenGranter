@@ -1799,3 +1799,46 @@ The pure boundary renderer distinguishes loading, absent session, expired sessio
 ## Management boundary DOM replacement (#639)
 
 The unused mount adapter builds fixed detached main/heading/status nodes with textContent and synchronously replaces all children of the caller-owned root. Structural fixture tests cover stale subtree removal, repeated state changes, five accessible states and unknown inputs without coercion/reflection. This is not a browser test, session detector, authorization revocation or memory/resource cleanup. Callers must own the root and dispose external listeners/resources. No session or endpoint integration is installed. See [plan](plans/639-management-boundary-mount.md).
+
+## SSO catalog durable metadata audit (#641)
+
+- Persist human/policy attribution or explicit anonymous authentication failures without tokens, content or synthetic credentials.
+- Required audit storage failure returns HTTP 503 without releasing catalog data.
+- Migration replay and populated upgrade preserve historical checksums. Local signed-JWT/loopback/PGlite checks are not company-IdP/browser or installed PostgreSQL acceptance.
+- See [contract](../contracts/sso-catalog-audit.md).
+
+## SSO catalog request framing (#641)
+
+- Both list and encoded-detail GET requests reject any Transfer-Encoding and nonzero/noncanonical Content-Length with fixed 400/no-store before discovery service work. No model metadata or bearer token is echoed.
+- Requests with absent body framing or exact Content-Length: 0 preserve existing authenticated outcomes. Verify through Fetch and real local Node sockets; this is not installed browser or company-IdP acceptance.
+
+## Durable PostgreSQL SSO catalog HTTP composition (#641)
+
+- Signed access-token list/detail through the composed Node boundary persist human and exact policy versions before response completion; fresh Deny and binding revocation take effect on the next call.
+- Anonymous denial is durably recorded; missing audit storage suppresses both authenticated and anonymous responses with 503. A deferred insert blocks metadata release.
+- Extra caller audit callbacks cannot replace durable append. No provider calls, synthetic credentials, automatic socket binding or session mounting occur. Local PGlite/loopback is not installed/browser/provider acceptance.
+
+
+## Owned SSO catalog runtime (#641)
+
+- Real local loopback listener with migrated PGlite and a registered signed test issuer serves catalog list and encoded-alias detail, with or without optional browser assets.
+- Verify durable human/policy attribution, anonymous denial, next-request Deny/revoked binding, required-audit outage, unchanged token authentication and unrelated/inference path isolation.
+- Verify one connection and idempotent close. Local test issuer/PGlite sockets are not browser login, installed PostgreSQL, company IdP or provider acceptance.
+
+
+## Management transport privacy (#639)
+
+The shared Node HTTP bridge forces no-store and nosniff on exact /management and slash descendants, including handler errors and custom fallback responses. This preserves existing status/body/authentication/audit behavior and activates no routes or session. See [contract](../contracts/management-http-privacy.md) and [plan](plans/639-management-http-privacy.md). Loopback socket evidence is not native-browser, company SSO or installed ingress acceptance.
+
+- Assert management 200/201, 401/403/404/503 and unexpected 500 fallback responses carry no-store and nosniff over a real Node socket, overriding unsafe child headers without changing body/status/request IDs or Bearer challenge.
+- Assert /management-public and query-only management strings retain unrelated cache policy; existing discovery and proxy error-format regressions remain green.
+
+## Management transport fallback containment (#639)
+
+- Real loopback HTTP with an isolated process verifies throwing factories, invalid fallback status/header, partially errored streams and consumed bodies produce fixed 500 responses with no custom fallback metadata or private error text. Repeat requests demonstrate process survival.
+- Management no-store/nosniff and compatible discovery no-store/error shape survive fallback failure. Existing valid custom responses remain supported. These are transport checks, not browser SSO, installed PostgreSQL or provider acceptance.
+
+## Management response metadata isolation (#639)
+
+- Actual loopback HTTP invalid status/header and consumed body cases yield fixed errors without failed-response cookies, redirects, encodings, framing or private headers. Repeated requests demonstrate survival.
+- Valid responses retain intended status, headers and body. These checks do not certify browser sign-in or installed acceptance.

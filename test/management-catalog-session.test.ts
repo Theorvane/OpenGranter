@@ -43,31 +43,32 @@ test('session replacement suppresses old responses when abort is ignored', async
   await old;
   assert.deepEqual(session.snapshot(), { state: 'empty' });
 });
-test('expiry during body parsing cannot republish protected data', async () => {
-  let finish!: (body: unknown) => void;
+test('expiry during body consumption cannot republish protected data', async () => {
   let started!: () => void;
-  const parsing = new Promise<void>((resolve) => {
+  let cancelled = 0;
+  const reading = new Promise<void>((resolve) => {
     started = resolve;
   });
   const session = createManagementCatalogSession();
   session.authorize(
     async () =>
-      ({
-        status: 200,
-        json: () => {
-          started();
-          return new Promise((resolve) => {
-            finish = resolve;
-          });
-        },
-      }) as Response,
+      new Response(
+        new ReadableStream<Uint8Array>({
+          pull() {
+            started();
+          },
+          cancel() {
+            cancelled++;
+          },
+        }),
+      ),
   );
   const pending = session.list();
-  await parsing;
+  await reading;
   session.clear('expired');
-  finish({ data: [model] });
   await pending;
   assert.deepEqual(session.snapshot(), { state: 'expired' });
+  assert.equal(cancelled, 1);
 });
 test('detail navigation supersedes pending list', async () => {
   let finish!: (response: Response) => void;
@@ -114,4 +115,19 @@ test('dispose is terminal', async () => {
   await session.list();
   session.clear('expired');
   assert.deepEqual(session.snapshot(), { state: 'disposed' });
+});
+
+test('a stalled catalog read leaves loading for the retryable unavailable state', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const session = createManagementCatalogSession();
+  session.authorize(async () => new Promise<Response>(() => {}));
+  const pending = session.list();
+  assert.deepEqual(session.snapshot(), { state: 'loading', view: 'list' });
+  t.mock.timers.tick(30_000);
+  await pending;
+  assert.deepEqual(session.snapshot(), { state: 'unavailable' });
+  session.authorize(async () => Response.json({ data: [] }));
+  await session.list();
+  assert.deepEqual(session.snapshot(), { state: 'empty' });
+  session.dispose();
 });
