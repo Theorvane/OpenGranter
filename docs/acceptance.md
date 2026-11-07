@@ -2041,3 +2041,6 @@ Source and restricted browser catalog renderers retain exactly one owner main an
 
 ## Account explicit read recovery (#637 / #639)
 Source and built workspace: unavailable503, malformed response, network failure and timeout show Retry current principal; one click dispatches one fresh GET and loading removes the control. Detached controls, double clicks, renewal, navigation, logout, pagehide, disposal and suspended expiry cannot reuse authority;401/403 expose no retry. Actual administration HTTP plus migrated PGlite and isolated candidate Account audit DDL must recover audit503 to identity200 with exactly one explicit read and two durable successful audit events. Signed test SSO and temporary Chromium loopback are not company login, installed schema approval or deployment acceptance.
+
+## Catalog navigation lifecycle (#637 / #639)
+Detached list/detail/refresh/retry controls must not send reads, consume replacement grants or cancel current reads after superseding navigation, logout, renewal, disposal or expiry. Active controls still perform fresh authorized reads; verify source, browser bundle and actual HTTP browser separately.

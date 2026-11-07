@@ -71,3 +71,14 @@
 - Pre-fix RED:14 failing recovery/stale-handler cases, four existing denial cases pass. Final new source/built suite24/24; combined Account/Usage regressions138/138, zero skipped. Typecheck, lint (42 existing warnings), planning/link checks, pinned compatibility and diff checks pass.
 - Actual Chromium156 through existing administration HTTP and migrated PGlite: Account200, mandatory audit503 removes identity, one explicit Retry GET recovers200 and second durable successful Account audit; no mutation dispatch or page errors. Candidate Account audit DDL is isolated runner setup, not installed approval. Listener closes after smoke; test-runner signed SSO is not company login.
 - Production change is one existing principal-app file; no session, API, IAM, DDL, migration or runtime activation change. Prior resource-limited full-check failures remain; no new local whole-check success claim.
+
+## Catalog navigation lifetime (#637 / #639)
+1. RED source and bundled tests for detached list/detail/refresh/retry controls across navigation, loading, renewed authority, clear, expiry and disposal; verify no new request or cancellation of current work.
+2. Bind every catalog action to the render snapshot and consult authority.snapshot() before dispatch (including suspended-timer expiry). Reuse existing server authentication/IAM/audit; no session, API, DDL or runtime changes.
+3. Verify current buttons still navigate, stale callbacks cannot consume replacement authority, and real Chromium through actual catalog HTTP sends no detached request. Run focused regression and static checks.
+4. Publish on existing PR785, superseding exact-head review and CI. No merge without formal approval and dependency gates.
+
+### Catalog lifetime execution evidence (2026-11-08 KST)
+- Meaningful pre-fix RED18 failures/24 existing guards pass. Source and bundled suite42/42 and combined catalog/Account/workspace/actual HTTP regressions105/105 pass, zero skips.
+- Native Chromium156 through actual administration HTTP, migrated PGlite and runner-signed SSO: list200/detail200, double click exactly one detail read, three detached controls after renewal produce zero reads, current navigation still reads200, suspended-timer expiry produces zero reads. Zero page errors. Loopback listener closes after smoke; not company IdP login or installed acceptance.
+- Initial typecheck caught nullable test AbortSignal capture; corrected to undefined. No production contract widening. Prior whole-localcheck resource failures remain; exact-head CI/formal approval still required.

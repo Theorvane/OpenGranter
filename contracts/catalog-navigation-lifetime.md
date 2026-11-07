@@ -1,0 +1,3 @@
+# Catalog navigation lifetime
+
+Existing SSO catalog list/detail/refresh/recovery controls are valid only for their rendered snapshot. Calling a detached control after another navigation, while a read is pending, after authority replacement, clearing, disposal or expiry must not send a request or cancel current work. The authority snapshot check must evaluate expiry even if timers did not fire. Current controls still perform fresh server-authenticated, authorized and audited reads. This is UI lifecycle isolation, not a session or an IAM grant. No session/API/SQL/runtime activation is introduced.

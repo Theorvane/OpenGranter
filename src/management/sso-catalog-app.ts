@@ -33,7 +33,16 @@ export function mountSsoManagementCatalog(
         root,
         snapshot,
         {
-          ...actions,
+          // A control belongs to this render, never to replacement authority.
+          // snapshot() also checks expiry when browser timers were suspended.
+          list() {
+            if (authority.snapshot() !== snapshot) return;
+            actions.list();
+          },
+          detail(id: string) {
+            if (authority.snapshot() !== snapshot) return;
+            actions.detail(id);
+          },
           ...(options.onInspectUsage && snapshot.state === 'detail'
             ? {
                 inspectUsage(id: string) {

@@ -1400,3 +1400,6 @@ The existing management Usage view and fresh page CSV must not publish after tru
 
 ## Account explicit error recovery (#637 / #639)
 The current-principal screen offers an explicit fresh read after unavailable transport, malformed response or deadline. It never retries automatically or retries authorization denials. Detached controls cannot dispatch after navigation, renewal, clear, pagehide, disposal or trusted expiry. This reuses the existing trusted composition and does not establish browser SSO. See [plan](plans/784-audit-page.md).
+
+## Catalog navigation lifetime (#637 / #639)
+Existing catalog controls reject superseded render snapshots before using current transport authority, including renewed grants and suspended expiry timers. See [contract](../contracts/catalog-navigation-lifetime.md). No browser session or runtime activation is implied.
