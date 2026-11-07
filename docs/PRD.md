@@ -1314,3 +1314,7 @@ Existing audit JSON/CSV queries and durable actor/target projection support exac
 ## Integrated source-only review feature line (#637)
 
 Combine the existing #716–#721 management and audit changes with the same-origin #722 review composition. The served workspace bundle, scoped APIs and durable audit must use the same source tree; a newest PR number alone does not imply inclusion. See [plan](plans/637-review-feature-integration.md). No new authentication or installed-runtime authority.
+
+## Public Models/Usage entry (#637)
+
+The actual public management bundle mounts the existing Models/Usage workspace rather than the catalog-only page. Navigation remains signed out without explicit trusted authority; no login, cookie/token bridge or ambient grant API is introduced. Existing page lifecycle isolation applies to both views. See [plan](plans/637-public-workspace-entry.md).

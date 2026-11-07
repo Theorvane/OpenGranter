@@ -1952,3 +1952,9 @@ Structural cancelable click events must show current downloads are permitted, ex
 
 - Execute the built workspace module fetched from the same-origin source server with explicitly injected signed test authority, embedded SQL and durable audit. Assert unknown-cost page coverage, discarded refresh isolation across CSV export, model/usage drilldown, CSV revocation and fresh IAM denial together.
 - Baseline #722 fails the page-summary assertion; integrated source passes. Structural DOM execution is not native-browser login, installed PostgreSQL or provider E2E. See [plan](plans/637-review-feature-integration.md).
+
+## Public management workspace entry (#637)
+
+- Build and execute the actual public entry: Models and Usage history navigation must be present, remain signed out through view changes/pagehide/pageshow, and make zero ambient HTTP requests or exported global authority APIs. Missing app roots remain inert.
+- Combined existing source must retain signed fixture HTTP/embedded-SQL principal, usage/drilldown/CSV, fresh IAM denial, mandatory audit and static isolation regressions. No browser IdP/login, installed PostgreSQL, schema promotion or provider calls are certified.
+- Entry-only baseline fails the workspace navigation assertion; the existing workspace mount passes. See [plan](plans/637-public-workspace-entry.md).
