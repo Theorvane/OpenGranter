@@ -1842,3 +1842,10 @@ The shared Node HTTP bridge forces no-store and nosniff on exact /management and
 
 - Actual loopback HTTP invalid status/header and consumed body cases yield fixed errors without failed-response cookies, redirects, encodings, framing or private headers. Repeated requests demonstrate survival.
 - Valid responses retain intended status, headers and body. These checks do not certify browser sign-in or installed acceptance.
+
+
+## Current authenticated human identity (#768)
+
+- Explicit GET /management/v1/principal returns only the authenticated active human ID and kind after fresh registered-key RFC9068 verification and current exact binding. Client-selected IDs, cookies and verifier/authenticator overrides cannot substitute authority.
+- Require awaited nonsecret success/denial/unavailable audit before responding; audit failure suppresses identity. Cover missing/rejected JWT, expiry/audience/issuer/kid, inactive/unbound/service principal, rebinding, database failure, malformed trusted result, abort and body framing.
+- Verify public Fetch and actual Node loopback HTTP using local signed test JWTs and migrated PGlite; keep this separate from native-browser, installed PostgreSQL or company-IdP acceptance. Caller-owned durable audit integration remains required. No schema, runtime mount, session, browser grant, provider call or administrative permission is enabled. See [plan](plans/768-current-principal.md) and [contract](../contracts/sso-current-principal-http.md).
