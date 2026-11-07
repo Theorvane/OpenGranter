@@ -16,7 +16,12 @@ export function createPostgresSsoAdministrationBrowserHandler(
 ) {
   const { client, now, issuer, audience, jwks, newRequestId, javascript } = ports;
   const configuration = { client, now, issuer, audience, jwks, newRequestId };
-  const review = createPostgresSsoReviewHandler(configuration);
+  const review = createPostgresSsoReviewHandler({
+    ...configuration,
+    ...(Object.hasOwn(ports, 'principalAuditClient')
+      ? { principalAuditClient: ports.principalAuditClient }
+      : {}),
+  });
   const credentials = createPostgresRfc9068SsoManagementHandler(configuration);
   return createManagementBrowserHandler({
     javascript,
