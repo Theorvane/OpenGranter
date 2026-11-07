@@ -127,6 +127,7 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
         ['fromMs', 'From (UTC)', 'datetime-local'],
         ['toMs', 'To (UTC, exclusive)', 'datetime-local'],
         ['limit', 'Page size (1–100)', 'number'],
+        ['requestId', 'Request ID', 'text'],
       ] as const) {
         const wrapper = element('label', label);
         const input = element('input');
@@ -269,7 +270,14 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
             row.append(cell);
           }
           const inspection = element('td');
-          inspection.append(renderUsageAttemptDetails(root.ownerDocument, record));
+          inspection.append(
+            button('Trace usage request ' + record.requestId, () => {
+              const { cursor: _cursor, ...scope } = filters;
+              draftFilters = undefined;
+              void load({ ...scope, requestId: record.requestId });
+            }),
+            renderUsageAttemptDetails(root.ownerDocument, record),
+          );
           row.append(inspection);
           body.append(row);
         }

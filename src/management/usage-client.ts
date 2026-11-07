@@ -5,6 +5,7 @@ import type { CatalogRequest } from './catalog-client.ts';
 export interface UsageFilters {
   readonly principalId?: string;
   readonly model?: string;
+  readonly requestId?: string;
   readonly fromMs?: number;
   readonly toMs?: number;
   readonly limit?: number;
@@ -49,6 +50,10 @@ function path(filters: UsageFilters, format: 'json' | 'csv'): string | undefined
   if (
     (filters.principalId !== undefined && !text(filters.principalId, 256)) ||
     (filters.model !== undefined && !text(filters.model, 256)) ||
+    (filters.requestId !== undefined &&
+      (typeof filters.requestId !== 'string' ||
+        filters.requestId.length > 256 ||
+        !/^[A-Za-z0-9][A-Za-z0-9._+:/@-]*$/u.test(filters.requestId))) ||
     (filters.fromMs !== undefined && !integer(filters.fromMs)) ||
     (filters.toMs !== undefined && !integer(filters.toMs)) ||
     (filters.fromMs !== undefined &&
@@ -63,6 +68,7 @@ function path(filters: UsageFilters, format: 'json' | 'csv'): string | undefined
   for (const [key, value] of [
     ['principal_id', filters.principalId],
     ['model', filters.model],
+    ['request_id', filters.requestId],
     ['from_ms', filters.fromMs],
     ['to_ms', filters.toMs],
     ['limit', filters.limit],
@@ -217,7 +223,16 @@ export function createManagementUsageClient(request: CatalogRequest) {
   }
   return {
     invalidate,
-    list: (filters: UsageFilters = {}) => read(filters, 'json', jsonPage),
+    list: (filters: UsageFilters = {}) => {
+      const requestId = filters.requestId;
+      return read(filters, 'json', (raw) => {
+        const page = jsonPage(raw);
+        return page &&
+          (requestId === undefined || page.records.every((r) => r.requestId === requestId))
+          ? page
+          : undefined;
+      });
+    },
     csv: (filters: UsageFilters = {}) =>
       read(filters, 'csv', (csv, response): UsageCsvPage | undefined => {
         const more = response.headers.get('x-usage-has-more');

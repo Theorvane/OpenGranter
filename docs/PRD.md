@@ -1341,3 +1341,8 @@ Reuse the existing frontend row-principal action against the current authorized 
 ## Public workspace request correlation (#637, #642)
 
 The public Models/Usage workspace reuses the existing frontend request-correlation component. Authorized current-page rows are grouped by exact principal and request ID with attempts, unknown usage and server duplicate/possibly-billed markers preserved. This is not complete request history, retry ordering, deduplication or settled billing; it makes no extra requests or permission grants.
+
+
+## Integrated exact request usage trace (#637 / #642)
+
+The existing source/built management workspace now reuses the frontend-owned request-ID control and per-attempt trace action. The optional exact request_id intersects existing principal/model/time scope, resets cursors on filter changes, and is retained for JSON/CSV continuation through signed SSO HTTP and the parameterized usage reader. Fresh IAM, explicit-principal ReadAll semantics, mandatory private audit, foreign-principal isolation and unknown/duplicate markers remain unchanged. This is a bounded review feature, not billing reconciliation, browser login, installed PostgreSQL or paid-provider acceptance. See [integration plan](plans/637-integrate-request-filter.md).
