@@ -410,6 +410,20 @@ for (const artifact of [false, true]) {
           '/management/v1/usage?principal_id=human&model=team%2Fchat&format=json',
         );
         assert.doesNotMatch(f.root.text(), /Previous page/);
+        f.root.click('Trace usage request chat');
+        await until(/Inspect attempt/);
+        assert.equal(
+          paths.at(-1),
+          '/management/v1/usage?principal_id=human&model=team%2Fchat&request_id=chat&format=json',
+        );
+        assert.match(f.root.text(), /attempt-retry/);
+        assert.doesNotMatch(f.root.text(), /isolated-other/);
+        f.root.click('Export current page CSV');
+        await until(/Download usage.csv/);
+        assert.equal(
+          paths.at(-1),
+          '/management/v1/usage?principal_id=human&model=team%2Fchat&request_id=chat&format=csv',
+        );
         f.root.click('Inspect model team/chat');
         await until(/Model ID/);
         f.root.click('Back to models');
@@ -426,11 +440,13 @@ for (const artifact of [false, true]) {
           '/management/v1/models/team%2Fchat',
           '/management/v1/usage?model=team%2Fchat&format=json',
           '/management/v1/usage?principal_id=human&model=team%2Fchat&format=json',
+          '/management/v1/usage?principal_id=human&model=team%2Fchat&request_id=chat&format=json',
+          '/management/v1/usage?principal_id=human&model=team%2Fchat&request_id=chat&format=csv',
           '/management/v1/models/team%2Fchat',
           '/management/v1/models',
         ]);
         assert.equal((await db.query('SELECT * FROM sso_catalog_audit_events')).rows.length, 6);
-        assert.equal((await db.query('SELECT * FROM sso_usage_audit_events')).rows.length, 6);
+        assert.equal((await db.query('SELECT * FROM sso_usage_audit_events')).rows.length, 8);
         // Same production source handler serves detail/export, not a test router.
         const review = (path: string, headers: Record<string, string> = {}) =>
           fetch(`http://127.0.0.1:${address.port}${path}`, {
@@ -468,7 +484,7 @@ for (const artifact of [false, true]) {
         f.root.click('Models');
         await settle();
         assert.match(f.root.text(), /Access denied/);
-        assert.equal(paths.length, 15);
+        assert.equal(paths.length, 17);
         const audits = await db.query<{ outcome: string }>(
           'SELECT outcome FROM sso_usage_audit_events ORDER BY event_id',
         );
@@ -479,6 +495,8 @@ for (const artifact of [false, true]) {
             'ready',
             'ready',
             'forbidden',
+            'ready',
+            'ready',
             'ready',
             'ready',
             'ready',

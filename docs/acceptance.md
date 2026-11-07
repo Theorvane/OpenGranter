@@ -1977,3 +1977,8 @@ Reuse the existing frontend row-principal action against the current authorized 
 ## Public workspace request correlation (#637, #642)
 
 Source and built public workspace acceptance uses signed test SSO, migrated PGlite and real loopback HTTP. Two attempts sharing principal/request remain visible; a different principal using that request ID stays absent under ReadSelf. Existing explicit self ReadAll denial, no weaker retry, fresh IAM revocation and mandatory audit failures still apply. Independent tests retain repeated records, principal isolation, delimiter-collision cases, safe text rendering, no additional fetch and expiry/stale-result cleanup. Native browser, real IdP and installed PostgreSQL acceptance remain unclaimed.
+
+
+## Integrated exact request usage trace (#637 / #642)
+
+The existing source/built management workspace now reuses the frontend-owned request-ID control and per-attempt trace action. The optional exact request_id intersects existing principal/model/time scope, resets cursors on filter changes, and is retained for JSON/CSV continuation through signed SSO HTTP and the parameterized usage reader. Fresh IAM, explicit-principal ReadAll semantics, mandatory private audit, foreign-principal isolation and unknown/duplicate markers remain unchanged. This is a bounded review feature, not billing reconciliation, browser login, installed PostgreSQL or paid-provider acceptance. See [integration plan](plans/637-integrate-request-filter.md).

@@ -1437,3 +1437,8 @@ Reuse the existing frontend row-principal action against the current authorized 
 ## Public workspace request correlation (#637, #642)
 
 The existing frontend 77d7b62 module is reused byte-for-byte with three mount lines on the #758 integration branch. Correlation consumes only the existing scoped usage response, groups using nested exact-key maps and renders text nodes. No endpoint, SQL, authorization, session or runtime activation changes. Existing workspace cleanup removes the panel on navigation, refresh, denial and expiry.
+
+
+## Integrated exact request usage trace (#637 / #642)
+
+The existing source/built management workspace now reuses the frontend-owned request-ID control and per-attempt trace action. The optional exact request_id intersects existing principal/model/time scope, resets cursors on filter changes, and is retained for JSON/CSV continuation through signed SSO HTTP and the parameterized usage reader. Fresh IAM, explicit-principal ReadAll semantics, mandatory private audit, foreign-principal isolation and unknown/duplicate markers remain unchanged. This is a bounded review feature, not billing reconciliation, browser login, installed PostgreSQL or paid-provider acceptance. See [integration plan](plans/637-integrate-request-filter.md).
