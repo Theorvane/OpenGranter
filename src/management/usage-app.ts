@@ -87,6 +87,7 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
   let draftFilters: Readonly<Record<string, string>> | undefined;
   let page: UsagePage | undefined;
   let previous: readonly UsageFilters[] = [];
+  let retryPage: { filters: UsageFilters; history: readonly UsageFilters[] } | undefined;
   let state = 'unauthenticated';
   let csvUrl: string | undefined;
   let csvMore = false;
@@ -198,6 +199,14 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
       main.append(form);
       if (state === 'loading' || state === 'exporting')
         main.append(button('Cancel request', cancel));
+      if (state === 'unavailable' && retryPage) {
+        const target = retryPage;
+        main.append(
+          button('Retry current usage page', () => {
+            void load(target.filters, target.history);
+          }),
+        );
+      }
       if (state !== 'loading' && state !== 'exporting')
         main.append(
           button('Retry / first page', () => {
@@ -373,6 +382,7 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
     ++revision;
     client.invalidate();
     page = undefined;
+    retryPage = undefined;
     previous = [];
     revoke();
     state = 'cancelled';
@@ -382,6 +392,7 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
     if (!client || disposed || expired()) return;
     const current = ++revision;
     revoke();
+    retryPage = undefined;
     filters = { ...next };
     previous = [];
     page = undefined;
@@ -394,6 +405,8 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
       return;
     }
     state = result.state;
+    if (result.state === 'unavailable')
+      retryPage = { filters: { ...filters }, history: history.map((query) => ({ ...query })) };
     if (result.state === 'ready') {
       page = result.data;
       previous = history;
@@ -404,6 +417,7 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
     if (!client || disposed || expired() || state !== 'ready') return;
     const current = ++revision;
     revoke();
+    retryPage = undefined;
     state = 'exporting';
     render();
     const result = await client.csv(exportFilters);
@@ -435,6 +449,7 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
     ++revision;
     client?.invalidate();
     client = undefined;
+    retryPage = undefined;
     filters = {};
     draftFilters = undefined;
     previous = [];

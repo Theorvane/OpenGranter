@@ -1406,3 +1406,7 @@ Existing catalog controls reject superseded render snapshots before using curren
 
 ## Catalog explicit error recovery (#637 / #639)
 Unavailable model list/detail reads support an explicit fresh lookup of the selected target without forcing a return to the list. No automatic retry or retry for denial/missing; stale controls cannot consume replacement authority. Existing SSO/IAM/required audit remain unchanged. See [contract](../contracts/catalog-navigation-lifetime.md#explicit-unavailable-recovery).
+
+
+## Usage current-page error recovery (#637 / #642)
+An unavailable Usage JSON read can explicitly re-fetch the selected submitted filters/cursor without a first-page hop and recover query-only backward navigation. No automatic retry, CSV replay or authorization-denial retry is added. Existing trusted transport and fresh mandatory audits remain required; browser login and installed acceptance remain open. See [contract](../contracts/usage-screen.md#current-usage-page-recovery-637--642).

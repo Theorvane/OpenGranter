@@ -93,3 +93,15 @@
 - Pre-fix RED18 failures/6 denial guards pass. A mistaken test-only API prefix was corrected to the existing /management/v1/models contract; no API path changed. New source/built suite24/24; with prior lifetime suite66/66 zero skipped.
 - Native Chromium156 through actual administration HTTP and migrated PGlite: list200, mandatory catalog audit failure detail503, explicit retry detail200 without intermediate list or automatic retry. Double click sends one GET; detached retry sends none. Successful list/detail audits are durably present; failed audit did not expose detail. Zero page errors. Loopback listener closes after smoke, not a persistent URL. Runner-signed SSO is not company login/installed acceptance.
 - Production edits stay in existing catalog view/composition; session/API/IAM/schema/runtime activation unchanged. Require new exact-head CI, independent formal approval and dependency gates.
+
+
+## Usage current-page recovery (#637 / #642)
+1. Reproduce loss of the selected usage cursor and backward history after a failed page read. Cover transport, malformed response and mandatory audit unavailability in source, browser artifact and actual HTTP.
+2. Add explicit Retry current usage page only for unavailable list reads. Retain submitted query/history only, not rows or bodies; fresh existing authenticated/audited GET only, no automatic retry, API/session/schema/runtime changes or CSV mutation replay.
+3. Verify same target without first-page hop, backward navigation, denial/invalid-query exclusion, double-click and detached-control isolation across renewal, clear, expiry, navigation and disposal. Run native Chromium and regression/static checks.
+4. Publish PR785 with superseding exact-head formal review and CI; inherited dependency gates remain required.
+
+### Usage recovery execution evidence (2026-11-08 KST)
+- Meaningful pre-fix RED16 failures/6 denial guards pass; final source/built recovery26/26 and combined Usage/workspace/actual HTTP regressions121/121 pass with zero skips. The initial test-only empty page with has_more=true was corrected to a valid nonempty first page before recording RED/GREEN; production response validation is unchanged.
+- Native Chromium156 through actual administration HTTP, migrated PGlite, isolated candidate audit DDL and runner-signed SSO: scoped list200, page-size1 list200, mandatory audit failure selected cursor503, explicit same-query/cursor200, fresh previous-page200. Four successful durable usage audits; failed audit exposed no rows. No automatic retry, double click one GET, detached retry zero GET, zero page errors. Loopback listener closes after smoke; not company IdP, installed PostgreSQL, provider or deployment acceptance.
+- typecheck, lint (42 existing warnings), planning/link/fixture-secret scan, pinned compatibility and diff checks pass. Whole-localcheck resource failures from prior executions remain; new exact-head CI, formal approval and dependency gates are still required.
