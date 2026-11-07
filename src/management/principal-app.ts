@@ -16,7 +16,7 @@ export function mountManagementPrincipal(
     pending?.abort();
     pending = undefined;
   }
-  function render(message: string) {
+  function render(message: string, retry?: () => void) {
     const heading = root.ownerDocument.createElement('h1');
     heading.textContent = 'Account';
     const status = root.ownerDocument.createElement('p');
@@ -25,6 +25,17 @@ export function mountManagementPrincipal(
     const warning = root.ownerDocument.createElement('p');
     warning.textContent = 'Identity is not permission to administer resources.';
     root.replaceChildren(heading, status, warning);
+    if (retry) {
+      const rendered = revision;
+      const button = root.ownerDocument.createElement('button');
+      button.textContent = 'Retry current principal';
+      button.setAttribute('type', 'button');
+      button.addEventListener('click', () => {
+        if (disposed || revision !== rendered || !(options.isAuthorityCurrent?.() ?? true)) return;
+        retry();
+      });
+      root.append(button);
+    }
   }
   function clear(reason: 'unauthenticated' | 'expired' | 'denied' = 'unauthenticated') {
     if (disposed) return;
@@ -40,7 +51,7 @@ export function mountManagementPrincipal(
   clear();
   return {
     clear,
-    async authorize(grant: CatalogAuthorityGrant) {
+    authorize: async function authorize(grant: CatalogAuthorityGrant) {
       if (disposed) return;
       cancel();
       const current = revision;
@@ -61,11 +72,15 @@ export function mountManagementPrincipal(
         }
       };
       render('Loading current principal…');
+      const unavailable = () =>
+        render('Current principal unavailable.', () => {
+          void authorize(grant);
+        });
       // Deadline settles even if a transport or response reader ignores cancellation.
       const timer = setTimeout(() => {
         if (!live()) return;
-        render('Current principal unavailable.');
         cancel();
+        unavailable();
       }, 30_000);
       const interrupted = new Promise<void>((resolve) =>
         controller.signal.addEventListener('abort', () => resolve(), { once: true }),
@@ -86,13 +101,9 @@ export function mountManagementPrincipal(
           }
           if (response.status !== 200) {
             discard(response);
-            render(
-              response.status === 401
-                ? 'Sign-in required.'
-                : response.status === 403
-                  ? 'Access denied.'
-                  : 'Current principal unavailable.',
-            );
+            if (response.status === 401) clear('unauthenticated');
+            else if (response.status === 403) clear('denied');
+            else unavailable();
             return;
           }
           const length = response.headers.get('content-length');
@@ -153,7 +164,7 @@ export function mountManagementPrincipal(
           }
           if (live()) render('Current principal: ' + principalId);
         } catch {
-          if (live()) render('Current principal unavailable.');
+          if (live()) unavailable();
         }
       };
       try {

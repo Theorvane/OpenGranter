@@ -1397,3 +1397,6 @@ The existing trusted workspace checks current authority when Account response/bo
 
 ## Usage completion and shared authority (#637 / #642)
 The existing management Usage view and fresh page CSV must not publish after trusted host expiry, including suspended browser timers and invalid/throwing/negative clocks. A recovered clock cannot restore cleared credential authority, and old completions cannot clear a renewed grant. This is a bounded existing-workspace fix, not browser login or deployment acceptance. See [plan](plans/784-audit-page.md#usage-authority-integration-follow-up-637--642).
+
+## Account explicit error recovery (#637 / #639)
+The current-principal screen offers an explicit fresh read after unavailable transport, malformed response or deadline. It never retries automatically or retries authorization denials. Detached controls cannot dispatch after navigation, renewal, clear, pagehide, disposal or trusted expiry. This reuses the existing trusted composition and does not establish browser SSO. See [plan](plans/784-audit-page.md).

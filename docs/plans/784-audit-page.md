@@ -60,3 +60,14 @@
 - Meaningful pre-fix RED:16/16 source+built response/body cases fail; final suite includes JSON/CSV and renewed-grant isolation. Invalid clock throws leaked as unhandled rejection, negative clock published a page, and even ordinary expiry left shared credential authority recoverable after clock correction.
 - Native Chromium156: actual usage200 and one durable usage audit held across absolute expiry with no timer firing; protected output cleared and Issue token remained disabled after clock recovery. No mutation dispatch or page errors. First harness lacked explicit candidate usage audit DDL and correctly received503; corrected isolated runner only.
 - Session, API, IAM, SQL migration and runtime activation remain unchanged. Browser listener closes after smoke; no persistent user URL.
+
+## Account explicit error recovery (#637 / #639)
+1. Reproduce missing explicit recovery from Account unavailable using source and built browser workspace, including real HTTP mandatory-audit failure. No automatic retry.
+2. Add a Retry current principal button only for unavailable (transport, malformed response or timeout). Reuse the existing guarded read and bounded parser; never retry authorization denials or retain a live handler across navigation, renewal, logout or expiry.
+3. Verify one fresh GET per explicit retry, loading suppression, detached-handler rejection and durable HTTP recovery without fabricated identity or audit. Keep session/API/schema/runtime unchanged.
+4. Publish on PR785; supersede exact-head review and CI. Preserve formal approval, dependency and deployment gates.
+
+### Account recovery execution evidence (2026-11-08 KST)
+- Pre-fix RED:14 failing recovery/stale-handler cases, four existing denial cases pass. Final new source/built suite24/24; combined Account/Usage regressions138/138, zero skipped. Typecheck, lint (42 existing warnings), planning/link checks, pinned compatibility and diff checks pass.
+- Actual Chromium156 through existing administration HTTP and migrated PGlite: Account200, mandatory audit503 removes identity, one explicit Retry GET recovers200 and second durable successful Account audit; no mutation dispatch or page errors. Candidate Account audit DDL is isolated runner setup, not installed approval. Listener closes after smoke; test-runner signed SSO is not company login.
+- Production change is one existing principal-app file; no session, API, IAM, DDL, migration or runtime activation change. Prior resource-limited full-check failures remain; no new local whole-check success claim.

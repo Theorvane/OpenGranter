@@ -15,3 +15,6 @@ The host rechecks current trusted authority at each Account response/body contin
 
 ## Shared Usage presentation boundary (#637 / #642)
 The existing Usage view rechecks current host authority before publishing asynchronous read or CSV completion, including suspended timers and invalid clocks. Invalid/throwing/negative clocks fail closed without leaking errors. Host expiry clears shared credential authority. Superseded work cannot clear a replacement grant. No session/API/DDL activation is implied.
+
+### Explicit Account recovery (#637 / #639)
+The existing UI may explicitly retry unavailable GET /management/v1/me using the current trusted transport; no automatic retry, identity cache, session grant or API change is introduced. Malformed responses and timeouts use the same bounded read path.401/403 have no recovery control. A handler is valid only within its render revision and current host authority; navigation, renewal, clear, hide, dispose and expiry invalidate it.
