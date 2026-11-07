@@ -1897,3 +1897,9 @@ The existing usage screen offers Export next CSV page only after a successful CS
 - Public assets require no SQL, grant no cookie authority, retain restrictive CSP/no-store, and reject queries/framing without SPA fallback.
 - One loopback origin serves the public workspace artifact and signed model list/detail, scoped usage/CSV backed by embedded SQL and durable audits; fresh IAM denial and audit failure remain fail-closed.
 - Not native-browser login, session activation, installed PostgreSQL or provider acceptance. Caller must separately supply an approved trusted adapter. See [plan](plans/639-review-static-composition.md).
+## Management current-principal API (#639 incremental slice)
+
+- GET /management/v1/me with a verified RFC 9068 access token and current active-human binding returns exactly {principalId}, no-store and a server-generated request ID, with no cookies or permission grant.
+- Every request revalidates identity; inactive/deleted bindings and rejected tokens return 401 after required anonymous current-principal authentication-denial audit. Verification dependency failures return 503; failed audit returns 503 audit_unavailable. No token or claim is reflected.
+- Query/body input is rejected after authentication, including real HTTP nonzero Content-Length and chunked transfer framing; Content-Length: 0 remains valid. Unsupported methods return 404. Identity alone is not authorization for any list, detail or mutation.
+- Evidence: test/sso-current-principal-http.test.ts and test/postgres-sso-management-http.test.ts. Browser sessions, owned runtime activation, installed UI and release acceptance remain open.

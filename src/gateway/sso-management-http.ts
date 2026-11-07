@@ -10,7 +10,7 @@ import {
 
 export interface ManagementAuthenticationAuditEvent {
   readonly kind: 'management-auth-denied' | 'management-auth-unavailable';
-  readonly operation: 'issue' | 'revoke';
+  readonly operation: 'issue' | 'revoke' | 'current-principal';
   readonly requestId: string;
 }
 export interface SsoManagementHttpPorts {
@@ -111,12 +111,14 @@ export function createSsoManagementHandler(
     try {
       const url = new URL(request.url);
       const operation =
-        url.pathname === '/management/v1/proxy-tokens'
-          ? 'issue'
-          : url.pathname === '/management/v1/proxy-tokens/revoke'
-            ? 'revoke'
-            : undefined;
-      if (request.method !== 'POST' || !operation) return failure(404, 'not_found');
+        request.method === 'GET' && url.pathname === '/management/v1/me'
+          ? 'current-principal'
+          : request.method === 'POST' && url.pathname === '/management/v1/proxy-tokens'
+            ? 'issue'
+            : request.method === 'POST' && url.pathname === '/management/v1/proxy-tokens/revoke'
+              ? 'revoke'
+              : undefined;
+      if (!operation) return failure(404, 'not_found');
       const generatedId = newRequestId();
       if (
         typeof generatedId !== 'string' ||
@@ -155,6 +157,22 @@ export function createSsoManagementHandler(
       }
       if (request.signal.aborted) return failure(400, 'invalid_request', requestId);
       if (url.search) return failure(400, 'invalid_request', requestId);
+      if (operation === 'current-principal') {
+        // Fetch drops GET bodies; Node preserves their HTTP framing headers.
+        const length = request.headers.get('content-length');
+        if (
+          request.body !== null ||
+          request.headers.has('transfer-encoding') ||
+          (length !== null && !/^0+$/u.test(length))
+        )
+          return failure(400, 'invalid_request', requestId);
+        return noStore(
+          Response.json(
+            { principalId: authenticatedActorId },
+            { headers: { 'x-request-id': requestId } },
+          ),
+        );
+      }
       const value = await readBody(request);
       if (request.signal.aborted) return failure(400, 'invalid_request', requestId);
       if (operation === 'issue') {
