@@ -1,6 +1,6 @@
-import { parseAuditHistoryQuery, projectAuditHistoryPage } from '../audit/history-http.ts';
+import { projectGatewayAuditEvent } from '../audit/gateway-event-projection.ts';
+import { parseAuditHistoryQuery, projectAuditHistoryPage } from '../audit/history-projection.ts';
 import type { AuditHistoryEvent, AuditHistoryPage } from '../audit/postgres-audit-history.ts';
-import { projectGatewayAuditEvent } from '../audit/postgres-gateway-audit.ts';
 import type { CatalogRequest } from './catalog-client.ts';
 
 export interface AuditFilters {

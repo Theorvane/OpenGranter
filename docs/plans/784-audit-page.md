@@ -117,3 +117,10 @@
 - Native Chromium156 using the approved audit view bundle, runner-owned bounded client bridge, actual /v1/audit, migrated PGlite and injected test authenticator: first200, next200, fresh model scope200, principal scope200, mandatory-audit failure503, IAM Deny403 before history read. Four durable success audits, double click one GET, detached action zero GET, zero page errors. Loopback listener closes after smoke. NOT public SSO audit mount/company login/installed PostgreSQL/provider/deploy acceptance.
 - Direct audit-client browser build rejects server-side validator dependencies under existing public-source restrictions. No build bypass/allowlist widening; backend notified for reviewed pure-validator extraction/ownership. Native bridge is explicitly test-only, not a shipped integration solution.
 - typecheck, lint (42 existing warnings), planning/link/fixture-secret scan, pinned compatibility and diff checks pass. No new whole-localcheck success claim; exact-head CI/formal approval and dependency gates still required.
+
+## Pure audit client browser integration follow-up (#637 / #642)
+1. Reproduce the shipped audit-client browser build failure with a meaningful RED build/integration test.
+2. Move the existing event projector/error class into a pure audit module and the existing query/page validators into a pure history module without changing validation semantics. Keep server re-exports compatible.
+3. Import those modules in the existing audit client; allow only the five explicit content-free projection/filter/reference/time files, never server directories, SQL stores or HTTP modules. Canonical-path, transitive-import and entry-point restrictions remain required.
+4. Run the actual browser client against existing audit HTTP with injected test authority and migrated local PGlite. Cover pagination/drilldown, required-audit failure, IAM denial and stale controls. Remove the runner-owned client bridge from this smoke; do not claim SSO login or deployment acceptance.
+5. Run source/built client, HTTP/store regression, typecheck/lint/planning checks, request exact-head review/CI and preserve all release gates.

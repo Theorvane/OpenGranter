@@ -219,3 +219,87 @@ test('CSV encoder allowance does not include sibling modules or their transitive
     await writeFile(join(source, 'entry.ts'), 'export * from "../export/csv.ts";');
     await assert.rejects(buildManagementBrowser({ root, entry: 'src/management/entry.ts' }));
   }));
+
+test('built audit client uses shared projection and rejects malformed metadata', async () => {
+  const api = await load(
+    await buildManagementBrowser({ root: resolve('.'), entry: 'src/management/audit-client.ts' }),
+  );
+  const event = {
+    eventId: '8',
+    occurredAt: 1000,
+    kind: 'models-listed',
+    requestId: 'read-1',
+    principalId: 'person-1',
+    credentialId: 'credential-1',
+    policyVersions: [],
+    details: { count: 1, prompt: 'private-content' },
+  };
+  let value: unknown = { object: 'list', data: [event], has_more: true, next_cursor: '8' };
+  let calls = 0;
+  const client = api.createManagementAuditClient(async (path: string) => {
+    calls++;
+    assert.match(path, /^\/v1\/audit\?/u);
+    return Response.json(value);
+  });
+  const result = await client.list({ principalId: 'person-1' });
+  assert.deepEqual(result, {
+    state: 'ready',
+    data: { events: [{ ...event, details: { count: 1 } }], nextCursor: '8' },
+  });
+  for (const invalid of [
+    { ...event, eventId: '08' },
+    { ...event, credentialId: null },
+    { ...event, principalId: 'other' },
+    { ...event, occurredAt: -1 },
+    { ...event, kind: 'unknown' },
+    { ...event, details: { count: -1 } },
+  ]) {
+    value = { object: 'list', data: [invalid], has_more: false, next_cursor: null };
+    assert.deepEqual(await client.list({ principalId: 'person-1' }), { state: 'unavailable' });
+  }
+  const before = calls;
+  assert.deepEqual(await client.list({ cursor: '08' }), { state: 'invalid_query' });
+  assert.equal(calls, before);
+});
+
+test('audit public projections cannot be entries or expose server modules', async () => {
+  const shared = [
+    'gateway-event-projection',
+    'history-projection',
+    'history-filters',
+    'principal-reference',
+    'time-range',
+  ];
+  for (const name of shared) {
+    await assert.rejects(
+      buildManagementBrowser({ root: resolve('.'), entry: 'src/audit/' + name + '.ts' }),
+    );
+    await fixture(async (root, source) => {
+      await mkdir(join(root, 'src/audit'));
+      await writeFile(join(root, 'src/audit/private.ts'), 'export const value = 1;');
+      await writeFile(join(root, 'src/audit/' + name + '.ts'), 'export * from "./private.ts";');
+      await writeFile(join(source, 'entry.ts'), 'export * from "../audit/' + name + '.ts";');
+      await assert.rejects(buildManagementBrowser({ root, entry: 'src/management/entry.ts' }));
+      await rm(join(root, 'src/audit/' + name + '.ts'));
+      await writeFile(join(root, 'outside.ts'), 'export const value = 1;');
+      await symlink(join(root, 'outside.ts'), join(root, 'src/audit/' + name + '.ts'));
+      await assert.rejects(buildManagementBrowser({ root, entry: 'src/management/entry.ts' }));
+    });
+  }
+  for (const name of ['history-http', 'postgres-gateway-audit', 'postgres-audit-history']) {
+    await fixture(async (root, source) => {
+      await mkdir(join(root, 'src/audit'));
+      await writeFile(join(root, 'src/audit/' + name + '.ts'), 'export const value = 1;');
+      await writeFile(join(source, 'entry.ts'), 'export * from "../audit/' + name + '.ts";');
+      await assert.rejects(buildManagementBrowser({ root, entry: 'src/management/entry.ts' }));
+    });
+  }
+  const javascript = await buildManagementBrowser({
+    root: resolve('.'),
+    entry: 'src/management/audit-client.ts',
+  });
+  assert.doesNotMatch(
+    javascript,
+    /node:|process\.env|sourceMappingURL|INSERT INTO|SELECT |createPostgres|GatewayAuditUnavailable/,
+  );
+});
