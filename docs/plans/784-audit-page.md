@@ -36,3 +36,16 @@
 2. Reuse the existing bounded JSON client and shared CSV encoder; export only the six visible metadata columns, at most the current 25-row page. No automatic pagination, arbitrary detail export, SSO bridge or backend changes.
 3. Prepare requires a fresh authorized/audited API read; clear old rows/download immediately. Publish a Blob download link only after the latest successful response; revoke it on any new query, invalid filters, clear, replacement or disposal. Detached links must not trigger a download.
 4. Run focused RED/GREEN, checks and real Chromium download against loopback gateway, then same PR exact-head review and CI. No installed/real-provider claim.
+
+## Integration follow-up: catalog landmarks (#637 / #639)
+1. Native Chromium against the existing same-origin administration host exposed nested main landmarks: public main#app contains catalog-view main. Keep the public shell and all authority/session boundaries unchanged.
+2. RED source and restricted built-module tests across idle/loading/empty/list/detail/missing/unavailable must retain exactly one owner main and one labelled Model catalog region.
+3. Replace only catalog-view inner main with a named section; retain headings, controls, focus, text-only data and all request behavior. No workspace or public entry changes; coordinate this narrow file with frontend.
+4. Run focused catalog/workspace/build regressions and typecheck/lint/planning; repeat native Account/catalog/confirmed credential success, fresh Deny, binding revocation and mandatory audit failure against actual loopback HTTP plus migrated PGlite and explicit candidate Account DDL. Test-runner signed SSO authority is not company login or deployed acceptance.
+5. Deliver on existing PR785, supersede exact-head review and CI; do not merge without formal approval and all required checks.
+
+### Landmark execution evidence (2026-11-08 KST)
+- RED: source and built-module regressions both fail with two main landmarks (0/2 pass). GREEN: 38 focused catalog/workspace/build/administration tests plus 36 audit/durable Account integration tests pass, zero skipped. Typecheck, lint, planning/link/secret checks, pinned compatibility and diff checks pass.
+- Actual Chromium156 through the existing administration host: Account200, confirmed issue201/revoke200, fresh Deny403 with no second credential, encoded model list/detail200 and policy-scoped empty list, inactive identity Account401 clears identity, required dedicated Account audit-table failure Account503 hides identity, pagehide clears authority, one main plus one named catalog region, zero JavaScript errors.
+- Harness corrections before final success: exact Account locator, explicit isolated candidate Account DDL, explicit renewed test grant after Deny and waiting for catalog completion before identity revocation. Initial failures are not production-success evidence.
+- Loopback listener closes after smoke; no persistent execution URL. Signed test authority is supplied only by the runner, not browser login. No installed schema approval, company IdP, live provider or deployment claim. Whole local check remains previously resource-failed; new exact-head CI and formal approval are required.

@@ -2026,3 +2026,6 @@ Audit previous-page acceptance (#784): verify three-page forward/back navigation
 
 ## Current-page audit CSV (#784)
 Prepare must freshly read the submitted scope/cursor; edited drafts do not change it. Only the latest successful page publishes a formula-safe six-column download (empty means headers only). Loading, denial, invalid filters, stale completions, clear and disposal cannot retain or revive a download. New queries revoke previous Blob URLs; saved files cannot be recalled. Test restricted browser bundle and actual loopback gateway/Chromium download separately from real SSO/installed PostgreSQL/provider acceptance, which remain unverified. See [plan](plans/784-audit-page.md).
+
+## Management catalog landmark integration (#637 / #639)
+Source and restricted browser catalog renderers retain exactly one owner main and one labelled Model catalog section across idle/loading/empty/list/detail/missing/unavailable. Native browser integration through the existing same-origin administration handler must retain one main while Models/Account and confirmed credentials use actual signed-test-SSO HTTP and migrated PGlite. These checks do not certify real SSO login, installed PostgreSQL, schema approval or deployment.

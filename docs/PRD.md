@@ -1388,3 +1388,6 @@ The opt-in audit review supports backward pagination using query/cursor history 
 
 ## Bounded audit-page CSV (#784 / #642)
 The opt-in audit review page can prepare a current-page CSV only after a fresh bounded authorized read. It exports six visible metadata columns with formula-safe encoding and revocable download links; no cached-row export, automatic full-history traversal or arbitrary details. This is a limited #642 slice, not browser SSO, full CSV administration or installed acceptance. See [contract](../contracts/audit-review-page.md) and [plan](plans/784-audit-page.md).
+
+## Management catalog landmark integration (#637 / #639)
+The catalog is a labelled region inside the existing public management main landmark, not a nested document main. All data, empty/loading/error states and heading focus retain existing behavior. No session or API change. See [contract](../contracts/sso-administration-browser.md#catalog-landmark-integration-637--639).

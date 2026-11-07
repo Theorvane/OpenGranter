@@ -44,7 +44,8 @@ export function renderCatalogView(
     mountManagementBoundaryView(root, value.state);
     return;
   }
-  const main = element('main');
+  const main = element('section');
+  main.setAttribute('aria-label', 'Model catalog');
   const title = element('h1', 'Models available to your identity');
   title.setAttribute('tabindex', '-1');
   main.append(title);
