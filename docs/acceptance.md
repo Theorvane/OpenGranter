@@ -1972,3 +1972,8 @@ The public usage workspace reuses the existing #732 per-attempt inspector: exact
 ## Public workspace principal usage drilldown (#637, #642)
 
 Reuse the existing frontend row-principal action against the current authorized usage API; preserve submitted model/time/page-size scope, reset cursor/history/drafts/CSV and show the existing loading/empty/error states. Explicit self selection still requires ReadAll, with no silent ReadSelf fallback. Source and built-module signed test SSO / real loopback HTTP / migrated PGlite acceptance verify denial, a test-only fresh IAM grant, exact scoped success and mandatory audits. No directory access, new endpoint, session/runtime/schema activation or native-browser/installed deployment success is implied. See [integration plan](plans/637-principal-drilldown-integration.md).
+
+
+## Public workspace request correlation (#637, #642)
+
+Source and built public workspace acceptance uses signed test SSO, migrated PGlite and real loopback HTTP. Two attempts sharing principal/request remain visible; a different principal using that request ID stays absent under ReadSelf. Existing explicit self ReadAll denial, no weaker retry, fresh IAM revocation and mandatory audit failures still apply. Independent tests retain repeated records, principal isolation, delimiter-collision cases, safe text rendering, no additional fetch and expiry/stale-result cleanup. Native browser, real IdP and installed PostgreSQL acceptance remain unclaimed.

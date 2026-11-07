@@ -1432,3 +1432,8 @@ The public usage workspace reuses the existing #732 per-attempt inspector: exact
 ## Public workspace principal usage drilldown (#637, #642)
 
 Reuse the existing frontend row-principal action against the current authorized usage API; preserve submitted model/time/page-size scope, reset cursor/history/drafts/CSV and show the existing loading/empty/error states. Explicit self selection still requires ReadAll, with no silent ReadSelf fallback. Source and built-module signed test SSO / real loopback HTTP / migrated PGlite acceptance verify denial, a test-only fresh IAM grant, exact scoped success and mandatory audits. No directory access, new endpoint, session/runtime/schema activation or native-browser/installed deployment success is implied. See [integration plan](plans/637-principal-drilldown-integration.md).
+
+
+## Public workspace request correlation (#637, #642)
+
+The existing frontend 77d7b62 module is reused byte-for-byte with three mount lines on the #758 integration branch. Correlation consumes only the existing scoped usage response, groups using nested exact-key maps and renders text nodes. No endpoint, SQL, authorization, session or runtime activation changes. Existing workspace cleanup removes the panel on navigation, refresh, denial and expiry.

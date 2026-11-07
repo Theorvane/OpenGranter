@@ -4,6 +4,7 @@ import { renderUsageAttemptDetails } from './usage-attempt-details.ts';
 import { createManagementUsageClient, type UsageFilters, type UsagePage } from './usage-client.ts';
 import { renderUsageModelSummary } from './usage-model-summary.ts';
 import { renderUsagePageSummary } from './usage-page-summary.ts';
+import { renderUsageRequestGroups } from './usage-request-groups.ts';
 import { formatUsageTime, parseUsageUtcInput, usageUtcInput } from './usage-time.ts';
 
 export interface UsageElement {
@@ -186,6 +187,8 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
     }
     if (state === 'ready' && page) {
       main.append(renderUsagePageSummary(root.ownerDocument, page.records));
+      if (page.records.length)
+        main.append(renderUsageRequestGroups(root.ownerDocument, page.records));
       main.append(
         renderUsageModelSummary(root.ownerDocument, page.records, (alias) =>
           button('Filter usage for model ' + alias, () => {

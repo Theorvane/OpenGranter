@@ -285,24 +285,29 @@ for (const artifact of [false, true]) {
           jwt.subject,
           'human',
         ]);
-        await createPostgresUsageLedger(sql)(
-          buildUsageRecord({
-            principalId: 'human',
-            credentialId: 'credential',
-            policyVersions: [],
-            requestId: 'chat',
-            attemptId: 'attempt',
-            modelAlias: 'team/chat',
-            routeKind: 'managed',
-            upstreamModelId: 'upstream',
-            selectedCandidateId: 'candidate',
-            occurredAt: 1,
-            latencyMs: 2,
-            outcome: 'succeeded',
-            possiblyBilled: true,
-            possibleDuplicate: false,
-          }),
-        );
+        for (const [principalId, attemptId, possibleDuplicate] of [
+          ['human', 'attempt', false],
+          ['human', 'attempt-retry', true],
+          ['other', 'isolated-other', false],
+        ] as const)
+          await createPostgresUsageLedger(sql)(
+            buildUsageRecord({
+              principalId,
+              credentialId: 'credential',
+              policyVersions: [],
+              requestId: 'chat',
+              attemptId,
+              modelAlias: 'team/chat',
+              routeKind: 'managed',
+              upstreamModelId: 'upstream',
+              selectedCandidateId: 'candidate',
+              occurredAt: 1,
+              latencyMs: 2,
+              outcome: 'succeeded',
+              possiblyBilled: true,
+              possibleDuplicate,
+            }),
+          );
         server.listen(0, '127.0.0.1');
         await once(server, 'listening');
         const address = server.address();
@@ -331,8 +336,13 @@ for (const artifact of [false, true]) {
         await until(/human/);
         assert.match(f.root.text(), /Unknown/);
         assert.match(f.root.text(), /Current page only — not an invoice/);
-        assert.match(f.root.text(), /Estimated cost coverage: 0 of 1 records/);
-        assert.match(f.root.text(), /Reported cost coverage: 0 of 1 records/);
+        assert.match(f.root.text(), /Estimated cost coverage: 0 of 2 records/);
+        assert.match(f.root.text(), /Reported cost coverage: 0 of 2 records/);
+        assert.match(f.root.text(), /Request correlation — current page only/);
+        assert.match(f.root.text(), /Records on this page: 2; distinct attempt IDs: 2/);
+        assert.match(f.root.text(), /Attempt: attempt-retry/);
+        assert.match(f.root.text(), /Server-marked possible duplicate: Yes/);
+        assert.doesNotMatch(f.root.text(), /isolated-other/);
         const oldRefresh = f.root.find('Refresh current page');
         assert.ok(oldRefresh);
         f.root.click('Export current page CSV');
@@ -361,7 +371,10 @@ for (const artifact of [false, true]) {
           paths.at(-1),
           '/management/v1/usage?principal_id=human&model=team%2Fchat&format=json',
         );
-        assert.doesNotMatch(f.root.text(), /Inspect attempt|Export current page/);
+        assert.doesNotMatch(
+          f.root.text(),
+          /Inspect attempt|Export current page|Request correlation/,
+        );
         const deniedCount = paths.length;
         await settle();
         assert.equal(paths.length, deniedCount, 'no weaker-scope retry');
