@@ -2004,3 +2004,16 @@ The separately selected, unbound administration browser factory combines existin
 
 ## Required gateway audit acknowledgement (#780)
 The existing common SQL audit store accepts only one own returned row with an own positive signed-bigint event_id (canonical decimal string or positive safe integer driver representation). Malformed or missing acknowledgement fails closed with GatewayAuditUnavailable; existing management authentication denial returns audit_unavailable rather than an ordinary denial. SQL, schemas, IAM, session and runtime activation remain unchanged. This verifies the acknowledgement shape, not transaction commit or exactly-once persistence. See [plan](plans/780-gateway-audit-ack.md).
+
+## Opt-in audit history read client (#782)
+
+- An explicit request port consumes the existing proxy audit API with exact filters
+  and cursors; empty pages are ready and event metadata is allowlist-projected.
+- Reject inconsistent order, mixed/incorrect principal scope, mismatched filters,
+  malformed pagination, over-limit pages, invalid UTF-8 and responses over 1 MiB.
+- Invalidation and the 30-second deadline settle uncooperative transports without
+  retries; private errors and stale completions are not exposed.
+- Real loopback API plus migrated PGlite verifies paging, fresh Deny and required
+  audit failure. Authentication is injected local test identity, not real SSO.
+- Browser UI, installed PostgreSQL, session integration and provider calls remain
+  separate acceptance gates. See [contract](../contracts/audit-read-client.md).
