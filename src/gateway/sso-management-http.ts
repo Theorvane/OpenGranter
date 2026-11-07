@@ -95,7 +95,8 @@ async function readBody(request: Request): Promise<unknown> {
     parsed = undefined;
   } finally {
     request.signal.removeEventListener('abort', cancel);
-    if (!complete) await reader.cancel().catch(() => undefined);
+    // Cleanup must not hold an already rejected request open.
+    if (!complete) void reader.cancel().catch(() => undefined);
     reader.releaseLock();
   }
   return parsed;
