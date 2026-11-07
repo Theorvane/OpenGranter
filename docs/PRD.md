@@ -1410,3 +1410,6 @@ Unavailable model list/detail reads support an explicit fresh lookup of the sele
 
 ## Usage current-page error recovery (#637 / #642)
 An unavailable Usage JSON read can explicitly re-fetch the selected submitted filters/cursor without a first-page hop and recover query-only backward navigation. No automatic retry, CSV replay or authorization-denial retry is added. Existing trusted transport and fresh mandatory audits remain required; browser login and installed acceptance remain open. See [contract](../contracts/usage-screen.md#current-usage-page-recovery-637--642).
+
+## Audit metadata scope navigation (#637 / #642)
+The opt-in audit view can drill into a reported principal/model with a fresh existing authorized audit read, preserving other submitted filters and resetting paging without reusing rows or draft edits. CSV links and stale controls are invalidated. This is not a public SSO audit mount or installed acceptance; the bounded client browser-validator/build gap remains explicit. See [contract](../contracts/audit-review-page.md#audit-row-scope-drilldown-637--642).

@@ -1,7 +1,7 @@
 import { encodeCsv } from '../export/csv.ts';
 import type { AuditClientResult, AuditFilters } from './audit-client.ts';
 import type { UsageElement } from './usage-app.ts';
-import { formatUsageTime, parseUsageUtcInput } from './usage-time.ts';
+import { formatUsageTime, parseUsageUtcInput, usageUtcInput } from './usage-time.ts';
 
 export interface AuditReviewClient {
   list(filters?: AuditFilters): Promise<AuditClientResult>;
@@ -62,13 +62,13 @@ export function mountManagementAudit(root: UsageElement) {
         wrapper.append(input);
         section.append(wrapper);
       }
-      const button = (label: string, action: () => void) => {
+      const button = (label: string, action: () => void, parent = section) => {
         const control = node('button', label);
         control.setAttribute('type', 'button');
         control.addEventListener('click', () => {
           if (!disposed && client && rendered === renderRevision) action();
         });
-        section.append(control);
+        parent.append(control);
       };
       button('Apply filters', () => {
         drafts = {
@@ -151,6 +151,17 @@ export function mountManagementAudit(root: UsageElement) {
           header.append(cell);
         }
         table.append(header);
+        const drilldown = (dimension: 'principalId' | 'model', value: string) => {
+          const { cursor: _cursor, ...submitted } = filters;
+          const query = { ...submitted, [dimension]: value };
+          drafts = {
+            principal: query.principalId ?? '',
+            model: query.model ?? '',
+            from: query.fromMs === undefined ? '' : usageUtcInput(query.fromMs),
+            to: query.toMs === undefined ? '' : usageUtcInput(query.toMs),
+          };
+          void load(query);
+        };
         for (const event of result.data.events) {
           const row = node('tr');
           for (const text of [
@@ -158,12 +169,20 @@ export function mountManagementAudit(root: UsageElement) {
             formatUsageTime(event.occurredAt),
             event.kind,
             event.requestId,
-            event.principalId,
-            typeof event.details.modelAlias === 'string'
-              ? event.details.modelAlias
-              : 'Not reported',
           ])
             row.append(node('td', text));
+          const principal = node('td', event.principalId);
+          button(
+            'Filter audit by this principal',
+            () => drilldown('principalId', event.principalId),
+            principal,
+          );
+          row.append(principal);
+          const alias = event.details.modelAlias;
+          const model = node('td', typeof alias === 'string' ? alias : 'Not reported');
+          if (typeof alias === 'string' && alias !== '')
+            button('Filter audit by this model', () => drilldown('model', alias), model);
+          row.append(model);
           table.append(row);
         }
         section.append(table);
