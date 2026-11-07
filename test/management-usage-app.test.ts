@@ -276,11 +276,9 @@ test('authorized per-attempt details preserve unknowns and clear with identity',
     calls++;
     return response([observed, { ...observed, attemptId: 'attempt-B' }]);
   });
-  const details = root
-    .all()
-    .filter(
-      (node) => node.tag === 'details' && node.children[0]?.textContent === 'Inspect attempt',
-    );
+  const table = root.all().find((node) => node.tag === 'table');
+  assert.ok(table);
+  const details = table.all().filter((node) => node.tag === 'details');
   assert.equal(details.length, 2, 'one native detail for each authorized attempt');
   const first = details[0];
   assert.ok(first);
@@ -339,7 +337,7 @@ test('attempt inspection disappears during reload, HTTP denial, and disposal', a
       .filter(
         (node) => node.tag === 'details' && node.children[0]?.textContent === 'Inspect attempt',
       ).length,
-    1,
+    2,
   );
   assert.match(root.text(), /Unknown/u);
   root.button('Retry / first page').click();
@@ -362,7 +360,7 @@ test('attempt inspection disappears during reload, HTTP denial, and disposal', a
       .filter(
         (node) => node.tag === 'details' && node.children[0]?.textContent === 'Inspect attempt',
       ).length,
-    1,
+    2,
   );
   app.dispose();
   assert.equal(root.children.length, 0);

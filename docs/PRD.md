@@ -1336,3 +1336,8 @@ The public usage workspace reuses the existing #732 per-attempt inspector: exact
 ## Public workspace principal usage drilldown (#637, #642)
 
 Reuse the existing frontend row-principal action against the current authorized usage API; preserve submitted model/time/page-size scope, reset cursor/history/drafts/CSV and show the existing loading/empty/error states. Explicit self selection still requires ReadAll, with no silent ReadSelf fallback. Source and built-module signed test SSO / real loopback HTTP / migrated PGlite acceptance verify denial, a test-only fresh IAM grant, exact scoped success and mandatory audits. No directory access, new endpoint, session/runtime/schema activation or native-browser/installed deployment success is implied. See [integration plan](plans/637-principal-drilldown-integration.md).
+
+
+## Public workspace request correlation (#637, #642)
+
+The public Models/Usage workspace reuses the existing frontend request-correlation component. Authorized current-page rows are grouped by exact principal and request ID with attempts, unknown usage and server duplicate/possibly-billed markers preserved. This is not complete request history, retry ordering, deduplication or settled billing; it makes no extra requests or permission grants.
