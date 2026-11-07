@@ -475,3 +475,135 @@ for (const bundled of [false, true]) {
     await assert.rejects(fetch(url ?? ''));
   });
 }
+
+for (const bundled of [false, true]) {
+  const mountRecovery = async (root: Element) => {
+    if (!bundled) return mountManagementAudit(root);
+    const code = await buildManagementBrowser({
+      root: process.cwd(),
+      entry: 'src/management/audit-page.ts',
+    });
+    const module = await import(
+      `data:text/javascript;base64,${Buffer.from(code).toString('base64')}`
+    );
+    return module.mountManagementAudit(root);
+  };
+  test(`${bundled ? 'built' : 'source'}: cancel ignores late success and retry fixes submitted scope`, async () => {
+    const root = new Element();
+    const app = await mountRecovery(root);
+    const seen: AuditFilters[] = [];
+    let finish: ((value: AuditClientResult) => void) | undefined;
+    let invalidations = 0;
+    app.connect({
+      list: (query: AuditFilters) => {
+        seen.push({ ...query });
+        if (seen.length === 1) return Promise.resolve(ready('8'));
+        if (seen.length === 2)
+          return new Promise<AuditClientResult>((resolve) => {
+            finish = resolve;
+          });
+        return Promise.resolve(ready());
+      },
+      invalidate() {
+        invalidations++;
+      },
+    });
+    root.input('Principal ID').value = 'human';
+    root.button('Apply filters').listeners.click?.();
+    await settle();
+    root.button('Next page').listeners.click?.();
+    const cancel = root.button('Cancel request');
+    root.input('Principal ID').value = 'unsubmitted';
+    const before = invalidations;
+    cancel.listeners.click?.();
+    assert.equal(invalidations, before + 1);
+    assert.match(root.text(), /Audit request cancelled/);
+    assert.doesNotMatch(root.text(), /<img|Download current-page CSV/);
+    const retry = root.button('Retry audit request');
+    finish?.(ready());
+    await settle();
+    assert.match(root.text(), /Audit request cancelled/);
+    root.input('Principal ID').value = 'another-unsubmitted';
+    retry.listeners.click?.();
+    retry.listeners.click?.();
+    cancel.listeners.click?.();
+    await settle();
+    assert.equal(seen.length, 3);
+    assert.deepEqual(seen[2], seen[1]);
+    assert.equal(seen[2]?.principalId, 'human');
+    assert.equal(seen[2]?.cursor, '8');
+    assert.match(root.text(), /Audit events/);
+    app.clear();
+    retry.listeners.click?.();
+    assert.equal(seen.length, 3);
+    app.dispose();
+  });
+  test(`${bundled ? 'built' : 'source'}: retry is explicit and absent for denial, authentication or invalid input`, async () => {
+    for (const state of [
+      'unavailable',
+      'cancelled',
+      'denied',
+      'unauthenticated',
+      'invalid_query',
+    ] as const) {
+      const root = new Element();
+      const app = await mountRecovery(root);
+      let calls = 0;
+      app.connect({
+        list: async () => {
+          calls++;
+          return { state };
+        },
+        invalidate() {},
+      });
+      root.button('Apply filters').listeners.click?.();
+      await settle();
+      assert.equal(calls, 1);
+      const retry = root.all().find((n) => n.textContent === 'Retry audit request');
+      assert.equal(Boolean(retry), state === 'unavailable' || state === 'cancelled');
+      if (retry) {
+        root.input('From UTC').value = 'not-a-date';
+        root.button('Apply filters').listeners.click?.();
+        retry.listeners.click?.();
+        await settle();
+        assert.equal(calls, 1);
+        assert.equal(
+          root.all().some((n) => n.textContent === 'Retry audit request'),
+          false,
+        );
+      }
+      app.dispose();
+    }
+  });
+}
+
+test('CSV cancellation retries a read only and cannot revive a stale download', async () => {
+  const root = new Element();
+  const app = mountManagementAudit(root);
+  let calls = 0;
+  let finish: ((value: AuditClientResult) => void) | undefined;
+  app.connect({
+    list: async () => {
+      calls++;
+      if (calls === 2)
+        return new Promise<AuditClientResult>((resolve) => {
+          finish = resolve;
+        });
+      return ready();
+    },
+    invalidate() {},
+  });
+  root.button('Apply filters').listeners.click?.();
+  await settle();
+  root.button('Prepare current-page CSV').listeners.click?.();
+  root.button('Cancel request').listeners.click?.();
+  finish?.(ready());
+  await settle();
+  assert.doesNotMatch(root.text(), /Download current-page CSV|<img/);
+  root.button('Retry audit request').listeners.click?.();
+  await settle();
+  assert.equal(calls, 3);
+  assert.match(root.text(), /Audit events/);
+  assert.doesNotMatch(root.text(), /Download current-page CSV/);
+  app.dispose();
+});

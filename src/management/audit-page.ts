@@ -20,6 +20,8 @@ export function mountManagementAudit(root: UsageElement) {
   let previous: readonly AuditFilters[] = [];
   let drafts = { principal: '', model: '', from: '', to: '' };
   let result: AuditClientResult | undefined;
+  let loading = false;
+  let retryQuery: AuditFilters | undefined;
   let downloadUrl: string | undefined;
   function revokeDownload() {
     if (downloadUrl) URL.revokeObjectURL(downloadUrl);
@@ -89,6 +91,8 @@ export function mountManagementAudit(root: UsageElement) {
           client?.invalidate();
           result = undefined;
           previous = [];
+          loading = false;
+          retryQuery = undefined;
           status = 'Invalid filters';
           render();
           return;
@@ -102,6 +106,24 @@ export function mountManagementAudit(root: UsageElement) {
         };
         void load(filters);
       });
+      if (loading)
+        button('Cancel request', () => {
+          revision++;
+          client?.invalidate();
+          revokeDownload();
+          loading = false;
+          retryQuery = { ...filters };
+          previous = [];
+          result = { state: 'cancelled' };
+          status = 'Audit request cancelled';
+          render();
+        });
+      const retry = retryQuery;
+      if (retry)
+        button('Retry audit request', () => {
+          // A new read, not an automatic replay of export or unsubmitted controls.
+          void load({ ...retry });
+        });
       if (result?.state === 'ready') {
         const exportQuery = { ...filters };
         const exportHistory = [...previous];
@@ -203,6 +225,8 @@ export function mountManagementAudit(root: UsageElement) {
     filters = { ...query };
     previous = [];
     result = undefined;
+    loading = true;
+    retryQuery = undefined;
     status = prepareCsv ? 'Preparing current-page CSV' : 'Loading audit events';
     render();
     let response: AuditClientResult;
@@ -233,6 +257,9 @@ export function mountManagementAudit(root: UsageElement) {
         response = { state: 'unavailable' };
       }
     }
+    loading = false;
+    retryQuery =
+      response.state === 'unavailable' || response.state === 'cancelled' ? { ...query } : undefined;
     result = response;
     switch (response.state) {
       case 'ready':
@@ -264,6 +291,8 @@ export function mountManagementAudit(root: UsageElement) {
     client = undefined;
     result = undefined;
     filters = {};
+    loading = false;
+    retryQuery = undefined;
     previous = [];
     drafts = { principal: '', model: '', from: '', to: '' };
     status = 'Authentication required';

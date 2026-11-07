@@ -124,3 +124,10 @@
 3. Import those modules in the existing audit client; allow only the five explicit content-free projection/filter/reference/time files, never server directories, SQL stores or HTTP modules. Canonical-path, transitive-import and entry-point restrictions remain required.
 4. Run the actual browser client against existing audit HTTP with injected test authority and migrated local PGlite. Cover pagination/drilldown, required-audit failure, IAM denial and stale controls. Remove the runner-owned client bridge from this smoke; do not claim SSO login or deployment acceptance.
 5. Run source/built client, HTTP/store regression, typecheck/lint/planning checks, request exact-head review/CI and preserve all release gates.
+
+## Explicit audit cancellation and recovery (#637 / #642)
+1. Reproduce missing in-flight cancellation and explicit unavailable/cancelled retry with page tests (RED).
+2. Add a pending-only Cancel request action that invalidates transport, clears rows/downloads and rejects late completions.
+3. Offer Retry audit request only after unavailable/cancelled; use a copy of submitted filters/cursor, never edited drafts, retained rows, automatic retry or CSV replay. Retry starts a fresh bounded HTTP request with existing IAM and mandatory audit. Reset retry state on new/invalid filters, clear, replacement and disposal.
+4. Cover double-click/detached controls, denied/unauthenticated no retry, CSV cancellation, stale response and exact submitted scope. Exercise actual browser client with existing local audit HTTP and test authority; no public SSO/session activation.
+5. Run bounded regression/typecheck/lint/planning checks, commit and request exact-head review/CI. No merge without formal approval and dependency gates.

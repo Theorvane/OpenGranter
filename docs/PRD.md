@@ -1416,3 +1416,6 @@ The opt-in audit view can drill into a reported principal/model with a fresh exi
 
 ## Audit client browser integration (#637 / #642)
 The existing audit screen and bounded client can both be built as browser modules without importing HTTP/SQL runtime adapters. Shared pure validators retain existing metadata redaction and query/page rejection semantics. Local native acceptance now uses real browser fetch through the shipped client rather than the earlier runner client bridge. This is not company login, public SSO composition, installed PostgreSQL or deployment acceptance. See [contract](../contracts/audit-review-page.md#browser-safe-audit-client-projection-637--642).
+
+## Audit review explicit recovery (#637 / #642)
+The existing opt-in audit page supports cancelling pending reads/CSV preparation and explicit retry of unavailable/cancelled reads. Retry preserves submitted scope/cursor, executes a fresh server-authorized read, and never replays CSV or denied/authentication failures. This does not activate public SSO/session or complete installed acceptance. See [contract](../contracts/audit-review-page.md) and [plan](plans/784-audit-page.md).
