@@ -1,3 +1,4 @@
+import { encodeCsv } from '../export/csv.ts';
 import type { AuditClientResult, AuditFilters } from './audit-client.ts';
 import type { UsageElement } from './usage-app.ts';
 import { formatUsageTime, parseUsageUtcInput } from './usage-time.ts';
@@ -19,6 +20,11 @@ export function mountManagementAudit(root: UsageElement) {
   let previous: readonly AuditFilters[] = [];
   let drafts = { principal: '', model: '', from: '', to: '' };
   let result: AuditClientResult | undefined;
+  let downloadUrl: string | undefined;
+  function revokeDownload() {
+    if (downloadUrl) URL.revokeObjectURL(downloadUrl);
+    downloadUrl = undefined;
+  }
   let status = 'Authentication required';
   const node = (tag: string, text?: string) => {
     const element = root.ownerDocument.createElement(tag);
@@ -79,6 +85,7 @@ export function mountManagementAudit(root: UsageElement) {
           (from !== undefined && to !== undefined && from >= to)
         ) {
           revision++;
+          revokeDownload();
           client?.invalidate();
           result = undefined;
           previous = [];
@@ -96,6 +103,20 @@ export function mountManagementAudit(root: UsageElement) {
         void load(filters);
       });
       if (result?.state === 'ready') {
+        const exportQuery = { ...filters };
+        const exportHistory = [...previous];
+        button('Prepare current-page CSV', () => {
+          void load(exportQuery, exportHistory, true);
+        });
+        if (downloadUrl) {
+          const link = node('a', 'Download current-page CSV');
+          link.setAttribute('href', downloadUrl);
+          link.setAttribute('download', 'opengranter-audit-page.csv');
+          link.addEventListener('click', (event) => {
+            if (disposed || !client || rendered !== renderRevision) event?.preventDefault();
+          });
+          section.append(link);
+        }
         button('First page', () => {
           const { cursor: _cursor, ...first } = filters;
           void load(first);
@@ -150,15 +171,20 @@ export function mountManagementAudit(root: UsageElement) {
     }
     root.replaceChildren(section);
   }
-  async function load(query: AuditFilters, history: readonly AuditFilters[] = []) {
+  async function load(
+    query: AuditFilters,
+    history: readonly AuditFilters[] = [],
+    prepareCsv = false,
+  ) {
     const active = client;
     if (!active || disposed) return;
     const current = ++revision;
+    revokeDownload();
     active.invalidate();
     filters = { ...query };
     previous = [];
     result = undefined;
-    status = 'Loading audit events';
+    status = prepareCsv ? 'Preparing current-page CSV' : 'Loading audit events';
     render();
     let response: AuditClientResult;
     try {
@@ -167,6 +193,27 @@ export function mountManagementAudit(root: UsageElement) {
       response = { state: 'unavailable' };
     }
     if (disposed || current !== revision || active !== client) return;
+    if (prepareCsv && response.state === 'ready') {
+      try {
+        // The bounded client freshly validates server-projected metadata. Export
+        // only the visible columns, never arbitrary details or attribution secrets.
+        const csv = encodeCsv(
+          ['event_id', 'time_utc', 'kind', 'request_id', 'principal_id', 'model'],
+          response.data.events.map((event) => [
+            event.eventId,
+            formatUsageTime(event.occurredAt),
+            event.kind,
+            event.requestId,
+            event.principalId,
+            typeof event.details.modelAlias === 'string' ? event.details.modelAlias : null,
+          ]),
+        );
+        downloadUrl = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+      } catch {
+        revokeDownload();
+        response = { state: 'unavailable' };
+      }
+    }
     result = response;
     switch (response.state) {
       case 'ready':
@@ -193,6 +240,7 @@ export function mountManagementAudit(root: UsageElement) {
   }
   function clear() {
     revision++;
+    revokeDownload();
     client?.invalidate();
     client = undefined;
     result = undefined;

@@ -1385,3 +1385,6 @@ and [plan](plans/782-audit-read-client.md).
 An explicit bounded audit client can power a disconnected-by-default read-only page with principal/model/UTC filters, first/next pagination, loading/empty/private failure states and lifecycle clearing. Fixed metadata columns only; no session bridge or public workspace activation. See [contract](../contracts/audit-review-page.md) and [plan](plans/784-audit-page.md). Login, export and installed acceptance remain open.
 
 The opt-in audit review supports backward pagination using query/cursor history only; previous pages always re-fetch with current server authorization and audit rather than redisplaying cached records. New filters and authority teardown discard navigation history. This does not activate the view in the public workspace or settle login/session ownership.
+
+## Bounded audit-page CSV (#784 / #642)
+The opt-in audit review page can prepare a current-page CSV only after a fresh bounded authorized read. It exports six visible metadata columns with formula-safe encoding and revocable download links; no cached-row export, automatic full-history traversal or arbitrary details. This is a limited #642 slice, not browser SSO, full CSV administration or installed acceptance. See [contract](../contracts/audit-review-page.md) and [plan](plans/784-audit-page.md).

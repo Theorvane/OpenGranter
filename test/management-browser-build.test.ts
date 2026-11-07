@@ -184,6 +184,7 @@ test('shared public dependencies cannot be entries or expand to server directori
     'src/usage/record-parser.ts',
     'src/usage/record-usage.ts',
     'src/audit/attribution.ts',
+    'src/export/csv.ts',
   ]) {
     await assert.rejects(buildManagementBrowser({ root: resolve('.'), entry }));
   }
@@ -205,5 +206,16 @@ test('shared allowlist checks canonical paths, not symlink names', async () =>
     await writeFile(join(root, 'outside.ts'), 'export const privateValue = 1;');
     await symlink(join(root, 'outside.ts'), join(root, 'src/usage/record-parser.ts'));
     await writeFile(join(source, 'entry.ts'), 'export * from "../usage/record-parser.ts";');
+    await assert.rejects(buildManagementBrowser({ root, entry: 'src/management/entry.ts' }));
+  }));
+
+test('CSV encoder allowance does not include sibling modules or their transitive imports', async () =>
+  fixture(async (root, source) => {
+    await mkdir(join(root, 'src/export'));
+    await writeFile(join(root, 'src/export/private.ts'), 'export const value = 1;');
+    await writeFile(join(source, 'entry.ts'), 'export * from "../export/private.ts";');
+    await assert.rejects(buildManagementBrowser({ root, entry: 'src/management/entry.ts' }));
+    await writeFile(join(root, 'src/export/csv.ts'), 'export * from "./private.ts";');
+    await writeFile(join(source, 'entry.ts'), 'export * from "../export/csv.ts";');
     await assert.rejects(buildManagementBrowser({ root, entry: 'src/management/entry.ts' }));
   }));

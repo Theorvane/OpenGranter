@@ -30,3 +30,9 @@
 - Store history only after a successful current response. Clear history on loading, failure, invalid filters, new filters, first page, disconnect and disposal. Stale completions and detached buttons must not restore history.
 - RED/GREEN: three-page round trip, opaque cursors, edited but unsubmitted drafts, denial, filter reset, superseded request, public bundled module. Actual Chromium plus loopback gateway must show fresh HTTP on Previous and denial clearing rows.
 - No authentication/session, API, SQL, runtime activation or frontend-owned workspace changes. Re-request exact-head review and CI after the follow-up commit.
+
+## Follow-up: bounded current-page CSV
+1. Add RED cases for a separate fresh read of submitted scope, fixed visible columns, formula-safe encoding, empty output, denial, stale completion, download revocation and built module.
+2. Reuse the existing bounded JSON client and shared CSV encoder; export only the six visible metadata columns, at most the current 25-row page. No automatic pagination, arbitrary detail export, SSO bridge or backend changes.
+3. Prepare requires a fresh authorized/audited API read; clear old rows/download immediately. Publish a Blob download link only after the latest successful response; revoke it on any new query, invalid filters, clear, replacement or disposal. Detached links must not trigger a download.
+4. Run focused RED/GREEN, checks and real Chromium download against loopback gateway, then same PR exact-head review and CI. No installed/real-provider claim.

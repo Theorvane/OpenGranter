@@ -340,3 +340,138 @@ test('built public module re-fetches previous pages and first/invalid filters re
   assert.doesNotMatch(root.text(), /Previous page/);
   app.dispose();
 });
+
+for (const bundled of [false, true]) {
+  async function mountCsv(root: Element) {
+    if (!bundled) return mountManagementAudit(root);
+    const source = await buildManagementBrowser({
+      root: process.cwd(),
+      entry: 'src/management/audit-page.ts',
+    });
+    const module = await import(
+      'data:text/javascript;base64,' + Buffer.from(source).toString('base64')
+    );
+    return module.mountManagementAudit(root) as ReturnType<typeof mountManagementAudit>;
+  }
+  test(`${bundled ? 'built' : 'source'}: CSV re-reads submitted page, fixed safe columns and revocable download`, async () => {
+    const root = new Element();
+    const app = await mountCsv(root);
+    const seen: AuditFilters[] = [];
+    app.connect({
+      list: async (f) => {
+        seen.push({ ...f });
+        const page = ready('8');
+        assert.equal(page.state, 'ready');
+        if (page.state === 'ready')
+          return {
+            ...page,
+            data: {
+              ...page.data,
+              events: page.data.events.map((e) => ({
+                ...e,
+                requestId: seen.length === 3 ? '=HYPERLINK("evil")' : 'old-row',
+              })),
+            },
+          };
+        return page;
+      },
+      invalidate() {},
+    });
+    root.input('Principal ID').value = 'human';
+    root.input('Model').value = 'm';
+    root.button('Apply filters').listeners.click?.();
+    await settle();
+    root.button('Next page').listeners.click?.();
+    await settle();
+    root.input('Model').value = 'unsubmitted';
+    root.button('Prepare current-page CSV').listeners.click?.();
+    assert.doesNotMatch(root.text(), /old-row|Download current-page CSV/);
+    await settle();
+    assert.deepEqual(seen[2], { principalId: 'human', model: 'm', limit: 25, cursor: '8' });
+    const link = root.button('Download current-page CSV');
+    assert.equal(link.attrs.download, 'opengranter-audit-page.csv');
+    const url = link.attrs.href;
+    assert.ok(url);
+    assert.ok(url.startsWith('blob:'));
+    const csv = await (await fetch(url)).text();
+    assert.match(csv, /^"event_id","time_utc","kind","request_id","principal_id","model"\r\n/);
+    assert.ok(csv.includes('"\'=HYPERLINK(""evil"")"'));
+    assert.doesNotMatch(csv, /never-render|credential|policy_versions|old-row|unsubmitted/);
+    assert.match(root.text(), /Current page only/);
+    root.button('Previous page').listeners.click?.();
+    await settle();
+    assert.equal(seen[3]?.cursor, undefined);
+    await assert.rejects(fetch(url));
+    assert.doesNotMatch(root.text(), /Download current-page CSV/);
+    app.dispose();
+  });
+  test(`${bundled ? 'built' : 'source'}: CSV denial, clear, invalid input and stale completion cannot retain downloads`, async () => {
+    const root = new Element();
+    const app = await mountCsv(root);
+    let next: AuditClientResult = ready();
+    let complete: ((r: AuditClientResult) => void) | undefined;
+    let pending = false;
+    let calls = 0;
+    app.connect({
+      list: async () => {
+        calls++;
+        return pending
+          ? new Promise<AuditClientResult>((r) => {
+              complete = r;
+            })
+          : next;
+      },
+      invalidate() {},
+    });
+    root.button('Apply filters').listeners.click?.();
+    await settle();
+    root.button('Prepare current-page CSV').listeners.click?.();
+    await settle();
+    const url = root.button('Download current-page CSV').attrs.href;
+    root.input('From UTC').value = '2026-02-30T00:00';
+    root.button('Apply filters').listeners.click?.();
+    assert.equal(calls, 2);
+    assert.doesNotMatch(root.text(), /Download current-page CSV/);
+    await assert.rejects(fetch(url ?? ''));
+    root.input('From UTC').value = '';
+    root.button('Apply filters').listeners.click?.();
+    await settle();
+    next = { state: 'denied' };
+    root.button('Prepare current-page CSV').listeners.click?.();
+    await settle();
+    assert.match(root.text(), /Access denied/);
+    assert.doesNotMatch(root.text(), /<img|Download current-page CSV/);
+    next = ready();
+    root.button('Apply filters').listeners.click?.();
+    await settle();
+    const detached = root.button('Prepare current-page CSV');
+    pending = true;
+    detached.listeners.click?.();
+    app.clear();
+    const count = calls;
+    detached.listeners.click?.();
+    complete?.(ready());
+    await settle();
+    assert.equal(calls, count);
+    assert.doesNotMatch(root.text(), /<img|Download current-page CSV/);
+    assert.match(root.text(), /Authentication required/);
+    app.dispose();
+  });
+  test(`${bundled ? 'built' : 'source'}: empty CSV has only fixed headers and dispose revokes it`, async () => {
+    const root = new Element();
+    const app = await mountCsv(root);
+    app.connect({
+      list: async () => ({ state: 'ready', data: { events: [], nextCursor: null } }),
+      invalidate() {},
+    });
+    root.button('Apply filters').listeners.click?.();
+    await settle();
+    root.button('Prepare current-page CSV').listeners.click?.();
+    await settle();
+    const url = root.button('Download current-page CSV').attrs.href;
+    const csv = await (await fetch(url ?? '')).text();
+    assert.equal(csv.split('\r\n').length, 2);
+    app.dispose();
+    await assert.rejects(fetch(url ?? ''));
+  });
+}
