@@ -1441,3 +1441,7 @@ Current-principal PostgreSQL composition accepts exactly one own writeAudit or a
 ## Explicit SSO read composition (#772)
 
 The opt-in postgres-sso-read-api module projects captured registered-key configuration into existing principal and catalog handlers and returns a Fetch handler or unbound Node server. Exact read routing has no write/inference fallback. Independent fresh IAM and SQL-audit obligations remain; missing identity-audit storage cannot produce identity and does not grant catalog access. Backend-owned runtime and session dispatch are unchanged. Proposed identity DDL remains outside default migrations pending owner/security approval. See [contract](../contracts/sso-read-api.md).
+
+## Account identity wire compatibility (#774)
+
+The explicit unbound SSO read API supports the existing Account GET `/management/v1/me` exact `{principalId}` contract through the same fresh authentication and required identity SQL audit as `/management/v1/principal`. Identity without IAM still cannot obtain catalog models. Acceptance covers actual loopback HTTP, both payloads, persisted audit, revoked/invalid identity and audit-failure suppression. Unknown/malformed routes remain private. No frontend/runtime/session/schema activation, native-browser, installed PostgreSQL, real IdP or deployment acceptance follows. See [plan](plans/774-account-me-contract.md) and [contract](../contracts/sso-current-principal-http.md).

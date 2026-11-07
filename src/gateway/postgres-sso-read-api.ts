@@ -47,7 +47,8 @@ export function createPostgresSsoReadApiHandler(
       try {
         const path = new URL(request.url).pathname;
         if (request.method !== 'GET') return failure(404, 'not_found');
-        if (path === '/management/v1/principal') return await principal(request);
+        if (path === '/management/v1/principal' || path === '/management/v1/me')
+          return await principal(request);
         if (path === '/management/v1/models' || path.startsWith('/management/v1/models/'))
           return await catalog(request);
         return failure(404, 'not_found');

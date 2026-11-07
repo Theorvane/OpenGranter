@@ -126,6 +126,9 @@ test('unknown paths and methods perform zero private work and never fall through
     },
   });
   for (const path of [
+    'me/',
+    'me-other',
+    'me/child',
     'principal/',
     'principals',
     'models-other',
@@ -134,7 +137,7 @@ test('unknown paths and methods perform zero private work and never fall through
   ])
     await safe(await handler(new Request(`http://localhost/management/v1/${path}`)), 404);
   for (const method of ['POST', 'DELETE', 'OPTIONS', 'HEAD'])
-    for (const path of ['principal', 'models', 'models/team%2Fchat'])
+    for (const path of ['me', 'principal', 'models', 'models/team%2Fchat'])
       await safe(
         await handler(new Request(`http://localhost/management/v1/${path}`, { method })),
         404,
@@ -155,9 +158,9 @@ test('malformed selected reads fail before SQL, identity lookup and authenticati
     principalAuditClient: { query },
     newRequestId: () => 'valid-id',
   });
-  for (const path of ['principal?x=1', 'models?x=1', 'models/%ZZ', 'models/team/chat'])
+  for (const path of ['me?x=1', 'principal?x=1', 'models?x=1', 'models/%ZZ', 'models/team/chat'])
     await safe(await handler(new Request(`http://localhost/management/v1/${path}`)), 400);
-  for (const path of ['principal', 'models', 'models/team%2Fchat']) {
+  for (const path of ['me', 'principal', 'models', 'models/team%2Fchat']) {
     const controller = new AbortController();
     controller.abort();
     await safe(
@@ -179,7 +182,7 @@ test('both reads reject absent and expired credentials with independent durable 
       iat: f.jwt.nowSeconds - 600,
       exp: f.jwt.nowSeconds - 300,
     });
-    for (const path of ['principal', 'models', 'models/team%2Fchat']) {
+    for (const path of ['me', 'principal', 'models', 'models/team%2Fchat']) {
       for (const authorization of ['', `Bearer ${expired}`]) {
         const response = await handler(
           new Request(`http://localhost/management/v1/${path}`, { headers: { authorization } }),
@@ -191,7 +194,7 @@ test('both reads reject absent and expired credentials with independent durable 
     }
     assert.equal(
       (await f.db.query('SELECT * FROM sso_current_principal_audit_events')).rows.length,
-      2,
+      4,
     );
     assert.equal((await f.db.query('SELECT * FROM sso_catalog_audit_events')).rows.length, 4);
     const audit = JSON.stringify(
@@ -320,5 +323,51 @@ test('configuration getters cannot leak private startup diagnostics', async () =
       name: 'InvalidSsoAccessTokenConfiguration',
       message: 'Invalid SSO access token configuration',
     });
+  }
+});
+
+test('Account me contract uses the same fresh SQL-audited identity without granting catalog access', async () => {
+  const f = await fixture();
+  const server = createPostgresSsoReadApiServer(f.ports);
+  try {
+    await f.db.exec('DELETE FROM iam_principal_roles');
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    const get = (path: string, token = f.token) =>
+      fetch(`http://127.0.0.1:${address.port}/management/v1/${path}`, {
+        headers: { authorization: `Bearer ${token}` },
+        redirect: 'error',
+      });
+    // Exact payload consumed by the existing Account view; no synthetic IAM context.
+    assert.deepEqual(await safe(await get('me'), 200), { principalId: 'human' });
+    assert.deepEqual(await safe(await get('principal'), 200), { id: 'human', kind: 'human' });
+    assert.deepEqual(await safe(await get('models'), 200), { object: 'list', data: [] });
+    const denied = await get('me', 'invalid');
+    assert.equal(denied.headers.get('www-authenticate'), 'Bearer');
+    await safe(denied, 401);
+    await f.db.exec('DELETE FROM iam_sso_identity_bindings');
+    await safe(await get('me'), 401);
+    assert.deepEqual(
+      (
+        await f.db.query(
+          'SELECT outcome,principal_id FROM sso_current_principal_audit_events ORDER BY event_id',
+        )
+      ).rows,
+      [
+        { outcome: 'ready', principal_id: 'human' },
+        { outcome: 'ready', principal_id: 'human' },
+        { outcome: 'unauthenticated', principal_id: null },
+        { outcome: 'unauthenticated', principal_id: null },
+      ],
+    );
+    await f.db.exec('DROP TABLE sso_current_principal_audit_events');
+    const unavailable = await safe(await get('me'), 503);
+    assert.equal(unavailable.error.code, 'audit_unavailable');
+    assert.doesNotMatch(JSON.stringify(unavailable), /human|principalId|issuer|subject/u);
+  } finally {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+    await f.db.close();
   }
 });

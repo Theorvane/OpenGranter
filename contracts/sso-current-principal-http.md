@@ -14,3 +14,7 @@ No authorization, routing, limits, provider, secret, credential mutation or usag
 ## Concrete PostgreSQL audit option (#770)
 
 The PostgreSQL factory now requires exactly one own writeAudit callback or auditClient configuration field. SQL mode uses the concrete dedicated identity audit store and awaits its acknowledged INSERT; optional proposed DDL is not installed automatically. Callback mode preserves the same durable obligation. See [durability and failure contract](current-principal-audit.md). No runtime mount or session grant follows.
+
+## Existing Account compatibility (#774)
+
+Exact GET `/management/v1/me` is also supported with the existing Account payload `{ principalId: <current human ID> }`, and no additional fields. It shares the same fresh registered-key verifier, exact active-human binding, required awaited identity audit, denial/failure privacy and malformed-shape validation as `/management/v1/principal`. The original path and `{id,kind}` projection remain unchanged. Lookalikes, trailing slash and other methods remain zero-private-work404. No URL rewriting, cookie session, new identity authority, runtime mount, schema installation or frontend change occurs. This closes a concrete wire-contract mismatch with the existing Account workspace; it does not certify that workspace in a native browser or install either server.

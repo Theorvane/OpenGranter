@@ -1248,3 +1248,7 @@ The identity-only current-principal factory accepts an explicit SQL audit client
 ## Same-listener identity and published model reads (#772)
 
 An explicitly configured unbound SSO read API now composes current active-human identity and independently IAM-filtered model list/detail. Both retain fresh RFC9068 authentication and mandatory dedicated SQL audit; identity is never a model or management permission grant. No frontend/runtime/session activation, automatic schema installation or provider work follows. See [plan](plans/772-sso-read-api.md) and [contract](../contracts/sso-read-api.md).
+
+## Account identity wire compatibility (#774)
+
+The explicit unbound SSO read API supports the existing Account GET `/management/v1/me` exact `{principalId}` contract through the same fresh authentication and required identity SQL audit as `/management/v1/principal`. Identity without IAM still cannot obtain catalog models. Acceptance covers actual loopback HTTP, both payloads, persisted audit, revoked/invalid identity and audit-failure suppression. Unknown/malformed routes remain private. No frontend/runtime/session/schema activation, native-browser, installed PostgreSQL, real IdP or deployment acceptance follows. See [plan](plans/774-account-me-contract.md) and [contract](../contracts/sso-current-principal-http.md).

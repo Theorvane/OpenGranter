@@ -50,7 +50,10 @@ export function createSsoCurrentPrincipalHandler(ports: SsoCurrentPrincipalHttpP
     let requestId: string | undefined;
     try {
       const url = new URL(request.url);
-      if (request.method !== 'GET' || url.pathname !== '/management/v1/principal')
+      if (
+        request.method !== 'GET' ||
+        !['/management/v1/principal', '/management/v1/me'].includes(url.pathname)
+      )
         return failure(404, 'not_found');
       const generatedId = newRequestId();
       if (
@@ -94,7 +97,9 @@ export function createSsoCurrentPrincipalHandler(ports: SsoCurrentPrincipalHttpP
         return failure(503, 'authentication_unavailable', requestId);
       return noStore(
         Response.json(
-          { id: event.principalId, kind: 'human' },
+          url.pathname === '/management/v1/me'
+            ? { principalId: event.principalId }
+            : { id: event.principalId, kind: 'human' },
           {
             headers: { 'x-request-id': requestId },
           },
