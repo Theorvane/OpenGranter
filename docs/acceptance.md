@@ -1962,3 +1962,8 @@ Structural cancelable click events must show current downloads are permitted, ex
 ## Integrated authorized usage summaries (#637)
 
 Mounted usage reached through signed SSO, loopback HTTP and migrated embedded SQL displays current-page model groups and known-token coverage; missing counters remain Unknown and expiry clears protected data. Existing summary tests cover exact large integers, duplicate inclusion, page replacement and supported browser artifacts. This is not native-browser or installed PostgreSQL/provider acceptance. See [plan](plans/637-usage-summary-integration.md).
+
+
+## Public workspace attempt evidence integration (#637, #642)
+
+The public usage workspace reuses the existing #732 per-attempt inspector: exact decimal estimated and reported costs remain independent, missing values remain Unknown, and total-token coverage plus server-marked billing/duplicate flags are content-free. Inspection uses only already authorized page rows and adds no API request or credential/policy lookup. Both source and built browser-module acceptance traverse signed test SSO, real loopback HTTP, migrated PGlite and mandatory audit; fresh IAM denial and trusted grant expiry remove all attempt evidence. This is not native browser, real IdP login, installed PostgreSQL, reconciliation, provider billing or deployment acceptance.
