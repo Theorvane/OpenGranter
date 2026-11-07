@@ -1442,3 +1442,10 @@ The existing frontend 77d7b62 module is reused byte-for-byte with three mount li
 ## Integrated exact request usage trace (#637 / #642)
 
 The existing source/built management workspace now reuses the frontend-owned request-ID control and per-attempt trace action. The optional exact request_id intersects existing principal/model/time scope, resets cursors on filter changes, and is retained for JSON/CSV continuation through signed SSO HTTP and the parameterized usage reader. Fresh IAM, explicit-principal ReadAll semantics, mandatory private audit, foreign-principal isolation and unknown/duplicate markers remain unchanged. This is a bounded review feature, not billing reconciliation, browser login, installed PostgreSQL or paid-provider acceptance. See [integration plan](plans/637-integrate-request-filter.md).
+
+
+## Integrated credential administration workspace (#637, #640)
+
+The public Models/Usage host now exposes the existing frontend-owned Credentials screen. Exact principal/UTC expiry and credential-ID confirmations precede existing issue/revoke API calls. One host-lifetime workspace clears the one-time secret on navigation/logout/expiry and retains unknown-write reconciliation blocking across navigation and grant replacement. Definite denial clears shared authority without inventing an unknown write. No automatic retry or browser secret persistence.
+
+Source and built-public-module acceptance exercise signed test SSO, real loopback mutation HTTP, migrated PGlite, current IAM, mandatory private audit, successful issue/revoke, fresh IAM denial and audit-unavailable transaction rollback. Catalog reads in this mutation acceptance use an explicit test stub. No endpoint/session/schema/runtime activation, native browser, real IdP login, installed PostgreSQL or paid-provider success is implied. See [plan](plans/637-credentials-integration.md).
