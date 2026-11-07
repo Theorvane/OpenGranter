@@ -1379,3 +1379,47 @@ responses, projected metadata, denial/error states and invalidation prevent
 stale data exposure. No login, SSO bridge, UI mounting, endpoint, IAM grant,
 retention or runtime activation is added. See [contract](../contracts/audit-read-client.md)
 and [plan](plans/782-audit-read-client.md).
+
+## Opt-in audit review view (#784)
+
+An explicit bounded audit client can power a disconnected-by-default read-only page with principal/model/UTC filters, first/next pagination, loading/empty/private failure states and lifecycle clearing. Fixed metadata columns only; no session bridge or public workspace activation. See [contract](../contracts/audit-review-page.md) and [plan](plans/784-audit-page.md). Login, export and installed acceptance remain open.
+
+The opt-in audit review supports backward pagination using query/cursor history only; previous pages always re-fetch with current server authorization and audit rather than redisplaying cached records. New filters and authority teardown discard navigation history. This does not activate the view in the public workspace or settle login/session ownership.
+
+## Bounded audit-page CSV (#784 / #642)
+The opt-in audit review page can prepare a current-page CSV only after a fresh bounded authorized read. It exports six visible metadata columns with formula-safe encoding and revocable download links; no cached-row export, automatic full-history traversal or arbitrary details. This is a limited #642 slice, not browser SSO, full CSV administration or installed acceptance. See [contract](../contracts/audit-review-page.md) and [plan](plans/784-audit-page.md).
+
+## Management catalog landmark integration (#637 / #639)
+The catalog is a labelled region inside the existing public management main landmark, not a nested document main. All data, empty/loading/error states and heading focus retain existing behavior. No session or API change. See [contract](../contracts/sso-administration-browser.md#catalog-landmark-integration-637--639).
+
+## Account presentation after suspended expiry (#637 / #639)
+The existing trusted workspace checks current authority when Account response/body work resumes, not only when an expiry timer or navigation fires. Late identity is suppressed at the absolute deadline or an invalid host clock, and shared credential authority is cleared. Stale work cannot invalidate a replacement grant. No new session/login/API/schema/runtime activation. See [contract](../contracts/current-principal-workspace.md#suspended-timer-presentation-boundary).
+
+## Usage completion and shared authority (#637 / #642)
+The existing management Usage view and fresh page CSV must not publish after trusted host expiry, including suspended browser timers and invalid/throwing/negative clocks. A recovered clock cannot restore cleared credential authority, and old completions cannot clear a renewed grant. This is a bounded existing-workspace fix, not browser login or deployment acceptance. See [plan](plans/784-audit-page.md#usage-authority-integration-follow-up-637--642).
+
+## Account explicit error recovery (#637 / #639)
+The current-principal screen offers an explicit fresh read after unavailable transport, malformed response or deadline. It never retries automatically or retries authorization denials. Detached controls cannot dispatch after navigation, renewal, clear, pagehide, disposal or trusted expiry. This reuses the existing trusted composition and does not establish browser SSO. See [plan](plans/784-audit-page.md).
+
+## Catalog navigation lifetime (#637 / #639)
+Existing catalog controls reject superseded render snapshots before using current transport authority, including renewed grants and suspended expiry timers. See [contract](../contracts/catalog-navigation-lifetime.md). No browser session or runtime activation is implied.
+
+## Catalog explicit error recovery (#637 / #639)
+Unavailable model list/detail reads support an explicit fresh lookup of the selected target without forcing a return to the list. No automatic retry or retry for denial/missing; stale controls cannot consume replacement authority. Existing SSO/IAM/required audit remain unchanged. See [contract](../contracts/catalog-navigation-lifetime.md#explicit-unavailable-recovery).
+
+
+## Usage current-page error recovery (#637 / #642)
+An unavailable Usage JSON read can explicitly re-fetch the selected submitted filters/cursor without a first-page hop and recover query-only backward navigation. No automatic retry, CSV replay or authorization-denial retry is added. Existing trusted transport and fresh mandatory audits remain required; browser login and installed acceptance remain open. See [contract](../contracts/usage-screen.md#current-usage-page-recovery-637--642).
+
+## Audit metadata scope navigation (#637 / #642)
+The opt-in audit view can drill into a reported principal/model with a fresh existing authorized audit read, preserving other submitted filters and resetting paging without reusing rows or draft edits. CSV links and stale controls are invalidated. This is not a public SSO audit mount or installed acceptance; the browser-validator build gap is addressed by shared pure projections, while public SSO composition remains unimplemented. See [contract](../contracts/audit-review-page.md#audit-row-scope-drilldown-637--642).
+
+## Audit client browser integration (#637 / #642)
+The existing audit screen and bounded client can both be built as browser modules without importing HTTP/SQL runtime adapters. Shared pure validators retain existing metadata redaction and query/page rejection semantics. Local native acceptance now uses real browser fetch through the shipped client rather than the earlier runner client bridge. This is not company login, public SSO composition, installed PostgreSQL or deployment acceptance. See [contract](../contracts/audit-review-page.md#browser-safe-audit-client-projection-637--642).
+
+## Audit review explicit recovery (#637 / #642)
+The existing opt-in audit page supports cancelling pending reads/CSV preparation and explicit retry of unavailable/cancelled reads. Retry preserves submitted scope/cursor, executes a fresh server-authorized read, and never replays CSV or denied/authentication failures. This does not activate public SSO/session or complete installed acceptance. See [contract](../contracts/audit-review-page.md) and [plan](plans/784-audit-page.md).
+
+
+## Audit backward-navigation recovery (#637 / #642)
+Explicit retry of failed/cancelled existing audit reads restores submitted query-only backward history after success, without restoring old rows, replaying CSV, or consuming draft filters. Failures still hide rows and navigation; new scope or authority changes remove recovery context. No public SSO mount or deployment acceptance is implied. See [contract](../contracts/audit-review-page.md).

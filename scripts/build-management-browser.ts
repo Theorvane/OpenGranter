@@ -16,11 +16,17 @@ export async function buildManagementBrowser(
 ): Promise<string> {
   const root = await realpath(resolve(options.root));
   const source = await realpath(resolve(root, 'src/management'));
-  // Reviewed content-free validators only; never permit whole server directories.
+  // Reviewed content-free validators/encoders only; never permit whole server directories.
   const shared = new Set([
+    resolve(root, 'src/export/csv.ts'),
     resolve(root, 'src/usage/record-parser.ts'),
     resolve(root, 'src/usage/record-usage.ts'),
     resolve(root, 'src/audit/attribution.ts'),
+    resolve(root, 'src/audit/gateway-event-projection.ts'),
+    resolve(root, 'src/audit/history-projection.ts'),
+    resolve(root, 'src/audit/history-filters.ts'),
+    resolve(root, 'src/audit/principal-reference.ts'),
+    resolve(root, 'src/audit/time-range.ts'),
   ]);
   async function local(path: string, entryPoint = false) {
     const canonical = await realpath(path);

@@ -104,7 +104,15 @@ for (const [name, mount] of [
         await until(() => root.text().includes('Current principal unavailable'));
         assert.doesNotMatch(root.text(), /human-account|PRIVATE|audit_unavailable/);
         failing = false;
-        await account(200);
+        const readsBeforeRetry = paths.length;
+        root.button('Retry current principal').click();
+        await until(() => statuses.at(-1) === 200 && root.text().includes('human-account'));
+        assert.equal(paths.length, readsBeforeRetry + 1);
+        assert.equal(paths.at(-1), '/management/v1/me');
+        assert.equal(
+          (await db.query('SELECT * FROM sso_current_principal_audit_events')).rows.length,
+          2,
+        );
         await until(() => root.text().includes('human-account'));
         await db.exec('DELETE FROM iam_sso_identity_bindings');
         root.button('Account').click();
