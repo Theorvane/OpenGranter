@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
+import { request as nodeRequest } from 'node:http';
 import { test } from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
 import { buildManagementBrowser } from '../scripts/build-management-browser.ts';
 import { createPostgresProxyCredentialStore } from '../src/gateway/postgres-proxy-credentials.ts';
 import { createPostgresSsoAdministrationBrowserServer } from '../src/gateway/postgres-sso-administration-browser-http.ts';
+import { createPostgresSsoReviewBrowserHandler } from '../src/gateway/postgres-sso-review-browser-http.ts';
 import { createProxyTokenService } from '../src/gateway/proxy-tokens.ts';
 import type { CatalogRequest } from '../src/management/catalog-client.ts';
 import { mountSsoUsageWorkspace as source } from '../src/management/sso-usage-workspace.ts';
@@ -55,6 +57,7 @@ for (const [label, mount] of [
         javascript: bundled,
         newRequestId: () => 'credentials-' + ++sequence,
       });
+      assert.equal(server.listening, false);
       server.listen(0, '127.0.0.1');
       await once(server, 'listening');
       const address = server.address();
@@ -63,10 +66,12 @@ for (const [label, mount] of [
       const root = new TokenElement();
       const lifecycle = new EventTarget();
       const app = mount(root, lifecycle, { now: jwt.config.now });
+      const reads: string[] = [];
       const paths: string[] = [];
       const statuses: number[] = [];
       const request: CatalogRequest = async (path, init) => {
         if (path.includes('/proxy-tokens')) paths.push(path);
+        else reads.push(path);
         assert.equal(init.cache, 'no-store');
         assert.equal(init.credentials, 'omit');
         const headers = new Headers(init.headers);
@@ -90,9 +95,16 @@ for (const [label, mount] of [
         now: jwt.config.now,
       });
       try {
+        const html = await fetch(base + '/management');
+        assert.equal(html.status, 200);
+        assert.match(await html.text(), /management\/app.js/);
+        const artifact = await fetch(base + '/management/app.js');
+        assert.equal(await artifact.text(), bundled);
         await app.authorize(grant);
+        assert.ok(reads.includes('/management/v1/models'));
         root.button('Account').click();
         await until(() => root.text().includes('human-admin'));
+        assert.ok(reads.includes('/management/v1/me'));
         root.button('Credentials').click();
         fillIssue();
         assert.equal(paths.length, 0);
@@ -198,3 +210,109 @@ for (const [label, mount] of [
     },
   );
 }
+
+test('explicit administration allowlist preserves read-only contract and rejects ambient authority', async () => {
+  const db = new PGlite();
+  for (const migration of await loadPostgresMigrationSources()) await db.exec(migration.sql);
+  let queries = 0;
+  let ids = 0;
+  const ports = {
+    ...jwt.config,
+    client: {
+      query: (text: string, values: readonly unknown[] = []) => {
+        queries++;
+        return db.query(text, [...values]);
+      },
+    },
+    newRequestId: () => 'administration-' + ++ids,
+    javascript: 'export const publicArtifact = true;',
+  };
+  const readonly = createPostgresSsoReviewBrowserHandler(ports);
+  const server = createPostgresSsoAdministrationBrowserServer(ports);
+  assert.equal(server.listening, false);
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  const address = server.address();
+  assert.ok(address && typeof address !== 'string');
+  const base = 'http://127.0.0.1:' + address.port;
+  try {
+    for (const path of ['/management', '/management/', '/management/app.js']) {
+      const result = await fetch(base + path);
+      assert.equal(result.status, 200);
+      assert.equal(result.headers.get('cache-control'), 'no-store');
+      assert.equal(result.headers.get('set-cookie'), null);
+      await result.text();
+    }
+    assert.equal(queries, 0);
+    assert.equal(ids, 0);
+    for (const [method, path] of [
+      ['GET', '/management/v1/proxy-tokens'],
+      ['DELETE', '/management/v1/proxy-tokens/revoke'],
+      ['POST', '/management/v1/proxy-tokens/'],
+      ['POST', '/management/v1/proxy-tokens/revoke/'],
+      ['POST', '/management/v1/me'],
+      ['POST', '/management/v1/models'],
+      ['POST', '/management/v1/usage'],
+      ['POST', '/v1/chat/completions'],
+    ] as const) {
+      const result = await fetch(base + path, { method });
+      assert.equal(result.status, 404);
+      assert.equal(result.headers.get('cache-control'), 'no-store');
+      await result.text();
+    }
+    for (const path of ['/management/v1/proxy-tokens', '/management/v1/proxy-tokens/revoke']) {
+      const result = await readonly(new Request(base + path, { method: 'POST' }));
+      assert.equal(result.status, 404);
+    }
+    assert.equal(queries, 0);
+    assert.equal(ids, 0);
+    for (const path of ['/management/v1/proxy-tokens', '/management/v1/proxy-tokens/revoke']) {
+      const result = await fetch(base + path, {
+        method: 'POST',
+        headers: { cookie: 'session=not-authority', 'content-type': 'application/json' },
+        body: '{malformed-private-input',
+      });
+      assert.equal(result.status, 401);
+      assert.equal(result.headers.get('cache-control'), 'no-store');
+      assert.equal(result.headers.get('set-cookie'), null);
+      assert.doesNotMatch(await result.text(), /not-authority|malformed-private-input/);
+    }
+    const events = JSON.stringify((await db.query('SELECT * FROM gateway_audit_events')).rows);
+    assert.doesNotMatch(events, /not-authority|malformed-private-input/);
+    assert.equal((await db.query('SELECT * FROM proxy_credentials')).rows.length, 0);
+    await db.exec('DROP TABLE gateway_audit_events');
+    const failure = await fetch(base + '/management/v1/proxy-tokens', { method: 'POST' });
+    assert.equal(failure.status, 503);
+    assert.match(await failure.text(), /audit_unavailable/);
+    const trace = await new Promise<{
+      status: number | undefined;
+      headers: Record<string, unknown>;
+      body: string;
+    }>((resolve, reject) => {
+      const request = nodeRequest(
+        base + '/management/v1/proxy-tokens',
+        { method: 'TRACE' },
+        (response) => {
+          let body = '';
+          response.on('data', (chunk) => {
+            body += String(chunk);
+          });
+          response.on('end', () =>
+            resolve({ status: response.statusCode, headers: response.headers, body }),
+          );
+        },
+      );
+      request.on('error', reject);
+      request.end();
+    });
+    assert.equal(trace.status, 503);
+    assert.equal(trace.headers['cache-control'], 'no-store');
+    assert.match(trace.body, /internal_error/);
+  } finally {
+    server.closeAllConnections();
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
+    await db.close();
+  }
+});

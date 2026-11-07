@@ -25,3 +25,9 @@
 - Separate stacked PR after #762. All ancestor gates remain required.
 - Rollback: remove opt-in composer; no schema/data/runtime activation occurs.
 - Local PGlite and generated SSO are not installed PostgreSQL, company IdP, native-browser or paid-provider evidence. Browser session contract remains unresolved.
+
+## Execution evidence (2026-11-07)
+- RED: /tmp/og-1630-red.log, missing administration module, 1 failed before production implementation.
+- GREEN: source/built workspace and exact boundary integration 3/3; focused mutation/review/host/HTTP regression suites 140/140, 0 skipped.
+- Typecheck initially identified a test tuple inference issue; corrected with const tuples. Final typecheck passes. Lint passes with 42 existing warnings and 281 infos, no errors. Planning/link/secret checks and six pinned compatibility checks pass.
+- Native desktop remains unavailable (screen still being released); no browser success claimed. Whole exact-HEAD verification and CI/formal review remain delivery gates.
