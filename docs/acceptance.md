@@ -1903,3 +1903,9 @@ The existing usage screen offers Export next CSV page only after a successful CS
 - Every request revalidates identity; inactive/deleted bindings and rejected tokens return 401 after required anonymous current-principal authentication-denial audit. Verification dependency failures return 503; failed audit returns 503 audit_unavailable. No token or claim is reflected.
 - Query/body input is rejected after authentication, including real HTTP nonzero Content-Length and chunked transfer framing; Content-Length: 0 remains valid. Unsupported methods return 404. Identity alone is not authorization for any list, detail or mutation.
 - Evidence: test/sso-current-principal-http.test.ts and test/postgres-sso-management-http.test.ts. Browser sessions, owned runtime activation, installed UI and release acceptance remain open.
+
+## Same-origin current-principal integration (#639)
+
+- Public assets and exact GET /management/v1/me share the existing unbound review server. Signed registered-key authority projects only principalId with no-store and a server request ID; cookies alone remain unauthenticated.
+- Re-read active principal/binding on each request. Required anonymous denial audit must complete; audit outage returns fixed 503. Identity grants no catalog permission.
+- Query rejection follows authentication; token issue/revoke, POST identity and path lookalikes stay 404 without SQL. Embedded SQL and signed-fixture loopback are not browser login, installed PostgreSQL or company IdP acceptance. See [plan](plans/639-review-current-principal.md).

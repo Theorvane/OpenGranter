@@ -1278,3 +1278,7 @@ Catalog list/detail and scoped usage JSON/CSV now share an explicit unbound serv
 ## Same-origin source review composition (#639/#642)
 
 An optional unbound source factory serves caller-owned public management assets and existing registered-key catalog/usage review routes on one origin. It adds no session, frontend activation or installed runtime. See [contract](../contracts/sso-usage-http.md).
+
+## Read-only review current principal
+
+The same-origin source-only review composition reuses the current-principal identity projection alongside model and usage reads, without exposing token writes or granting catalog authority. Browser session/IdP and installed activation remain separate release gates. See [plan](plans/639-review-current-principal.md).
