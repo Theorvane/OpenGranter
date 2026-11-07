@@ -1967,3 +1967,8 @@ Mounted usage reached through signed SSO, loopback HTTP and migrated embedded SQ
 ## Public workspace attempt evidence integration (#637, #642)
 
 The public usage workspace reuses the existing #732 per-attempt inspector: exact decimal estimated and reported costs remain independent, missing values remain Unknown, and total-token coverage plus server-marked billing/duplicate flags are content-free. Inspection uses only already authorized page rows and adds no API request or credential/policy lookup. Both source and built browser-module acceptance traverse signed test SSO, real loopback HTTP, migrated PGlite and mandatory audit; fresh IAM denial and trusted grant expiry remove all attempt evidence. This is not native browser, real IdP login, installed PostgreSQL, reconciliation, provider billing or deployment acceptance.
+
+
+## Public workspace principal usage drilldown (#637, #642)
+
+Reuse the existing frontend row-principal action against the current authorized usage API; preserve submitted model/time/page-size scope, reset cursor/history/drafts/CSV and show the existing loading/empty/error states. Explicit self selection still requires ReadAll, with no silent ReadSelf fallback. Source and built-module signed test SSO / real loopback HTTP / migrated PGlite acceptance verify denial, a test-only fresh IAM grant, exact scoped success and mandatory audits. No directory access, new endpoint, session/runtime/schema activation or native-browser/installed deployment success is implied. See [integration plan](plans/637-principal-drilldown-integration.md).
