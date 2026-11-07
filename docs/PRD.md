@@ -1358,3 +1358,8 @@ Source and built-public-module acceptance exercise signed test SSO, real loopbac
 ## Current-principal Account workspace (#637 / #639)
 
 Account navigation reads the existing authenticated GET /management/v1/me endpoint and shows only the current active-human principal ID. Loading/error states, bounded private responses and authority/navigation teardown prevent stale identity display. Identity grants no IAM permission. Source/built signed-test-SSO HTTP and migrated-PGlite acceptance verify current binding removal/inactivity and required authentication audit failure. This is not browser login/logout, a session/BFF, installed PostgreSQL or deployment approval. See [contract](../contracts/current-principal-workspace.md).
+
+
+## Explicit same-origin administration composition (#637 / #640)
+
+The separately selected, unbound administration browser factory combines existing public assets, current-principal/model/usage reads and exact POST credential issue/revoke. Existing read-only factories and runtime defaults are unchanged. Each private operation retains fresh signed SSO, IAM and mandatory audit; cookies/public assets grant no authority. Source/built workspace acceptance uses actual same-origin loopback HTTP and migrated PGlite without catalog/identity response stubs, including fresh Deny and audit rollback. No session/CSRF/CORS decision, schema promotion, listener activation, native-browser, installed database or provider success is implied. See [contract](../contracts/sso-administration-browser.md) and [plan](plans/637-administration-browser.md).
