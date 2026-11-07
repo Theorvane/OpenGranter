@@ -4,7 +4,7 @@ Parent #637. Status: PROPOSED; not an approved security contract, implementation
 
 ## Why the existing shell cannot sign in
 
-The public entry mounts a signed-out shell. Existing registered-key RFC9068 access-token verification is a server API capability, not OIDC login. A caller-supplied UI request port is not an authenticated browser session. Static assets, company identity bindings and discovery permission cannot confer administration rights. See [R0 ordering](../product-traceability.md#ordered-contracts), [human authentication](../../contracts/sso-human-authentication.md) and [SSO tokens](../../contracts/sso-access-tokens.md). Source-only follow-up factories/branches must be reviewed on their exact revisions before adoption; their existence is not evidence of merge or activation.
+The public entry mounts a signed-out shell. Existing registered-key RFC9068 access-token verification is a server API capability, not OIDC login. A caller-supplied UI request port is not an authenticated browser session. Static assets, company identity bindings and discovery permission cannot confer administration rights. See [R0 ordering](../product-traceability.md#ordered-next-contracts), [human authentication](../../contracts/sso-human-authentication.md) and [SSO tokens](../../contracts/sso-access-tokens.md). Source-only follow-up factories/branches must be reviewed on their exact revisions before adoption; their existence is not evidence of merge or activation.
 
 ## Proposed first vertical slice
 
@@ -47,7 +47,7 @@ No row is approved merely by merging this proposal. Record the approving owner a
 
 ## Numbered implementation plan after contract approval
 
-1. Record the approved decision artifact, exact dependency HEADs, file ownership and configuration schema. Frontend owns entry/workspace/login DOM; backend owns OIDC/session/CSRF and storage; coordinator owns agreed composition/integration tests. Do not edit another owners files without explicit transfer.
+1. Record the approved decision artifact, exact dependency HEADs, file ownership and configuration schema. Frontend owns entry/workspace/login DOM; backend owns OIDC/session/CSRF and storage; coordinator owns agreed composition/integration tests. Do not edit files owned by another implementer without explicit transfer.
 2. Write contract-derived RED tests: unauthenticated shell, login binding, callback state/nonce/PKCE/replay, invalid signature/issuer/audience, expired/inactive binding, cookie/Origin/CSRF, redirect/header spoofing, unavailable storage/audit and token-redaction. Assert no protected database/API read on denied requests.
 3. Implement the smallest explicitly opted-in server boundary and storage lifecycle, then GREEN those tests. Preserve existing bearer APIs/default runtime and avoid new roles or schema promotion without review.
 4. Connect the existing public shell through its reviewed private transport contract. Run real Node HTTP + database tests, then native HTTPS browser login/current-principal/model list/detail/logout; exercise loading, empty, unavailable, expiry, Deny, back/forward and late-response suppression. Signed local IdP/test tokens and PGlite are labeled local, not company IdP or installed PostgreSQL evidence.
