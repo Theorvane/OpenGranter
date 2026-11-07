@@ -1437,3 +1437,7 @@ A separate opt-in GET /management/v1/principal handler reuses the registered-key
 ## Explicit durable identity audit adapter (#770)
 
 Current-principal PostgreSQL composition accepts exactly one own writeAudit or auditClient field and captures the selected port. SQL mode awaits a parameterized INSERT into dedicated sso_current_principal_audit_events and requires one valid positive bigint acknowledgement; private SQL/clock errors suppress identity. The proposed optional DDL is not registered in the default migration manifest and no runtime automatically enables it. An autocommit/durably committed client is required; uncommitted transaction rollback is not detectable. Separate identity reads and audit writes do not promise atomic revocation or exactly-once delivery. Readers/retention/session contracts remain unresolved. See [contract](../contracts/current-principal-audit.md).
+
+## Explicit SSO read composition (#772)
+
+The opt-in postgres-sso-read-api module projects captured registered-key configuration into existing principal and catalog handlers and returns a Fetch handler or unbound Node server. Exact read routing has no write/inference fallback. Independent fresh IAM and SQL-audit obligations remain; missing identity-audit storage cannot produce identity and does not grant catalog access. Backend-owned runtime and session dispatch are unchanged. Proposed identity DDL remains outside default migrations pending owner/security approval. See [contract](../contracts/sso-read-api.md).
