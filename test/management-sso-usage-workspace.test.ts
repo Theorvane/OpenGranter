@@ -217,51 +217,60 @@ test('workspace is buildable through the reviewed public boundary', async () => 
   assert.doesNotMatch(javascript, /node:|process\.env|localStorage|sessionStorage/);
 });
 
-test('workspace switches signed SSO HTTP views against shared SQL and durable audits, then clears on fresh IAM denial', async () => {
-  const { PGlite } = await import('@electric-sql/pglite');
-  const { readFile } = await import('node:fs/promises');
-  const { createPostgresSsoReviewBrowserServer } = await import(
-    '../src/gateway/postgres-sso-review-browser-http.ts'
-  );
-  const { loadPostgresMigrationSources } = await import(
-    '../src/storage/postgres-migration-sources.ts'
-  );
-  const { createPostgresUsageLedger } = await import('../src/usage/postgres-ledger.ts');
-  const { buildUsageRecord } = await import('../src/usage/record-usage.ts');
-  const { createSsoAccessTokenFixture } = await import('./sso-access-token-fixture.ts');
-  const db = new PGlite();
-  const jwt = await createSsoAccessTokenFixture();
-  const token = await jwt.token();
-  const sql = { query: (text: string, values: readonly unknown[]) => db.query(text, [...values]) };
-  let ids = 0;
-  const ports = { ...jwt.config, client: sql, newRequestId: () => `workspace-${++ids}` };
-  // Explicit production source composition; runtime/manifest remain unchanged.
-  const javascript = await buildManagementBrowser({
-    root: process.cwd(),
-    entry: 'src/management/sso-usage-workspace.ts',
-  });
-  const server = createPostgresSsoReviewBrowserServer({ ...ports, javascript });
-  const built = await import(
-    'data:text/javascript;base64,' + Buffer.from(javascript).toString('base64')
-  );
-  const f = fixture(built.mountSsoUsageWorkspace);
-  const originalRevoke = URL.revokeObjectURL;
-  const revoked: string[] = [];
-  URL.revokeObjectURL = (url) => {
-    revoked.push(url);
-    originalRevoke(url);
-  };
-  const paths: string[] = [];
-  async function until(text: RegExp) {
-    for (let n = 0; n < 200 && !text.test(f.root.text()); n++) await settle();
-    assert.match(f.root.text(), text);
-  }
-  try {
-    for (const source of await loadPostgresMigrationSources()) await db.exec(source.sql);
-    await db.exec(
-      await readFile(new URL('../contracts/sso-usage-audit-schema.sql', import.meta.url), 'utf8'),
-    );
-    await db.exec(`
+for (const artifact of [false, true]) {
+  test(
+    'workspace switches signed SSO HTTP views against shared SQL and durable audits, then clears on fresh IAM denial: ' +
+      (artifact ? 'artifact' : 'source'),
+    async () => {
+      const { PGlite } = await import('@electric-sql/pglite');
+      const { readFile } = await import('node:fs/promises');
+      const { createPostgresSsoReviewBrowserServer } = await import(
+        '../src/gateway/postgres-sso-review-browser-http.ts'
+      );
+      const { loadPostgresMigrationSources } = await import(
+        '../src/storage/postgres-migration-sources.ts'
+      );
+      const { createPostgresUsageLedger } = await import('../src/usage/postgres-ledger.ts');
+      const { buildUsageRecord } = await import('../src/usage/record-usage.ts');
+      const { createSsoAccessTokenFixture } = await import('./sso-access-token-fixture.ts');
+      const db = new PGlite();
+      const jwt = await createSsoAccessTokenFixture();
+      const token = await jwt.token();
+      const sql = {
+        query: (text: string, values: readonly unknown[]) => db.query(text, [...values]),
+      };
+      let ids = 0;
+      const ports = { ...jwt.config, client: sql, newRequestId: () => `workspace-${++ids}` };
+      // Explicit production source composition; runtime/manifest remain unchanged.
+      const javascript = await buildManagementBrowser({
+        root: process.cwd(),
+        entry: 'src/management/sso-usage-workspace.ts',
+      });
+      const server = createPostgresSsoReviewBrowserServer({ ...ports, javascript });
+      const built = await import(
+        'data:text/javascript;base64,' + Buffer.from(javascript).toString('base64')
+      );
+      const f = fixture(artifact ? built.mountSsoUsageWorkspace : mountSsoUsageWorkspace);
+      const originalRevoke = URL.revokeObjectURL;
+      const revoked: string[] = [];
+      URL.revokeObjectURL = (url) => {
+        revoked.push(url);
+        originalRevoke(url);
+      };
+      const paths: string[] = [];
+      async function until(text: RegExp) {
+        for (let n = 0; n < 200 && !text.test(f.root.text()); n++) await settle();
+        assert.match(f.root.text(), text);
+      }
+      try {
+        for (const source of await loadPostgresMigrationSources()) await db.exec(source.sql);
+        await db.exec(
+          await readFile(
+            new URL('../contracts/sso-usage-audit-schema.sql', import.meta.url),
+            'utf8',
+          ),
+        );
+        await db.exec(`
       INSERT INTO iam_principals VALUES ('human','human',true);
       INSERT INTO iam_policies VALUES ('allow','v1','[{"effect":"Allow","actions":["llm:InvokeModel","llm:UseProvider","usage:ReadSelf"],"resources":["model:*","provider:openai","principal:human"]}]');
       INSERT INTO iam_roles VALUES ('reader');
@@ -271,188 +280,250 @@ test('workspace switches signed SSO HTTP views against shared SQL and durable au
       INSERT INTO catalog_routes (route_id,alias,kind,version,credential_ref,candidates) VALUES ('direct','team/chat','managed','v1',NULL,'[{"id":"one","kind":"managed","providerId":"openai","upstreamModelId":"private-upstream"}]');
       UPDATE catalog_models SET active_route_id='direct' WHERE alias='team/chat';
     `);
-    await db.query('INSERT INTO iam_sso_identity_bindings VALUES ($1,$2,$3)', [
-      jwt.issuer,
-      jwt.subject,
-      'human',
-    ]);
-    await createPostgresUsageLedger(sql)(
-      buildUsageRecord({
-        principalId: 'human',
-        credentialId: 'credential',
-        policyVersions: [],
-        requestId: 'chat',
-        attemptId: 'attempt',
-        modelAlias: 'team/chat',
-        routeKind: 'managed',
-        upstreamModelId: 'upstream',
-        selectedCandidateId: 'candidate',
-        occurredAt: 1,
-        latencyMs: 2,
-        outcome: 'succeeded',
-        possiblyBilled: true,
-        possibleDuplicate: false,
-      }),
-    );
-    server.listen(0, '127.0.0.1');
-    await once(server, 'listening');
-    const address = server.address();
-    assert.ok(address && typeof address !== 'string');
-    const origin = 'http://127.0.0.1:' + address.port;
-    const shell = await fetch(origin + '/management');
-    assert.equal(shell.status, 200);
-    assert.match(await shell.text(), /src="\/management\/app.js"/);
-    const module = await fetch(origin + '/management/app.js');
-    assert.equal(module.status, 200);
-    assert.equal(await module.text(), javascript);
-    // Workspace library only: trusted adapter remains external. Structural DOM
-    // authorization below is explicit test authority, not native browser login.
-    await f.app.authorize({
-      expiresAt: 1000,
-      request: (path, init) => {
-        paths.push(path);
-        return fetch(`http://127.0.0.1:${address.port}${path}`, {
-          ...init,
-          headers: { ...init.headers, authorization: `Bearer ${token}` },
+        await db.query('INSERT INTO iam_sso_identity_bindings VALUES ($1,$2,$3)', [
+          jwt.issuer,
+          jwt.subject,
+          'human',
+        ]);
+        await createPostgresUsageLedger(sql)(
+          buildUsageRecord({
+            principalId: 'human',
+            credentialId: 'credential',
+            policyVersions: [],
+            requestId: 'chat',
+            attemptId: 'attempt',
+            modelAlias: 'team/chat',
+            routeKind: 'managed',
+            upstreamModelId: 'upstream',
+            selectedCandidateId: 'candidate',
+            occurredAt: 1,
+            latencyMs: 2,
+            outcome: 'succeeded',
+            possiblyBilled: true,
+            possibleDuplicate: false,
+          }),
+        );
+        server.listen(0, '127.0.0.1');
+        await once(server, 'listening');
+        const address = server.address();
+        assert.ok(address && typeof address !== 'string');
+        const origin = 'http://127.0.0.1:' + address.port;
+        const shell = await fetch(origin + '/management');
+        assert.equal(shell.status, 200);
+        assert.match(await shell.text(), /src="\/management\/app.js"/);
+        const module = await fetch(origin + '/management/app.js');
+        assert.equal(module.status, 200);
+        assert.equal(await module.text(), javascript);
+        // Workspace library only: trusted adapter remains external. Structural DOM
+        // authorization below is explicit test authority, not native browser login.
+        await f.app.authorize({
+          expiresAt: 1000,
+          request: (path, init) => {
+            paths.push(path);
+            return fetch(`http://127.0.0.1:${address.port}${path}`, {
+              ...init,
+              headers: { ...init.headers, authorization: `Bearer ${token}` },
+            });
+          },
         });
-      },
-    });
-    assert.match(f.root.text(), /team\/chat/);
-    f.root.click('Usage history');
-    await until(/human/);
-    assert.match(f.root.text(), /Unknown/);
-    assert.match(f.root.text(), /Current page only — not an invoice/);
-    assert.match(f.root.text(), /Estimated cost coverage: 0 of 1 records/);
-    assert.match(f.root.text(), /Reported cost coverage: 0 of 1 records/);
-    const oldRefresh = f.root.find('Refresh current page');
-    assert.ok(oldRefresh);
-    f.root.click('Export current page CSV');
-    await until(/Download usage.csv/);
-    const afterExport = paths.length;
-    oldRefresh.events.click?.();
-    await settle();
-    assert.equal(
-      paths.length,
-      afterExport,
-      'compiled detached control cannot replace exported page',
-    );
-    assert.match(f.root.text(), /Download usage.csv/);
-    f.root.click('Inspect model team/chat');
-    await until(/Model ID/);
-    assert.equal(revoked.length, 1, 'model navigation revokes the CSV download');
-    assert.doesNotMatch(f.root.text(), /Download usage.csv/);
-    assert.doesNotMatch(f.root.text(), /Inspect attempt|private-upstream/);
-    f.root.click('View usage for this model');
-    await until(/Inspect attempt/);
-    assert.equal(paths.at(-1), '/management/v1/usage?model=team%2Fchat&format=json');
-    f.root.click('Inspect model team/chat');
-    await until(/Model ID/);
-    f.root.click('Back to models');
-    await until(/Models available/);
-    await until(/team\/chat/);
-    assert.deepEqual(paths, [
-      '/management/v1/models',
-      '/management/v1/usage?format=json',
-      '/management/v1/usage?format=csv',
-      '/management/v1/models/team%2Fchat',
-      '/management/v1/usage?model=team%2Fchat&format=json',
-      '/management/v1/models/team%2Fchat',
-      '/management/v1/models',
-    ]);
-    assert.equal((await db.query('SELECT * FROM sso_catalog_audit_events')).rows.length, 4);
-    assert.equal((await db.query('SELECT * FROM sso_usage_audit_events')).rows.length, 3);
-    // Same production source handler serves detail/export, not a test router.
-    const review = (path: string, headers: Record<string, string> = {}) =>
-      fetch(`http://127.0.0.1:${address.port}${path}`, {
-        headers: { authorization: `Bearer ${token}`, ...headers },
-      });
-    const detail = await review('/management/v1/models/team%2Fchat');
-    assert.equal(detail.status, 200);
-    assert.match(await detail.text(), /team\/chat/);
-    const csv = await review('/management/v1/usage?format=csv');
-    assert.equal(csv.status, 200);
-    assert.match(csv.headers.get('content-type') ?? '', /text\/csv/);
-    assert.match(await csv.text(), /attempt/);
-    const other = await review('/management/v1/usage?principal_id=other');
-    assert.equal(other.status, 403);
-    assert.doesNotMatch(await other.text(), /attempt|private-upstream/);
-    const cookie = await review('/management/v1/usage', {
-      authorization: '',
-      cookie: 'session=not-authority',
-    });
-    assert.equal(cookie.status, 401);
-    await cookie.text();
-    f.root.click('Usage history');
-    await until(/Inspect attempt/);
-    const detached = f.root.find('Inspect model team/chat');
-    assert.ok(detached);
-    await db.exec('DELETE FROM iam_role_policies');
-    detached.events.click?.();
-    await until(/Model not found/);
-    const beforeDetached = paths.length;
-    detached.events.click?.();
-    await settle();
-    assert.equal(paths.length, beforeDetached, 'disposed usage controls cannot dispatch');
-    f.root.click('Usage history');
-    await until(/Access denied/);
-    f.root.click('Models');
-    await settle();
-    assert.match(f.root.text(), /Access denied/);
-    assert.equal(paths.length, 10);
-    const audits = await db.query<{ outcome: string }>(
-      'SELECT outcome FROM sso_usage_audit_events ORDER BY event_id',
-    );
-    assert.deepEqual(
-      audits.rows.map((row) => row.outcome),
-      ['ready', 'ready', 'ready', 'ready', 'forbidden', 'unauthenticated', 'ready', 'forbidden'],
-    );
-    assert.doesNotMatch(f.root.text(), /private-upstream|Bearer|credential/);
-    // Catalog remains visible while usage permission is independently revoked.
-    await db.exec("INSERT INTO iam_role_policies VALUES ('reader','allow')");
-    await db.query('UPDATE iam_policies SET statements=$1 WHERE policy_id=$2', [
-      JSON.stringify([
-        {
-          effect: 'Allow',
-          actions: ['llm:InvokeModel', 'llm:UseProvider'],
-          resources: ['model:*', 'provider:openai'],
-        },
-      ]),
-      'allow',
-    ]);
-    await f.app.authorize({
-      expiresAt: 1000,
-      request: (path, init) => {
-        paths.push(path);
-        return fetch('http://127.0.0.1:' + address.port + path, {
-          ...init,
-          headers: { ...init.headers, authorization: 'Bearer ' + token },
+        assert.match(f.root.text(), /team\/chat/);
+        f.root.click('Usage history');
+        await until(/human/);
+        assert.match(f.root.text(), /Unknown/);
+        assert.match(f.root.text(), /Current page only — not an invoice/);
+        assert.match(f.root.text(), /Estimated cost coverage: 0 of 1 records/);
+        assert.match(f.root.text(), /Reported cost coverage: 0 of 1 records/);
+        const oldRefresh = f.root.find('Refresh current page');
+        assert.ok(oldRefresh);
+        f.root.click('Export current page CSV');
+        await until(/Download usage.csv/);
+        const afterExport = paths.length;
+        oldRefresh.events.click?.();
+        await settle();
+        assert.equal(
+          paths.length,
+          afterExport,
+          'compiled detached control cannot replace exported page',
+        );
+        assert.match(f.root.text(), /Download usage.csv/);
+        f.root.click('Inspect model team/chat');
+        await until(/Model ID/);
+        assert.equal(revoked.length, 1, 'model navigation revokes the CSV download');
+        assert.doesNotMatch(f.root.text(), /Download usage.csv/);
+        assert.doesNotMatch(f.root.text(), /Inspect attempt|private-upstream/);
+        f.root.click('View usage for this model');
+        await until(/Inspect attempt/);
+        assert.equal(paths.at(-1), '/management/v1/usage?model=team%2Fchat&format=json');
+        // Explicit self selection must not silently downgrade ReadAll to ReadSelf.
+        f.root.click('Filter usage for principal human');
+        await until(/Access denied/);
+        assert.equal(
+          paths.at(-1),
+          '/management/v1/usage?principal_id=human&model=team%2Fchat&format=json',
+        );
+        assert.doesNotMatch(f.root.text(), /Inspect attempt|Export current page/);
+        const deniedCount = paths.length;
+        await settle();
+        assert.equal(paths.length, deniedCount, 'no weaker-scope retry');
+        // Test-only policy update; production reads fresh IAM on every request.
+        await db.query('UPDATE iam_policies SET statements=$1 WHERE policy_id=$2', [
+          JSON.stringify([
+            {
+              effect: 'Allow',
+              actions: ['llm:InvokeModel', 'llm:UseProvider', 'usage:ReadSelf', 'usage:ReadAll'],
+              resources: ['model:*', 'provider:openai', 'principal:human'],
+            },
+          ]),
+          'allow',
+        ]);
+        await f.app.authorize({
+          expiresAt: 1000,
+          request: (path, init) => {
+            paths.push(path);
+            return fetch(origin + path, {
+              ...init,
+              headers: { ...init.headers, authorization: 'Bearer ' + token },
+            });
+          },
         });
-      },
-    });
-    f.root.click('team/chat');
-    await until(/Model ID/);
-    f.root.click('View usage for this model');
-    await until(/Access denied/);
-    assert.equal(paths.at(-1), '/management/v1/usage?model=team%2Fchat&format=json');
-    assert.doesNotMatch(f.root.text(), /Inspect attempt|private-upstream|credential/);
-    // Missing durable audit fails closed independently on each route.
-    await db.exec('DROP TABLE sso_usage_audit_events');
-    const failedUsage = await review('/management/v1/usage');
-    assert.equal(failedUsage.status, 503);
-    assert.equal(failedUsage.headers.get('cache-control'), 'no-store');
-    assert.match(await failedUsage.text(), /audit_unavailable/);
-    await db.exec('DROP TABLE sso_catalog_audit_events');
-    const failedCatalog = await review('/management/v1/models');
-    assert.equal(failedCatalog.status, 503);
-    assert.match(await failedCatalog.text(), /audit_unavailable/);
-  } finally {
-    f.app.dispose();
-    URL.revokeObjectURL = originalRevoke;
-    server.closeAllConnections();
-    if (server.listening) await new Promise<void>((resolve) => server.close(() => resolve()));
-    await db.close();
-  }
-});
+        f.root.click('team/chat');
+        await until(/Model ID/);
+        f.root.click('View usage for this model');
+        await until(/Inspect attempt/);
+        f.root.click('Filter usage for principal human');
+        await until(/Inspect attempt/);
+        assert.equal(
+          paths.at(-1),
+          '/management/v1/usage?principal_id=human&model=team%2Fchat&format=json',
+        );
+        assert.doesNotMatch(f.root.text(), /Previous page/);
+        f.root.click('Inspect model team/chat');
+        await until(/Model ID/);
+        f.root.click('Back to models');
+        await until(/Models available/);
+        await until(/team\/chat/);
+        assert.deepEqual(paths, [
+          '/management/v1/models',
+          '/management/v1/usage?format=json',
+          '/management/v1/usage?format=csv',
+          '/management/v1/models/team%2Fchat',
+          '/management/v1/usage?model=team%2Fchat&format=json',
+          '/management/v1/usage?principal_id=human&model=team%2Fchat&format=json',
+          '/management/v1/models',
+          '/management/v1/models/team%2Fchat',
+          '/management/v1/usage?model=team%2Fchat&format=json',
+          '/management/v1/usage?principal_id=human&model=team%2Fchat&format=json',
+          '/management/v1/models/team%2Fchat',
+          '/management/v1/models',
+        ]);
+        assert.equal((await db.query('SELECT * FROM sso_catalog_audit_events')).rows.length, 6);
+        assert.equal((await db.query('SELECT * FROM sso_usage_audit_events')).rows.length, 6);
+        // Same production source handler serves detail/export, not a test router.
+        const review = (path: string, headers: Record<string, string> = {}) =>
+          fetch(`http://127.0.0.1:${address.port}${path}`, {
+            headers: { authorization: `Bearer ${token}`, ...headers },
+          });
+        const detail = await review('/management/v1/models/team%2Fchat');
+        assert.equal(detail.status, 200);
+        assert.match(await detail.text(), /team\/chat/);
+        const csv = await review('/management/v1/usage?format=csv');
+        assert.equal(csv.status, 200);
+        assert.match(csv.headers.get('content-type') ?? '', /text\/csv/);
+        assert.match(await csv.text(), /attempt/);
+        const other = await review('/management/v1/usage?principal_id=other');
+        assert.equal(other.status, 403);
+        assert.doesNotMatch(await other.text(), /attempt|private-upstream/);
+        const cookie = await review('/management/v1/usage', {
+          authorization: '',
+          cookie: 'session=not-authority',
+        });
+        assert.equal(cookie.status, 401);
+        await cookie.text();
+        f.root.click('Usage history');
+        await until(/Inspect attempt/);
+        const detached = f.root.find('Inspect model team/chat');
+        assert.ok(detached);
+        await db.exec('DELETE FROM iam_role_policies');
+        detached.events.click?.();
+        await until(/Model not found/);
+        const beforeDetached = paths.length;
+        detached.events.click?.();
+        await settle();
+        assert.equal(paths.length, beforeDetached, 'disposed usage controls cannot dispatch');
+        f.root.click('Usage history');
+        await until(/Access denied/);
+        f.root.click('Models');
+        await settle();
+        assert.match(f.root.text(), /Access denied/);
+        assert.equal(paths.length, 15);
+        const audits = await db.query<{ outcome: string }>(
+          'SELECT outcome FROM sso_usage_audit_events ORDER BY event_id',
+        );
+        assert.deepEqual(
+          audits.rows.map((row) => row.outcome),
+          [
+            'ready',
+            'ready',
+            'ready',
+            'forbidden',
+            'ready',
+            'ready',
+            'ready',
+            'forbidden',
+            'unauthenticated',
+            'ready',
+            'forbidden',
+          ],
+        );
+        assert.doesNotMatch(f.root.text(), /private-upstream|Bearer|credential/);
+        // Catalog remains visible while usage permission is independently revoked.
+        await db.exec("INSERT INTO iam_role_policies VALUES ('reader','allow')");
+        await db.query('UPDATE iam_policies SET statements=$1 WHERE policy_id=$2', [
+          JSON.stringify([
+            {
+              effect: 'Allow',
+              actions: ['llm:InvokeModel', 'llm:UseProvider'],
+              resources: ['model:*', 'provider:openai'],
+            },
+          ]),
+          'allow',
+        ]);
+        await f.app.authorize({
+          expiresAt: 1000,
+          request: (path, init) => {
+            paths.push(path);
+            return fetch('http://127.0.0.1:' + address.port + path, {
+              ...init,
+              headers: { ...init.headers, authorization: 'Bearer ' + token },
+            });
+          },
+        });
+        f.root.click('team/chat');
+        await until(/Model ID/);
+        f.root.click('View usage for this model');
+        await until(/Access denied/);
+        assert.equal(paths.at(-1), '/management/v1/usage?model=team%2Fchat&format=json');
+        assert.doesNotMatch(f.root.text(), /Inspect attempt|private-upstream|credential/);
+        // Missing durable audit fails closed independently on each route.
+        await db.exec('DROP TABLE sso_usage_audit_events');
+        const failedUsage = await review('/management/v1/usage');
+        assert.equal(failedUsage.status, 503);
+        assert.equal(failedUsage.headers.get('cache-control'), 'no-store');
+        assert.match(await failedUsage.text(), /audit_unavailable/);
+        await db.exec('DROP TABLE sso_catalog_audit_events');
+        const failedCatalog = await review('/management/v1/models');
+        assert.equal(failedCatalog.status, 503);
+        assert.match(await failedCatalog.text(), /audit_unavailable/);
+      } finally {
+        f.app.dispose();
+        URL.revokeObjectURL = originalRevoke;
+        server.closeAllConnections();
+        if (server.listening) await new Promise<void>((resolve) => server.close(() => resolve()));
+        await db.close();
+      }
+    },
+  );
+}
 
 test('view navigation revokes completed CSV downloads and pagehide aborts a pending export', async () => {
   const f = fixture();
