@@ -1353,3 +1353,8 @@ The existing source/built management workspace now reuses the frontend-owned req
 The public Models/Usage host now exposes the existing frontend-owned Credentials screen. Exact principal/UTC expiry and credential-ID confirmations precede existing issue/revoke API calls. One host-lifetime workspace clears the one-time secret on navigation/logout/expiry and retains unknown-write reconciliation blocking across navigation and grant replacement. Definite denial clears shared authority without inventing an unknown write. No automatic retry or browser secret persistence.
 
 Source and built-public-module acceptance exercise signed test SSO, real loopback mutation HTTP, migrated PGlite, current IAM, mandatory private audit, successful issue/revoke, fresh IAM denial and audit-unavailable transaction rollback. Catalog reads in this mutation acceptance use an explicit test stub. No endpoint/session/schema/runtime activation, native browser, real IdP login, installed PostgreSQL or paid-provider success is implied. See [plan](plans/637-credentials-integration.md).
+
+
+## Current-principal Account workspace (#637 / #639)
+
+Account navigation reads the existing authenticated GET /management/v1/me endpoint and shows only the current active-human principal ID. Loading/error states, bounded private responses and authority/navigation teardown prevent stale identity display. Identity grants no IAM permission. Source/built signed-test-SSO HTTP and migrated-PGlite acceptance verify current binding removal/inactivity and required authentication audit failure. This is not browser login/logout, a session/BFF, installed PostgreSQL or deployment approval. See [contract](../contracts/current-principal-workspace.md).

@@ -1,5 +1,6 @@
 import type { CatalogAuthorityGrant } from './catalog-authority.ts';
 import type { CatalogRequest } from './catalog-client.ts';
+import { mountManagementPrincipal } from './principal-app.ts';
 import { mountSsoManagementCatalog } from './sso-catalog-app.ts';
 import { mountManagementTokens } from './token-management-app.ts';
 import { createManagementTokenWorkspace } from './token-management-workspace.ts';
@@ -9,7 +10,7 @@ import {
   type UsageElement,
 } from './usage-app.ts';
 
-type View = 'models' | 'usage' | 'tokens';
+type View = 'models' | 'usage' | 'tokens' | 'account';
 type Cleared = 'unauthenticated' | 'expired' | 'denied';
 
 /** Explicit trusted composition, not a session or public authority API.
@@ -54,6 +55,7 @@ export function mountSsoUsageWorkspace(
     | ReturnType<typeof mountSsoManagementCatalog>
     | ReturnType<typeof mountManagementUsage>
     | ReturnType<typeof mountManagementTokens>
+    | ReturnType<typeof mountManagementPrincipal>
     | undefined;
 
   function removeAuthority() {
@@ -107,6 +109,7 @@ export function mountSsoUsageWorkspace(
       ['models', 'Models'],
       ['usage', 'Usage history'],
       ['tokens', 'Credentials'],
+      ['account', 'Account'],
     ] as const) {
       const button = element('button', label);
       button.setAttribute('type', 'button');
@@ -133,6 +136,13 @@ export function mountSsoUsageWorkspace(
     }
     if (view === 'tokens') {
       app = mountManagementTokens(content, tokens);
+      return;
+    }
+    if (view === 'account') {
+      const mounted = mountManagementPrincipal(content);
+      app = mounted;
+      if (grant) await mounted.authorize(transport(grant));
+      else mounted.clear(reason);
       return;
     }
     const mounted =
