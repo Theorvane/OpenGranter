@@ -50,6 +50,11 @@ export function createNodeRequestServer(
         await response.body?.cancel().catch(() => undefined);
         return;
       }
+      // Validate the complete metadata before staging any part of a normal response.
+      if (response.status < 200 || response.status > 599) throw new Error('Invalid response');
+      response.headers.forEach((value, name) => {
+        validateHeaderValue(name, value);
+      });
       outgoing.statusCode = response.status;
       response.headers.forEach((value, name) => {
         outgoing.setHeader(name, value);
@@ -68,6 +73,9 @@ export function createNodeRequestServer(
       if (outgoing.headersSent) {
         outgoing.destroy();
       } else {
+        // Stream adaptation can fail after headers were staged but before commitment.
+        // None of that failed response (especially cookies/framing) belongs to the fallback.
+        for (const name of outgoing.getHeaderNames()) outgoing.removeHeader(name);
         let response: Response;
         let body: string;
         try {
