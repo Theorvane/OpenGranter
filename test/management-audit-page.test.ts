@@ -199,3 +199,144 @@ test('restricted browser artifact renders and clears audit page', async () => {
   assert.match(root.text(), /Authentication required/);
   app.dispose();
 });
+
+test('previous pages re-fetch submitted opaque queries without cached rows or draft changes', async () => {
+  const root = new Element();
+  const app = mountManagementAudit(root);
+  const seen: AuditFilters[] = [];
+  app.connect({
+    list: async (f) => {
+      seen.push({ ...f });
+      return ready(
+        f?.cursor === 'older-cursor'
+          ? null
+          : f?.cursor === 'opaque-cursor'
+            ? 'older-cursor'
+            : 'opaque-cursor',
+      );
+    },
+    invalidate() {},
+  });
+  root.input('Principal ID').value = ' human ';
+  root.button('Apply filters').listeners.click?.();
+  await settle();
+  root.button('Next page').listeners.click?.();
+  await settle();
+  root.input('Principal ID').value = 'unsubmitted';
+  root.button('Next page').listeners.click?.();
+  await settle();
+  const detached = root.button('Previous page');
+  detached.listeners.click?.();
+  assert.match(root.text(), /Loading/);
+  assert.doesNotMatch(root.text(), /<img/);
+  await settle();
+  assert.equal(seen[3]?.cursor, 'opaque-cursor');
+  assert.equal(seen[3]?.principalId, ' human ');
+  detached.listeners.click?.();
+  await settle();
+  assert.equal(seen.length, 4);
+  root.button('Previous page').listeners.click?.();
+  await settle();
+  assert.equal(seen[4]?.cursor, undefined);
+  assert.equal(
+    root.all().some((n) => n.textContent === 'Previous page'),
+    false,
+  );
+  root.button('Next page').listeners.click?.();
+  await settle();
+  root.input('Principal ID').value = 'new-principal';
+  root.button('Apply filters').listeners.click?.();
+  await settle();
+  assert.equal(seen.at(-1)?.cursor, undefined);
+  assert.equal(seen.at(-1)?.principalId, 'new-principal');
+  assert.equal(
+    root.all().some((n) => n.textContent === 'Previous page'),
+    false,
+  );
+  app.dispose();
+});
+
+test('previous-page denial and superseded response discard navigation history', async () => {
+  const root = new Element();
+  const app = mountManagementAudit(root);
+  let n = 0;
+  let complete: ((r: AuditClientResult) => void) | undefined;
+  app.connect({
+    list: async () => {
+      n++;
+      if (n === 3) return { state: 'denied' };
+      if (n === 6)
+        return new Promise((resolve) => {
+          complete = resolve;
+        });
+      return ready('opaque');
+    },
+    invalidate() {},
+  });
+  root.button('Apply filters').listeners.click?.();
+  await settle();
+  root.button('Next page').listeners.click?.();
+  await settle();
+  root.button('Previous page').listeners.click?.();
+  await settle();
+  assert.match(root.text(), /Access denied/);
+  assert.doesNotMatch(root.text(), /<img|Previous page|Next page/);
+  root.button('Apply filters').listeners.click?.();
+  await settle();
+  root.button('Next page').listeners.click?.();
+  await settle();
+  root.button('Previous page').listeners.click?.();
+  app.clear();
+  complete?.(ready('opaque'));
+  await settle();
+  assert.match(root.text(), /Authentication required/);
+  assert.doesNotMatch(root.text(), /<img|Previous page|Next page/);
+  app.dispose();
+});
+
+test('built public module re-fetches previous pages and first/invalid filters reset history', async () => {
+  const source = await buildManagementBrowser({
+    root: process.cwd(),
+    entry: 'src/management/audit-page.ts',
+  });
+  const module = await import(
+    'data:text/javascript;base64,' + Buffer.from(source).toString('base64')
+  );
+  const root = new Element();
+  const app = module.mountManagementAudit(root) as ReturnType<typeof mountManagementAudit>;
+  const seen: AuditFilters[] = [];
+  app.connect({
+    list: async (f) => {
+      seen.push({ ...f });
+      return ready('opaque');
+    },
+    invalidate() {},
+  });
+  root.button('Apply filters').listeners.click?.();
+  await settle();
+  root.button('Next page').listeners.click?.();
+  await settle();
+  root.button('Previous page').listeners.click?.();
+  await settle();
+  assert.equal(seen[2]?.cursor, undefined);
+  root.button('Next page').listeners.click?.();
+  await settle();
+  root.button('First page').listeners.click?.();
+  await settle();
+  assert.equal(seen[4]?.cursor, undefined);
+  assert.doesNotMatch(root.text(), /Previous page/);
+  root.button('Next page').listeners.click?.();
+  await settle();
+  root.input('From UTC').value = '2026-02-30T00:00';
+  root.button('Apply filters').listeners.click?.();
+  await settle();
+  assert.match(root.text(), /Invalid filters/);
+  assert.doesNotMatch(root.text(), /Previous page|Next page|<img/);
+  assert.equal(seen.length, 6);
+  root.input('From UTC').value = '';
+  root.button('Apply filters').listeners.click?.();
+  await settle();
+  assert.equal(seen[6]?.cursor, undefined);
+  assert.doesNotMatch(root.text(), /Previous page/);
+  app.dispose();
+});

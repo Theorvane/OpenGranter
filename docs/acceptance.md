@@ -2021,3 +2021,5 @@ The existing common SQL audit store accepts only one own returned row with an ow
 ## Opt-in audit review page (#784)
 
 Verify disconnected no-request mount; exact submitted filters and UTC validation; first/next opaque paging; fixed text-only metadata; loading and empty messages; Deny/unauthenticated/unavailable/cancelled states without stale data; supersession, detached callbacks, clear and dispose. Verify source and restricted browser artifact. Headless loopback synthetic-identity API evidence is not real SSO or installed deployment acceptance.
+
+Audit previous-page acceptance (#784): verify three-page forward/back navigation re-fetches exact submitted filters and opaque cursor, ignores unsubmitted draft changes, removes old rows during load, and discards navigation on denial/new filters/clear. Superseded completions and detached buttons cannot restore records or history. Public bundled module and synthetic loopback Chromium evidence are separate from real IdP/installed deployment acceptance.

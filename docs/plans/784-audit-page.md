@@ -24,3 +24,9 @@
 2. Implement component and run GREEN; capture browser evidence.
 3. Commit on feat/784-audit-page and open draft PR against dependency #783.
 4. Request exact-head independent formal approval and CI; no merge without both. Rollback by removing the unused opt-in component.
+
+## Follow-up: fresh previous-page navigation
+- Within #784/#642, add Previous page using only prior submitted query/cursor metadata, never cached event rows. Re-fetch through the bounded client so current IAM and mandatory audit are re-evaluated.
+- Store history only after a successful current response. Clear history on loading, failure, invalid filters, new filters, first page, disconnect and disposal. Stale completions and detached buttons must not restore history.
+- RED/GREEN: three-page round trip, opaque cursors, edited but unsubmitted drafts, denial, filter reset, superseded request, public bundled module. Actual Chromium plus loopback gateway must show fresh HTTP on Previous and denial clearing rows.
+- No authentication/session, API, SQL, runtime activation or frontend-owned workspace changes. Re-request exact-head review and CI after the follow-up commit.

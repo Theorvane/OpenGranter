@@ -16,6 +16,7 @@ export function mountManagementAudit(root: UsageElement) {
   let revision = 0;
   let renderRevision = 0;
   let filters: AuditFilters = {};
+  let previous: readonly AuditFilters[] = [];
   let drafts = { principal: '', model: '', from: '', to: '' };
   let result: AuditClientResult | undefined;
   let status = 'Authentication required';
@@ -80,6 +81,7 @@ export function mountManagementAudit(root: UsageElement) {
           revision++;
           client?.invalidate();
           result = undefined;
+          previous = [];
           status = 'Invalid filters';
           render();
           return;
@@ -95,13 +97,23 @@ export function mountManagementAudit(root: UsageElement) {
       });
       if (result?.state === 'ready') {
         button('First page', () => {
-          void load(filters);
+          const { cursor: _cursor, ...first } = filters;
+          void load(first);
         });
-        const cursor = result.data.nextCursor;
-        if (cursor !== null)
-          button('Next page', () => {
-            void load({ ...filters, cursor });
+        const target = previous.at(-1);
+        const remaining = previous.slice(0, -1);
+        if (target)
+          button('Previous page', () => {
+            void load(target, remaining);
           });
+        const cursor = result.data.nextCursor;
+        if (cursor !== null) {
+          const history = [...previous, { ...filters }];
+          const next = { ...filters, cursor };
+          button('Next page', () => {
+            void load(next, history);
+          });
+        }
         const table = node('table');
         table.append(node('caption', 'Authorized audit metadata, descending event ID'));
         const header = node('tr');
@@ -138,11 +150,13 @@ export function mountManagementAudit(root: UsageElement) {
     }
     root.replaceChildren(section);
   }
-  async function load(query: AuditFilters) {
+  async function load(query: AuditFilters, history: readonly AuditFilters[] = []) {
     const active = client;
     if (!active || disposed) return;
     const current = ++revision;
     active.invalidate();
+    filters = { ...query };
+    previous = [];
     result = undefined;
     status = 'Loading audit events';
     render();
@@ -156,6 +170,7 @@ export function mountManagementAudit(root: UsageElement) {
     result = response;
     switch (response.state) {
       case 'ready':
+        previous = history;
         status = response.data.events.length ? 'Audit events' : 'No audit events';
         break;
       case 'invalid_query':
@@ -182,6 +197,7 @@ export function mountManagementAudit(root: UsageElement) {
     client = undefined;
     result = undefined;
     filters = {};
+    previous = [];
     drafts = { principal: '', model: '', from: '', to: '' };
     status = 'Authentication required';
     render();
