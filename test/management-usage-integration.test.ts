@@ -5,6 +5,7 @@ import test from 'node:test';
 import { runInNewContext } from 'node:vm';
 import { PGlite } from '@electric-sql/pglite';
 import { build } from 'esbuild';
+import { buildManagementBrowser } from '../scripts/build-management-browser.ts';
 import { createPostgresSsoUsageHistoryServer } from '../src/gateway/postgres-sso-usage-history-http.ts';
 import { mountManagementUsage, type UsageElement } from '../src/management/usage-app.ts';
 import { createManagementUsageClient } from '../src/management/usage-client.ts';
@@ -54,174 +55,206 @@ const record = buildUsageRecord({
   possiblyBilled: true,
   possibleDuplicate: false,
   providerUsage: { prompt_tokens: 7, total_tokens: 99 },
-  estimatedCost: { amountDecimal: "0.000000000000000001", currency: "USD", priceVersion: "price-v1" },
-  upstreamBilledCost: { amountDecimal: "0", currency: "EUR", source: "direct-provider" },
+  estimatedCost: {
+    amountDecimal: '0.000000000000000001',
+    currency: 'USD',
+    priceVersion: 'price-v1',
+  },
+  upstreamBilledCost: { amountDecimal: '0', currency: 'EUR', source: 'direct-provider' },
 });
 
-test('usage client through signed SSO, real HTTP, database, fresh IAM and mandatory audit', async () => {
-  const db = new PGlite();
-  const jwt = await createSsoAccessTokenFixture();
-  let token = await jwt.token();
-  const sql = { query: (text: string, values: readonly unknown[]) => db.query(text, [...values]) };
-  let id = 0;
-  const server = createPostgresSsoUsageHistoryServer({
-    ...jwt.config,
-    client: sql,
-    newRequestId: () => `client-${++id}`,
-  });
-  let client: ReturnType<typeof createManagementUsageClient> | undefined;
-  try {
-    for (const source of await loadPostgresMigrationSources()) await db.exec(source.sql);
-    // Explicit candidate schema, NOT an installed migration or production DDL.
-    await db.exec(
-      await readFile(new URL('../contracts/sso-usage-audit-schema.sql', import.meta.url), 'utf8'),
-    );
-    await db.exec(`INSERT INTO iam_principals VALUES ('human','human',true);
+for (const artifact of [false, true]) {
+  test(
+    'usage client through signed SSO, real HTTP, database, fresh IAM and mandatory audit: ' +
+      (artifact ? 'browser artifact' : 'source'),
+    async () => {
+      const mount = artifact
+        ? ((
+            await import(
+              'data:text/javascript;base64,' +
+                Buffer.from(
+                  await buildManagementBrowser({
+                    root: process.cwd(),
+                    entry: 'src/management/usage-app.ts',
+                  }),
+                ).toString('base64')
+            )
+          ).mountManagementUsage as typeof mountManagementUsage)
+        : mountManagementUsage;
+      const db = new PGlite();
+      const jwt = await createSsoAccessTokenFixture();
+      let token = await jwt.token();
+      const sql = {
+        query: (text: string, values: readonly unknown[]) => db.query(text, [...values]),
+      };
+      let id = 0;
+      const server = createPostgresSsoUsageHistoryServer({
+        ...jwt.config,
+        client: sql,
+        newRequestId: () => `client-${++id}`,
+      });
+      let client: ReturnType<typeof createManagementUsageClient> | undefined;
+      try {
+        for (const source of await loadPostgresMigrationSources()) await db.exec(source.sql);
+        // Explicit candidate schema, NOT an installed migration or production DDL.
+        await db.exec(
+          await readFile(
+            new URL('../contracts/sso-usage-audit-schema.sql', import.meta.url),
+            'utf8',
+          ),
+        );
+        await db.exec(`INSERT INTO iam_principals VALUES ('human','human',true);
       INSERT INTO iam_policies VALUES ('p','v1','[{"effect":"Allow","actions":["usage:ReadSelf"],"resources":["principal:human"]}]');
       INSERT INTO iam_roles VALUES ('reader'); INSERT INTO iam_principal_roles VALUES ('human','reader');
       INSERT INTO iam_role_policies VALUES ('reader','p');`);
-    await db.query('INSERT INTO iam_sso_identity_bindings VALUES ($1,$2,$3)', [
-      jwt.issuer,
-      jwt.subject,
-      'human',
-    ]);
-    await createPostgresUsageLedger(sql)(record);
-    await createPostgresUsageLedger(sql)({
-      ...record,
-      modelAlias: 'second-model',
-      attemptId: 'second-attempt',
-      occurredAt: 3,
-    });
-    server.listen(0, '127.0.0.1');
-    await once(server, 'listening');
-    const address = server.address();
-    if (!address || typeof address === 'string') throw Error('no address');
-    client = createManagementUsageClient((path, init) =>
-      fetch(`http://127.0.0.1:${address.port}${path}`, {
-        ...init,
-        headers: { ...init.headers, authorization: `Bearer ${token}` },
-      }),
-    );
-    assert.deepEqual(await client.list({ fromMs: 0, toMs: 2, model: 'chat' }), {
-      state: 'ready',
-      data: { records: [record], hasMore: false, nextCursor: null },
-    });
-    assert.deepEqual(await client.list({ model: 'absent' }), {
-      state: 'ready',
-      data: { records: [], hasMore: false, nextCursor: null },
-    });
-    assert.deepEqual(await client.list({ principalId: 'human' }), { state: 'denied' }); // Even self-explicit needs ReadAll.
-    const csv = await client.csv();
-    assert.equal(csv.state, 'ready');
-    if (csv.state === 'ready') {
-      assert.match(csv.data.csv, /attempt/u);
-      assert.equal(csv.data.hasMore, false);
-    }
-    // Actual mounted app -> signed SSO HTTP -> SQL -> awaited audit.
-    const appQueries: URLSearchParams[] = [];
-    const root = new Node();
-    let time = 1;
-    let expire: (() => void) | undefined;
-    const app = mountManagementUsage(root, {
-      now: () => time,
-      schedule: (_delay, callback) => {
-        expire = callback;
-        return () => {};
-      },
-    });
-    try {
-      await app.authorize({
-        request: (path, init) => {
-          appQueries.push(new URL(path, 'http://local').searchParams);
-          return fetch(`http://127.0.0.1:${address.port}${path}`, {
-            ...init,
-            headers: { ...init.headers, authorization: `Bearer ${token}` },
-          });
-        },
-        expiresAt: 2,
-      });
-      assert.match(root.text(), /human/);
-      assert.match(root.text(), /Unknown/);
-      assert.match(root.text(), /second-model/);
-      const filter = root.all().find((node) => node.textContent === 'Filter usage for model chat');
-      assert.ok(filter);
-      filter.listeners.click?.();
-      assert.match(root.text(), /Loading usage/);
-      for (let i = 0; i < 100 && !root.text().includes('Usage records — current page'); i++)
-        await new Promise((resolve) => setTimeout(resolve, 10));
-      assert.match(root.text(), /Usage records — current page/);
-      assert.doesNotMatch(root.text(), /second-model/);
-      assert.equal(appQueries.length, 2);
-      assert.equal(appQueries[1]?.get('model'), 'chat');
-      assert.equal(appQueries[1]?.has('principal_id'), false);
-      assert.equal(appQueries[1]?.has('cursor'), false);
-      assert.match(root.text(), /Usage by model — current page only/);
-      assert.match(root.text(), /Prompt tokens: 7; coverage: 1 of 1 records/);
-      assert.match(root.text(), /Completion tokens: Unknown; coverage: 0 of 1 records/);
-      assert.match(root.text(), /Total tokens: 99; coverage: 1 of 1 records/);
-      assert.match(root.text(), /Known counters only/);
-      const attempt = root.all().find((node) => node.children[0]?.textContent === "Inspect attempt");
-      assert.ok(attempt);
-      assert.match(attempt.text(), /Total tokens 99/);
-      assert.match(attempt.text(), /Completion tokens Unknown/);
-      assert.match(attempt.text(), /Usage status partial/);
-      assert.match(attempt.text(), /Estimated cost 0\.000000000000000001 USD/);
-      assert.match(attempt.text(), /Reported cost 0 EUR/);
-      assert.match(attempt.text(), /Estimated price version price-v1/);
-      assert.match(attempt.text(), /Reported billing source direct-provider/);
-      assert.match(attempt.text(), /Possibly billed Yes/);
-      assert.match(attempt.text(), /Server-marked possible duplicate No/);
-      assert.match(attempt.text(), /not settled billing or reconciliation/);
-      assert.doesNotMatch(attempt.text(), /credential|policyVersions/);
-      assert.equal(appQueries.length, 2, "attempt inspection adds no request");
-      // Fresh server IAM, not the existing rendered button, decides each read.
-      const currentFilter = root
-        .all()
-        .find((node) => node.textContent === 'Filter usage for model chat');
-      assert.ok(currentFilter);
-      await db.exec('DELETE FROM iam_role_policies');
-      currentFilter.listeners.click?.();
-      for (let i = 0; i < 100 && !root.text().includes('Access denied'); i++)
-        await new Promise((resolve) => setTimeout(resolve, 10));
-      assert.match(root.text(), /Access denied/);
-      assert.doesNotMatch(root.text(), /Usage by model|Inspect attempt|price-v1|0 EUR/);
-      const reads = appQueries.length;
-      filter.listeners.click?.();
-      currentFilter.listeners.click?.();
-      assert.equal(appQueries.length, reads);
-      // Restore only the test IAM fixture and explicitly authorize a new grant.
-      await db.exec("INSERT INTO iam_role_policies VALUES ('reader','p')");
-      await app.authorize({
-        request: (path, init) =>
+        await db.query('INSERT INTO iam_sso_identity_bindings VALUES ($1,$2,$3)', [
+          jwt.issuer,
+          jwt.subject,
+          'human',
+        ]);
+        await createPostgresUsageLedger(sql)(record);
+        await createPostgresUsageLedger(sql)({
+          ...record,
+          modelAlias: 'second-model',
+          attemptId: 'second-attempt',
+          occurredAt: 3,
+        });
+        server.listen(0, '127.0.0.1');
+        await once(server, 'listening');
+        const address = server.address();
+        if (!address || typeof address === 'string') throw Error('no address');
+        client = createManagementUsageClient((path, init) =>
           fetch(`http://127.0.0.1:${address.port}${path}`, {
             ...init,
             headers: { ...init.headers, authorization: `Bearer ${token}` },
           }),
-        expiresAt: 2,
-      });
-      assert.match(root.text(), /Usage by model/);
-      time = 2;
-      expire?.();
-      assert.match(root.text(), /Session expired/);
-      assert.doesNotMatch(root.text(), /human|Inspect attempt|price-v1|0 EUR/);
-    } finally {
-      app.dispose();
-    }
-    await db.exec('DELETE FROM iam_role_policies');
-    assert.deepEqual(await client.list(), { state: 'denied' });
-    token = await jwt.token({ exp: Math.floor(Date.now() / 1000) - 3600 });
-    assert.deepEqual(await client.list(), { state: 'unauthenticated' });
-    assert.equal(id, 10);
-    assert.equal((await db.query('SELECT * FROM sso_usage_audit_events')).rows.length, 10);
-    await db.exec('DROP TABLE sso_usage_audit_events');
-    assert.deepEqual(await client.list(), { state: 'unavailable' });
-  } finally {
-    client?.invalidate();
-    server.closeAllConnections();
-    if (server.listening) await new Promise<void>((resolve) => server.close(() => resolve()));
-    await db.close();
-  }
-});
+        );
+        assert.deepEqual(await client.list({ fromMs: 0, toMs: 2, model: 'chat' }), {
+          state: 'ready',
+          data: { records: [record], hasMore: false, nextCursor: null },
+        });
+        assert.deepEqual(await client.list({ model: 'absent' }), {
+          state: 'ready',
+          data: { records: [], hasMore: false, nextCursor: null },
+        });
+        assert.deepEqual(await client.list({ principalId: 'human' }), { state: 'denied' }); // Even self-explicit needs ReadAll.
+        const csv = await client.csv();
+        assert.equal(csv.state, 'ready');
+        if (csv.state === 'ready') {
+          assert.match(csv.data.csv, /attempt/u);
+          assert.equal(csv.data.hasMore, false);
+        }
+        // Actual mounted app -> signed SSO HTTP -> SQL -> awaited audit.
+        const appQueries: URLSearchParams[] = [];
+        const root = new Node();
+        let time = 1;
+        let expire: (() => void) | undefined;
+        const app = mount(root, {
+          now: () => time,
+          schedule: (_delay, callback) => {
+            expire = callback;
+            return () => {};
+          },
+        });
+        try {
+          await app.authorize({
+            request: (path, init) => {
+              appQueries.push(new URL(path, 'http://local').searchParams);
+              return fetch(`http://127.0.0.1:${address.port}${path}`, {
+                ...init,
+                headers: { ...init.headers, authorization: `Bearer ${token}` },
+              });
+            },
+            expiresAt: 2,
+          });
+          assert.match(root.text(), /human/);
+          assert.match(root.text(), /Unknown/);
+          assert.match(root.text(), /second-model/);
+          const filter = root
+            .all()
+            .find((node) => node.textContent === 'Filter usage for model chat');
+          assert.ok(filter);
+          filter.listeners.click?.();
+          assert.match(root.text(), /Loading usage/);
+          for (let i = 0; i < 100 && !root.text().includes('Usage records — current page'); i++)
+            await new Promise((resolve) => setTimeout(resolve, 10));
+          assert.match(root.text(), /Usage records — current page/);
+          assert.doesNotMatch(root.text(), /second-model/);
+          assert.equal(appQueries.length, 2);
+          assert.equal(appQueries[1]?.get('model'), 'chat');
+          assert.equal(appQueries[1]?.has('principal_id'), false);
+          assert.equal(appQueries[1]?.has('cursor'), false);
+          assert.match(root.text(), /Usage by model — current page only/);
+          assert.match(root.text(), /Prompt tokens: 7; coverage: 1 of 1 records/);
+          assert.match(root.text(), /Completion tokens: Unknown; coverage: 0 of 1 records/);
+          assert.match(root.text(), /Total tokens: 99; coverage: 1 of 1 records/);
+          assert.match(root.text(), /Known counters only/);
+          const attempt = root
+            .all()
+            .find((node) => node.children[0]?.textContent === 'Inspect attempt');
+          assert.ok(attempt);
+          assert.match(attempt.text(), /Total tokens 99/);
+          assert.match(attempt.text(), /Completion tokens Unknown/);
+          assert.match(attempt.text(), /Usage status partial/);
+          assert.match(attempt.text(), /Estimated cost 0\.000000000000000001 USD/);
+          assert.match(attempt.text(), /Reported cost 0 EUR/);
+          assert.match(attempt.text(), /Estimated price version price-v1/);
+          assert.match(attempt.text(), /Reported billing source direct-provider/);
+          assert.match(attempt.text(), /Possibly billed Yes/);
+          assert.match(attempt.text(), /Server-marked possible duplicate No/);
+          assert.match(attempt.text(), /not settled billing or reconciliation/);
+          assert.doesNotMatch(attempt.text(), /credential|policyVersions/);
+          assert.equal(appQueries.length, 2, 'attempt inspection adds no request');
+          // Fresh server IAM, not the existing rendered button, decides each read.
+          const currentFilter = root
+            .all()
+            .find((node) => node.textContent === 'Filter usage for model chat');
+          assert.ok(currentFilter);
+          await db.exec('DELETE FROM iam_role_policies');
+          currentFilter.listeners.click?.();
+          for (let i = 0; i < 100 && !root.text().includes('Access denied'); i++)
+            await new Promise((resolve) => setTimeout(resolve, 10));
+          assert.match(root.text(), /Access denied/);
+          assert.doesNotMatch(root.text(), /Usage by model|Inspect attempt|price-v1|0 EUR/);
+          const reads = appQueries.length;
+          filter.listeners.click?.();
+          currentFilter.listeners.click?.();
+          assert.equal(appQueries.length, reads);
+          // Restore only the test IAM fixture and explicitly authorize a new grant.
+          await db.exec("INSERT INTO iam_role_policies VALUES ('reader','p')");
+          await app.authorize({
+            request: (path, init) =>
+              fetch(`http://127.0.0.1:${address.port}${path}`, {
+                ...init,
+                headers: { ...init.headers, authorization: `Bearer ${token}` },
+              }),
+            expiresAt: 2,
+          });
+          assert.match(root.text(), /Usage by model/);
+          time = 2;
+          expire?.();
+          assert.match(root.text(), /Session expired/);
+          assert.doesNotMatch(root.text(), /human|Inspect attempt|price-v1|0 EUR/);
+        } finally {
+          app.dispose();
+        }
+        await db.exec('DELETE FROM iam_role_policies');
+        assert.deepEqual(await client.list(), { state: 'denied' });
+        token = await jwt.token({ exp: Math.floor(Date.now() / 1000) - 3600 });
+        assert.deepEqual(await client.list(), { state: 'unauthenticated' });
+        assert.equal(id, 10);
+        assert.equal((await db.query('SELECT * FROM sso_usage_audit_events')).rows.length, 10);
+        await db.exec('DROP TABLE sso_usage_audit_events');
+        assert.deepEqual(await client.list(), { state: 'unavailable' });
+      } finally {
+        client?.invalidate();
+        server.closeAllConnections();
+        if (server.listening) await new Promise<void>((resolve) => server.close(() => resolve()));
+        await db.close();
+      }
+    },
+  );
+}
 
 test('bundles and executes in a browser-like runtime without Node Buffer or server dependencies', async () => {
   const bundle = await build({

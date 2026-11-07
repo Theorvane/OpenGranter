@@ -1422,3 +1422,8 @@ Explicit strict:false Gemini schema transport additionally permits ASCII digits 
 ## Codex operator OAuth first slice (#635)
 
 The operator command adds isolated official-CLI device login, status and logout only. It does not register a subscription-backed inference provider, change OpenRouter/OpenAI-compatible APIs, or bypass IAM, limits, audit or usage. Success does not establish model entitlement or live acceptance. A separate app-server/Responses adapter and authenticated streaming/tool-call E2E remain pending. See the [operator guide](guides/codex-oauth.md), [contract](../contracts/codex-oauth.md), and [plan](plans/635-codex-device-oauth.md).
+
+
+## Public workspace attempt evidence integration (#637, #642)
+
+The public usage workspace reuses the existing #732 per-attempt inspector: exact decimal estimated and reported costs remain independent, missing values remain Unknown, and total-token coverage plus server-marked billing/duplicate flags are content-free. Inspection uses only already authorized page rows and adds no API request or credential/policy lookup. Both source and built browser-module acceptance traverse signed test SSO, real loopback HTTP, migrated PGlite and mandatory audit; fresh IAM denial and trusted grant expiry remove all attempt evidence. This is not native browser, real IdP login, installed PostgreSQL, reconciliation, provider billing or deployment acceptance.

@@ -1326,3 +1326,8 @@ The public Models/Usage feature line reuses the existing exact current-page toke
 ## Integrated scoped model usage filter (#637)
 
 The existing public Models/Usage source line reuses the model summary filter action against the existing authorized usage API. It retains submitted scope, resets paging and drafts, and requires fresh server IAM plus mandatory audit. Revocation clears summaries and stale controls cannot make reads; an explicit renewed trusted grant remains separate from browser login. No session/runtime/schema activation. See [plan](plans/637-model-filter-integration.md).
+
+
+## Public workspace attempt evidence integration (#637, #642)
+
+The public usage workspace reuses the existing #732 per-attempt inspector: exact decimal estimated and reported costs remain independent, missing values remain Unknown, and total-token coverage plus server-marked billing/duplicate flags are content-free. Inspection uses only already authorized page rows and adds no API request or credential/policy lookup. Both source and built browser-module acceptance traverse signed test SSO, real loopback HTTP, migrated PGlite and mandatory audit; fresh IAM denial and trusted grant expiry remove all attempt evidence. This is not native browser, real IdP login, installed PostgreSQL, reconciliation, provider billing or deployment acceptance.

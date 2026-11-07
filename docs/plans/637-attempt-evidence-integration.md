@@ -7,3 +7,10 @@
 5. Open dependent PR, request exact-head independent review and require all ancestor gates before merge. Rollback this reuse only. #639 session, installed PostgreSQL, browser, provider, retention, runtime and deployment decisions remain unresolved, not inferred from local tests.
 
 Contract: [attempt details](../../contracts/usage-attempt-details.md). PRD and acceptance #642 remain bounded by existing authorized ledger fields. No new billing model, schema, permissions or paid calls.
+
+## Evidence
+
+- Source and built module RED: 0 pass / 2 fail, missing Total tokens and cost evidence; signed-HTTP RED: 1 pass / 1 fail for the same missing field. Logs /tmp/og-1330-attempt-red.log and /tmp/og-1330-http-red.log.
+- Reused production component and contract exactly from #732; no ancestor imports or new UI renderer. Added both source and built-module signedHTTP acceptance with exact tiny USD estimate versus zero EUR reported amount, missing completion counter, partial status, duplicate flag and unchanged mandatory audit count 10 per isolated runtime.
+- GREEN focused 60 pass / 0 fail / 0 skip: /tmp/og-1330-focused.log. Typecheck, Biome (informational template suggestions only), planning checker and diff checker recorded separately. Full check and exact-head CI are separate gates, not inferred from focused success.
+- Native browser unavailable: screen still being released. No browser/display restart, no native-browser success claimed. Base #756 and all ancestor exact-head CI/review gates remain required.
