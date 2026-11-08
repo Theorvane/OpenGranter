@@ -61,10 +61,17 @@ function project(value: unknown) {
   if (actor !== null) {
     if (!Array.isArray(event.policyVersions) || event.policyVersions.length > 1024)
       throw new InvalidSsoAuditHistoryAccessEvent();
-    versions = event.policyVersions.map((value) => {
-      const policy = record(value);
-      return { id: identifier(policy.id), version: identifier(policy.version) };
-    });
+    versions = [];
+    const ids = new Set<string>();
+    for (let index = 0; index < event.policyVersions.length; index++) {
+      if (!Object.hasOwn(event.policyVersions, index))
+        throw new InvalidSsoAuditHistoryAccessEvent();
+      const policy = record(event.policyVersions[index]);
+      const id = identifier(policy.id);
+      if (ids.has(id)) throw new InvalidSsoAuditHistoryAccessEvent();
+      ids.add(id);
+      versions.push({ id, version: identifier(policy.version) });
+    }
   }
   return { requestId: identifier(event.requestId), actor, target, versions, outcome, count };
 }

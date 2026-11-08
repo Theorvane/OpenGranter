@@ -334,3 +334,82 @@ test('candidate schema is not activated by the existing migration manifest', asy
     await db.close();
   }
 });
+
+test('policy attribution rejects sparse and duplicate snapshots before clock or SQL', async () => {
+  let clocks = 0;
+  let queries = 0;
+  const store = createPostgresSsoAuditHistoryAccessStore(
+    {
+      query: async () => {
+        queries++;
+        return { rows: [{ event_id: '1' }] };
+      },
+    },
+    () => {
+      clocks++;
+      return 100;
+    },
+  );
+  const inherited = new Array(1);
+  Object.setPrototypeOf(
+    inherited,
+    Object.assign(Object.create(Array.prototype), {
+      0: { id: 'p', version: 'v1' },
+    }),
+  );
+  for (const policyVersions of [
+    new Array(1),
+    Object.assign(new Array(3), { 0: { id: 'p', version: 'v1' }, 2: { id: 'q', version: 'v2' } }),
+    inherited,
+    [
+      { id: 'p', version: 'v1' },
+      { id: 'p', version: 'v1' },
+    ],
+    [
+      { id: 'p', version: 'v1' },
+      { id: 'p', version: 'v2' },
+    ],
+    [null],
+  ]) {
+    await assert.rejects(store.append({ ...event, policyVersions } as SsoAuditHistoryAccessEvent), {
+      name: 'InvalidSsoAuditHistoryAccessEvent',
+      message: 'Invalid SSO audit history access event',
+    });
+  }
+  assert.equal(clocks, 0);
+  assert.equal(queries, 0);
+});
+
+test('empty or distinct policy snapshots remain valid queryable SQL attribution', async () => {
+  const db = await database();
+  try {
+    const store = createPostgresSsoAuditHistoryAccessStore(
+      { query: (sql, params) => db.query(sql, [...params]) },
+      () => 100,
+    );
+    await store.append({ ...event, policyVersions: [] });
+    await store.append({
+      ...event,
+      policyVersions: [
+        { id: 'p', version: 'v1' },
+        { id: 'q', version: 'v1' },
+      ],
+    });
+    const rows = (
+      await db.query(
+        'SELECT policy_versions FROM sso_audit_history_access_events ORDER BY event_id',
+      )
+    ).rows;
+    assert.deepEqual(rows, [
+      { policy_versions: [] },
+      {
+        policy_versions: [
+          { id: 'p', version: 'v1' },
+          { id: 'q', version: 'v1' },
+        ],
+      },
+    ]);
+  } finally {
+    await db.close();
+  }
+});
