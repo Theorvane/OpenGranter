@@ -10,7 +10,10 @@ import { createNodePostgresDirectChatServer } from './node-postgres-chat-server.
 import { createNodePostgresDualRouteChatServer } from './node-postgres-dual-chat-server.ts';
 import { createNodeRequestServer } from './node-request-server.ts';
 import type { PostgresDualRouteChatHandlerPorts } from './postgres-dual-chat-handler.ts';
-import { createPostgresSsoAdministrationBrowserServer } from './postgres-sso-administration-browser-http.ts';
+import {
+  createPostgresSsoAdministrationBrowserServer,
+  type PostgresSsoAdministrationBrowserPorts,
+} from './postgres-sso-administration-browser-http.ts';
 import {
   createPostgresRfc9068SsoManagementHandler,
   type createPostgresRfc9068SsoManagementServer,
@@ -38,6 +41,14 @@ export interface PostgresSsoManagementRuntimePorts
     GatewayRuntimeInfrastructure {
   /** Explicit trusted PUBLIC bundle; absent means no browser routes. Never a session grant. */
   readonly browserJavascript?: string;
+}
+
+/** Only this explicit workspace can opt in to the audit history route. */
+export interface PostgresSsoWorkspaceRuntimePorts extends PostgresSsoManagementRuntimePorts {
+  readonly browserJavascript: string;
+  readonly writeAuditHistoryAccess?: NonNullable<
+    PostgresSsoAdministrationBrowserPorts['writeAuditHistoryAccess']
+  >;
 }
 
 export class InvalidGatewayRuntimeInput extends Error {
@@ -217,10 +228,13 @@ export async function startPostgresSsoManagementGateway(ports: PostgresSsoManage
  * Candidate audit schemas remain caller-reviewed/installed, NOT migrations.
  * Missing schema fails closed. No session, cookie bridge or new IAM grant.
  */
-export async function startPostgresSsoWorkspaceGateway(
-  ports: PostgresSsoManagementRuntimePorts & { readonly browserJavascript: string },
-) {
-  if (typeof ports.browserJavascript !== 'string' || !ports.browserJavascript.trim()) {
+export async function startPostgresSsoWorkspaceGateway(ports: PostgresSsoWorkspaceRuntimePorts) {
+  if (
+    typeof ports.browserJavascript !== 'string' ||
+    !ports.browserJavascript.trim() ||
+    (Object.hasOwn(ports, 'writeAuditHistoryAccess') &&
+      typeof ports.writeAuditHistoryAccess !== 'function')
+  ) {
     throw new InvalidGatewayRuntimeInput();
   }
   const {
