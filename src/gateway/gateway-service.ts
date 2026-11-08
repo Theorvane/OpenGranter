@@ -71,8 +71,40 @@ interface ServiceOptions {
   }>;
 }
 
-/** Dedicated process boundary. exit must terminate the process in production. */
+export interface OwnedGatewayProcessOptions<P extends object> {
+  readonly env: NodeJS.ProcessEnv;
+  readonly signals: Pick<EventEmitter, 'on' | 'removeListener'>;
+  readonly report: (message: string) => void;
+  readonly exit: (code: number) => void;
+  readonly loadModule?: (url: string) => Promise<unknown>;
+  readonly factoryName: string;
+  readonly validatePorts: (value: unknown) => value is P;
+  readonly start: (
+    ports: P & {
+      readonly host: string;
+      readonly port: number;
+      readonly now: () => number;
+      readonly newRequestId: () => string;
+    },
+  ) => Promise<{ readonly close: () => Promise<void> }>;
+}
+
+/** Existing proxy executable retains its own bootstrap contract. */
 export async function runGatewayService(options: ServiceOptions): Promise<void> {
+  return runOwnedGatewayProcess({
+    ...options,
+    factoryName: 'createGatewayPorts',
+    validatePorts: isBootstrapPorts,
+    start: options.start ?? startPostgresDualRouteGateway,
+  });
+}
+
+/** Shared process lifetime only; trusted wrappers select validation and runtime.
+ * exit must terminate the process in production. No HTTP authority is inferred.
+ */
+export async function runOwnedGatewayProcess<P extends object>(
+  options: OwnedGatewayProcessOptions<P>,
+): Promise<void> {
   let config: ServiceConfig;
   try {
     config = parseGatewayServiceConfig(options.env);
@@ -128,17 +160,17 @@ export async function runGatewayService(options: ServiceOptions): Promise<void> 
           finish(0);
           return;
         }
-        if (!isObject(module) || typeof module.createGatewayPorts !== 'function') {
+        if (!isObject(module) || typeof module[options.factoryName] !== 'function') {
           throw new Error('Invalid bootstrap');
         }
-        const ports: unknown = await module.createGatewayPorts();
+        const ports: unknown = await (module[options.factoryName] as () => unknown)();
         if (finished) return;
         if (stopping) {
           finish(0);
           return;
         }
-        if (!isBootstrapPorts(ports)) throw new Error('Invalid bootstrap');
-        runtime = await (options.start ?? startPostgresDualRouteGateway)({
+        if (!options.validatePorts(ports)) throw new Error('Invalid bootstrap');
+        runtime = await options.start({
           ...ports,
           host: config.host,
           port: config.port,
