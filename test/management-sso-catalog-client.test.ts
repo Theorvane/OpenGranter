@@ -168,7 +168,9 @@ test('SSO malformed provider bounds fail complete lists and detail without chang
   ]) {
     const row = { ...base, top_provider };
     const client = createSsoManagementCatalogClient(async (path) =>
-      Response.json(path.endsWith('/models') ? { data: [base, row] } : row),
+      Response.json(
+        path.endsWith('/models') ? { data: [{ ...base, id: 'other/model' }, row] } : row,
+      ),
     );
     assert.deepEqual(await client.list(), { state: 'unavailable' }, JSON.stringify(top_provider));
     assert.deepEqual(await client.detail(base.id), { state: 'unavailable' });
