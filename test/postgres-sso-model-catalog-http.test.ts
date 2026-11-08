@@ -631,6 +631,23 @@ for (const [label, mount] of [
     const audits = async () =>
       (await f.db.query('SELECT * FROM sso_catalog_audit_events')).rows.length;
     try {
+      await f.db.query(
+        'UPDATE catalog_models SET openrouter_metadata = $1::jsonb WHERE alias = $2',
+        [
+          JSON.stringify({
+            ...discoveryModel('team/chat', {
+              inputs: ['text', 'image'],
+              parameters: ['tools', 'temperature'],
+            }).openRouterMetadata,
+            name: 'Published <b>model</b>',
+            description: 'Published description 模型',
+            context_length: null,
+            top_provider: { context_length: 32768, max_completion_tokens: 0, is_moderated: true },
+            pricing: { prompt: '0.0000001234567890123456789', completion: '0e-9' },
+          }),
+          'team/chat',
+        ],
+      );
       server.listen(0, '127.0.0.1');
       await once(server, 'listening');
       const address = server.address();
@@ -658,7 +675,23 @@ for (const [label, mount] of [
       assert.match(root.text(), /Loading models/);
       await until(() => /Published by/.test(root.text()));
       assert.equal(statuses.at(-1), 200);
-      assert.doesNotMatch(root.text(), /private-secret|Bearer/);
+      for (const text of [
+        'Name Published <b>model</b>',
+        'Description Published description 模型',
+        'Context length (tokens) Unknown',
+        'Provider context length (tokens) 32768',
+        'Provider maximum output (tokens) 0',
+        'Input modalities text, image',
+        'Supported parameters tools, temperature',
+        'Prompt base price (USD/token) 0.0000001234567890123456789',
+        'Completion base price (USD/token) 0e-9',
+      ])
+        assert.ok(root.text().includes(text), text);
+      assert.equal(
+        root.all().some((node) => node.tag === 'b'),
+        false,
+      );
+      assert.doesNotMatch(root.text(), /private-secret|Bearer|private\/canonical|is_moderated/);
       root.button('Back to models').click();
       await until(() => !/Loading models/.test(root.text()));
       await f.db.exec(
@@ -691,6 +724,7 @@ for (const [label, mount] of [
       root.button('team/chat').click();
       await until(() => /Model not found/.test(root.text()));
       assert.equal(statuses.at(-1), 404, 'fresh policy is enforced by actual API');
+      assert.doesNotMatch(root.text(), /Published description|32768|0\.0000001234567890123456789/u);
       root.button('Back to models').click();
       await until(() => /No models available/.test(root.text()));
       await f.db.exec(
@@ -715,6 +749,12 @@ for (const [label, mount] of [
       root.button('Refresh models').click();
       await until(() => /Sign-in required/.test(root.text()));
       assert.equal(statuses.at(-1), 401);
+      assert.doesNotMatch(root.text(), /Published description|32768|0\.0000001234567890123456789/u);
+      const privateEvents = (await f.db.query('SELECT * FROM sso_catalog_audit_events')).rows;
+      assert.doesNotMatch(
+        JSON.stringify(privateEvents),
+        /Published|description|context_length|pricing|0\.0000001234567890123456789|private-secret|private\/canonical/u,
+      );
       assert.equal((await f.db.query('SELECT * FROM proxy_credentials')).rows.length, 0);
     } finally {
       app.dispose();
