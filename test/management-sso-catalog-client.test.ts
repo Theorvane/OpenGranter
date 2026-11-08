@@ -91,7 +91,7 @@ test('SSO list exposes only aliases navigable by the detail contract', async () 
   }
 });
 
-test('SSO preserves its basic publication boundary while proxy retains display metadata', async () => {
+test('SSO explicitly retains descriptive publication but excludes proxy-only metadata', async () => {
   const base = { id: 'team/chat', object: 'model', created: 0, owned_by: 'opengranter' };
   const display = {
     ...base,
@@ -105,8 +105,14 @@ test('SSO preserves its basic publication boundary while proxy retains display m
   const request = async (path: string) =>
     Response.json(path.endsWith('/models') ? { data: [display] } : display);
   const sso = createSsoManagementCatalogClient(request);
-  assert.deepEqual(await sso.list(), { state: 'ready', data: [base] });
-  assert.deepEqual(await sso.detail(base.id), { state: 'ready', data: base });
+  assert.deepEqual(await sso.list(), {
+    state: 'ready',
+    data: [{ ...base, name: display.name, description: display.description, context_length: null }],
+  });
+  assert.deepEqual(await sso.detail(base.id), {
+    state: 'ready',
+    data: { ...base, name: display.name, description: display.description, context_length: null },
+  });
   const proxy = createManagementCatalogClient(request);
   assert.deepEqual(await proxy.list(), { state: 'ready', data: [display] });
   assert.deepEqual(await proxy.detail(base.id), { state: 'ready', data: display });

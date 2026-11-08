@@ -19,6 +19,10 @@ export interface SsoCatalogModel {
   readonly object: 'model';
   readonly created: number;
   readonly owned_by: 'opengranter';
+  /** Explicit administrator-published information, never routing authority. */
+  readonly name?: string;
+  readonly description?: string;
+  readonly context_length?: number | null;
 }
 export type SsoCatalogResult<T> =
   | { readonly state: 'ready'; readonly data: T }
@@ -103,6 +107,15 @@ export function createPostgresSsoModelCatalog(
                 object: 'model',
                 created: model.created,
                 owned_by: 'opengranter',
+                ...(model.openRouterMetadata === undefined
+                  ? {}
+                  : {
+                      name: model.openRouterMetadata.name,
+                      ...(model.openRouterMetadata.description === undefined
+                        ? {}
+                        : { description: model.openRouterMetadata.description }),
+                      context_length: model.openRouterMetadata.context_length,
+                    }),
               }),
           ),
       );

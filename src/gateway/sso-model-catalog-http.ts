@@ -46,10 +46,27 @@ function project(model: SsoCatalogModel): SsoCatalogModel {
     model.object !== 'model' ||
     !Number.isSafeInteger(model.created) ||
     model.created < 0 ||
-    model.owned_by !== 'opengranter'
+    model.owned_by !== 'opengranter' ||
+    (Object.hasOwn(model, 'name') &&
+      (typeof model.name !== 'string' || !model.name.trim() || model.name.length > 256)) ||
+    (Object.hasOwn(model, 'description') &&
+      (typeof model.description !== 'string' || model.description.length > 8192)) ||
+    (Object.hasOwn(model, 'context_length') &&
+      model.context_length !== null &&
+      (typeof model.context_length !== 'number' ||
+        !Number.isSafeInteger(model.context_length) ||
+        model.context_length < 0))
   )
     throw new Error();
-  return { id: model.id, object: 'model', created: model.created, owned_by: 'opengranter' };
+  return {
+    id: model.id,
+    object: 'model',
+    created: model.created,
+    owned_by: 'opengranter',
+    ...(model.name === undefined ? {} : { name: model.name }),
+    ...(model.description === undefined ? {} : { description: model.description }),
+    ...(model.context_length === undefined ? {} : { context_length: model.context_length }),
+  };
 }
 
 /** Explicit server-facing Bearer API, not a cookie/session or catalog-write API.
