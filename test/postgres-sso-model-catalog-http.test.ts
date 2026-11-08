@@ -2,15 +2,19 @@ import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import test from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
+import { buildManagementBrowser } from '../scripts/build-management-browser.ts';
 import {
   createPostgresSsoModelCatalogHandler,
   createPostgresSsoModelCatalogServer,
 } from '../src/gateway/postgres-sso-model-catalog-http.ts';
 import { createSsoManagementCatalogAuthority } from '../src/management/catalog-authority.ts';
+import type { CatalogRequest } from '../src/management/catalog-client.ts';
 import { createSsoManagementCatalogClient } from '../src/management/catalog-client.ts';
+import { mountSsoManagementCatalog } from '../src/management/sso-catalog-app.ts';
 import { loadPostgresMigrationSources } from '../src/storage/postgres-migration-sources.ts';
 import { discoveryModel } from './model-discovery-filters-fixture.ts';
 import { createSsoAccessTokenFixture } from './sso-access-token-fixture.ts';
+import { TokenElement } from './token-management-dom-fixture.ts';
 
 async function fixture() {
   const jwt = await createSsoAccessTokenFixture();
@@ -601,3 +605,101 @@ test('published SSO display fields survive persisted catalog, HTTP and UI transp
     await f.db.close();
   }
 });
+
+const catalogJavascript = await buildManagementBrowser({
+  root: process.cwd(),
+  entry: 'src/management/sso-catalog-app.ts',
+});
+const catalogBuilt = (await import(
+  'data:text/javascript;base64,' + Buffer.from(catalogJavascript).toString('base64')
+)) as { mountSsoManagementCatalog: typeof mountSsoManagementCatalog };
+for (const [label, mount] of [
+  ['source', mountSsoManagementCatalog],
+  ['compiled', catalogBuilt.mountSsoManagementCatalog],
+] as const) {
+  test(`${label}: model navigation is render-owned over signed SSO HTTP, current IAM and durable audit`, async () => {
+    const f = await fixture();
+    const server = createPostgresSsoModelCatalogServer(f.ports);
+    const root = new TokenElement();
+    const app = mount(root, { now: f.ports.now });
+    const statuses: number[] = [];
+    const until = async (predicate: () => boolean) => {
+      for (let n = 0; n < 200 && !predicate(); n++)
+        await new Promise((resolve) => setTimeout(resolve, 5));
+      assert.ok(predicate(), 'view did not settle');
+    };
+    const audits = async () =>
+      (await f.db.query('SELECT * FROM sso_catalog_audit_events')).rows.length;
+    try {
+      server.listen(0, '127.0.0.1');
+      await once(server, 'listening');
+      const address = server.address();
+      assert.ok(address && typeof address !== 'string');
+      const grant = {
+        expiresAt: f.ports.now() + 60000,
+        request: async (path: string, init: Parameters<CatalogRequest>[1]) => {
+          const response = await fetch('http://127.0.0.1:' + address.port + path, {
+            ...init,
+            headers: { ...init.headers, authorization: 'Bearer ' + f.token },
+          });
+          assert.equal(response.headers.get('cache-control'), 'no-store');
+          statuses.push(response.status);
+          return response;
+        },
+      };
+      await app.authorize(grant);
+      const retained = root.button('team/chat');
+      await app.authorize(grant);
+      const before = await audits();
+      retained.click();
+      await new Promise((resolve) => setTimeout(resolve, 15));
+      assert.equal(await audits(), before, 'stale control must not even dispatch/audit');
+      root.button('team/chat').click();
+      assert.match(root.text(), /Loading models/);
+      await until(() => /Published by/.test(root.text()));
+      assert.equal(statuses.at(-1), 200);
+      assert.doesNotMatch(root.text(), /private-secret|Bearer/);
+      root.button('Back to models').click();
+      await until(() => !/Loading models/.test(root.text()));
+      await f.db.exec(
+        `UPDATE iam_policies SET version = 'v2', statements = '[{"effect":"Deny","actions":["llm:InvokeModel"],"resources":["model:*"]}]' WHERE policy_id = 'allow'`,
+      );
+      root.button('team/chat').click();
+      await until(() => /Model not found/.test(root.text()));
+      assert.equal(statuses.at(-1), 404, 'fresh policy is enforced by actual API');
+      root.button('Back to models').click();
+      await until(() => /No models available/.test(root.text()));
+      await f.db.exec(
+        'ALTER TABLE sso_catalog_audit_events RENAME TO held_sso_catalog_audit_events',
+      );
+      root.button('Refresh models').click();
+      await until(() => /catalog unavailable/.test(root.text()));
+      assert.equal(statuses.at(-1), 503, 'required audit failure closes reads');
+      await f.db.exec(
+        'ALTER TABLE held_sso_catalog_audit_events RENAME TO sso_catalog_audit_events',
+      );
+      root.button('Back to models').click();
+      await until(() => /No models available/.test(root.text()));
+      const rows = (
+        await f.db.query<{ principal_id: string; policy_versions: unknown }>(
+          'SELECT principal_id, policy_versions FROM sso_catalog_audit_events ORDER BY event_id',
+        )
+      ).rows;
+      assert.ok(rows.every((row) => row.principal_id === 'human'));
+      assert.deepEqual(rows.at(-1)?.policy_versions, [{ id: 'allow', version: 'v2' }]);
+      await f.db.exec('DELETE FROM iam_sso_identity_bindings');
+      root.button('Refresh models').click();
+      await until(() => /Sign-in required/.test(root.text()));
+      assert.equal(statuses.at(-1), 401);
+      assert.equal((await f.db.query('SELECT * FROM proxy_credentials')).rows.length, 0);
+    } finally {
+      app.dispose();
+      server.closeAllConnections();
+      if (server.listening)
+        await new Promise<void>((resolve, reject) =>
+          server.close((error) => (error ? reject(error) : resolve())),
+        );
+      await f.db.close();
+    }
+  });
+}
