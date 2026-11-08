@@ -1,0 +1,156 @@
+import assert from 'node:assert/strict';
+import { EventEmitter } from 'node:events';
+import { test } from 'node:test';
+import { runSsoBrowserService } from '../src/gateway/sso-browser-service.ts';
+
+const tick = () => new Promise<void>((resolve) => setImmediate(resolve));
+const ports = {
+  openConnection: () => {
+    throw new Error('unused');
+  },
+  issuer: 'https://issuer.example',
+  audience: 'management',
+  jwks: { keys: [] },
+  browserArtifactPath: '/trusted/app.js',
+};
+function harness(module: unknown = { createSsoBrowserPorts: () => ports }) {
+  const signals = new EventEmitter();
+  const messages: string[] = [];
+  const exits: number[] = [];
+  const starts: unknown[] = [];
+  let closes = 0;
+  return {
+    signals,
+    messages,
+    exits,
+    starts,
+    closes: () => closes,
+    options: {
+      env: { OPENGRANTER_BOOTSTRAP_MODULE: '/trusted/sso.ts', OPENGRANTER_PORT: '18081' },
+      signals,
+      report: (message: string) => messages.push(message),
+      exit: (code: number) => exits.push(code),
+      loadModule: async () => module,
+      start: async (input: unknown) => {
+        starts.push(input);
+        return {
+          close: async () => {
+            closes++;
+          },
+        };
+      },
+    },
+  };
+}
+test('dedicated SSO service connects trusted browser ports and owns lifecycle fields', async () => {
+  const h = harness({
+    createSsoBrowserPorts: () => ({
+      ...ports,
+      host: 'ignored',
+      port: 1,
+      now: null,
+      newRequestId: null,
+    }),
+  });
+  const done = runSsoBrowserService(h.options);
+  await tick();
+  assert.equal(h.starts.length, 1);
+  const input = h.starts[0] as Record<string, unknown>;
+  assert.equal(input.host, '127.0.0.1');
+  assert.equal(input.port, 18081);
+  assert.equal(input.browserArtifactPath, '/trusted/app.js');
+  assert.equal(typeof input.now, 'function');
+  assert.equal(typeof input.newRequestId, 'function');
+  assert.deepEqual(h.messages, ['Gateway listening']);
+  h.signals.emit('SIGTERM');
+  h.signals.emit('SIGINT');
+  await done;
+  assert.equal(h.closes(), 1);
+  assert.deepEqual(h.exits, [0]);
+  assert.equal(h.signals.listenerCount('SIGTERM'), 0);
+});
+test('SSO service rejects proxy factories and incomplete browser ports without starting', async () => {
+  for (const module of [
+    { createGatewayPorts: () => ports },
+    {},
+    { createSsoBrowserPorts: () => null },
+    ...['openConnection', 'issuer', 'audience', 'jwks', 'browserArtifactPath'].map((field) => ({
+      createSsoBrowserPorts: () => ({ ...ports, [field]: undefined }),
+    })),
+    { createSsoBrowserPorts: () => ({ ...ports, browserArtifactPath: './app.js' }) },
+  ]) {
+    const h = harness(module);
+    await runSsoBrowserService(h.options);
+    assert.equal(h.starts.length, 0);
+    assert.deepEqual(h.exits, [1]);
+    assert.deepEqual(h.messages, ['Gateway startup unavailable']);
+  }
+});
+test('SSO service validates config before import and sanitizes loader failures', async () => {
+  const h = harness();
+  let loaded = false;
+  await runSsoBrowserService({
+    ...h.options,
+    env: {},
+    loadModule: async () => {
+      loaded = true;
+      throw new Error('secret/path');
+    },
+  });
+  assert.equal(loaded, false);
+  assert.deepEqual(h.messages, ['Gateway configuration invalid']);
+  const failed = harness();
+  await runSsoBrowserService({
+    ...failed.options,
+    loadModule: async () => {
+      throw new Error('secret/path');
+    },
+  });
+  assert.deepEqual(failed.messages, ['Gateway startup unavailable']);
+});
+
+test('signal during SSO startup closes a late runtime without readiness', async () => {
+  const h = harness();
+  let finishStart: (runtime: { close: () => Promise<void> }) => void = () => {};
+  const starting = new Promise<{ close: () => Promise<void> }>((resolve) => {
+    finishStart = resolve;
+  });
+  let closes = 0;
+  const done = runSsoBrowserService({ ...h.options, start: () => starting });
+  await tick();
+  h.signals.emit('SIGINT');
+  finishStart({
+    close: async () => {
+      closes++;
+    },
+  });
+  await done;
+  assert.equal(closes, 1);
+  assert.deepEqual(h.messages, []);
+  assert.deepEqual(h.exits, [0]);
+});
+test('SSO runtime errors and failed shutdown expose fixed diagnostics only', async () => {
+  const failed = harness();
+  await runSsoBrowserService({
+    ...failed.options,
+    start: async () => {
+      throw new Error('private SQL /path');
+    },
+  });
+  assert.deepEqual(failed.messages, ['Gateway startup unavailable']);
+  assert.deepEqual(failed.exits, [1]);
+  const h = harness();
+  const done = runSsoBrowserService({
+    ...h.options,
+    start: async () => ({
+      close: async () => {
+        throw new Error('private DB');
+      },
+    }),
+  });
+  await tick();
+  h.signals.emit('SIGTERM');
+  await done;
+  assert.deepEqual(h.messages, ['Gateway listening', 'Gateway shutdown unavailable']);
+  assert.deepEqual(h.exits, [1]);
+});
