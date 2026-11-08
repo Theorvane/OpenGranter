@@ -1,5 +1,6 @@
 import { mountManagementBoundaryView } from './boundary-view.ts';
 import type { ManagementCatalogSnapshot } from './catalog-session.ts';
+import { renderPublishedModelDetails } from './model-detail-view.ts';
 
 export interface CatalogElement {
   textContent: string | null;
@@ -107,15 +108,10 @@ export function renderCatalogView(
     main.append(button('Refresh models', actions.list));
   } else if (value.state === 'detail') {
     const model = value.model;
-    const details = element('dl');
-    for (const [label, text] of [
-      ['Model ID', model.id],
-      ['Published by', model.owned_by],
-      ['Created (Unix seconds)', String(model.created)],
-    ]) {
-      details.append(element('dt', label), element('dd', text));
-    }
-    main.append(details, button('Back to models', actions.list));
+    main.append(
+      ...renderPublishedModelDetails(root, model),
+      button('Back to models', actions.list),
+    );
     if (actions.inspectUsage)
       main.append(button('View usage for this model', () => actions.inspectUsage?.(model.id)));
   }

@@ -1842,3 +1842,10 @@ The shared Node HTTP bridge forces no-store and nosniff on exact /management and
 
 - Actual loopback HTTP invalid status/header and consumed body cases yield fixed errors without failed-response cookies, redirects, encodings, framing or private headers. Repeated requests demonstrate survival.
 - Valid responses retain intended status, headers and body. These checks do not certify browser sign-in or installed acceptance.
+
+
+## Published model detail display (#637, #641)
+
+- Through an already-authorized read-only model mount, inspect a model and read its published name, multiline description, modalities, parameters, context/output bounds and exact USD/token base prices. Display absent, unknown, empty and zero distinctly; identify prices as base metadata, never billed/estimated cost or guaranteed capability.
+- Treat all published text as inert text. No script, markup, link or resource execution. Preserve the basic alias/publisher/creation fields and Back/usage navigation.
+- Source and compiled public mounts must exercise signed test SSO over actual loopback HTTP and migrated PGlite. Verify current Deny hides detail, removed identity requires sign-in, and mandatory durable access audit contains no descriptive metadata. Login/session acquisition, native-browser and installed deployment acceptance remain separate release gates.
