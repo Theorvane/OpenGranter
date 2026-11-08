@@ -15,6 +15,7 @@ export type CatalogViewState = ManagementCatalogSnapshot;
 export interface CatalogActions {
   list(): void;
   detail(alias: string): void;
+  inspectUsage?(alias: string): void;
 }
 
 /** Native buttons preserve keyboard activation; untrusted values enter textContent only. */
@@ -113,6 +114,8 @@ export function renderCatalogView(
       details.append(element('dt', label), element('dd', text));
     }
     main.append(details, button('Back to models', actions.list));
+    if (actions.inspectUsage)
+      main.append(button('View usage for this model', () => actions.inspectUsage?.(model.id)));
   }
   root.replaceChildren(main);
   if (moveFocus && value.state !== 'loading' && value.state !== 'idle') title.focus();

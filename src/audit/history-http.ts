@@ -5,6 +5,7 @@ import {
 } from './history-filters.ts';
 import type { AuditHistoryEvent, AuditHistoryPage } from './postgres-audit-history.ts';
 import { projectGatewayAuditEvent } from './postgres-gateway-audit.ts';
+import { validAuditPrincipalReference } from './principal-reference.ts';
 import { parseAuditTimeRange } from './time-range.ts';
 
 const MAX_BIGINT = 9_223_372_036_854_775_807n;
@@ -25,10 +26,6 @@ function eventId(value: unknown): bigint {
   return parsed;
 }
 
-function principalId(value: string): boolean {
-  return value.length <= 256 && /^[A-Za-z0-9][A-Za-z0-9._+:/@-]*$/u.test(value);
-}
-
 export function parseAuditHistoryQuery(url: URL): AuditHistoryFilters & {
   readonly requestedPrincipalId: string | null;
   readonly format: 'json' | 'csv';
@@ -44,7 +41,7 @@ export function parseAuditHistoryQuery(url: URL): AuditHistoryFilters & {
     }
   }
   const requestedPrincipalId = url.searchParams.get('principal_id');
-  if (requestedPrincipalId !== null && !principalId(requestedPrincipalId)) {
+  if (requestedPrincipalId !== null && !validAuditPrincipalReference(requestedPrincipalId)) {
     throw new InvalidAuditHistoryQuery();
   }
   const format = url.searchParams.get('format') ?? 'json';
