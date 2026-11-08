@@ -1842,3 +1842,8 @@ The shared Node HTTP bridge forces no-store and nosniff on exact /management and
 
 - Actual loopback HTTP invalid status/header and consumed body cases yield fixed errors without failed-response cookies, redirects, encodings, framing or private headers. Repeated requests demonstrate survival.
 - Valid responses retain intended status, headers and body. These checks do not certify browser sign-in or installed acceptance.
+
+
+## Credential representation validation (#766)
+
+Both public credential mutation routes reject unsupported/empty/chained Content-Encoding with fixed 400/no-store before body access, current IAM or mutation. Missing/identity coding preserves success. Human authentication and mandatory anonymous auth-audit failures precede content-coding validation; no private header/body/dependency data is reflected. Public Fetch and loopback Node regression tests do not certify browser SSO, installed runtime or live provider acceptance. See [plan](plans/766-credential-content-coding.md) and [contract](../contracts/sso-management-http.md).
