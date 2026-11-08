@@ -6,6 +6,7 @@ import {
   createPostgresSsoModelCatalogHandler,
   createPostgresSsoModelCatalogServer,
 } from '../src/gateway/postgres-sso-model-catalog-http.ts';
+import { createSsoManagementCatalogAuthority } from '../src/management/catalog-authority.ts';
 import { createSsoManagementCatalogClient } from '../src/management/catalog-client.ts';
 import { loadPostgresMigrationSources } from '../src/storage/postgres-migration-sources.ts';
 import { createSsoAccessTokenFixture } from './sso-access-token-fixture.ts';
@@ -249,6 +250,107 @@ test('SSO UI transport consumes real signed-JWT HTTP with fresh IAM and durable 
     assert.equal(paths[1], '/management/v1/models/team%2Fchat');
     client.invalidate();
   } finally {
+    if (server.listening)
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    await f.db.close();
+  }
+});
+
+test('SSO observer authority reflects fresh HTTP IAM, audit failure and revoked identity', async () => {
+  const f = await fixture();
+  const server = createPostgresSsoModelCatalogServer(f.ports);
+  const states: string[] = [];
+  let time = 1000;
+  let expire: (() => void) | undefined;
+  let calls = 0;
+  const authority = createSsoManagementCatalogAuthority({
+    now: () => time,
+    onChange: (snapshot) => states.push(snapshot.state),
+    schedule: (_delay, callback) => {
+      expire = callback;
+      return () => {
+        expire = undefined;
+      };
+    },
+  });
+  try {
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    // Test-only trusted port; not a browser session or credential adapter.
+    const grant = {
+      expiresAt: 2000,
+      request: async (path: string, init: RequestInit) => {
+        calls++;
+        assert.ok(path.startsWith('/management/v1/models'));
+        const headers = new Headers(init.headers);
+        headers.set('authorization', 'Bearer ' + f.token);
+        return fetch('http://127.0.0.1:' + address.port + path, { ...init, headers });
+      },
+    };
+    const row = { id: 'team/chat', object: 'model', created: 42, owned_by: 'opengranter' };
+    authority.authorize(grant);
+    await authority.list();
+    assert.deepEqual(authority.snapshot(), { state: 'list', models: [row] });
+    await authority.detail('team/chat');
+    assert.deepEqual(authority.snapshot(), { state: 'detail', model: row });
+    await f.db.query('UPDATE iam_policies SET version = $1, statements = $2 WHERE policy_id = $3', [
+      'v2',
+      JSON.stringify([{ effect: 'Deny', actions: ['llm:InvokeModel'], resources: ['model:*'] }]),
+      'allow',
+    ]);
+    await authority.detail('team/chat');
+    assert.deepEqual(authority.snapshot(), { state: 'missing' });
+    await authority.list();
+    assert.deepEqual(authority.snapshot(), { state: 'empty' });
+    time = 2000;
+    expire?.();
+    await authority.list();
+    assert.deepEqual(authority.snapshot(), { state: 'expired' });
+    assert.equal(calls, 4);
+    authority.authorize({ ...grant, expiresAt: 3000 });
+    await f.db.exec('DELETE FROM iam_sso_identity_bindings');
+    await authority.list();
+    assert.deepEqual(authority.snapshot(), { state: 'unauthenticated' });
+    await authority.detail('team/chat');
+    assert.equal(calls, 5);
+    const events = (
+      await f.db.query<{ outcome: string }>(
+        'SELECT outcome FROM sso_catalog_audit_events ORDER BY event_id',
+      )
+    ).rows;
+    assert.deepEqual(
+      events.map((event) => event.outcome),
+      ['ready', 'ready', 'missing', 'ready', 'unauthenticated'],
+    );
+    await f.db.exec('DROP TABLE sso_catalog_audit_events');
+    authority.authorize({ ...grant, expiresAt: 3000 });
+    await authority.list();
+    assert.deepEqual(authority.snapshot(), { state: 'unavailable' });
+    assert.deepEqual(states, [
+      'idle',
+      'loading',
+      'list',
+      'loading',
+      'detail',
+      'loading',
+      'missing',
+      'loading',
+      'empty',
+      'expired',
+      'idle',
+      'loading',
+      'unauthenticated',
+      'idle',
+      'loading',
+      'unavailable',
+    ]);
+    assert.doesNotMatch(JSON.stringify(authority.snapshot()), /private-secret|Bearer|SELECT/);
+  } finally {
+    authority.dispose();
     if (server.listening)
       await new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),
