@@ -504,3 +504,50 @@ test('published label bounds preserve order and do not invent text or known capa
   f.setDetail({ state: 'ready', data: row });
   assert.deepEqual(await safe(await f.handle(request('/team%2Fchat')), 200), row);
 });
+
+test('published provider token bounds retain null, zero and integers without private fields', async () => {
+  const f = fixture();
+  for (const top_provider of [
+    {},
+    { context_length: null },
+    { max_completion_tokens: null },
+    { context_length: 0, max_completion_tokens: 0 },
+    { context_length: Number.MAX_SAFE_INTEGER, max_completion_tokens: 8192 },
+  ]) {
+    const row = {
+      ...model,
+      top_provider: { ...top_provider, credentialRef: 'private-secret', is_moderated: true },
+    };
+    f.setList({ state: 'ready', data: [row] });
+    f.setDetail({ state: 'ready', data: row });
+    assert.deepEqual(await safe(await f.handle(request()), 200), {
+      object: 'list',
+      data: [{ ...model, top_provider }],
+    });
+    assert.deepEqual(await safe(await f.handle(request('/team%2Fchat')), 200), {
+      ...model,
+      top_provider,
+    });
+  }
+});
+
+test('invalid present provider token bounds fail the entire HTTP projection', async () => {
+  const f = fixture();
+  const invalid = [
+    undefined,
+    null,
+    [],
+    false,
+    '8192',
+    ...[undefined, -1, 0.5, Number.MAX_SAFE_INTEGER + 1, Infinity, '8192', false].flatMap(
+      (value) => [{ context_length: value }, { max_completion_tokens: value }],
+    ),
+  ];
+  for (const top_provider of invalid) {
+    const row = { ...model, top_provider } as unknown as SsoCatalogModel;
+    f.setList({ state: 'ready', data: [model, row] });
+    f.setDetail({ state: 'ready', data: row });
+    await safe(await f.handle(request()), 503);
+    await safe(await f.handle(request('/team%2Fchat')), 503);
+  }
+});

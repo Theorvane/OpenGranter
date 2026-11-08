@@ -76,6 +76,19 @@ function displayArchitecture(value: unknown): NonNullable<SsoCatalogModel['archi
     output_modalities: displayLabels(row.output_modalities),
   };
 }
+function providerBounds(value: unknown): NonNullable<SsoCatalogModel['top_provider']> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error();
+  const row = value as Record<string, unknown>;
+  const result: { context_length?: number | null; max_completion_tokens?: number | null } = {};
+  for (const field of ['context_length', 'max_completion_tokens'] as const) {
+    if (!Object.hasOwn(row, field)) continue;
+    const bound = row[field];
+    if (bound !== null && (typeof bound !== 'number' || !Number.isSafeInteger(bound) || bound < 0))
+      throw new Error();
+    result[field] = bound;
+  }
+  return result;
+}
 function project(model: SsoCatalogModel): SsoCatalogModel {
   if (
     !model ||
@@ -104,6 +117,9 @@ function project(model: SsoCatalogModel): SsoCatalogModel {
     ...(model.name === undefined ? {} : { name: model.name }),
     ...(model.description === undefined ? {} : { description: model.description }),
     ...(model.context_length === undefined ? {} : { context_length: model.context_length }),
+    ...(Object.hasOwn(model, 'top_provider')
+      ? { top_provider: providerBounds(model.top_provider) }
+      : {}),
     ...(Object.hasOwn(model, 'pricing') ? { pricing: basePricing(model.pricing) } : {}),
     ...(Object.hasOwn(model, 'architecture')
       ? { architecture: displayArchitecture(model.architecture) }

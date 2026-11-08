@@ -439,6 +439,7 @@ test('published SSO display fields survive persisted catalog, HTTP and UI transp
       name: 'Published model <b>text</b>',
       description: 'Published description\n模型',
       context_length: null,
+      top_provider: { is_moderated: true, context_length: 32768, max_completion_tokens: null },
       pricing: {
         prompt: '0.0000001234567890123456789',
         completion: '0e-9',
@@ -477,6 +478,7 @@ test('published SSO display fields survive persisted catalog, HTTP and UI transp
           pricing: { prompt: metadata.pricing.prompt, completion: metadata.pricing.completion },
           architecture: { input_modalities: ['text', 'image'], output_modalities: ['text'] },
           supported_parameters: ['tools', 'temperature'],
+          top_provider: { context_length: 32768, max_completion_tokens: null },
         },
       ],
     });
@@ -491,7 +493,28 @@ test('published SSO display fields survive persisted catalog, HTTP and UI transp
       pricing: { prompt: metadata.pricing.prompt, completion: metadata.pricing.completion },
       architecture: { input_modalities: ['text', 'image'], output_modalities: ['text'] },
       supported_parameters: ['tools', 'temperature'],
+      top_provider: { context_length: 32768, max_completion_tokens: null },
     });
+    for (const max_completion_tokens of [undefined, 0, 8192]) {
+      const top_provider = {
+        context_length: 32768,
+        ...(max_completion_tokens === undefined ? {} : { max_completion_tokens }),
+      };
+      await f.db.query(
+        'UPDATE catalog_models SET openrouter_metadata = $1::jsonb WHERE alias = $2',
+        [
+          JSON.stringify({ ...metadata, top_provider: { ...top_provider, is_moderated: true } }),
+          'team/chat',
+        ],
+      );
+      const response = await fetch(
+        `http://127.0.0.1:${address.port}/management/v1/models/team%2Fchat`,
+        { headers: { authorization: `Bearer ${f.token}` } },
+      );
+      const data = await safe(response, 200);
+      assert.deepEqual(data.top_provider, top_provider);
+      assert.equal(Object.hasOwn(data.top_provider, 'is_moderated'), false);
+    }
     // Browser parser adoption belongs to frontend; it still omits this new optional field.
     assert.deepEqual(await client.list(), { state: 'ready', data: [row] });
     assert.deepEqual(await client.detail('team/chat'), { state: 'ready', data: row });
@@ -504,10 +527,10 @@ test('published SSO display fields survive persisted catalog, HTTP and UI transp
       data: { ...row, context_length: 8192 },
     });
     const events = (await f.db.query('SELECT * FROM sso_catalog_audit_events')).rows;
-    assert.equal(events.length, 5);
+    assert.equal(events.length, 8);
     assert.doesNotMatch(
       JSON.stringify(events),
-      /Published|description|context_length|architecture|input_modalities|supported_parameters|temperature|pricing|0\.0000001234567890123456789|private\/canonical/u,
+      /Published|description|context_length|max_completion_tokens|top_provider|architecture|input_modalities|supported_parameters|temperature|pricing|0\.0000001234567890123456789|private\/canonical/u,
     );
     await f.db.exec(`UPDATE iam_policies SET version = 'v2', statements =
       '[{"effect":"Deny","actions":["llm:InvokeModel"],"resources":["model:*"]}]' WHERE policy_id = 'allow'`);
