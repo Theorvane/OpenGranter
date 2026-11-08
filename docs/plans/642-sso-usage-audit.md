@@ -1,0 +1,12 @@
+# Durable SSO usage audit (#642)
+
+1. Close the real persistence dependency of #696 using dedicated metadata-only PostgreSQL storage. Keep proxy audit attribution unchanged. New schema is a review candidate, not permission to activate it; no session, HTTP, runtime, provider or deployment changes.
+2. Validate and snapshot request, current actor/policy versions, selected principal, self/all mode, outcome and count before asynchronous SQL. Allow only consistent anonymous/authenticated/error states and 0..100 returned rows. Strip unknown fields; never retain JWT, query, records, content or fabricated proxy credentials.
+3. Use one parameterized INSERT with database acknowledgement, fixed storage errors and a trusted nonnegative safe-integer clock. Audit completion must precede any read release. Reject malformed acknowledgements and propagate store failure as audit_unavailable through the existing service.
+4. Add a candidate schema in contracts/sso-usage-audit-schema.sql with SQL checks and metadata lookup indexes, outside the deployment migration manifest. Do not apply it to any installed database or activate the service. Register it only after schema ownership is settled; historical migration bytes must not change.
+5. RED: real signed-JWT/PGlite tests importing the missing production store/composition fail. GREEN: read plus persisted audit, denied/invalid/anonymous and DB failure paths, cross-principal isolation, field allowlisting and invalid-event rejection. Real local SQL is not installed PostgreSQL/browser/provider certification.
+6. Run focused tests, typecheck, lint, planning and full checks; open draft dependent PR, request exact-head independent and architecture review, and do not merge without all mandatory CI and formal approval. Schema approval and actual API/UI composition remain explicit gates.
+
+## Local evidence
+
+Missing-production-module RED: /tmp/og-1930-usage-audit-red-module.log (ERR_MODULE_NOT_FOUND). Final focused SQL/signature/audit suites: /tmp/og-1930-usage-audit-focused.log, 19/19 pass, zero skipped (5 new). New cases include a nonempty persisted usage read and suppression after dropping the audit table, allowlisting, invalid states/acknowledgements/clocks and mutation snapshot. Typecheck and changed-file Biome/planning checks run separately; full CI is required before merge. The candidate SQL is intentionally not installed or registered in the deployment migration manifest.
