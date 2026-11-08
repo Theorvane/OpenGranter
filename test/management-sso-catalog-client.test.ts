@@ -91,7 +91,7 @@ test('SSO list exposes only aliases navigable by the detail contract', async () 
   }
 });
 
-test('SSO explicitly retains descriptive publication but excludes proxy-only metadata', async () => {
+test('SSO integrates the approved publication without retaining private metadata', async () => {
   const base = { id: 'team/chat', object: 'model', created: 0, owned_by: 'opengranter' };
   const display = {
     ...base,
@@ -107,13 +107,72 @@ test('SSO explicitly retains descriptive publication but excludes proxy-only met
   const sso = createSsoManagementCatalogClient(request);
   assert.deepEqual(await sso.list(), {
     state: 'ready',
-    data: [{ ...base, name: display.name, description: display.description, context_length: null }],
+    data: [display],
   });
   assert.deepEqual(await sso.detail(base.id), {
     state: 'ready',
-    data: { ...base, name: display.name, description: display.description, context_length: null },
+    data: display,
   });
   const proxy = createManagementCatalogClient(request);
   assert.deepEqual(await proxy.list(), { state: 'ready', data: [display] });
   assert.deepEqual(await proxy.detail(base.id), { state: 'ready', data: display });
+});
+
+test('SSO provider publication preserves omission/null/zero and strips private nested fields', async () => {
+  const base = { id: 'team/chat', object: 'model', created: 0, owned_by: 'opengranter' };
+  for (const bounds of [
+    {},
+    { context_length: null },
+    { max_completion_tokens: 0 },
+    { context_length: 128000, max_completion_tokens: 8192 },
+    { context_length: 0, max_completion_tokens: null },
+  ]) {
+    const row = {
+      ...base,
+      top_provider: { ...bounds, is_moderated: true, secret: 'private' },
+      secret: 'private',
+    };
+    const client = createSsoManagementCatalogClient(async (path) =>
+      Response.json(path.endsWith('/models') ? { data: [row] } : row),
+    );
+    const list = await client.list();
+    assert.deepEqual(list, { state: 'ready', data: [{ ...base, top_provider: bounds }] });
+    assert.deepEqual(await client.detail(base.id), {
+      state: 'ready',
+      data: { ...base, top_provider: bounds },
+    });
+    assert.doesNotMatch(JSON.stringify(list), /private|is_moderated|secret/u);
+    if (list.state === 'ready') {
+      assert.ok(list.data[0]);
+      assert.equal(Object.isFrozen(Reflect.get(list.data[0], 'top_provider')), true);
+    }
+  }
+  const legacy = createSsoManagementCatalogClient(async () => Response.json(base));
+  assert.deepEqual(await legacy.detail(base.id), { state: 'ready', data: base });
+});
+
+test('SSO malformed provider bounds fail complete lists and detail without changing proxy projection', async () => {
+  const base = { id: 'team/chat', object: 'model', created: 0, owned_by: 'opengranter' };
+  for (const top_provider of [
+    null,
+    [],
+    'private',
+    0,
+    { context_length: -1 },
+    { context_length: 0.1 },
+    { context_length: Number.MAX_SAFE_INTEGER + 1 },
+    { max_completion_tokens: '12' },
+    { max_completion_tokens: true },
+    { max_completion_tokens: -1 },
+    { max_completion_tokens: [] },
+  ]) {
+    const row = { ...base, top_provider };
+    const client = createSsoManagementCatalogClient(async (path) =>
+      Response.json(path.endsWith('/models') ? { data: [base, row] } : row),
+    );
+    assert.deepEqual(await client.list(), { state: 'unavailable' }, JSON.stringify(top_provider));
+    assert.deepEqual(await client.detail(base.id), { state: 'unavailable' });
+    const proxy = createManagementCatalogClient(async () => Response.json(row));
+    assert.deepEqual(await proxy.detail(base.id), { state: 'ready', data: base });
+  }
 });
