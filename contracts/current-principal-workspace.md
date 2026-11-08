@@ -9,3 +9,9 @@ Loading, sign-in-required, denied and unavailable states replace prior private i
 Acceptance: source and built public module traverse signed test SSO, actual loopback HTTP and migrated PGlite. Reads require no IAM attachment and create none. Current inactive principal and removed binding yield 401; missing required anonymous auth audit yields 503. Private subject/issuer/JWT are absent from stored audit. Catalog-only requests in this identity-specific test are explicitly stubbed.
 
 These are local test results, not native-browser/real-IdP login, installed PostgreSQL, session approval, provider calls or deployment acceptance. No endpoint, policy grant, migration or runtime activation is added.
+
+## Explicit unavailable-state recovery (#637 / #639)
+
+Account and Audit identity preflight offer `Retry current principal` only after an unavailable response, transport/parser failure or deadline. One explicit click reruns the existing read; there is no automatic retry, backoff, mutation replay or new authority. Audit retries resolve current identity again before requesting audit data. Authentication/authorization failures remain terminal with no retry.
+
+The view consumes a retry control once and invalidates it on rerender/disposal. The workspace additionally checks its render revision, active lifecycle and current grant deadline before rerendering. Navigation, renewal, clear, expiry, pagehide and disposal prevent detached controls from dispatching. Suspended expiry timers do not extend authority. A mount without an explicit trusted host recovery callback exposes no retry.
