@@ -5,13 +5,15 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
+import { createPostgresGatewayAuditStore } from '../src/audit/postgres-gateway-audit.ts';
+import type { SsoAuditHistoryAccessEvent } from '../src/gateway/postgres-sso-audit-history.ts';
 import { startPostgresSsoWorkspaceBrowserGateway } from '../src/gateway/postgres-sso-browser-bootstrap.ts';
 import type { PostgresConnection } from '../src/storage/postgres-connection.ts';
 import { createSsoAccessTokenFixture } from './sso-access-token-fixture.ts';
 
 const sso = await createSsoAccessTokenFixture();
 
-test('workspace artifact starts real Account and model HTTP routes without schema installation', async () => {
+test('workspace artifact connects scoped audit JSON/CSV and existing routes without schema installation', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'og-workspace-artifact-'));
   const path = join(directory, 'app.js');
   const published = join(directory, 'published.js');
@@ -33,6 +35,8 @@ test('workspace artifact starts real Account and model HTTP routes without schem
   const db = new PGlite();
   let opens = 0;
   let closes = 0;
+  let failAudit = false;
+  const accessEvents: SsoAuditHistoryAccessEvent[] = [];
   const connection: PostgresConnection = {
     query: (sql, params) => db.query(sql, [...params]),
     transaction: (callback) =>
@@ -54,6 +58,10 @@ test('workspace artifact starts real Account and model HTTP routes without schem
       port: 0,
       newRequestId: () => 'artifact-bootstrap',
       browserArtifactPath: path,
+      writeAuditHistoryAccess: async (event) => {
+        if (failAudit) throw new Error('private writer failure');
+        accessEvents.push(event);
+      },
       openConnection: () => {
         opens++;
         return connection;
@@ -91,6 +99,41 @@ test('workspace artifact starts real Account and model HTTP routes without schem
       });
       assert.equal(account.status, 200);
       assert.deepEqual(await account.json(), { principalId: 'workspace-human' });
+      await db.exec(`
+        INSERT INTO iam_policies VALUES ('artifact-audit','v1','[{"effect":"Allow","actions":["audit:Read"],"resources":["principal:workspace-human"]}]');
+        INSERT INTO iam_principal_policies VALUES ('workspace-human','artifact-audit');
+      `);
+      const store = createPostgresGatewayAuditStore(connection, () => 100);
+      await store.append({
+        kind: 'request-denied',
+        reason: 'invalid-request',
+        requestId: 'artifact-event',
+        principalId: 'workspace-human',
+        credentialId: 'private-credential',
+        policyVersions: [],
+        modelAlias: 'chat',
+      });
+      const headers = { authorization: `Bearer ${token}` };
+      const audit = await fetch(`${origin}/management/v1/audit?model=chat`, { headers });
+      assert.equal(audit.status, 200);
+      const history = (await audit.json()) as { data: { requestId: string }[] };
+      assert.equal(history.data.length, 1);
+      assert.equal(history.data[0]?.requestId, 'artifact-event');
+      assert.equal(accessEvents.at(-1)?.outcome, 'ready');
+      const csv = await fetch(`${origin}/management/v1/audit?format=csv`, { headers });
+      assert.equal(csv.status, 200);
+      assert.match(await csv.text(), /artifact-event/);
+      assert.equal(csv.headers.get('cache-control'), 'no-store');
+      failAudit = true;
+      const withheld = await fetch(`${origin}/management/v1/audit`, { headers });
+      assert.equal(withheld.status, 503);
+      assert.doesNotMatch(await withheld.text(), /artifact-event|private writer/);
+      failAudit = false;
+      await db.exec('DELETE FROM iam_principal_policies');
+      const deniedAudit = await fetch(`${origin}/management/v1/audit`, { headers });
+      assert.equal(deniedAudit.status, 403);
+      await deniedAudit.text();
+      assert.equal(accessEvents.at(-1)?.outcome, 'forbidden');
       const events = await db.query(
         'SELECT outcome,principal_id FROM sso_current_principal_audit_events',
       );

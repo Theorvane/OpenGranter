@@ -3,6 +3,7 @@ import { open } from 'node:fs/promises';
 import { isAbsolute } from 'node:path';
 import {
   type PostgresSsoManagementRuntimePorts,
+  type PostgresSsoWorkspaceRuntimePorts,
   startPostgresSsoManagementGateway,
   startPostgresSsoWorkspaceGateway,
 } from './postgres-gateway-runtime.ts';
@@ -10,6 +11,12 @@ import {
 export interface PostgresSsoBrowserBootstrapPorts
   extends Omit<PostgresSsoManagementRuntimePorts, 'browserJavascript'> {
   /** Explicit trusted PUBLIC build output. Never selected by an HTTP request. */
+  readonly browserArtifactPath: string;
+}
+
+/** Workspace-only opt-in; legacy browser ports do not acquire audit authority. */
+export interface PostgresSsoWorkspaceBrowserBootstrapPorts
+  extends Omit<PostgresSsoWorkspaceRuntimePorts, 'browserJavascript'> {
   readonly browserArtifactPath: string;
 }
 
@@ -69,7 +76,7 @@ export async function startPostgresSsoBrowserGateway(ports: PostgresSsoBrowserBo
  * Caller owns approved schemas and ingress. No session, DDL or identity authority.
  */
 export async function startPostgresSsoWorkspaceBrowserGateway(
-  ports: PostgresSsoBrowserBootstrapPorts,
+  ports: PostgresSsoWorkspaceBrowserBootstrapPorts,
 ) {
   const { browserArtifactPath, ...runtime } = ports;
   const browserJavascript = await readArtifact(browserArtifactPath);

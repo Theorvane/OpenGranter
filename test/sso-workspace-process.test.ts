@@ -51,7 +51,7 @@ test('workspace executable loads its explicit factory, serves actual bundle and 
         "import { writeFile } from 'node:fs/promises';",
         'export function createSsoWorkspacePorts() {',
         `const config = ${JSON.stringify({ issuer: sso.issuer, audience: sso.audience, jwks: sso.config.jwks, browserArtifactPath: artifact })};`,
-        'return { ...config, openConnection() {',
+        'return { ...config, writeAuditHistoryAccess: async () => {}, openConnection() {',
         'const db = new PGlite();',
         'return {',
         'query: (sql, params) => db.query(sql, [...params]),',
@@ -114,6 +114,12 @@ test('workspace executable loads its explicit factory, serves actual bundle and 
       assert.equal(script.status, 200);
       assert.equal(await script.text(), await readFile(artifact, 'utf8'));
       assert.equal(script.headers.get('cache-control'), 'no-store');
+      // Proves trusted factory -> process -> artifact -> runtime audit opt-in.
+      // In-memory writer only; not durable installation or company identity.
+      const audit = await fetch(`${origin}/management/v1/audit`);
+      assert.equal(audit.status, 401);
+      assert.equal(audit.headers.get('cache-control'), 'no-store');
+      await audit.text();
       // Proves workspace composition, not management-only startup: usage is not 404.
       for (const path of ['/management/v1/me', '/management/v1/usage']) {
         const response = await fetch(origin + path);

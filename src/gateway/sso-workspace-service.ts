@@ -1,16 +1,30 @@
 import { type OwnedGatewayProcessOptions, runOwnedGatewayProcess } from './gateway-service.ts';
 import {
-  type PostgresSsoBrowserBootstrapPorts,
+  type PostgresSsoWorkspaceBrowserBootstrapPorts,
   startPostgresSsoWorkspaceBrowserGateway,
 } from './postgres-sso-browser-bootstrap.ts';
-import { isSsoBrowserPorts, type SsoBrowserBootstrapPorts } from './sso-browser-service.ts';
+import { isSsoBrowserPorts } from './sso-browser-service.ts';
+
+export type SsoWorkspaceBootstrapPorts = Omit<
+  PostgresSsoWorkspaceBrowserBootstrapPorts,
+  'host' | 'port' | 'now' | 'newRequestId'
+>;
+
+/** Validate only the explicit trusted workspace factory; absence keeps old routes. */
+export function isSsoWorkspacePorts(value: unknown): value is SsoWorkspaceBootstrapPorts {
+  if (!isSsoBrowserPorts(value)) return false;
+  return (
+    !Object.hasOwn(value, 'writeAuditHistoryAccess') ||
+    typeof (value as SsoWorkspaceBootstrapPorts).writeAuditHistoryAccess === 'function'
+  );
+}
 
 export type SsoWorkspaceServiceOptions = Omit<
-  OwnedGatewayProcessOptions<SsoBrowserBootstrapPorts>,
+  OwnedGatewayProcessOptions<SsoWorkspaceBootstrapPorts>,
   'factoryName' | 'validatePorts' | 'start'
 > & {
   readonly start?: (
-    ports: PostgresSsoBrowserBootstrapPorts,
+    ports: PostgresSsoWorkspaceBrowserBootstrapPorts,
   ) => Promise<{ readonly close: () => Promise<void> }>;
 };
 
@@ -21,7 +35,7 @@ export async function runSsoWorkspaceService(options: SsoWorkspaceServiceOptions
   return runOwnedGatewayProcess({
     ...options,
     factoryName: 'createSsoWorkspacePorts',
-    validatePorts: isSsoBrowserPorts,
+    validatePorts: isSsoWorkspacePorts,
     start: options.start ?? startPostgresSsoWorkspaceBrowserGateway,
   });
 }
