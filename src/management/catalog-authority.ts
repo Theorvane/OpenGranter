@@ -59,9 +59,14 @@ function createCatalogAuthority(
   }
   function invalidate() {
     revision++;
-    cancel?.();
+    const cleanup = cancel;
     cancel = undefined;
     expiresAt = undefined;
+    try {
+      cleanup?.();
+    } catch {
+      // Timer cleanup must not interrupt request abort or private data removal.
+    }
   }
   function clear(state: 'unauthenticated' | 'expired' | 'denied' | 'unavailable') {
     if (disposed) return;
@@ -69,23 +74,44 @@ function createCatalogAuthority(
     session.clear(state);
     notify();
   }
+  function currentTime() {
+    try {
+      const time = now();
+      return Number.isFinite(time) && time >= 0 ? time : NaN;
+    } catch {
+      // Clock diagnostics are private; uncertainty revokes the trusted grant.
+      return NaN;
+    }
+  }
   function expired() {
     if (expiresAt === undefined) return false;
-    const time = now();
+    const time = currentTime();
     if (!Number.isFinite(time) || time >= expiresAt) {
       clear('expired');
       return true;
     }
     return false;
   }
-  function arm(current: number) {
-    if (current !== revision || expiresAt === undefined || expired()) return;
-    const delay = Math.max(1, Math.min(2147483647, expiresAt - now()));
-    cancel = schedule(delay, () => {
-      if (current !== revision || disposed) return;
-      cancel = undefined;
-      if (!expired()) arm(current);
-    });
+  function arm(current: number): boolean {
+    if (current !== revision || expiresAt === undefined) return false;
+    const time = currentTime();
+    if (!Number.isFinite(time) || time >= expiresAt) {
+      clear('expired');
+      return false;
+    }
+    const delay = Math.max(1, Math.min(2147483647, expiresAt - time));
+    try {
+      cancel = schedule(delay, () => {
+        if (current !== revision || disposed) return;
+        cancel = undefined;
+        if (!expired()) arm(current);
+      });
+      return true;
+    } catch {
+      // Without expiry scheduling, no request authority or private data may remain.
+      clear('unavailable');
+      return false;
+    }
   }
   async function read(operation: () => Promise<void>) {
     if (disposed || expired() || expiresAt === undefined) return;
@@ -102,7 +128,7 @@ function createCatalogAuthority(
     authorize(grant: CatalogAuthorityGrant) {
       if (disposed) return;
       invalidate();
-      const time = now();
+      const time = currentTime();
       if (
         !Number.isSafeInteger(grant.expiresAt) ||
         !Number.isFinite(time) ||
@@ -114,8 +140,7 @@ function createCatalogAuthority(
       }
       expiresAt = grant.expiresAt;
       session.authorize(grant.request);
-      arm(revision);
-      notify();
+      if (arm(revision)) notify();
     },
     clear,
     snapshot(): ManagementCatalogSnapshot {

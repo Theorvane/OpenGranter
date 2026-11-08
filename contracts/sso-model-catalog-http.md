@@ -22,3 +22,7 @@ createPostgresSsoModelCatalogHandler and createPostgresSsoModelCatalogServer in 
 ## Explicit SSO observer authority (#641)
 
 createSsoManagementCatalogAuthority shares the proxy authority observer/expiry machinery but selects only the SSO lifecycle. Trusted caller-supplied request and expiry grants are not authentication: every HTTP call still requires current server authentication, IAM and durable audit. Loading and terminal states notify the observer; expiry, identity replacement and disposal clear data and abort pending reads; 401/403 lock further reads until a new trusted grant. No browser token storage, proxy fallback, BFF/session acquisition or runtime activation is introduced. Local observer-to-Node-HTTP signed-test-JWT/PGlite evidence does not establish company SSO, browser login, installed PostgreSQL or deployment acceptance.
+
+## Fail-closed observer teardown (#639, #641)
+
+The shared proxy/SSO observer detaches its revision, expiry and timer handle before best-effort timer cancellation. A throwing cancellation hook cannot prevent request abort, data removal, identity replacement, disposal or 401/403 lockout. A thrown, non-finite or negative trusted clock reading expires the grant; a failed initial/rearm scheduler clears it as unavailable. Both terminal paths suppress subsequent reads until a new trusted grant. Fixed state-only notifications do not expose exception diagnostics. This does not add session authentication, browser login, IAM authority or runtime activation.

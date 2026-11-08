@@ -358,3 +358,69 @@ test('SSO observer authority reflects fresh HTTP IAM, audit failure and revoked 
     await f.db.close();
   }
 });
+
+test('signed HTTP catalog data clears on clock failure despite throwing timer cleanup', async () => {
+  const f = await fixture();
+  const server = createPostgresSsoModelCatalogServer(f.ports);
+  let broken = false;
+  let calls = 0;
+  const authority = createSsoManagementCatalogAuthority({
+    now: () => {
+      if (broken) throw new Error('private clock diagnostic');
+      return 1000;
+    },
+    onChange: () => {},
+    schedule: () => () => {
+      throw new Error('private timer diagnostic');
+    },
+  });
+  try {
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    // Test-only trusted server token, never a browser session adapter.
+    const grant = {
+      expiresAt: 2000,
+      request: async (path: string, init: RequestInit) => {
+        calls++;
+        const headers = new Headers(init.headers);
+        headers.set('authorization', 'Bearer ' + f.token);
+        return fetch('http://127.0.0.1:' + address.port + path, { ...init, headers });
+      },
+    };
+    authority.authorize(grant);
+    await authority.detail('team/chat');
+    assert.equal(authority.snapshot().state, 'detail');
+    broken = true;
+    assert.deepEqual(authority.snapshot(), { state: 'expired' });
+    await authority.list();
+    assert.equal(calls, 1);
+    broken = false;
+    authority.authorize(grant);
+    await authority.list();
+    assert.equal(authority.snapshot().state, 'list');
+    authority.clear('unauthenticated');
+    await authority.detail('team/chat');
+    assert.deepEqual(authority.snapshot(), { state: 'unauthenticated' });
+    assert.equal(calls, 2);
+    const events = (
+      await f.db.query<{ outcome: string }>(
+        'SELECT outcome FROM sso_catalog_audit_events ORDER BY event_id',
+      )
+    ).rows;
+    assert.deepEqual(
+      events.map((event) => event.outcome),
+      ['ready', 'ready'],
+    );
+    assert.doesNotThrow(() => authority.dispose());
+    assert.deepEqual(authority.snapshot(), { state: 'disposed' });
+  } finally {
+    authority.dispose();
+    if (server.listening)
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    await f.db.close();
+  }
+});
