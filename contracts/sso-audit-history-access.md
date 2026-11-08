@@ -16,3 +16,7 @@ The SQL contract is a review candidate, outside the active numbered migration ma
 ## Verification
 
 New tests exercise a real loopback Node HTTP administration server, signed RFC9068 JWT, fresh SQL IAM and gateway metadata, concrete SQL access persistence, scoped JSON/CSV, empty/denied/invalid/anonymous/storage failures, failed sink withholding, validation/ACK/clock errors and snapshot/await behavior. Test schema is installed explicitly only in isolated PGlite. Default manifest absence is asserted. No paid provider calls.
+
+## Attribution integrity (#637 / #642)
+
+Authenticated policy snapshots must be dense arrays with own entries and unique policy IDs. Sparse/inherited entries, duplicate IDs (even identical versions) and null policy entries are rejected with fixed InvalidSsoAuditHistoryAccessEvent before the clock or SQL. Empty authenticated snapshots remain valid: they do not establish an Allow. Distinct policies sharing a version are valid. The writer still copies only ID/version metadata before asynchronous SQL, and no route, migration or runtime is activated by this validation.
