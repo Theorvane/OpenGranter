@@ -202,11 +202,19 @@ function createCatalogClient(request: CatalogRequest, sso: boolean) {
       (Number.isSafeInteger(value.created) &&
         value.created >= 0 &&
         value.owned_by === 'opengranter'));
-  // SSO publishes only the reviewed basic model envelope. Proxy metadata is not
-  // automatically a new SSO publication contract.
+  // Explicit SSO publication adds only name/description/context information.
+  // Proxy pricing, capabilities and architecture remain outside this contract.
   const projectModel = (row: CatalogModel): CatalogModel =>
     sso
-      ? { id: row.id, object: 'model', created: row.created, owned_by: row.owned_by }
+      ? {
+          id: row.id,
+          object: 'model',
+          created: row.created,
+          owned_by: row.owned_by,
+          ...(row.name === undefined ? {} : { name: row.name }),
+          ...(row.description === undefined ? {} : { description: row.description }),
+          ...(row.context_length === undefined ? {} : { context_length: row.context_length }),
+        }
       : project(row);
   let revision = 0;
   let pending: AbortController | undefined;

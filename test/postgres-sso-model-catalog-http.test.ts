@@ -9,6 +9,7 @@ import {
 import { createSsoManagementCatalogAuthority } from '../src/management/catalog-authority.ts';
 import { createSsoManagementCatalogClient } from '../src/management/catalog-client.ts';
 import { loadPostgresMigrationSources } from '../src/storage/postgres-migration-sources.ts';
+import { discoveryModel } from './model-discovery-filters-fixture.ts';
 import { createSsoAccessTokenFixture } from './sso-access-token-fixture.ts';
 
 async function fixture() {
@@ -417,6 +418,76 @@ test('signed HTTP catalog data clears on clock failure despite throwing timer cl
     assert.deepEqual(authority.snapshot(), { state: 'disposed' });
   } finally {
     authority.dispose();
+    if (server.listening)
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    await f.db.close();
+  }
+});
+
+test('published SSO display fields survive persisted catalog, HTTP and UI transport', async () => {
+  const f = await fixture();
+  const server = createPostgresSsoModelCatalogServer(f.ports);
+  try {
+    const metadata = {
+      ...discoveryModel('team/chat').openRouterMetadata,
+      name: 'Published model <b>text</b>',
+      description: 'Published description\n模型',
+      context_length: null,
+    };
+    await f.db.query('UPDATE catalog_models SET openrouter_metadata = $1::jsonb WHERE alias = $2', [
+      JSON.stringify(metadata),
+      'team/chat',
+    ]);
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    const client = createSsoManagementCatalogClient(async (path, init) => {
+      const headers = new Headers(init.headers);
+      headers.set('authorization', `Bearer ${f.token}`);
+      return fetch(`http://127.0.0.1:${address.port}${path}`, { ...init, headers });
+    });
+    const row = {
+      id: 'team/chat',
+      object: 'model',
+      created: 42,
+      owned_by: 'opengranter',
+      name: metadata.name,
+      description: metadata.description,
+      context_length: null,
+    };
+    const raw = await fetch(`http://127.0.0.1:${address.port}/management/v1/models`, {
+      headers: { authorization: `Bearer ${f.token}` },
+    });
+    assert.deepEqual(await safe(raw, 200), { object: 'list', data: [row] });
+    assert.deepEqual(await client.list(), { state: 'ready', data: [row] });
+    assert.deepEqual(await client.detail('team/chat'), { state: 'ready', data: row });
+    await f.db.query('UPDATE catalog_models SET openrouter_metadata = $1::jsonb WHERE alias = $2', [
+      JSON.stringify({ ...metadata, context_length: 8192 }),
+      'team/chat',
+    ]);
+    assert.deepEqual(await client.detail('team/chat'), {
+      state: 'ready',
+      data: { ...row, context_length: 8192 },
+    });
+    const events = (await f.db.query('SELECT * FROM sso_catalog_audit_events')).rows;
+    assert.equal(events.length, 4);
+    assert.doesNotMatch(
+      JSON.stringify(events),
+      /Published|description|context_length|private\/canonical/u,
+    );
+    await f.db.exec(`UPDATE iam_policies SET version = 'v2', statements =
+      '[{"effect":"Deny","actions":["llm:InvokeModel"],"resources":["model:*"]}]' WHERE policy_id = 'allow'`);
+    assert.deepEqual(await client.list(), { state: 'ready', data: [] });
+    assert.deepEqual(await client.detail('team/chat'), { state: 'missing' });
+    await f.db.exec('DELETE FROM iam_sso_identity_bindings');
+    assert.deepEqual(await client.list(), { state: 'unauthenticated' });
+    await f.db.exec('DROP TABLE sso_catalog_audit_events');
+    assert.deepEqual(await client.list(), { state: 'unavailable' });
+    client.invalidate();
+  } finally {
     if (server.listening)
       await new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),

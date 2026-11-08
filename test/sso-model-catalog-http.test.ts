@@ -342,3 +342,50 @@ test('real loopback Node + signed JWT + migrated PGlite: role IAM, live deny/rev
     await db.close();
   }
 });
+
+test('descriptive SSO publication is bounded and never implies rich proxy publication', async () => {
+  const f = fixture();
+  const display = { ...model, name: 'Public <b>text</b>', description: '', context_length: null };
+  const extra = {
+    ...display,
+    canonical_slug: 'private-secret',
+    pricing: { prompt: '9', completion: '9' },
+    architecture: { input_modalities: ['text'], output_modalities: ['text'] },
+    supported_parameters: ['tools'],
+    credentialRef: 'private-secret',
+  };
+  f.setList({ state: 'ready', data: [extra] });
+  f.setDetail({ state: 'ready', data: extra });
+  assert.deepEqual(await safe(await f.handle(request()), 200), { object: 'list', data: [display] });
+  assert.deepEqual(await safe(await f.handle(request('/team%2Fchat')), 200), display);
+  for (const patch of [
+    { name: undefined },
+    { name: null },
+    { name: '' },
+    { name: '  ' },
+    { name: 'x'.repeat(257) },
+    { description: undefined },
+    { description: null },
+    { description: 3 },
+    { description: 'x'.repeat(8193) },
+    { context_length: undefined },
+    { context_length: -1 },
+    { context_length: 0.1 },
+    { context_length: Number.MAX_SAFE_INTEGER + 1 },
+    { context_length: '8192' },
+  ]) {
+    const invalid = { ...display, ...patch } as unknown as SsoCatalogModel;
+    f.setList({ state: 'ready', data: [model, invalid] });
+    f.setDetail({ state: 'ready', data: invalid });
+    await safe(await f.handle(request()), 503);
+    await safe(await f.handle(request('/team%2Fchat')), 503);
+  }
+  const boundary = {
+    ...model,
+    name: 'x'.repeat(256),
+    description: 'x'.repeat(8192),
+    context_length: 0,
+  };
+  f.setDetail({ state: 'ready', data: boundary });
+  assert.deepEqual(await safe(await f.handle(request('/team%2Fchat')), 200), boundary);
+});
