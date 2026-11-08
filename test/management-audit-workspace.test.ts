@@ -230,14 +230,28 @@ test('actual compiled workspace mounts Audit and compiled public entry has no am
     request: async (path: string) =>
       path.endsWith('/me')
         ? Response.json({ principalId: 'human' })
-        : path.includes('/audit?')
-          ? page()
-          : Response.json({ object: 'list', data: [] }),
+        : path.includes('format=csv')
+          ? new Response('event_id\r\n8\r\n', {
+              headers: { 'content-type': 'text/csv', 'x-audit-has-more': 'false' },
+            })
+          : path.includes('/audit?')
+            ? page()
+            : Response.json({ object: 'list', data: [] }),
   });
   root.button('Audit').click();
   await settle();
   assert.match(root.text(), /route-unavailable/);
+  root.button('Export current page CSV').click();
+  await settle();
+  const { resolveObjectURL } = await import('node:buffer');
+  const link = root.all().find((node) => node.attrs.download === 'audit.csv');
+  assert.ok(link);
+  assert.ok(link.attrs.href);
+  const blob = resolveObjectURL(link.attrs.href);
+  assert.ok(blob);
+  assert.equal(await blob.text(), 'event_id\r\n8\r\n');
   app.clear();
+  assert.equal(resolveObjectURL(link.attrs.href), undefined);
   assert.doesNotMatch(root.text(), /route-unavailable/);
   const entry = await buildManagementBrowser({
     root: process.cwd(),
@@ -245,4 +259,168 @@ test('actual compiled workspace mounts Audit and compiled public entry has no am
   });
   assert.ok(entry.includes('Audit history'));
   assert.equal(/node:|process\.env|gateway_audit_events|SELECT event_id/.test(entry), false);
+});
+
+test('mounted Audit offers a bounded CSV Blob download and revokes it on navigation', async (t) => {
+  const { resolveObjectURL } = await import('node:buffer');
+  const root = new TokenElement();
+  const app = mountSsoUsageWorkspace(root, new EventTarget(), { now: () => 100 });
+  t.after(() => app.dispose());
+  const csv = 'event_id\r\n9\r\n';
+  await app.authorize({
+    expiresAt: 200,
+    request: async (path) => {
+      if (path.endsWith('/me')) return Response.json({ principalId: 'human' });
+      if (path.includes('format=csv'))
+        return new Response(csv, {
+          headers: {
+            'content-type': 'text/csv',
+            'x-audit-has-more': 'true',
+            'x-audit-next-cursor': '8',
+          },
+        });
+      return path.includes('/audit?') ? page() : Response.json({ object: 'list', data: [] });
+    },
+  });
+  root.button('Audit').click();
+  await settle();
+  root.button('Export current page CSV').click();
+  await settle();
+  const link = root.all().find((node) => node.tag === 'a' && node.attrs.download === 'audit.csv');
+  assert.ok(link, 'actual downloadable CSV anchor');
+  assert.ok(link.attrs.href);
+  assert.match(link.attrs.href, /^blob:/);
+  const blob = resolveObjectURL(link.attrs.href);
+  assert.ok(blob);
+  assert.equal(blob.type, 'text/csv;charset=utf-8');
+  assert.equal(await blob.text(), csv);
+  assert.match(root.text(), /this page only; more pages remain/);
+  let prevented = 0;
+  link.listeners.click?.({
+    preventDefault() {
+      prevented++;
+    },
+  });
+  assert.equal(prevented, 0);
+  root.button('Account').click();
+  await settle();
+  assert.equal(resolveObjectURL(link.attrs.href), undefined);
+  for (const type of ['click', 'auxclick', 'contextmenu'])
+    link.listeners[type]?.({
+      preventDefault() {
+        prevented++;
+      },
+    });
+  assert.equal(prevented, 3);
+});
+
+test('Audit download URLs clear on expiry, renewal, filter changes, failed export and teardown', async (t) => {
+  const { resolveObjectURL } = await import('node:buffer');
+  for (const action of [
+    'expiry',
+    'renewal',
+    'filter',
+    'denied',
+    'failure',
+    'pagehide',
+    'dispose',
+  ]) {
+    const root = new TokenElement();
+    const lifecycle = new EventTarget();
+    let time = 100;
+    let status = 200;
+    const app = mountSsoUsageWorkspace(root, lifecycle, { now: () => time });
+    t.after(() => app.dispose());
+    const grant = {
+      expiresAt: 200,
+      request: async (path: string) => {
+        if (path.endsWith('/me')) return Response.json({ principalId: 'human' });
+        if (path.includes('format=csv'))
+          return new Response('event_id\r\n9\r\n', {
+            status,
+            headers: {
+              'content-type': 'text/csv',
+              'x-audit-has-more': 'false',
+            },
+          });
+        return path.includes('/audit?') ? page() : Response.json({ object: 'list', data: [] });
+      },
+    };
+    await app.authorize(grant);
+    root.button('Audit').click();
+    await settle();
+    root.button('Export current page CSV').click();
+    await settle();
+    const link = root.all().find((node) => node.attrs.download === 'audit.csv');
+    assert.ok(link, action);
+    assert.ok(link.attrs.href);
+    const url = link.attrs.href;
+    assert.ok(resolveObjectURL(url), action);
+    if (action === 'expiry') {
+      time = 200; // no timer callback: native default must check the deadline itself
+      let prevented = false;
+      link.listeners.click?.({
+        preventDefault() {
+          prevented = true;
+        },
+      });
+      assert.equal(prevented, true);
+      assert.match(root.text(), /Session expired/);
+    } else if (action === 'renewal') await app.authorize(grant);
+    else if (action === 'filter') root.named('audit-filters').submit();
+    else if (action === 'denied' || action === 'failure') {
+      status = action === 'denied' ? 403 : 500;
+      root.button('Export current page CSV').click();
+    } else if (action === 'pagehide') lifecycle.dispatchEvent(new Event('pagehide'));
+    else app.dispose();
+    await settle();
+    assert.equal(resolveObjectURL(url), undefined, action);
+    assert.equal(
+      root.all().some((node) => node.attrs.download === 'audit.csv'),
+      false,
+      action,
+    );
+    for (const type of ['click', 'auxclick', 'contextmenu']) {
+      let prevented = false;
+      link.listeners[type]?.({
+        preventDefault() {
+          prevented = true;
+        },
+      });
+      assert.equal(prevented, true, `${action}:${type}`);
+    }
+    app.dispose();
+  }
+});
+
+test('Audit preserves safe CSV text when Blob URL creation is unavailable', async (t) => {
+  t.mock.method(URL, 'createObjectURL', () => {
+    throw Error('unsupported');
+  });
+  const root = new TokenElement();
+  const app = mountSsoUsageWorkspace(root, new EventTarget(), { now: () => 100 });
+  t.after(() => app.dispose());
+  await app.authorize({
+    expiresAt: 200,
+    request: async (path) => {
+      if (path.endsWith('/me')) return Response.json({ principalId: 'human' });
+      if (path.includes('format=csv'))
+        return new Response('<script>csv-text</script>', {
+          headers: {
+            'content-type': 'text/csv',
+            'x-audit-has-more': 'false',
+          },
+        });
+      return path.includes('/audit?') ? page() : Response.json({ object: 'list', data: [] });
+    },
+  });
+  root.button('Audit').click();
+  await settle();
+  root.button('Export current page CSV').click();
+  await settle();
+  assert.match(root.text(), /<script>csv-text<\/script>/);
+  assert.equal(
+    root.all().some((node) => node.tag === 'script' || node.tag === 'a'),
+    false,
+  );
 });
