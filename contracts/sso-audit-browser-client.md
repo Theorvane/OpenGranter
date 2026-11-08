@@ -19,3 +19,17 @@ The public workspace includes Audit navigation. Trusted composition resolves the
 The view renders metadata via textContent, UTC time/principal/model filters, previous/next cursor navigation and current-page CSV in a preformatted text block. This is not an all-history download. A continuation notice identifies remaining export pages. Invalid UTC remains invalid rather than being interpreted in the browser timezone. No prompt/response retention, object URL or persistent export cache.
 
 Navigation, renewal, expiry, denial, pagehide and disposal remove prior private DOM; stale controls and late identity/history/export results cannot dispatch or restore it. The public entry remains disconnected until approved host composition provides authority. Node DOM-port and compiled-module tests do not certify native-browser SSO or installed acceptance.
+
+## Mounted current-page CSV download (#637/#642)
+
+The trusted Audit view offers a fixed `audit.csv` download using an ephemeral
+`text/csv;charset=utf-8` Blob containing exactly the bounded server CSV page.
+The server continuation notice remains visible: this is not a full-history export.
+The URL is revoked before replacement renders, filters, re-export, authority
+renewal, expiry, denial, navigation, pagehide and disposal. Native anchor defaults
+(click, auxiliary click and context menu) also check current authority/deadline,
+even when timers were suspended. Detached anchors cannot download prior data.
+A text-only preview remains if Blob URLs are unavailable; no server filename,
+HTML interpolation, persistent storage or automatic download is introduced.
+A file already saved by a user cannot be recalled by revoking its URL.
+This does not approve or implement a browser session or content retention.

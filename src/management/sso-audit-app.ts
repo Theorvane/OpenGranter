@@ -10,16 +10,23 @@ import { formatUsageTime, parseUsageUtcInput } from './usage-time.ts';
 
 /** Trusted mounted view only: current principal is supplied by the bounded /me reader.
  * Identity is not permission; every list/export is authorized again by the server.
- * CSV is displayed as text, page-scoped, and erased on teardown; no persistent URL.
+ * CSV is page-scoped; its ephemeral download URL is revoked on replacement/teardown.
  */
 export function mountManagementAudit(root: UsageElement, options: SsoAuditWorkspaceOptions = {}) {
   let disposed = false;
   let revision = 0;
   let drafts: Record<string, string> = {};
+  let csvUrl: string | undefined;
+  function revokeCsv() {
+    const previous = csvUrl;
+    csvUrl = undefined;
+    if (previous) URL.revokeObjectURL(previous);
+  }
   const workspace = createManagementSsoAuditWorkspace({ ...options, onChange: render });
   function render(snapshot: SsoAuditWorkspaceSnapshot) {
     if (disposed) return;
     const current = ++revision;
+    revokeCsv();
     if (['unauthenticated', 'expired', 'denied', 'disposed'].includes(snapshot.state)) drafts = {};
     const element = (tag: string, text?: string) => {
       const node = root.ownerDocument.createElement(tag);
@@ -132,6 +139,30 @@ export function mountManagementAudit(root: UsageElement, options: SsoAuditWorksp
         }),
       );
       if (snapshot.csv) {
+        try {
+          const url = URL.createObjectURL(
+            new Blob([snapshot.csv.csv], { type: 'text/csv;charset=utf-8' }),
+          );
+          csvUrl = url;
+          const download = element('a', 'Download audit.csv');
+          download.setAttribute('href', url);
+          download.setAttribute('download', 'audit.csv');
+          for (const type of ['click', 'auxclick', 'contextmenu'])
+            download.addEventListener(type, (event) => {
+              // Anchors have native defaults; suspended expiry timers and detached
+              // controls must not allow a prior authority's download to proceed.
+              if (disposed || current !== revision || url !== csvUrl) {
+                event?.preventDefault();
+                return;
+              }
+              const fresh = workspace.snapshot();
+              if (!fresh.csv || current !== revision || url !== csvUrl) event?.preventDefault();
+            });
+          main.append(download);
+        } catch {
+          // Keep the bounded, text-only preview if Blob URLs are unavailable.
+          revokeCsv();
+        }
         main.append(
           element(
             'p',
@@ -160,6 +191,7 @@ export function mountManagementAudit(root: UsageElement, options: SsoAuditWorksp
       if (disposed) return;
       disposed = true;
       revision++;
+      revokeCsv();
       drafts = {};
       workspace.dispose();
       root.replaceChildren();
