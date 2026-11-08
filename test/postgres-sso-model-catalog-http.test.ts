@@ -229,6 +229,47 @@ test('SSO UI transport consumes real signed-JWT HTTP with fresh IAM and durable 
     const row = { id: 'team/chat', object: 'model', created: 42, owned_by: 'opengranter' };
     assert.deepEqual(await client.list(), { state: 'ready', data: [row] });
     assert.deepEqual(await client.detail('team/chat'), { state: 'ready', data: row });
+    const publication = discoveryModel('team/chat', {
+      name: 'SSO published model',
+      context: 128000,
+    }).openRouterMetadata;
+    assert.ok(publication);
+    const metadata = {
+      ...publication,
+      top_provider: { context_length: null, max_completion_tokens: 0, is_moderated: true },
+    };
+    await f.db.query('UPDATE catalog_models SET openrouter_metadata = $1 WHERE alias = $2', [
+      JSON.stringify(metadata),
+      'team/chat',
+    ]);
+    const published = {
+      ...row,
+      name: metadata.name,
+      context_length: metadata.context_length,
+      architecture: {
+        input_modalities: metadata.architecture.input_modalities,
+        output_modalities: metadata.architecture.output_modalities,
+      },
+      supported_parameters: metadata.supported_parameters,
+      pricing: { prompt: metadata.pricing.prompt, completion: metadata.pricing.completion },
+      top_provider: { context_length: null, max_completion_tokens: 0 },
+    };
+    assert.deepEqual(await client.list(), { state: 'ready', data: [published] });
+    assert.deepEqual(await client.detail('team/chat'), { state: 'ready', data: published });
+    await f.db.query('UPDATE catalog_models SET openrouter_metadata = $1 WHERE alias = $2', [
+      JSON.stringify({
+        ...metadata,
+        top_provider: { context_length: 128000, max_completion_tokens: 8192, is_moderated: true },
+      }),
+      'team/chat',
+    ]);
+    assert.deepEqual(await client.detail('team/chat'), {
+      state: 'ready',
+      data: {
+        ...published,
+        top_provider: { context_length: 128000, max_completion_tokens: 8192 },
+      },
+    });
     await f.db.exec(`UPDATE iam_policies SET version = 'v2', statements =
       '[{"effect":"Deny","actions":["llm:InvokeModel"],"resources":["model:*"]}]' WHERE policy_id = 'allow'`);
     assert.deepEqual(await client.detail('team/chat'), { state: 'missing' });
@@ -242,11 +283,11 @@ test('SSO UI transport consumes real signed-JWT HTTP with fresh IAM and durable 
     ).rows;
     assert.deepEqual(
       events.map((event) => event.outcome),
-      ['ready', 'ready', 'missing', 'ready', 'unauthenticated'],
+      ['ready', 'ready', 'ready', 'ready', 'ready', 'missing', 'ready', 'unauthenticated'],
     );
     await f.db.exec('DROP TABLE sso_catalog_audit_events');
     assert.deepEqual(await client.list(), { state: 'unavailable' });
-    assert.equal(paths.length, 6);
+    assert.equal(paths.length, 9);
     assert.ok(paths.every((path) => path.startsWith('/management/v1/models')));
     assert.equal(paths[1], '/management/v1/models/team%2Fchat');
     client.invalidate();
@@ -431,10 +472,19 @@ test('published SSO display fields survive persisted catalog, HTTP and UI transp
   const server = createPostgresSsoModelCatalogServer(f.ports);
   try {
     const metadata = {
-      ...discoveryModel('team/chat').openRouterMetadata,
+      ...discoveryModel('team/chat', {
+        inputs: ['text', 'image'],
+        outputs: ['text'],
+        parameters: ['tools', 'temperature'],
+      }).openRouterMetadata,
       name: 'Published model <b>text</b>',
       description: 'Published description\n模型',
       context_length: null,
+      top_provider: { is_moderated: true, context_length: 32768, max_completion_tokens: null },
+      pricing: {
+        prompt: '0.0000001234567890123456789',
+        completion: '0e-9',
+      },
     };
     await f.db.query('UPDATE catalog_models SET openrouter_metadata = $1::jsonb WHERE alias = $2', [
       JSON.stringify(metadata),
@@ -461,22 +511,78 @@ test('published SSO display fields survive persisted catalog, HTTP and UI transp
     const raw = await fetch(`http://127.0.0.1:${address.port}/management/v1/models`, {
       headers: { authorization: `Bearer ${f.token}` },
     });
-    assert.deepEqual(await safe(raw, 200), { object: 'list', data: [row] });
-    assert.deepEqual(await client.list(), { state: 'ready', data: [row] });
-    assert.deepEqual(await client.detail('team/chat'), { state: 'ready', data: row });
+    assert.deepEqual(await safe(raw, 200), {
+      object: 'list',
+      data: [
+        {
+          ...row,
+          pricing: { prompt: metadata.pricing.prompt, completion: metadata.pricing.completion },
+          architecture: { input_modalities: ['text', 'image'], output_modalities: ['text'] },
+          supported_parameters: ['tools', 'temperature'],
+          top_provider: { context_length: 32768, max_completion_tokens: null },
+        },
+      ],
+    });
+    const rawDetail = await fetch(
+      `http://127.0.0.1:${address.port}/management/v1/models/team%2Fchat`,
+      {
+        headers: { authorization: `Bearer ${f.token}` },
+      },
+    );
+    assert.deepEqual(await safe(rawDetail, 200), {
+      ...row,
+      pricing: { prompt: metadata.pricing.prompt, completion: metadata.pricing.completion },
+      architecture: { input_modalities: ['text', 'image'], output_modalities: ['text'] },
+      supported_parameters: ['tools', 'temperature'],
+      top_provider: { context_length: 32768, max_completion_tokens: null },
+    });
+    for (const max_completion_tokens of [undefined, 0, 8192]) {
+      const top_provider = {
+        context_length: 32768,
+        ...(max_completion_tokens === undefined ? {} : { max_completion_tokens }),
+      };
+      await f.db.query(
+        'UPDATE catalog_models SET openrouter_metadata = $1::jsonb WHERE alias = $2',
+        [
+          JSON.stringify({ ...metadata, top_provider: { ...top_provider, is_moderated: true } }),
+          'team/chat',
+        ],
+      );
+      const response = await fetch(
+        `http://127.0.0.1:${address.port}/management/v1/models/team%2Fchat`,
+        { headers: { authorization: `Bearer ${f.token}` } },
+      );
+      const data = await safe(response, 200);
+      assert.deepEqual(data.top_provider, top_provider);
+      assert.equal(Object.hasOwn(data.top_provider, 'is_moderated'), false);
+    }
+    // The explicit SSO client now retains only the reviewed published fields.
+    const published = {
+      ...row,
+      pricing: { prompt: metadata.pricing.prompt, completion: metadata.pricing.completion },
+      architecture: { input_modalities: ['text', 'image'], output_modalities: ['text'] },
+      supported_parameters: ['tools', 'temperature'],
+      top_provider: { context_length: 32768, max_completion_tokens: 8192 },
+    };
+    assert.deepEqual(await client.list(), { state: 'ready', data: [published] });
+    assert.deepEqual(await client.detail('team/chat'), { state: 'ready', data: published });
     await f.db.query('UPDATE catalog_models SET openrouter_metadata = $1::jsonb WHERE alias = $2', [
       JSON.stringify({ ...metadata, context_length: 8192 }),
       'team/chat',
     ]);
     assert.deepEqual(await client.detail('team/chat'), {
       state: 'ready',
-      data: { ...row, context_length: 8192 },
+      data: {
+        ...published,
+        context_length: 8192,
+        top_provider: { context_length: 32768, max_completion_tokens: null },
+      },
     });
     const events = (await f.db.query('SELECT * FROM sso_catalog_audit_events')).rows;
-    assert.equal(events.length, 4);
+    assert.equal(events.length, 8);
     assert.doesNotMatch(
       JSON.stringify(events),
-      /Published|description|context_length|private\/canonical/u,
+      /Published|description|context_length|max_completion_tokens|top_provider|architecture|input_modalities|supported_parameters|temperature|pricing|0\.0000001234567890123456789|private\/canonical/u,
     );
     await f.db.exec(`UPDATE iam_policies SET version = 'v2', statements =
       '[{"effect":"Deny","actions":["llm:InvokeModel"],"resources":["model:*"]}]' WHERE policy_id = 'allow'`);

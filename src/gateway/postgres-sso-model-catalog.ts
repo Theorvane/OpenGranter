@@ -23,6 +23,19 @@ export interface SsoCatalogModel {
   readonly name?: string;
   readonly description?: string;
   readonly context_length?: number | null;
+  /** Published USD/token base prices, never actual cost or routing authority. */
+  readonly pricing?: { readonly prompt: string; readonly completion: string };
+  /** Published informational labels, not verified capability or routing authority. */
+  readonly architecture?: {
+    readonly input_modalities: readonly string[];
+    readonly output_modalities: readonly string[];
+  };
+  readonly supported_parameters?: readonly string[];
+  /** Published provider bounds, not enforced quotas or effective route limits. */
+  readonly top_provider?: {
+    readonly context_length?: number | null;
+    readonly max_completion_tokens?: number | null;
+  };
 }
 export type SsoCatalogResult<T> =
   | { readonly state: 'ready'; readonly data: T }
@@ -115,6 +128,35 @@ export function createPostgresSsoModelCatalog(
                         ? {}
                         : { description: model.openRouterMetadata.description }),
                       context_length: model.openRouterMetadata.context_length,
+                      architecture: Object.freeze({
+                        input_modalities: Object.freeze([
+                          ...model.openRouterMetadata.architecture.input_modalities,
+                        ]),
+                        output_modalities: Object.freeze([
+                          ...model.openRouterMetadata.architecture.output_modalities,
+                        ]),
+                      }),
+                      supported_parameters: Object.freeze([
+                        ...model.openRouterMetadata.supported_parameters,
+                      ]),
+                      top_provider: Object.freeze({
+                        ...(Object.hasOwn(model.openRouterMetadata.top_provider, 'context_length')
+                          ? { context_length: model.openRouterMetadata.top_provider.context_length }
+                          : {}),
+                        ...(Object.hasOwn(
+                          model.openRouterMetadata.top_provider,
+                          'max_completion_tokens',
+                        )
+                          ? {
+                              max_completion_tokens:
+                                model.openRouterMetadata.top_provider.max_completion_tokens,
+                            }
+                          : {}),
+                      }),
+                      pricing: Object.freeze({
+                        prompt: model.openRouterMetadata.pricing.prompt,
+                        completion: model.openRouterMetadata.pricing.completion,
+                      }),
                     }),
               }),
           ),

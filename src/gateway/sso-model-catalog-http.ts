@@ -38,6 +38,57 @@ function validAlias(alias: string): boolean {
     alias.split('/').every((part) => part && part !== '.' && part !== '..')
   );
 }
+function basePricing(value: unknown): NonNullable<SsoCatalogModel['pricing']> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error();
+  const row = value as Record<string, unknown>;
+  const price = (field: string): string => {
+    const result = row[field];
+    if (
+      !Object.hasOwn(row, field) ||
+      typeof result !== 'string' ||
+      result.length > 128 ||
+      !/^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$/u.test(result) ||
+      !Number.isFinite(Number(result))
+    )
+      throw new Error();
+    return result;
+  };
+  return { prompt: price('prompt'), completion: price('completion') };
+}
+function displayLabels(value: unknown): readonly string[] {
+  if (!Array.isArray(value) || value.length > 64) throw new Error();
+  const result: string[] = [];
+  // Iteration rejects sparse arrays instead of serializing holes as null.
+  for (const label of value) {
+    if (typeof label !== 'string' || !label.trim() || label.length > 128) throw new Error();
+    result.push(label);
+  }
+  if (new Set(result).size !== result.length) throw new Error();
+  return result;
+}
+function displayArchitecture(value: unknown): NonNullable<SsoCatalogModel['architecture']> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error();
+  const row = value as Record<string, unknown>;
+  if (!Object.hasOwn(row, 'input_modalities') || !Object.hasOwn(row, 'output_modalities'))
+    throw new Error();
+  return {
+    input_modalities: displayLabels(row.input_modalities),
+    output_modalities: displayLabels(row.output_modalities),
+  };
+}
+function providerBounds(value: unknown): NonNullable<SsoCatalogModel['top_provider']> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error();
+  const row = value as Record<string, unknown>;
+  const result: { context_length?: number | null; max_completion_tokens?: number | null } = {};
+  for (const field of ['context_length', 'max_completion_tokens'] as const) {
+    if (!Object.hasOwn(row, field)) continue;
+    const bound = row[field];
+    if (bound !== null && (typeof bound !== 'number' || !Number.isSafeInteger(bound) || bound < 0))
+      throw new Error();
+    result[field] = bound;
+  }
+  return result;
+}
 function project(model: SsoCatalogModel): SsoCatalogModel {
   if (
     !model ||
@@ -66,6 +117,16 @@ function project(model: SsoCatalogModel): SsoCatalogModel {
     ...(model.name === undefined ? {} : { name: model.name }),
     ...(model.description === undefined ? {} : { description: model.description }),
     ...(model.context_length === undefined ? {} : { context_length: model.context_length }),
+    ...(Object.hasOwn(model, 'top_provider')
+      ? { top_provider: providerBounds(model.top_provider) }
+      : {}),
+    ...(Object.hasOwn(model, 'pricing') ? { pricing: basePricing(model.pricing) } : {}),
+    ...(Object.hasOwn(model, 'architecture')
+      ? { architecture: displayArchitecture(model.architecture) }
+      : {}),
+    ...(Object.hasOwn(model, 'supported_parameters')
+      ? { supported_parameters: displayLabels(model.supported_parameters) }
+      : {}),
   };
 }
 
