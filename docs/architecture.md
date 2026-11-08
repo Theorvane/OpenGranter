@@ -1427,3 +1427,8 @@ The operator command adds isolated official-CLI device login, status and logout 
 ## Management transport privacy (#639)
 
 The shared Node HTTP bridge forces no-store and nosniff on exact /management and slash descendants, including handler errors and custom fallback responses. This preserves existing status/body/authentication/audit behavior and activates no routes or session. See [contract](../contracts/management-http-privacy.md) and [plan](plans/639-management-http-privacy.md). Loopback socket evidence is not native-browser, company SSO or installed ingress acceptance.
+
+
+## Explicit current-principal HTTP boundary (#768)
+
+A separate opt-in GET /management/v1/principal handler reuses the registered-key verifier and exact fresh active-human binding. Its sole successful projection is the authenticated ID and human kind; it does not load policy metadata or infer IAM rights. Required caller-owned durable audit is awaited for success, denial and unavailability; audit failure suppresses identity. The PostgreSQL composition disallows caller authentication overrides. No schema, automatic runtime mount, session/BFF/CSRF/CORS or ingress decision is made. The returned Node server is unbound, with database and audit lifetimes owned by the integrator. This is a current-identity API primitive, not browser login/session completion. See [contract](../contracts/sso-current-principal-http.md).
