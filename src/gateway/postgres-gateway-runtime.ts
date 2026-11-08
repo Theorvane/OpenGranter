@@ -10,6 +10,7 @@ import { createNodePostgresDirectChatServer } from './node-postgres-chat-server.
 import { createNodePostgresDualRouteChatServer } from './node-postgres-dual-chat-server.ts';
 import { createNodeRequestServer } from './node-request-server.ts';
 import type { PostgresDualRouteChatHandlerPorts } from './postgres-dual-chat-handler.ts';
+import { createPostgresSsoAdministrationBrowserServer } from './postgres-sso-administration-browser-http.ts';
 import {
   createPostgresRfc9068SsoManagementHandler,
   type createPostgresRfc9068SsoManagementServer,
@@ -209,4 +210,33 @@ export async function startPostgresSsoManagementGateway(ports: PostgresSsoManage
       return response;
     });
   });
+}
+
+/** Explicit source-only workspace listener; never selected by existing startup.
+ * Reuses the owned autocommit connection for mandatory identity/usage audit.
+ * Candidate audit schemas remain caller-reviewed/installed, NOT migrations.
+ * Missing schema fails closed. No session, cookie bridge or new IAM grant.
+ */
+export async function startPostgresSsoWorkspaceGateway(
+  ports: PostgresSsoManagementRuntimePorts & { readonly browserJavascript: string },
+) {
+  if (typeof ports.browserJavascript !== 'string' || !ports.browserJavascript.trim()) {
+    throw new InvalidGatewayRuntimeInput();
+  }
+  const {
+    browserJavascript,
+    openConnection: _open,
+    host: _host,
+    port: _port,
+    migrationDirectory: _directory,
+    ...managementPorts
+  } = ports;
+  return startOwnedPostgresGateway(ports, async (client) =>
+    createPostgresSsoAdministrationBrowserServer({
+      ...managementPorts,
+      client,
+      principalAuditClient: client,
+      javascript: browserJavascript,
+    }),
+  );
 }
