@@ -7,3 +7,7 @@ list(filters) returns projected events/nextCursor/hasMore; csv(filters) returns 
 GET/no-store/credentials omit/redirect error; no bearer synthesis or provider calls. Injected authorized request port owns authentication. x-audit-has-more/x-audit-next-cursor preserve exact server cursors; no all-pages traversal. CSV is server-formatted, not interpreted as event authority.
 
 States ready/invalid_query/unauthenticated/denied/unavailable/cancelled. Private errors discarded. Response bound 1 MiB, valid UTF8, 30 seconds even for uncooperative transports. Invalidation suppresses late responses. One active request per instance. No UI mount/cookies/CORS/DDL/runtime activation/installed durability claims.
+
+## Restricted public build
+
+The actual client and workspace can be bundled through scripts/build-management-browser.ts. Only the exact reviewed query, filter, time, principal-reference and content-free event-projection sources are allowed transitively. SQL storage modules, arbitrary audit files and non-management entry points remain forbidden. The shared projector is unchanged and re-exported from the existing server module for compatibility; no database or provider code is published. Build success is not a mounted audit screen, approved login/session, deployed URL or native-browser acceptance.

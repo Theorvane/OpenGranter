@@ -1,10 +1,10 @@
+import { projectGatewayAuditEvent } from './gateway-audit-projection.ts';
 import {
   type AuditHistoryFilters,
   matchesAuditHistoryFilters,
   validAuditHistoryFilters,
 } from './history-filters.ts';
 import type { AuditHistoryEvent, AuditHistoryPage } from './postgres-audit-history.ts';
-import { projectGatewayAuditEvent } from './postgres-gateway-audit.ts';
 import { validAuditPrincipalReference } from './principal-reference.ts';
 import { parseAuditTimeRange } from './time-range.ts';
 
