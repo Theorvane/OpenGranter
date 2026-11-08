@@ -17,6 +17,11 @@ export interface CatalogModel {
     readonly output_modalities: readonly string[];
   };
   readonly supported_parameters?: readonly string[];
+  /** SSO-published descriptive bounds, not enforced quota or routing authority. */
+  readonly top_provider?: {
+    readonly context_length?: number | null;
+    readonly max_completion_tokens?: number | null;
+  };
   /** Published base rates only; not discounted or billed request costs. */
   readonly pricing?: { readonly prompt: string; readonly completion: string };
 }
@@ -75,6 +80,18 @@ function basePricing(value: unknown): value is NonNullable<CatalogModel['pricing
       /^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$/u.test(price) &&
       Number.isFinite(Number(price)),
   );
+}
+
+function providerBounds(value: unknown): value is NonNullable<CatalogModel['top_provider']> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const row = value as Record<string, unknown>;
+  return ['context_length', 'max_completion_tokens'].every((field) => {
+    if (!Object.hasOwn(row, field)) return true;
+    const bound = row[field];
+    return (
+      bound === null || (typeof bound === 'number' && Number.isSafeInteger(bound) && bound >= 0)
+    );
+  });
 }
 
 function discard(response: Response) {
@@ -201,21 +218,26 @@ function createCatalogClient(request: CatalogRequest, sso: boolean) {
     (!sso ||
       (Number.isSafeInteger(value.created) &&
         value.created >= 0 &&
-        value.owned_by === 'opengranter'));
-  // Explicit SSO publication adds only name/description/context information.
-  // Proxy pricing, capabilities and architecture remain outside this contract.
-  const projectModel = (row: CatalogModel): CatalogModel =>
-    sso
-      ? {
-          id: row.id,
-          object: 'model',
-          created: row.created,
-          owned_by: row.owned_by,
-          ...(row.name === undefined ? {} : { name: row.name }),
-          ...(row.description === undefined ? {} : { description: row.description }),
-          ...(row.context_length === undefined ? {} : { context_length: row.context_length }),
-        }
-      : project(row);
+        value.owned_by === 'opengranter' &&
+        (!Object.hasOwn(value, 'top_provider') || providerBounds(value.top_provider))));
+  // Explicit known-field projection of the reviewed SSO HTTP publication.
+  // The proxy decoder retains its previous projection; neither grants authority.
+  const projectModel = (row: CatalogModel): CatalogModel => {
+    const result = project(row);
+    return !sso || row.top_provider === undefined
+      ? result
+      : {
+          ...result,
+          top_provider: Object.freeze({
+            ...(Object.hasOwn(row.top_provider, 'context_length')
+              ? { context_length: row.top_provider.context_length }
+              : {}),
+            ...(Object.hasOwn(row.top_provider, 'max_completion_tokens')
+              ? { max_completion_tokens: row.top_provider.max_completion_tokens }
+              : {}),
+          }),
+        };
+  };
   let revision = 0;
   let pending: AbortController | undefined;
   function invalidate() {
