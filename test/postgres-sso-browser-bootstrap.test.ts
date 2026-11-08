@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -13,9 +14,21 @@ const sso = await createSsoAccessTokenFixture();
 test('reviewed prebuilt file starts the owned migrated SSO browser listener', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'og-browser-bootstrap-'));
   const path = join(directory, 'app.js');
-  const javascript = 'document.getElementById("app").textContent = "Sign in required";';
   const published = join(directory, 'published.js');
-  await writeFile(published, javascript);
+  const build = spawnSync(
+    process.execPath,
+    [
+      '--experimental-strip-types',
+      'scripts/build-management-browser.ts',
+      'src/management/catalog-entry.ts',
+      '--output',
+      published,
+    ],
+    { encoding: 'utf8' },
+  );
+  assert.equal(build.status, 0, build.stderr);
+  assert.equal(build.stdout, '');
+  const javascript = await readFile(published, 'utf8');
   await symlink(published, path);
   const db = new PGlite();
   let opens = 0;
