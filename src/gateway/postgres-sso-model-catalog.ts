@@ -31,6 +31,11 @@ export interface SsoCatalogModel {
     readonly output_modalities: readonly string[];
   };
   readonly supported_parameters?: readonly string[];
+  /** Published provider bounds, not enforced quotas or effective route limits. */
+  readonly top_provider?: {
+    readonly context_length?: number | null;
+    readonly max_completion_tokens?: number | null;
+  };
 }
 export type SsoCatalogResult<T> =
   | { readonly state: 'ready'; readonly data: T }
@@ -134,6 +139,20 @@ export function createPostgresSsoModelCatalog(
                       supported_parameters: Object.freeze([
                         ...model.openRouterMetadata.supported_parameters,
                       ]),
+                      top_provider: Object.freeze({
+                        ...(Object.hasOwn(model.openRouterMetadata.top_provider, 'context_length')
+                          ? { context_length: model.openRouterMetadata.top_provider.context_length }
+                          : {}),
+                        ...(Object.hasOwn(
+                          model.openRouterMetadata.top_provider,
+                          'max_completion_tokens',
+                        )
+                          ? {
+                              max_completion_tokens:
+                                model.openRouterMetadata.top_provider.max_completion_tokens,
+                            }
+                          : {}),
+                      }),
                       pricing: Object.freeze({
                         prompt: model.openRouterMetadata.pricing.prompt,
                         completion: model.openRouterMetadata.pricing.completion,
