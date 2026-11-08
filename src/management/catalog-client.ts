@@ -6,6 +6,8 @@ export interface CatalogModel {
   readonly object: 'model';
   readonly created: number;
   readonly owned_by: string;
+  /** Published base rates only; not discounted or billed request costs. */
+  readonly pricing?: { readonly prompt: string; readonly completion: string };
 }
 export type CatalogResult<T> =
   | { readonly state: 'ready'; readonly data: T }
@@ -22,9 +24,22 @@ function model(value: unknown): value is CatalogModel {
     row.object === 'model' &&
     typeof row.created === 'number' &&
     Number.isFinite(row.created) &&
+    (!Object.hasOwn(row, 'pricing') || basePricing(row.pricing)) &&
     typeof row.owned_by === 'string'
   );
 }
+function basePricing(value: unknown): value is NonNullable<CatalogModel['pricing']> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const row = value as Record<string, unknown>;
+  return [row.prompt, row.completion].every(
+    (price) =>
+      typeof price === 'string' &&
+      price.length <= 128 &&
+      /^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$/u.test(price) &&
+      Number.isFinite(Number(price)),
+  );
+}
+
 function discard(response: Response) {
   // Do not consume private errors or await an uncooperative stream cancellation.
   try {
@@ -75,7 +90,20 @@ async function boundedJson(response: Response, signal: AbortSignal): Promise<unk
 }
 
 function project(row: CatalogModel): CatalogModel {
-  return { id: row.id, object: 'model', created: row.created, owned_by: row.owned_by };
+  return {
+    id: row.id,
+    object: 'model',
+    created: row.created,
+    owned_by: row.owned_by,
+    ...(row.pricing === undefined
+      ? {}
+      : {
+          pricing: Object.freeze({
+            prompt: row.pricing.prompt,
+            completion: row.pricing.completion,
+          }),
+        }),
+  };
 }
 
 /** A new read supersedes the previous read; invalidate on identity/session change.
