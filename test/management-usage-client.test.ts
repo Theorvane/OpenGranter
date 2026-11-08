@@ -11,7 +11,7 @@ const row = buildUsageRecord({
   policyVersions: [],
   requestId: 'request',
   attemptId: 'attempt',
-  modelAlias: 'chat',
+  modelAlias: 'chat/a&b',
   routeKind: 'managed',
   upstreamModelId: 'model',
   selectedCandidateId: 'candidate',
