@@ -11,3 +11,11 @@ States ready/invalid_query/unauthenticated/denied/unavailable/cancelled. Private
 ## Restricted public build
 
 The actual client and workspace can be bundled through scripts/build-management-browser.ts. Only the exact reviewed query, filter, time, principal-reference and content-free event-projection sources are allowed transitively. SQL storage modules, arbitrary audit files and non-management entry points remain forbidden. The shared projector is unchanged and re-exported from the existing server module for compatibility; no database or provider code is published. Build success is not a mounted audit screen, approved login/session, deployed URL or native-browser acceptance.
+
+## Mounted workspace (#637 / #642)
+
+The public workspace includes Audit navigation. Trusted composition resolves the current identity through the existing bounded /management/v1/me reader before authorizing the mounted audit view; only the validated principalId is returned internally. Identity alone never grants audit: each request still passes server audit:Read and mandatory access-audit gates. No grant format or session endpoint is changed.
+
+The view renders metadata via textContent, UTC time/principal/model filters, previous/next cursor navigation and current-page CSV in a preformatted text block. This is not an all-history download. A continuation notice identifies remaining export pages. Invalid UTC remains invalid rather than being interpreted in the browser timezone. No prompt/response retention, object URL or persistent export cache.
+
+Navigation, renewal, expiry, denial, pagehide and disposal remove prior private DOM; stale controls and late identity/history/export results cannot dispatch or restore it. The public entry remains disconnected until approved host composition provides authority. Node DOM-port and compiled-module tests do not certify native-browser SSO or installed acceptance.

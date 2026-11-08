@@ -1,6 +1,7 @@
 import type { CatalogAuthorityGrant } from './catalog-authority.ts';
 import type { CatalogRequest } from './catalog-client.ts';
 import { mountManagementPrincipal } from './principal-app.ts';
+import { mountManagementAudit } from './sso-audit-app.ts';
 import { mountSsoManagementCatalog } from './sso-catalog-app.ts';
 import { mountManagementTokens } from './token-management-app.ts';
 import { createManagementTokenWorkspace } from './token-management-workspace.ts';
@@ -10,7 +11,7 @@ import {
   type UsageElement,
 } from './usage-app.ts';
 
-type View = 'models' | 'usage' | 'tokens' | 'account';
+type View = 'audit' | 'models' | 'usage' | 'tokens' | 'account';
 type Cleared = 'unauthenticated' | 'expired' | 'denied';
 
 /** Explicit trusted composition, not a session or public authority API.
@@ -56,6 +57,7 @@ export function mountSsoUsageWorkspace(
     | ReturnType<typeof mountManagementUsage>
     | ReturnType<typeof mountManagementTokens>
     | ReturnType<typeof mountManagementPrincipal>
+    | ReturnType<typeof mountManagementAudit>
     | undefined;
 
   function removeAuthority() {
@@ -110,6 +112,7 @@ export function mountSsoUsageWorkspace(
       ['usage', 'Usage history'],
       ['tokens', 'Credentials'],
       ['account', 'Account'],
+      ['audit', 'Audit'],
     ] as const) {
       const button = element('button', label);
       button.setAttribute('type', 'button');
@@ -136,6 +139,26 @@ export function mountSsoUsageWorkspace(
     }
     if (view === 'tokens') {
       app = mountManagementTokens(content, tokens);
+      return;
+    }
+    if (view === 'audit') {
+      // Resolve the actual current identity without changing the authority grant.
+      // Navigating away disposes the bounded reader and suppresses late results.
+      const identity = mountManagementPrincipal(content);
+      app = identity;
+      if (!grant) {
+        identity.clear(reason);
+        return;
+      }
+      const supplied = grant;
+      const principalId = await identity.authorize(transport(supplied));
+      if (disposed || !active || rendered !== renderRevision || app !== identity || !valid())
+        return;
+      if (!principalId) return;
+      identity.dispose();
+      const mounted = mountManagementAudit(content, options);
+      app = mounted;
+      await mounted.authorize({ ...transport(supplied), principalId });
       return;
     }
     if (view === 'account') {

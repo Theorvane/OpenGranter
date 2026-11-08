@@ -58,8 +58,8 @@ export function mountManagementPrincipal(root: UsageElement) {
         render('Current principal unavailable.');
         cancel();
       }, 30_000);
-      const interrupted = new Promise<void>((resolve) =>
-        controller.signal.addEventListener('abort', () => resolve(), { once: true }),
+      const interrupted = new Promise<string | undefined>((resolve) =>
+        controller.signal.addEventListener('abort', () => resolve(undefined), { once: true }),
       );
       const operation = async () => {
         try {
@@ -142,13 +142,16 @@ export function mountManagementPrincipal(root: UsageElement) {
             controller.signal.removeEventListener('abort', abort);
             reader.releaseLock();
           }
-          if (live()) render('Current principal: ' + principalId);
+          if (live()) {
+            render(`Current principal: ${principalId}`);
+            return principalId;
+          }
         } catch {
           if (live()) render('Current principal unavailable.');
         }
       };
       try {
-        await Promise.race([operation(), interrupted]);
+        return await Promise.race([operation(), interrupted]);
       } finally {
         clearTimeout(timer);
         if (current === revision) pending = undefined;
