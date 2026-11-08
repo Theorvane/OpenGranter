@@ -87,7 +87,7 @@ test('SSO list exposes only aliases navigable by the detail contract', async () 
     const sso = createSsoManagementCatalogClient(async () => Response.json({ data: [row] }));
     assert.deepEqual(await sso.list(), { state: 'unavailable' }, JSON.stringify(id));
     const proxy = createManagementCatalogClient(async () => Response.json({ data: [row] }));
-    assert.deepEqual(await proxy.list(), { state: 'ready', data: [row] });
+    assert.deepEqual(await proxy.list(), { state: 'unavailable' }, JSON.stringify(id));
   }
 });
 

@@ -193,11 +193,13 @@ export function createSsoManagementCatalogClient(request: CatalogRequest) {
 
 function createCatalogClient(request: CatalogRequest, sso: boolean) {
   const base = sso ? '/management/v1/models' : '/api/v1/models';
+  const validAlias = (id: string) =>
+    navigableAlias(id) && (sso || (id !== 'count' && id !== 'user'));
   const validModel = (value: unknown): value is CatalogModel =>
     model(value) &&
+    validAlias(value.id) &&
     (!sso ||
-      (navigableAlias(value.id) &&
-        Number.isSafeInteger(value.created) &&
+      (Number.isSafeInteger(value.created) &&
         value.created >= 0 &&
         value.owned_by === 'opengranter'));
   // SSO publishes only the reviewed basic model envelope. Proxy metadata is not
@@ -276,14 +278,15 @@ function createCatalogClient(request: CatalogRequest, sso: boolean) {
           body === null ||
           !('data' in body) ||
           !Array.isArray(body.data) ||
-          !body.data.every(validModel)
+          !body.data.every(validModel) ||
+          new Set(body.data.map((row) => row.id)).size !== body.data.length
         )
           return undefined;
         return body.data.map(projectModel);
       }),
     detail: (id: string): Promise<CatalogResult<CatalogModel>> => {
       // Reserved compatible collection paths are not model detail operations.
-      if (!navigableAlias(id) || (!sso && (id === 'count' || id === 'user'))) {
+      if (!validAlias(id)) {
         invalidate();
         return Promise.resolve({ state: 'unavailable' });
       }
