@@ -155,3 +155,32 @@ test('workspace runtime errors and failed shutdown expose fixed diagnostics only
   assert.deepEqual(h.messages, ['Gateway listening', 'Gateway shutdown unavailable']);
   assert.deepEqual(h.exits, [1]);
 });
+
+test('workspace rejects explicitly invalid audit writer before calling starter', async () => {
+  for (const writeAuditHistoryAccess of [undefined, null, false, {}, 'private-writer']) {
+    const h = harness({ createSsoWorkspacePorts: () => ({ ...ports, writeAuditHistoryAccess }) });
+    const done = runSsoWorkspaceService(h.options);
+    await tick();
+    h.signals.emit('SIGTERM');
+    await done;
+    assert.equal(h.starts.length, 0);
+    assert.deepEqual(h.messages, ['Gateway startup unavailable']);
+    assert.deepEqual(h.exits, [1]);
+  }
+});
+
+test('workspace preserves the trusted audit writer reference and owned lifecycle', async () => {
+  const writeAuditHistoryAccess = async () => {};
+  const h = harness({ createSsoWorkspacePorts: () => ({ ...ports, writeAuditHistoryAccess }) });
+  const done = runSsoWorkspaceService(h.options);
+  await tick();
+  assert.equal(h.starts.length, 1);
+  const started = h.starts[0] as Record<string, unknown>;
+  assert.equal(started.writeAuditHistoryAccess, writeAuditHistoryAccess);
+  assert.equal(started.host, '127.0.0.1');
+  h.signals.emit('SIGTERM');
+  await done;
+  assert.equal(h.closes(), 1);
+  assert.deepEqual(h.messages, ['Gateway listening']);
+  assert.deepEqual(h.exits, [0]);
+});
