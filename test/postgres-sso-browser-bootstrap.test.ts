@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -55,6 +56,9 @@ for (const entry of ['catalog-entry.ts', 'sso-catalog-entry.ts']) {
         port: 0,
         newRequestId: () => 'artifact-bootstrap',
         browserArtifactPath: path,
+        ...(entry === 'sso-catalog-entry.ts'
+          ? { browserArtifactSha256: createHash('sha256').update(javascript).digest('hex') }
+          : {}),
         openConnection: () => {
           opens++;
           return connection;
@@ -108,6 +112,49 @@ test('bad artifacts fail before acquiring a database, with sanitized diagnostics
           port: 0,
           newRequestId: () => 'artifact-invalid',
           browserArtifactPath: path as string,
+          openConnection: () => {
+            opens++;
+            throw new Error('must not connect');
+          },
+        }),
+        {
+          name: 'ManagementBrowserArtifactUnavailable',
+          message: 'Management browser artifact unavailable',
+        },
+      );
+    }
+    assert.equal(opens, 0);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('artifact pins reject malformed configuration and byte substitution before SQL acquisition', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'og-browser-pin-'));
+  const path = join(directory, 'app.js');
+  const reviewed = 'export const release = 1;\n';
+  const digest = createHash('sha256').update(reviewed).digest('hex');
+  let opens = 0;
+  try {
+    // Same length, different artifact: size/mtime are not integrity evidence.
+    await writeFile(path, 'export const release = 2;\n');
+    for (const pin of [
+      digest,
+      '',
+      '0'.repeat(63),
+      'g'.repeat(64),
+      digest.toUpperCase(),
+      null,
+      123,
+    ]) {
+      await assert.rejects(
+        startPostgresSsoBrowserGateway({
+          ...sso.config,
+          host: '127.0.0.1',
+          port: 0,
+          newRequestId: () => 'artifact-pin',
+          browserArtifactPath: path,
+          browserArtifactSha256: pin as string,
           openConnection: () => {
             opens++;
             throw new Error('must not connect');

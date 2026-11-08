@@ -9,3 +9,9 @@ Invalid host/port fails before connection opening. Source, connection, migration
 ## Durable catalog reads (#641)
 
 The same owned listener dispatches exact /management/v1/models and its slash-prefixed detail paths to the durable registered-key SSO catalog boundary. Both token and catalog handlers share the single migrated connection, issuer, API audience, keys, clock and request-ID factory. Every catalog request resolves fresh human bindings, IAM and catalog state and awaits attributed durable audit; catalog authentication/audit errors remain fail-closed. Unrelated paths remain with the token handler, never an inference server. Optional static browser assets wrap the combined application without granting a session or changing authentication. No browser credential bridge or deployment activation is introduced.
+
+## Reviewed browser artifact pin (#639/#643)
+
+The separate `startPostgresSsoBrowserGateway` bootstrap accepts optional `browserArtifactSha256`, exactly 64 lowercase hexadecimal characters from a trusted release record. When supplied, it hashes the actual bounded raw file bytes read from the opened descriptor and rejects mismatches or malformed pins with `ManagementBrowserArtifactUnavailable` before opening PostgreSQL. Pin omission preserves existing behavior. No second path read or metadata comparison substitutes for byte verification; UTF-8 and size checks still apply. SHA-256 is a byte-identity check, not a signature, code review, secret scanner or deployment authorization. This does not activate routes or add a session.
+
+After publishing a reviewed versioned artifact, record its SHA-256 in the approved release evidence, then supply that trusted value alongside `browserArtifactPath` in the existing explicit bootstrap. Do not derive a new trusted value from a suspect file after a mismatch. See [implementation plan](../docs/plans/639-browser-artifact-pin.md).
