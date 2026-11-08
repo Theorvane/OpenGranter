@@ -26,3 +26,7 @@ createSsoManagementCatalogAuthority shares the proxy authority observer/expiry m
 ## Fail-closed observer teardown (#639, #641)
 
 The shared proxy/SSO observer detaches its revision, expiry and timer handle before best-effort timer cancellation. A throwing cancellation hook cannot prevent request abort, data removal, identity replacement, disposal or 401/403 lockout. A thrown, non-finite or negative trusted clock reading expires the grant; a failed initial/rearm scheduler clears it as unavailable. Both terminal paths suppress subsequent reads until a new trusted grant. Fixed state-only notifications do not expose exception diagnostics. This does not add session authentication, browser login, IAM authority or runtime activation.
+
+## Published modality and parameter labels (#641)
+
+Optional `architecture` projects only `input_modalities` and `output_modalities`; `supported_parameters` projects only administrator-published parameter labels. Each array is unique, bounded to 64 nonblank strings of at most 128 code units. Empty arrays remain empty; absence remains absent for legacy rows. Malformed present values suppress the entire response with fixed 503, including sparse arrays; unknown nested architecture fields are stripped. No default text modality, capability verification, routing authority or provider lookup is inferred. Fresh authentication, IAM and mandatory audit remain unchanged. Browser parser adoption is separate and no session/runtime activation is implied. See [plan](../docs/plans/641-sso-capability-display.md).

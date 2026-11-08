@@ -55,6 +55,27 @@ function basePricing(value: unknown): NonNullable<SsoCatalogModel['pricing']> {
   };
   return { prompt: price('prompt'), completion: price('completion') };
 }
+function displayLabels(value: unknown): readonly string[] {
+  if (!Array.isArray(value) || value.length > 64) throw new Error();
+  const result: string[] = [];
+  // Iteration rejects sparse arrays instead of serializing holes as null.
+  for (const label of value) {
+    if (typeof label !== 'string' || !label.trim() || label.length > 128) throw new Error();
+    result.push(label);
+  }
+  if (new Set(result).size !== result.length) throw new Error();
+  return result;
+}
+function displayArchitecture(value: unknown): NonNullable<SsoCatalogModel['architecture']> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error();
+  const row = value as Record<string, unknown>;
+  if (!Object.hasOwn(row, 'input_modalities') || !Object.hasOwn(row, 'output_modalities'))
+    throw new Error();
+  return {
+    input_modalities: displayLabels(row.input_modalities),
+    output_modalities: displayLabels(row.output_modalities),
+  };
+}
 function project(model: SsoCatalogModel): SsoCatalogModel {
   if (
     !model ||
@@ -84,6 +105,12 @@ function project(model: SsoCatalogModel): SsoCatalogModel {
     ...(model.description === undefined ? {} : { description: model.description }),
     ...(model.context_length === undefined ? {} : { context_length: model.context_length }),
     ...(Object.hasOwn(model, 'pricing') ? { pricing: basePricing(model.pricing) } : {}),
+    ...(Object.hasOwn(model, 'architecture')
+      ? { architecture: displayArchitecture(model.architecture) }
+      : {}),
+    ...(Object.hasOwn(model, 'supported_parameters')
+      ? { supported_parameters: displayLabels(model.supported_parameters) }
+      : {}),
   };
 }
 
