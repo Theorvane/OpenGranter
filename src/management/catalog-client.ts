@@ -6,6 +6,11 @@ export interface CatalogModel {
   readonly object: 'model';
   readonly created: number;
   readonly owned_by: string;
+  /** Already-published informational text only; never render as HTML. */
+  readonly name?: string;
+  readonly description?: string;
+  /** Null means unknown; omission is a legacy/basic publication. */
+  readonly context_length?: number | null;
   /** Published base rates only; not discounted or billed request costs. */
   readonly pricing?: { readonly prompt: string; readonly completion: string };
 }
@@ -25,6 +30,15 @@ function model(value: unknown): value is CatalogModel {
     typeof row.created === 'number' &&
     Number.isFinite(row.created) &&
     (!Object.hasOwn(row, 'pricing') || basePricing(row.pricing)) &&
+    (!Object.hasOwn(row, 'name') ||
+      (typeof row.name === 'string' && row.name.trim().length > 0 && row.name.length <= 256)) &&
+    (!Object.hasOwn(row, 'description') ||
+      (typeof row.description === 'string' && row.description.length <= 8192)) &&
+    (!Object.hasOwn(row, 'context_length') ||
+      row.context_length === null ||
+      (typeof row.context_length === 'number' &&
+        Number.isSafeInteger(row.context_length) &&
+        row.context_length >= 0)) &&
     typeof row.owned_by === 'string'
   );
 }
@@ -95,6 +109,9 @@ function project(row: CatalogModel): CatalogModel {
     object: 'model',
     created: row.created,
     owned_by: row.owned_by,
+    ...(row.name === undefined ? {} : { name: row.name }),
+    ...(row.description === undefined ? {} : { description: row.description }),
+    ...(row.context_length === undefined ? {} : { context_length: row.context_length }),
     ...(row.pricing === undefined
       ? {}
       : {

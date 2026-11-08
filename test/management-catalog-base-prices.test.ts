@@ -77,10 +77,7 @@ for (const kind of ['managed', 'delegated'] as const) {
       assert.equal(listed.state, 'ready');
       if (listed.state !== 'ready') assert.fail('list unavailable');
       assert.deepEqual(listed.data[0]?.pricing, { prompt: '0.000001', completion: '0.000002' });
-      assert.doesNotMatch(
-        JSON.stringify(listed),
-        /private\/canonical|private published|upstream|discount/u,
-      );
+      assert.doesNotMatch(JSON.stringify(listed), /private\/canonical|upstream|discount/u);
       assert.deepEqual(await client.detail('team/model'), { state: 'ready', data: listed.data[0] });
       f.statements.push({ effect: 'Deny', actions: ['*'], resources: ['provider:provider'] });
       assert.deepEqual(await client.list(), { state: 'ready', data: [] });
