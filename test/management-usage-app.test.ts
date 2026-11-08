@@ -1449,7 +1449,14 @@ test('invalid usage drafts survive repeated submission and correction keeps exac
   try {
     await app.connect(async (path) => {
       seen.push(new URL('https://local.invalid' + path).searchParams);
-      return response();
+      const query = new URL('https://local.invalid' + path).searchParams;
+      return response([
+        {
+          ...row,
+          modelAlias: query.get('model') ?? row.modelAlias,
+          occurredAt: Number(query.get('from_ms') ?? row.occurredAt),
+        },
+      ]);
     });
     input('Model').value = 'team/chat+?&=한글';
     input('From (UTC)').value = '2023-02-29T00:00';
@@ -1529,7 +1536,7 @@ test('HTTP clear filters retires scoped CSV and cursor without inventing princip
         return {
           state: 'ready',
           format: 'json',
-          data: [row],
+          data: [{ ...row, modelAlias: params.get('model') ?? row.modelAlias }],
           hasMore: !params.has('cursor'),
           nextCursor: params.has('cursor') ? null : cursor,
         };

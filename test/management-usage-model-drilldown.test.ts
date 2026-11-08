@@ -134,10 +134,10 @@ for (const { dimension, artifact } of (['model', 'principal'] as const).flatMap(
         assert.ok(inputs[2]);
         assert.ok(inputs[3]);
         assert.ok(inputs[4]);
-        if (dimension === 'model') inputs[0].value = 'human';
+        if (dimension === 'model') inputs[0].value = row.principalId;
         else {
           assert.ok(inputs[1]);
-          inputs[1].value = 'submitted-model';
+          inputs[1].value = row.modelAlias;
         }
         inputs[2].value = '1970-01-01T00:00:00.001';
         inputs[3].value = '1970-01-01T00:00:00.010';
@@ -176,14 +176,8 @@ for (const { dimension, artifact } of (['model', 'principal'] as const).flatMap(
         assert.equal(seen.length, count);
         const query = seen.at(-1);
         assert.ok(query);
-        assert.equal(
-          query.get('model'),
-          dimension === 'model' ? row.modelAlias : 'submitted-model',
-        );
-        assert.equal(
-          query.get('principal_id'),
-          dimension === 'principal' ? row.principalId : 'human',
-        );
+        assert.equal(query.get('model'), row.modelAlias);
+        assert.equal(query.get('principal_id'), row.principalId);
         assert.equal(query.get('from_ms'), '1');
         assert.equal(query.get('to_ms'), '10');
         assert.equal(query.get('limit'), '7');
