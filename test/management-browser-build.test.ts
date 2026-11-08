@@ -258,3 +258,94 @@ test('CLI publication never replaces files or symlinks and removes staging', asy
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test('bundles actual audit client and workspace without exposing SQL or weakening projections', async () => {
+  const event = {
+    eventId: '9',
+    occurredAt: 10,
+    kind: 'models-listed',
+    requestId: 'request',
+    principalId: 'human',
+    credentialId: 'credential',
+    policyVersions: [{ id: 'policy', version: 'v1' }],
+    details: { count: 0 },
+  };
+  const response = () =>
+    Response.json(
+      {
+        object: 'list',
+        data: [{ ...event, secret: 'private', details: { count: 0, prompt: 'private' } }],
+        next_cursor: null,
+      },
+      { headers: { 'x-audit-has-more': 'false' } },
+    );
+  for (const entry of ['sso-audit-client', 'sso-audit-workspace']) {
+    const javascript = await buildManagementBrowser({
+      root: resolve('.'),
+      entry: `src/management/${entry}.ts`,
+    });
+    assert.doesNotMatch(
+      javascript,
+      /INSERT INTO|gateway_audit_events|createPostgres|node:|process\.env|sourceMappingURL/,
+    );
+    const api = await load(javascript);
+    if (entry === 'sso-audit-client') {
+      const client = api.createManagementSsoAuditClient(async () => response(), 'human');
+      assert.deepEqual(await client.list(), {
+        state: 'ready',
+        data: {
+          events: [event],
+          nextCursor: null,
+          hasMore: false,
+        },
+      });
+      assert.equal((await client.list({ cursor: '0' })).state, 'invalid_query');
+      const isolated = api.createManagementSsoAuditClient(async () => response(), 'other');
+      assert.equal((await isolated.list()).state, 'unavailable');
+      client.invalidate();
+      isolated.invalidate();
+    } else {
+      const workspace = api.createManagementSsoAuditWorkspace({
+        now: () => 100,
+        schedule: () => () => {},
+      });
+      workspace.authorize({
+        request: async () => response(),
+        principalId: 'human',
+        expiresAt: 200,
+      });
+      await workspace.load();
+      assert.deepEqual(workspace.snapshot().page.events, [event]);
+      workspace.clear();
+      assert.equal(workspace.snapshot().page, undefined);
+      workspace.dispose();
+    }
+  }
+});
+
+test('audit public allowlist never permits SQL implementation or server entry points', async () =>
+  fixture(async (root, source) => {
+    const audit = join(root, 'src/audit');
+    await mkdir(audit, { recursive: true });
+    await writeFile(join(audit, 'postgres-gateway-audit.ts'), 'export const sql = "private";');
+    await writeFile(join(audit, 'postgres-audit-history.ts'), 'export const sql = "private";');
+    for (const file of ['postgres-gateway-audit', 'postgres-audit-history']) {
+      await writeFile(join(source, 'entry.ts'), `export * from '../audit/${file}.ts';`);
+      await assert.rejects(buildManagementBrowser({ root, entry: 'src/management/entry.ts' }));
+    }
+    await writeFile(join(audit, 'gateway-audit-projection.ts'), 'export const value = 1;');
+    await assert.rejects(
+      buildManagementBrowser({ root, entry: 'src/audit/gateway-audit-projection.ts' }),
+    );
+    await writeFile(join(audit, 'history-http.ts'), 'export * from "./postgres-gateway-audit.ts";');
+    await writeFile(join(source, 'entry.ts'), 'export * from "../audit/history-http.ts";');
+    await assert.rejects(buildManagementBrowser({ root, entry: 'src/management/entry.ts' }));
+    await rm(join(audit, 'gateway-audit-projection.ts'));
+    await writeFile(join(root, 'outside.ts'), 'export const privateValue = 1;');
+    await symlink(join(root, 'outside.ts'), join(audit, 'gateway-audit-projection.ts'));
+    await writeFile(
+      join(source, 'entry.ts'),
+      'export * from "../audit/gateway-audit-projection.ts";',
+    );
+    await assert.rejects(buildManagementBrowser({ root, entry: 'src/management/entry.ts' }));
+  }));

@@ -21,6 +21,11 @@ export async function buildManagementBrowser(
     resolve(root, 'src/usage/record-parser.ts'),
     resolve(root, 'src/usage/record-usage.ts'),
     resolve(root, 'src/audit/attribution.ts'),
+    resolve(root, 'src/audit/history-http.ts'),
+    resolve(root, 'src/audit/history-filters.ts'),
+    resolve(root, 'src/audit/time-range.ts'),
+    resolve(root, 'src/audit/principal-reference.ts'),
+    resolve(root, 'src/audit/gateway-audit-projection.ts'),
   ]);
   async function local(path: string, entryPoint = false) {
     const canonical = await realpath(path);
