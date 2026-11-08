@@ -11,6 +11,12 @@ export interface CatalogModel {
   readonly description?: string;
   /** Null means unknown; omission is a legacy/basic publication. */
   readonly context_length?: number | null;
+  /** Informational publication only, not live provider capability authority. */
+  readonly architecture?: {
+    readonly input_modalities: readonly string[];
+    readonly output_modalities: readonly string[];
+  };
+  readonly supported_parameters?: readonly string[];
   /** Published base rates only; not discounted or billed request costs. */
   readonly pricing?: { readonly prompt: string; readonly completion: string };
 }
@@ -29,6 +35,8 @@ function model(value: unknown): value is CatalogModel {
     row.object === 'model' &&
     typeof row.created === 'number' &&
     Number.isFinite(row.created) &&
+    (!Object.hasOwn(row, 'architecture') || displayArchitecture(row.architecture)) &&
+    (!Object.hasOwn(row, 'supported_parameters') || displayLabels(row.supported_parameters)) &&
     (!Object.hasOwn(row, 'pricing') || basePricing(row.pricing)) &&
     (!Object.hasOwn(row, 'name') ||
       (typeof row.name === 'string' && row.name.trim().length > 0 && row.name.length <= 256)) &&
@@ -41,6 +49,21 @@ function model(value: unknown): value is CatalogModel {
         row.context_length >= 0)) &&
     typeof row.owned_by === 'string'
   );
+}
+function displayLabels(value: unknown): value is readonly string[] {
+  return (
+    Array.isArray(value) &&
+    value.length <= 64 &&
+    value.every(
+      (label) => typeof label === 'string' && label.trim().length > 0 && label.length <= 128,
+    ) &&
+    new Set(value).size === value.length
+  );
+}
+function displayArchitecture(value: unknown): value is NonNullable<CatalogModel['architecture']> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const row = value as Record<string, unknown>;
+  return displayLabels(row.input_modalities) && displayLabels(row.output_modalities);
 }
 function basePricing(value: unknown): value is NonNullable<CatalogModel['pricing']> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
@@ -112,6 +135,17 @@ function project(row: CatalogModel): CatalogModel {
     ...(row.name === undefined ? {} : { name: row.name }),
     ...(row.description === undefined ? {} : { description: row.description }),
     ...(row.context_length === undefined ? {} : { context_length: row.context_length }),
+    ...(row.architecture === undefined
+      ? {}
+      : {
+          architecture: Object.freeze({
+            input_modalities: Object.freeze([...row.architecture.input_modalities]),
+            output_modalities: Object.freeze([...row.architecture.output_modalities]),
+          }),
+        }),
+    ...(row.supported_parameters === undefined
+      ? {}
+      : { supported_parameters: Object.freeze([...row.supported_parameters]) }),
     ...(row.pricing === undefined
       ? {}
       : {
