@@ -431,7 +431,11 @@ test('published SSO display fields survive persisted catalog, HTTP and UI transp
   const server = createPostgresSsoModelCatalogServer(f.ports);
   try {
     const metadata = {
-      ...discoveryModel('team/chat').openRouterMetadata,
+      ...discoveryModel('team/chat', {
+        inputs: ['text', 'image'],
+        outputs: ['text'],
+        parameters: ['tools', 'temperature'],
+      }).openRouterMetadata,
       name: 'Published model <b>text</b>',
       description: 'Published description\n模型',
       context_length: null,
@@ -471,6 +475,8 @@ test('published SSO display fields survive persisted catalog, HTTP and UI transp
         {
           ...row,
           pricing: { prompt: metadata.pricing.prompt, completion: metadata.pricing.completion },
+          architecture: { input_modalities: ['text', 'image'], output_modalities: ['text'] },
+          supported_parameters: ['tools', 'temperature'],
         },
       ],
     });
@@ -483,6 +489,8 @@ test('published SSO display fields survive persisted catalog, HTTP and UI transp
     assert.deepEqual(await safe(rawDetail, 200), {
       ...row,
       pricing: { prompt: metadata.pricing.prompt, completion: metadata.pricing.completion },
+      architecture: { input_modalities: ['text', 'image'], output_modalities: ['text'] },
+      supported_parameters: ['tools', 'temperature'],
     });
     // Browser parser adoption belongs to frontend; it still omits this new optional field.
     assert.deepEqual(await client.list(), { state: 'ready', data: [row] });
@@ -499,7 +507,7 @@ test('published SSO display fields survive persisted catalog, HTTP and UI transp
     assert.equal(events.length, 5);
     assert.doesNotMatch(
       JSON.stringify(events),
-      /Published|description|context_length|pricing|0\.0000001234567890123456789|private\/canonical/u,
+      /Published|description|context_length|architecture|input_modalities|supported_parameters|temperature|pricing|0\.0000001234567890123456789|private\/canonical/u,
     );
     await f.db.exec(`UPDATE iam_policies SET version = 'v2', statements =
       '[{"effect":"Deny","actions":["llm:InvokeModel"],"resources":["model:*"]}]' WHERE policy_id = 'allow'`);

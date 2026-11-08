@@ -345,12 +345,17 @@ test('real loopback Node + signed JWT + migrated PGlite: role IAM, live deny/rev
 
 test('descriptive SSO publication is bounded and never implies rich proxy publication', async () => {
   const f = fixture();
-  const display = { ...model, name: 'Public <b>text</b>', description: '', context_length: null };
+  const display = {
+    ...model,
+    name: 'Public <b>text</b>',
+    description: '',
+    context_length: null,
+    architecture: { input_modalities: ['text'], output_modalities: ['text'] },
+    supported_parameters: ['tools'],
+  };
   const extra = {
     ...display,
     canonical_slug: 'private-secret',
-    architecture: { input_modalities: ['text'], output_modalities: ['text'] },
-    supported_parameters: ['tools'],
     credentialRef: 'private-secret',
   };
   f.setList({ state: 'ready', data: [extra] });
@@ -421,4 +426,81 @@ test('published base prices preserve exact decimals, strip extras and reject mal
     await safe(await f.handle(request()), 503);
     await safe(await f.handle(request('/team%2Fchat')), 503);
   }
+});
+
+test('published modality and parameter labels survive HTTP without private nested metadata', async () => {
+  const f = fixture();
+  const architecture = { input_modalities: ['text', 'image'], output_modalities: ['text'] };
+  const supported_parameters = ['tools', 'temperature'];
+  const row = {
+    ...model,
+    architecture: { ...architecture, modality: 'private-secret' },
+    supported_parameters,
+  };
+  f.setList({ state: 'ready', data: [row] });
+  f.setDetail({ state: 'ready', data: row });
+  assert.deepEqual(await safe(await f.handle(request()), 200), {
+    object: 'list',
+    data: [{ ...model, architecture, supported_parameters }],
+  });
+  assert.deepEqual(await safe(await f.handle(request('/team%2Fchat')), 200), {
+    ...model,
+    architecture,
+    supported_parameters,
+  });
+  const empty = {
+    ...model,
+    architecture: { input_modalities: [], output_modalities: [] },
+    supported_parameters: [],
+  };
+  f.setDetail({ state: 'ready', data: empty });
+  assert.deepEqual(await safe(await f.handle(request('/team%2Fchat')), 200), empty);
+});
+
+test('malformed present modality or parameter labels suppress the entire list and detail', async () => {
+  const f = fixture();
+  const invalidArrays = [
+    undefined,
+    null,
+    {},
+    'text',
+    [1],
+    [''],
+    [' '],
+    ['text', 'text'],
+    ['x'.repeat(129)],
+    Array(65).fill('text'),
+    Array(1),
+  ];
+  const invalidArchitectures = [
+    undefined,
+    null,
+    [],
+    {},
+    { input_modalities: [] },
+    ...invalidArrays.map((input_modalities) => ({ input_modalities, output_modalities: [] })),
+    ...invalidArrays.map((output_modalities) => ({ input_modalities: [], output_modalities })),
+  ];
+  for (const fields of [
+    ...invalidArchitectures.map((architecture) => ({ architecture })),
+    ...invalidArrays.map((supported_parameters) => ({ supported_parameters })),
+  ]) {
+    const row = { ...model, ...fields } as unknown as SsoCatalogModel;
+    f.setList({ state: 'ready', data: [model, row] });
+    f.setDetail({ state: 'ready', data: row });
+    await safe(await f.handle(request()), 503);
+    await safe(await f.handle(request('/team%2Fchat')), 503);
+  }
+});
+
+test('published label bounds preserve order and do not invent text or known capabilities', async () => {
+  const f = fixture();
+  const labels = Array.from({ length: 64 }, (_, i) => `${i}${'x'.repeat(125)}`);
+  const row = {
+    ...model,
+    architecture: { input_modalities: labels, output_modalities: ['future-modality'] },
+    supported_parameters: labels,
+  };
+  f.setDetail({ state: 'ready', data: row });
+  assert.deepEqual(await safe(await f.handle(request('/team%2Fchat')), 200), row);
 });
