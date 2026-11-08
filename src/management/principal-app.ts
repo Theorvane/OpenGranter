@@ -4,16 +4,21 @@ import type { UsageElement } from './usage-app.ts';
 /** Current active-human identity only, never an IAM grant or a browser session.
  * The host owns trusted authority, expiry and teardown. No automatic retry.
  */
-export function mountManagementPrincipal(root: UsageElement) {
+export function mountManagementPrincipal(
+  root: UsageElement,
+  options: { readonly onRetry?: () => void } = {},
+) {
   let disposed = false;
   let revision = 0;
   let pending: AbortController | undefined;
+  let rendered = 0;
   function cancel() {
     revision++;
     pending?.abort();
     pending = undefined;
   }
   function render(message: string) {
+    const currentRender = ++rendered;
     const heading = root.ownerDocument.createElement('h1');
     heading.textContent = 'Account';
     const status = root.ownerDocument.createElement('p');
@@ -22,6 +27,18 @@ export function mountManagementPrincipal(root: UsageElement) {
     const warning = root.ownerDocument.createElement('p');
     warning.textContent = 'Identity is not permission to administer resources.';
     root.replaceChildren(heading, status, warning);
+    if (message === 'Current principal unavailable.' && options.onRetry) {
+      const retry = root.ownerDocument.createElement('button');
+      retry.setAttribute('type', 'button');
+      retry.textContent = 'Retry current principal';
+      retry.addEventListener('click', () => {
+        if (disposed || currentRender !== rendered) return;
+        // Consume once before calling the host; it owns fresh expiry/lifecycle checks.
+        rendered++;
+        options.onRetry?.();
+      });
+      root.append(retry);
+    }
   }
   function clear(reason: 'unauthenticated' | 'expired' | 'denied' = 'unauthenticated') {
     if (disposed) return;

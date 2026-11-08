@@ -141,10 +141,18 @@ export function mountSsoUsageWorkspace(
       app = mountManagementTokens(content, tokens);
       return;
     }
+    const identityOptions = {
+      onRetry() {
+        // A retry is navigation within this exact host render, not new authority.
+        // Check expiry synchronously even when background timers were suspended.
+        if (disposed || !active || rendered !== renderRevision || !valid()) return;
+        void render();
+      },
+    };
     if (view === 'audit') {
       // Resolve the actual current identity without changing the authority grant.
       // Navigating away disposes the bounded reader and suppresses late results.
-      const identity = mountManagementPrincipal(content);
+      const identity = mountManagementPrincipal(content, identityOptions);
       app = identity;
       if (!grant) {
         identity.clear(reason);
@@ -162,7 +170,7 @@ export function mountSsoUsageWorkspace(
       return;
     }
     if (view === 'account') {
-      const mounted = mountManagementPrincipal(content);
+      const mounted = mountManagementPrincipal(content, identityOptions);
       app = mounted;
       if (grant) await mounted.authorize(transport(grant));
       else mounted.clear(reason);

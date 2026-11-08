@@ -126,6 +126,24 @@ for (const [label, mount] of [
         assert.equal(statuses.at(-1), 503);
         assert.match(root.text(), /Current principal unavailable/);
         assert.doesNotMatch(root.text(), /human-admin|audit_unavailable|private/);
+        // Explicit recovery traverses the same signed HTTP boundary without a new grant.
+        // Restore the pre-registered binding; no permission or credential is created.
+        await db.query(
+          'INSERT INTO iam_sso_identity_bindings (issuer,subject,principal_id) VALUES ($1,$2,$3)',
+          [jwt.issuer, jwt.subject, 'human-admin'],
+        );
+        const beforeRetry = statuses.length;
+        const retry = root.button('Retry current principal');
+        retry.click();
+        retry.click();
+        await until(() => !/Loading current principal/.test(root.text()));
+        assert.equal(statuses.length, beforeRetry + 1);
+        assert.equal(statuses.at(-1), 200);
+        assert.match(root.text(), /Current principal: human-admin/);
+        assert.equal((await db.query('SELECT * FROM iam_principal_policies')).rows.length, 0);
+        assert.equal((await db.query('SELECT * FROM proxy_credentials')).rows.length, 0);
+        retry.click();
+        assert.equal(statuses.length, beforeRetry + 1);
         assert.ok(paths.every((path) => path === '/management/v1/me'));
         lifecycle.dispatchEvent(new Event('pagehide'));
         assert.doesNotMatch(root.text(), /human-admin/);
