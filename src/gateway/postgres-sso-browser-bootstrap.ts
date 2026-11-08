@@ -4,6 +4,7 @@ import { isAbsolute } from 'node:path';
 import {
   type PostgresSsoManagementRuntimePorts,
   startPostgresSsoManagementGateway,
+  startPostgresSsoWorkspaceGateway,
 } from './postgres-gateway-runtime.ts';
 
 export interface PostgresSsoBrowserBootstrapPorts
@@ -62,4 +63,15 @@ export async function startPostgresSsoBrowserGateway(ports: PostgresSsoBrowserBo
   const { browserArtifactPath, ...runtime } = ports;
   const browserJavascript = await readArtifact(browserArtifactPath);
   return startPostgresSsoManagementGateway({ ...runtime, browserJavascript });
+}
+
+/** Explicit trusted-file workspace entry; never selected by the existing operator service.
+ * Caller owns approved schemas and ingress. No session, DDL or identity authority.
+ */
+export async function startPostgresSsoWorkspaceBrowserGateway(
+  ports: PostgresSsoBrowserBootstrapPorts,
+) {
+  const { browserArtifactPath, ...runtime } = ports;
+  const browserJavascript = await readArtifact(browserArtifactPath);
+  return startPostgresSsoWorkspaceGateway({ ...runtime, browserJavascript });
 }
