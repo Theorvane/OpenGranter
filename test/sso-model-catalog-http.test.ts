@@ -349,7 +349,6 @@ test('descriptive SSO publication is bounded and never implies rich proxy public
   const extra = {
     ...display,
     canonical_slug: 'private-secret',
-    pricing: { prompt: '9', completion: '9' },
     architecture: { input_modalities: ['text'], output_modalities: ['text'] },
     supported_parameters: ['tools'],
     credentialRef: 'private-secret',
@@ -388,4 +387,38 @@ test('descriptive SSO publication is bounded and never implies rich proxy public
   };
   f.setDetail({ state: 'ready', data: boundary });
   assert.deepEqual(await safe(await f.handle(request('/team%2Fchat')), 200), boundary);
+});
+
+test('published base prices preserve exact decimals, strip extras and reject malformed output', async () => {
+  const f = fixture();
+  const pricing = { prompt: '0.0000001234567890123456789', completion: '0e-9' };
+  const priced = {
+    ...model,
+    pricing: { ...pricing, credentialRef: 'private-secret', request: '99' },
+  };
+  f.setList({ state: 'ready', data: [priced] });
+  f.setDetail({ state: 'ready', data: priced });
+  assert.deepEqual(await safe(await f.handle(request()), 200), {
+    object: 'list',
+    data: [{ ...model, pricing }],
+  });
+  assert.deepEqual(await safe(await f.handle(request('/team%2Fchat')), 200), { ...model, pricing });
+  for (const bad of [
+    undefined,
+    null,
+    [],
+    {},
+    { prompt: '0' },
+    { prompt: 0, completion: '0' },
+    { prompt: '-1', completion: '0' },
+    { prompt: '1e999', completion: '0' },
+    { prompt: '01', completion: '0' },
+    { prompt: '1'.repeat(129), completion: '0' },
+  ]) {
+    const invalid = { ...model, pricing: bad } as unknown as SsoCatalogModel;
+    f.setList({ state: 'ready', data: [model, invalid] });
+    f.setDetail({ state: 'ready', data: invalid });
+    await safe(await f.handle(request()), 503);
+    await safe(await f.handle(request('/team%2Fchat')), 503);
+  }
 });

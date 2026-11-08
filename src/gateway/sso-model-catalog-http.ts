@@ -38,6 +38,23 @@ function validAlias(alias: string): boolean {
     alias.split('/').every((part) => part && part !== '.' && part !== '..')
   );
 }
+function basePricing(value: unknown): NonNullable<SsoCatalogModel['pricing']> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error();
+  const row = value as Record<string, unknown>;
+  const price = (field: string): string => {
+    const result = row[field];
+    if (
+      !Object.hasOwn(row, field) ||
+      typeof result !== 'string' ||
+      result.length > 128 ||
+      !/^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$/u.test(result) ||
+      !Number.isFinite(Number(result))
+    )
+      throw new Error();
+    return result;
+  };
+  return { prompt: price('prompt'), completion: price('completion') };
+}
 function project(model: SsoCatalogModel): SsoCatalogModel {
   if (
     !model ||
@@ -66,6 +83,7 @@ function project(model: SsoCatalogModel): SsoCatalogModel {
     ...(model.name === undefined ? {} : { name: model.name }),
     ...(model.description === undefined ? {} : { description: model.description }),
     ...(model.context_length === undefined ? {} : { context_length: model.context_length }),
+    ...(Object.hasOwn(model, 'pricing') ? { pricing: basePricing(model.pricing) } : {}),
   };
 }
 

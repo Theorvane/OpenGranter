@@ -23,6 +23,8 @@ export interface SsoCatalogModel {
   readonly name?: string;
   readonly description?: string;
   readonly context_length?: number | null;
+  /** Published USD/token base prices, never actual cost or routing authority. */
+  readonly pricing?: { readonly prompt: string; readonly completion: string };
 }
 export type SsoCatalogResult<T> =
   | { readonly state: 'ready'; readonly data: T }
@@ -115,6 +117,10 @@ export function createPostgresSsoModelCatalog(
                         ? {}
                         : { description: model.openRouterMetadata.description }),
                       context_length: model.openRouterMetadata.context_length,
+                      pricing: Object.freeze({
+                        prompt: model.openRouterMetadata.pricing.prompt,
+                        completion: model.openRouterMetadata.pricing.completion,
+                      }),
                     }),
               }),
           ),
