@@ -18,7 +18,7 @@ export type SsoBrowserServiceOptions = Omit<
   ) => Promise<{ readonly close: () => Promise<void> }>;
 };
 
-function isSsoBrowserPorts(value: unknown): value is SsoBrowserBootstrapPorts {
+export function isSsoBrowserPorts(value: unknown): value is SsoBrowserBootstrapPorts {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const row = value as Record<string, unknown>;
   return (
