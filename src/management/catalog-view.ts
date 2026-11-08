@@ -16,6 +16,7 @@ export interface CatalogActions {
   list(): void;
   detail(alias: string): void;
   inspectUsage?(alias: string): void;
+  retry?(): void;
 }
 
 /** Native buttons preserve keyboard activation; untrusted values enter textContent only. */
@@ -67,6 +68,7 @@ export function renderCatalogView(
       value.state === 'loading' || value.state === 'idle' ? 'status' : 'alert',
     );
     main.append(message);
+    if (value.state === 'unavailable' && actions.retry) main.append(button('Retry', actions.retry));
     if (value.state !== 'loading' && value.state !== 'idle')
       main.append(button('Back to models', actions.list));
   } else if (value.state === 'list' || value.state === 'empty') {

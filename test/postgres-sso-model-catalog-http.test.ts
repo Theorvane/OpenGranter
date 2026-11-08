@@ -662,6 +662,30 @@ for (const [label, mount] of [
       root.button('Back to models').click();
       await until(() => !/Loading models/.test(root.text()));
       await f.db.exec(
+        'ALTER TABLE sso_catalog_audit_events RENAME TO held_sso_catalog_audit_events',
+      );
+      root.button('team/chat').click();
+      await until(() => /catalog unavailable/.test(root.text()));
+      assert.equal(statuses.at(-1), 503);
+      const failedRetry = root.button('Retry');
+      const countBeforeRetry = statuses.length;
+      await f.db.exec(
+        'ALTER TABLE held_sso_catalog_audit_events RENAME TO sso_catalog_audit_events',
+      );
+      const auditBeforeRetry = await audits();
+      failedRetry.click();
+      failedRetry.click();
+      await until(() => /Published by/.test(root.text()));
+      assert.equal(statuses.length, countBeforeRetry + 1);
+      assert.equal(await audits(), auditBeforeRetry + 1);
+      assert.equal(statuses.at(-1), 200);
+      assert.match(root.text(), /team\/chat/);
+      root.button('Back to models').click();
+      await until(() => !/Loading models/.test(root.text()));
+      failedRetry.click();
+      await new Promise((resolve) => setTimeout(resolve, 15));
+      assert.equal(statuses.length, countBeforeRetry + 2);
+      await f.db.exec(
         `UPDATE iam_policies SET version = 'v2', statements = '[{"effect":"Deny","actions":["llm:InvokeModel"],"resources":["model:*"]}]' WHERE policy_id = 'allow'`,
       );
       root.button('team/chat').click();
@@ -678,7 +702,7 @@ for (const [label, mount] of [
       await f.db.exec(
         'ALTER TABLE held_sso_catalog_audit_events RENAME TO sso_catalog_audit_events',
       );
-      root.button('Back to models').click();
+      root.button('Retry').click();
       await until(() => /No models available/.test(root.text()));
       const rows = (
         await f.db.query<{ principal_id: string; policy_versions: unknown }>(
