@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, mkdtemp, readdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { test } from 'node:test';
@@ -85,6 +85,8 @@ test('CLI emits only a browser module or a fixed error', () => {
     [],
     ['private-invalid-source.ts'],
     ['src/management/boundary-view.ts', 'extra'],
+    ['src/management/boundary-view.ts', '--output'],
+    ['src/management/boundary-view.ts', '--output', ''],
   ]) {
     const bad = spawnSync(process.execPath, ['--experimental-strip-types', script, ...args], {
       encoding: 'utf8',
@@ -207,3 +209,52 @@ test('shared allowlist checks canonical paths, not symlink names', async () =>
     await writeFile(join(source, 'entry.ts'), 'export * from "../usage/record-parser.ts";');
     await assert.rejects(buildManagementBrowser({ root, entry: 'src/management/entry.ts' }));
   }));
+test('CLI publishes an importable artifact despite npm log banners', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'og-browser-publish-'));
+  try {
+    const output = join(directory, 'app.mjs');
+    const result = spawnSync(
+      'npm',
+      ['run', 'management:build', '--', 'src/management/boundary-view.ts', '--output', output],
+      { encoding: 'utf8' },
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /management:build/);
+    const javascript = await readFile(output, 'utf8');
+    assert.match((await load(javascript)).renderManagementBoundaryView('denied'), /Access denied/);
+    assert.equal((await lstat(output)).mode & 0o777, 0o600);
+    assert.deepEqual(await readdir(directory), ['app.mjs']);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('CLI publication never replaces files or symlinks and removes staging', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'og-browser-publish-'));
+  const script = resolve('scripts/build-management-browser.ts');
+  const run = (entry: string, output: string) =>
+    spawnSync(process.execPath, ['--experimental-strip-types', script, entry, '--output', output], {
+      encoding: 'utf8',
+    });
+  try {
+    const artifact = join(directory, 'app.js');
+    const alias = join(directory, 'alias.js');
+    await writeFile(artifact, 'previous-reviewed-module');
+    await symlink(artifact, alias);
+    for (const output of [artifact, alias, join(directory, 'missing', 'app.js')]) {
+      const result = run('src/management/boundary-view.ts', output);
+      assert.equal(result.status, 1);
+      assert.equal(result.stdout, '');
+      assert.equal(
+        result.stderr,
+        'Management browser build failed; supply a reviewed local TypeScript entry.\n',
+      );
+    }
+    assert.equal(await readFile(artifact, 'utf8'), 'previous-reviewed-module');
+    assert.equal((await lstat(alias)).isSymbolicLink(), true);
+    assert.equal(run('missing-entry.ts', join(directory, 'new.js')).status, 1);
+    assert.deepEqual((await readdir(directory)).sort(), ['alias.js', 'app.js']);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});

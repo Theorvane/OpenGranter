@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -10,69 +11,83 @@ import { createSsoAccessTokenFixture } from './sso-access-token-fixture.ts';
 
 const sso = await createSsoAccessTokenFixture();
 
-test('reviewed prebuilt file starts the owned migrated SSO browser listener', async () => {
-  const directory = await mkdtemp(join(tmpdir(), 'og-browser-bootstrap-'));
-  const path = join(directory, 'app.js');
-  const javascript = 'document.getElementById("app").textContent = "Sign in required";';
-  const published = join(directory, 'published.js');
-  await writeFile(published, javascript);
-  await symlink(published, path);
-  const db = new PGlite();
-  let opens = 0;
-  let closes = 0;
-  const connection: PostgresConnection = {
-    query: (sql, params) => db.query(sql, [...params]),
-    transaction: (callback) =>
-      db.transaction((tx) =>
-        callback({
-          exec: (sql) => tx.exec(sql),
-          query: (sql, params) => tx.query(sql, [...params]),
-        }),
-      ),
-    close: async () => {
-      closes++;
-      await db.close();
-    },
-  };
-  try {
-    const runtime = await startPostgresSsoBrowserGateway({
-      ...sso.config,
-      host: '127.0.0.1',
-      port: 0,
-      newRequestId: () => 'artifact-bootstrap',
-      browserArtifactPath: path,
-      openConnection: () => {
-        opens++;
-        return connection;
+for (const entry of ['catalog-entry.ts', 'sso-catalog-entry.ts']) {
+  test('published ' + entry + ' starts the owned migrated SSO browser listener', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'og-browser-bootstrap-'));
+    const path = join(directory, 'app.js');
+    const published = join(directory, 'published.js');
+    const build = spawnSync(
+      process.execPath,
+      [
+        '--experimental-strip-types',
+        'scripts/build-management-browser.ts',
+        'src/management/' + entry,
+        '--output',
+        published,
+      ],
+      { encoding: 'utf8' },
+    );
+    assert.equal(build.status, 0, build.stderr);
+    assert.equal(build.stdout, '');
+    const javascript = await readFile(published, 'utf8');
+    await symlink(published, path);
+    const db = new PGlite();
+    let opens = 0;
+    let closes = 0;
+    const connection: PostgresConnection = {
+      query: (sql, params) => db.query(sql, [...params]),
+      transaction: (callback) =>
+        db.transaction((tx) =>
+          callback({
+            exec: (sql) => tx.exec(sql),
+            query: (sql, params) => tx.query(sql, [...params]),
+          }),
+        ),
+      close: async () => {
+        closes++;
+        await db.close();
       },
-    });
+    };
     try {
-      const origin = `http://127.0.0.1:${runtime.address.port}`;
-      const page = await fetch(`${origin}/management`);
-      assert.equal(page.status, 200);
-      assert.match(await page.text(), /src="\/management\/app.js"/);
-      const script = await fetch(`${origin}/management/app.js`);
-      assert.equal(script.status, 200);
-      assert.equal(await script.text(), javascript);
-      assert.equal(script.headers.get('cache-control'), 'no-store');
-      const denied = await fetch(`${origin}/management/v1/proxy-tokens`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: '{}',
+      const runtime = await startPostgresSsoBrowserGateway({
+        ...sso.config,
+        host: '127.0.0.1',
+        port: 0,
+        newRequestId: () => 'artifact-bootstrap',
+        browserArtifactPath: path,
+        openConnection: () => {
+          opens++;
+          return connection;
+        },
       });
-      assert.equal(denied.status, 401);
-      assert.equal((await fetch(`${origin}/api/v1/models`)).status, 404);
+      try {
+        const origin = `http://127.0.0.1:${runtime.address.port}`;
+        const page = await fetch(`${origin}/management`);
+        assert.equal(page.status, 200);
+        assert.match(await page.text(), /src="\/management\/app.js"/);
+        const script = await fetch(`${origin}/management/app.js`);
+        assert.equal(script.status, 200);
+        assert.equal(await script.text(), javascript);
+        assert.equal(script.headers.get('cache-control'), 'no-store');
+        const denied = await fetch(`${origin}/management/v1/proxy-tokens`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: '{}',
+        });
+        assert.equal(denied.status, 401);
+        assert.equal((await fetch(`${origin}/api/v1/models`)).status, 404);
+      } finally {
+        await runtime.close();
+        await runtime.close();
+      }
+      assert.equal(opens, 1);
+      assert.equal(closes, 1);
     } finally {
-      await runtime.close();
-      await runtime.close();
+      if (!closes) await db.close();
+      await rm(directory, { recursive: true, force: true });
     }
-    assert.equal(opens, 1);
-    assert.equal(closes, 1);
-  } finally {
-    if (!closes) await db.close();
-    await rm(directory, { recursive: true, force: true });
-  }
-});
+  });
+}
 
 test('bad artifacts fail before acquiring a database, with sanitized diagnostics', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'og-browser-invalid-'));
