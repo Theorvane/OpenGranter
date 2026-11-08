@@ -435,6 +435,10 @@ test('published SSO display fields survive persisted catalog, HTTP and UI transp
       name: 'Published model <b>text</b>',
       description: 'Published description\n模型',
       context_length: null,
+      pricing: {
+        prompt: '0.0000001234567890123456789',
+        completion: '0e-9',
+      },
     };
     await f.db.query('UPDATE catalog_models SET openrouter_metadata = $1::jsonb WHERE alias = $2', [
       JSON.stringify(metadata),
@@ -461,7 +465,26 @@ test('published SSO display fields survive persisted catalog, HTTP and UI transp
     const raw = await fetch(`http://127.0.0.1:${address.port}/management/v1/models`, {
       headers: { authorization: `Bearer ${f.token}` },
     });
-    assert.deepEqual(await safe(raw, 200), { object: 'list', data: [row] });
+    assert.deepEqual(await safe(raw, 200), {
+      object: 'list',
+      data: [
+        {
+          ...row,
+          pricing: { prompt: metadata.pricing.prompt, completion: metadata.pricing.completion },
+        },
+      ],
+    });
+    const rawDetail = await fetch(
+      `http://127.0.0.1:${address.port}/management/v1/models/team%2Fchat`,
+      {
+        headers: { authorization: `Bearer ${f.token}` },
+      },
+    );
+    assert.deepEqual(await safe(rawDetail, 200), {
+      ...row,
+      pricing: { prompt: metadata.pricing.prompt, completion: metadata.pricing.completion },
+    });
+    // Browser parser adoption belongs to frontend; it still omits this new optional field.
     assert.deepEqual(await client.list(), { state: 'ready', data: [row] });
     assert.deepEqual(await client.detail('team/chat'), { state: 'ready', data: row });
     await f.db.query('UPDATE catalog_models SET openrouter_metadata = $1::jsonb WHERE alias = $2', [
@@ -473,10 +496,10 @@ test('published SSO display fields survive persisted catalog, HTTP and UI transp
       data: { ...row, context_length: 8192 },
     });
     const events = (await f.db.query('SELECT * FROM sso_catalog_audit_events')).rows;
-    assert.equal(events.length, 4);
+    assert.equal(events.length, 5);
     assert.doesNotMatch(
       JSON.stringify(events),
-      /Published|description|context_length|private\/canonical/u,
+      /Published|description|context_length|pricing|0\.0000001234567890123456789|private\/canonical/u,
     );
     await f.db.exec(`UPDATE iam_policies SET version = 'v2', statements =
       '[{"effect":"Deny","actions":["llm:InvokeModel"],"resources":["model:*"]}]' WHERE policy_id = 'allow'`);
