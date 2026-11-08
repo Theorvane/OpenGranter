@@ -12,3 +12,8 @@ Dates are not committed. Each phase starts after the preceding phase passes its 
 | 5. Operational readiness | Limits, alerts, audit export, backup and recovery | Load, failure, security, and environment-specific deployment checks |
 
 The three direct providers' sandbox and OpenRouter test account details are needed from phase 2 onward. Before service implementation, connect [acceptance scenarios](acceptance.md) to executable tests. Streaming and tool-call workflows are required for external-client OpenRouter compatibility; their implementation/failure/accounting contracts, exact selection scores, and additional retry triggers remain to specify. See the [compatibility matrix and implementation sequence](openrouter-compatibility.md).
+
+
+## Original-product execution checkpoint (#637)
+
+The phase table is not proof of completion. Use the [candidate-versus-release requirement matrix](product-traceability.md#candidate-implementation-checkpoint--2026-11-09-0630-kst) and [administrator login gate](management-login-gate.md) for current dependency ordering. Prioritize approved browser login/session → current principal → actual core list/detail and native loading/empty/error/expired/denied acceptance. Existing source-only models, credentials and review screens do not close R1. Resolve the explicit security decisions rather than indefinitely expanding optional adapters. Then deliver remaining R2/R3 writes, R4 accounting/content/export and R5/R6 installed/provider/handoff gates. Each stacked PR needs its own exact-head CI and formal approval before merge; original PRD completion remains open.
