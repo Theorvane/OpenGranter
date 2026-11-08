@@ -17,19 +17,35 @@ export function mountSsoManagementCatalog(
   } = {},
 ) {
   let navigate = false;
-  const actions = (snapshot: ManagementCatalogSnapshot) => ({
-    list() {
-      // Snapshot access also checks expiry when background timers were suspended.
-      if (authority.snapshot() !== snapshot) return;
-      navigate = true;
-      void authority.list();
-    },
-    detail(id: string) {
-      if (authority.snapshot() !== snapshot) return;
-      navigate = true;
-      void authority.detail(id);
-    },
-  });
+  let target: string | undefined;
+  const actions = (snapshot: ManagementCatalogSnapshot) => {
+    const failedTarget = target;
+    return {
+      list() {
+        // Snapshot access also checks expiry when background timers were suspended.
+        if (authority.snapshot() !== snapshot) return;
+        navigate = true;
+        target = undefined;
+        void authority.list();
+      },
+      detail(id: string) {
+        if (authority.snapshot() !== snapshot) return;
+        navigate = true;
+        target = id;
+        void authority.detail(id);
+      },
+      ...(snapshot.state === 'unavailable'
+        ? {
+            retry() {
+              if (authority.snapshot() !== snapshot) return;
+              navigate = true;
+              if (failedTarget === undefined) void authority.list();
+              else void authority.detail(failedTarget);
+            },
+          }
+        : {}),
+    };
+  };
   const authority = createSsoManagementCatalogAuthority({
     ...options,
     onChange(snapshot) {
@@ -59,6 +75,7 @@ export function mountSsoManagementCatalog(
   return {
     /** Never promote UI input to a trusted grant. */
     async authorize(grant: CatalogAuthorityGrant, modelId?: string) {
+      target = modelId;
       authority.authorize(grant);
       navigate = modelId !== undefined;
       if (modelId !== undefined) await authority.detail(modelId);
