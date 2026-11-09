@@ -1,5 +1,11 @@
 import type { Server } from 'node:http';
-import { parseStoredUsageRecord, parseUsageCursor } from '../usage/history.ts';
+import {
+  matchesUsageHistoryFilters,
+  parseStoredUsageRecord,
+  parseUsageCursor,
+  parseUsageHistoryQuery,
+  validUsageHistoryOrder,
+} from '../usage/history.ts';
 import { type ClientErrorCode, createClientErrorResponse } from './client-errors.ts';
 import { createNodeRequestServer } from './node-request-server.ts';
 import type { createPostgresSsoUsageHistory } from './postgres-sso-usage-history.ts';
@@ -65,6 +71,9 @@ export function createSsoUsageHistoryHandler(
         case 'audit_unavailable':
           return failure(503, 'audit_unavailable', requestId);
         case 'ready': {
+          // Preserve authenticated/audited failure precedence: validate only ready results.
+          const query = parseUsageHistoryQuery(url);
+          if (result.format !== query.format) return failure(503, 'internal_error', requestId);
           if (
             !token ||
             typeof result.hasMore !== 'boolean' ||
@@ -76,17 +85,42 @@ export function createSsoUsageHistoryHandler(
             'x-usage-has-more': String(result.hasMore),
           });
           if (result.nextCursor !== null) {
-            parseUsageCursor(result.nextCursor);
+            const next = parseUsageCursor(result.nextCursor);
+            if (
+              query.cursor &&
+              (next.occurredAt > query.cursor.occurredAt ||
+                (next.occurredAt === query.cursor.occurredAt &&
+                  Buffer.compare(
+                    Buffer.from(next.attemptId),
+                    Buffer.from(query.cursor.attemptId),
+                  ) >= 0))
+            )
+              return failure(503, 'internal_error', requestId);
             headers.set('x-usage-next-cursor', result.nextCursor);
           }
           if (result.format === 'json') {
-            if (!Array.isArray(result.data) || result.data.length > 100)
+            if (!Array.isArray(result.data) || result.data.length > query.limit)
               return failure(503, 'internal_error', requestId);
+            const data = result.data.map(parseStoredUsageRecord);
+            const target = query.requestedPrincipalId ?? data[0]?.principalId;
+            if (
+              !validUsageHistoryOrder(data, query.cursor) ||
+              data.some(
+                (row) => row.principalId !== target || !matchesUsageHistoryFilters(row, query),
+              )
+            )
+              return failure(503, 'internal_error', requestId);
+            if (result.nextCursor !== null) {
+              const next = parseUsageCursor(result.nextCursor);
+              const last = data.at(-1);
+              if (!last || next.occurredAt !== last.occurredAt || next.attemptId !== last.attemptId)
+                return failure(503, 'internal_error', requestId);
+            }
             return noStore(
               Response.json(
                 {
                   object: 'list',
-                  data: result.data.map(parseStoredUsageRecord),
+                  data,
                   has_more: result.hasMore,
                   next_cursor: result.nextCursor,
                 },
