@@ -1849,3 +1849,9 @@ The shared Node HTTP bridge forces no-store and nosniff on exact /management and
 - Through an already-authorized read-only model mount, inspect a model and read its published name, multiline description, modalities, parameters, context/output bounds and exact USD/token base prices. Display absent, unknown, empty and zero distinctly; identify prices as base metadata, never billed/estimated cost or guaranteed capability.
 - Treat all published text as inert text. No script, markup, link or resource execution. Preserve the basic alias/publisher/creation fields and Back/usage navigation.
 - Source and compiled public mounts must exercise signed test SSO over actual loopback HTTP and migrated PGlite. Verify current Deny hides detail, removed identity requires sign-in, and mandatory durable access audit contains no descriptive metadata. Login/session acquisition, native-browser and installed deployment acceptance remain separate release gates.
+
+## Audit current-page recovery (#642)
+
+- A transient failure on a filtered second page can be retried with the exact captured query/cursor and retains Previous page. No stale details/CSV remain while loading or after failure.
+- Required durable-audit failure through signed synthetic SSO and real SQL HTTP yields unavailable; explicit retry after recovery reauthorizes and loads scoped results. Fresh Deny clears detail and removes retry. Suspended expiry and late responses cannot revive data.
+- Native browser local synthetic SSO/PGlite evidence is separate from actual company sign-in, installed PostgreSQL and provider acceptance.
