@@ -13,3 +13,8 @@
 
 ## Evidence limits
 Injected malformed ready results demonstrate response-boundary regressions, not an observed SQL leak or company-login acceptance. Existing SQL+signed-test-token loopback tests are local only. Browser login, installed PostgreSQL, real IdP/provider and deployment remain separate gates.
+
+## Integration repair (2026-11-10)
+1. Full local and remote check exposed three invalid mocked service pages in existing UI/client HTTP acceptance: unsorted summary, overlapping next page, and identical input/output cursor. Keep production rejection intact.
+2. Correct only those service responses to obey descending order and strict cursor advance; assert displayed page records and absence of overlap while preserving exact summary and filter-clear/CSV behavior.
+3. Run both full UI/client files plus response-contract and signed-test SQL loopback tests, then full check. Update the same PR rather than creating another stack layer.
