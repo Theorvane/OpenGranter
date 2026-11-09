@@ -24,3 +24,7 @@ session, grant IAM rights, bind a listener, or manage a database connection.
 Acceptance uses loopback HTTP, fixture signed identity and disposable embedded
 SQL. These are not installed PostgreSQL durability, native browser SSO, approved
 schema installation or paid provider E2E evidence.
+
+## Exact request correlation (#641)
+
+Optional `request_id` selects the projected event request ID, never arbitrary details. One value, 1..256 characters, `[A-Za-z0-9][A-Za-z0-9._+:/@-]*`; matching is case-sensitive (encode plus as `%2B`). Empty/duplicate/invalid values fail the existing invalid-query path after authentication. Principal scope, `audit:Read`, fresh IAM and mandatory audit are unchanged. Combine with model/time/cursor filters for JSON or CSV; every continuation request must retain its filters. SQL binds the ID as a value and validates the entire result including lookahead. Query values are not added to access audit records. No session, UI, runtime or deployment grant.
