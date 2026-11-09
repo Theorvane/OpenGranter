@@ -5,6 +5,7 @@ import type {
   createPostgresSsoModelCatalog,
   SsoCatalogModel,
 } from './postgres-sso-model-catalog.ts';
+import { validSsoCatalogAlias } from './sso-model-catalog-alias.ts';
 
 export interface SsoModelCatalogHttpPorts {
   readonly newRequestId: () => string;
@@ -21,22 +22,6 @@ function failure(status: number, code: ClientErrorCode, requestId?: string): Res
   const response = noStore(createClientErrorResponse(status, code, requestId));
   if (status === 401) response.headers.set('www-authenticate', 'Bearer');
   return response;
-}
-function validAlias(alias: string): boolean {
-  return (
-    alias.length > 0 &&
-    alias.length <= 512 &&
-    !/[\s%\\?#]/u.test(alias) &&
-    !Array.from(alias).some((character) => {
-      const code = character.charCodeAt(0);
-      return (
-        code < 32 ||
-        (code >= 127 && code <= 159) ||
-        (character.length === 1 && code >= 0xd800 && code <= 0xdfff)
-      );
-    }) &&
-    alias.split('/').every((part) => part && part !== '.' && part !== '..')
-  );
 }
 function basePricing(value: unknown): NonNullable<SsoCatalogModel['pricing']> {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error();
@@ -93,7 +78,7 @@ function project(model: SsoCatalogModel): SsoCatalogModel {
   if (
     !model ||
     typeof model.id !== 'string' ||
-    !validAlias(model.id) ||
+    !validSsoCatalogAlias(model.id) ||
     model.object !== 'model' ||
     !Number.isSafeInteger(model.created) ||
     model.created < 0 ||
@@ -172,7 +157,7 @@ export function createSsoModelCatalogHandler(
           if (!detailPath || detailPath.includes('/'))
             return failure(400, 'invalid_request', requestId);
           alias = decodeURIComponent(detailPath);
-          if (!validAlias(alias)) return failure(400, 'invalid_request', requestId);
+          if (!validSsoCatalogAlias(alias)) return failure(400, 'invalid_request', requestId);
         } catch {
           return failure(400, 'invalid_request', requestId);
         }

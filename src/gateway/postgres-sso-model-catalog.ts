@@ -13,6 +13,7 @@ import {
   createPostgresModelCatalogReader,
   type ModelCatalogSqlClient,
 } from './postgres-model-catalog.ts';
+import { validSsoCatalogAlias } from './sso-model-catalog-alias.ts';
 
 export interface SsoCatalogModel {
   readonly id: string;
@@ -161,6 +162,9 @@ export function createPostgresSsoModelCatalog(
               }),
           ),
       );
+      // Never audit a successful result that the detail boundary cannot address.
+      // Check only IAM-visible models; hidden publications cannot poison discovery.
+      if (data.some((model) => !validSsoCatalogAlias(model.id))) throw new Error();
       result =
         operation === 'detail' && data.length === 0
           ? { state: 'missing' }
