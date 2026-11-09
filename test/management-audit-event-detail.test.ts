@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import { setTimeout as delay } from 'node:timers/promises';
 import { PGlite } from '@electric-sql/pglite';
 import { createPostgresGatewayAuditStore } from '../src/audit/postgres-gateway-audit.ts';
 import * as concrete from '../src/gateway/postgres-sso-audit-history-http.ts';
@@ -189,7 +190,13 @@ test('actual signed SSO SQL HTTP audit exposes only scoped credential and policy
     assert.doesNotMatch(root.text(), /event-other/);
     await f.db.exec('DELETE FROM iam_principal_policies');
     root.named('audit-filters').submit();
-    await new Promise((resolve) => setTimeout(resolve, 30));
+    // A real SQL/HTTP denial can outlive one timer tick under CI load.
+    // Keep checking the terminal state, never accept an unfinished loading view.
+    const deadline = performance.now() + 10_000;
+    while (!root.text().includes('Access denied.') && performance.now() < deadline) {
+      assert.doesNotMatch(root.text(), /proxy-private|read-policy|event-human/);
+      await delay(5);
+    }
     assert.match(root.text(), /Access denied/);
     assert.doesNotMatch(root.text(), /proxy-private|read-policy|event-human/);
   } finally {
