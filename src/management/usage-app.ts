@@ -178,6 +178,13 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
       main.append(form);
       if (state === 'loading' || state === 'exporting')
         main.append(button('Cancel request', cancel));
+      if (state === 'unavailable' || state === 'cancelled')
+        main.append(
+          button('Retry current page', () => {
+            // Captured submitted scope only; drafts are not an authorization scope.
+            void load({ ...filters }, [...previous]);
+          }),
+        );
       if (state !== 'loading' && state !== 'exporting')
         main.append(
           button('Retry / first page', () => {
@@ -353,7 +360,7 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
     ++revision;
     client.invalidate();
     page = undefined;
-    previous = [];
+    // Retain query-only navigation for explicit current-page recovery.
     revoke();
     state = 'cancelled';
     render(true);
@@ -363,7 +370,8 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
     const current = ++revision;
     revoke();
     filters = { ...next };
-    previous = [];
+    // Preserve the attempted page chain across transient failures, never rows.
+    previous = history.map((scope) => ({ ...scope }));
     page = undefined;
     state = 'loading';
     render();
@@ -376,7 +384,6 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
     state = result.state;
     if (result.state === 'ready') {
       page = result.data;
-      previous = history;
     }
     render(true);
   }
@@ -402,7 +409,6 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
       state = 'ready';
     } else {
       page = undefined;
-      previous = [];
       state = result.state;
     }
     render(true);

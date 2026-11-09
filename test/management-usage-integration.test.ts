@@ -84,8 +84,13 @@ for (const artifact of [false, true]) {
       const db = new PGlite();
       const jwt = await createSsoAccessTokenFixture();
       let token = await jwt.token();
+      let auditUnavailable = false;
       const sql = {
-        query: (text: string, values: readonly unknown[]) => db.query(text, [...values]),
+        async query(text: string, values: readonly unknown[]) {
+          if (auditUnavailable && /INSERT INTO sso_usage_audit_events/u.test(text))
+            throw Error('private-audit-outage');
+          return db.query(text, [...values]);
+        },
       };
       let id = 0;
       const server = createPostgresSsoUsageHistoryServer({
@@ -205,6 +210,27 @@ for (const artifact of [false, true]) {
           assert.match(attempt.text(), /not settled billing or reconciliation/);
           assert.doesNotMatch(attempt.text(), /credential|policyVersions/);
           assert.equal(appQueries.length, 2, 'attempt inspection adds no request');
+          // A required-audit failure removes evidence; explicit retry repeats the exact scope.
+          const click = (label: string) => {
+            const button = root.all().find((node) => node.textContent === label);
+            assert.ok(button, label);
+            button.listeners.click?.();
+          };
+          auditUnavailable = true;
+          click('Refresh current page');
+          assert.doesNotMatch(root.text(), /Inspect attempt|price-v1/);
+          for (let i = 0; i < 100 && !root.text().includes('Usage unavailable'); i++)
+            await new Promise((resolve) => setTimeout(resolve, 10));
+          assert.match(root.text(), /Usage unavailable/);
+          assert.doesNotMatch(root.text(), /Inspect attempt|private-audit-outage/);
+          const failedScope = appQueries.at(-1)?.toString();
+          auditUnavailable = false;
+          click('Retry current page');
+          for (let i = 0; i < 100 && !root.text().includes('Inspect attempt'); i++)
+            await new Promise((resolve) => setTimeout(resolve, 10));
+          assert.match(root.text(), /Inspect attempt/);
+          assert.equal(appQueries.at(-1)?.toString(), failedScope);
+          assert.doesNotMatch(root.text(), /second-model/);
           // Fresh server IAM, not the existing rendered button, decides each read.
           const currentFilter = root
             .all()
@@ -242,8 +268,8 @@ for (const artifact of [false, true]) {
         assert.deepEqual(await client.list(), { state: 'denied' });
         token = await jwt.token({ exp: Math.floor(Date.now() / 1000) - 3600 });
         assert.deepEqual(await client.list(), { state: 'unauthenticated' });
-        assert.equal(id, 10);
-        assert.equal((await db.query('SELECT * FROM sso_usage_audit_events')).rows.length, 10);
+        assert.equal(id, 12);
+        assert.equal((await db.query('SELECT * FROM sso_usage_audit_events')).rows.length, 11);
         await db.exec('DROP TABLE sso_usage_audit_events');
         assert.deepEqual(await client.list(), { state: 'unavailable' });
       } finally {

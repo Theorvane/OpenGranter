@@ -1238,3 +1238,7 @@ Pre-commit Node response failures discard staged response metadata before fixed 
 ## Audit current-page recovery (#642)
 
 The authorized audit mount now offers explicit current-page refresh/retry, preserving submitted filters/cursor and prior-page navigation while clearing stale details and CSV. Every retry uses the existing server IAM and mandatory audit boundary; no session or deployment activation. See [contract](../contracts/sso-audit-workspace.md) and [plan](plans/642-audit-refresh-retry.md).
+
+## Usage current-page failure recovery (#642)
+
+Transient read/CSV failures and cancellation expose explicit Retry current page, preserving submitted filters, exact opaque cursor and query-only previous navigation, never protected records or exports. Invalid queries require correction; auth/Deny/expiry clear authority. See [plan](plans/642-usage-retry.md) and [contract](../contracts/usage-previous-page.md). No session or installed runtime activation.
