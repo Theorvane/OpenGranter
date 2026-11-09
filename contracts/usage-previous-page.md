@@ -7,3 +7,8 @@
 - Applying filters or first-page retry starts a new navigation chain. Clear, reconnect and disposal remove the chain. Failed list/export and cancellation retain query-only scope; Retry current page refetches the exact submitted cursor/filters and restores previous navigation only after success. No rows, detail or CSV survive the failure. Invalid queries require correction and do not expose current-page retry. Superseded completions cannot restore it.
 - CSV uses the currently displayed query; page changes revoke its old download. No claim of snapshot isolation or stable billing reconciliation across separate requests.
 - No new identity, permission, session, route mount, schema or deployment approval.
+
+## Browser download failure containment (#642)
+
+- If Blob/object-URL creation fails after a successful authorized CSV response, discard the page and export, display only the existing safe unavailable state, and allow explicit current-page retry through the same server authorization and audit boundary. Keep submitted query-only navigation, never CSV text or exception details.
+- Clear local download references before best-effort URL revocation. Browser cleanup errors cannot interrupt logout/expiry cleanup, keep detached download controls active, or contaminate renewed authority. A platform revocation failure cannot guarantee the browser released its resource; no claim of secure erasure is made.
