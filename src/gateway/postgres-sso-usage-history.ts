@@ -10,7 +10,7 @@ import {
 import { evaluate } from '../policy/evaluate.ts';
 import type { PolicyVersion } from '../policy/evaluate-attachments.ts';
 import { serializeUsageCsv } from '../usage/csv.ts';
-import { encodeUsageCursor, parseUsageHistoryQuery } from '../usage/history.ts';
+import { encodeUsageCursor, parseUsageCursor, parseUsageHistoryQuery } from '../usage/history.ts';
 import type { UsageSqlClient } from '../usage/postgres-ledger.ts';
 import { createPostgresUsageReader } from '../usage/postgres-reader.ts';
 import type { UsageRecord } from '../usage/record-usage.ts';
@@ -98,6 +98,8 @@ export function createPostgresSsoUsageHistory(
             page.hasMore && last
               ? encodeUsageCursor({ occurredAt: last.occurredAt, attemptId: last.attemptId })
               : null;
+          // Character bounds alone do not bound the UTF-8/base64url continuation.
+          if (nextCursor !== null) parseUsageCursor(nextCursor);
           const common = { state: 'ready' as const, hasMore: page.hasMore, nextCursor };
           result =
             parsed.format === 'csv'
