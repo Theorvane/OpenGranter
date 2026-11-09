@@ -1,4 +1,5 @@
 import type { Server } from 'node:http';
+import type { GatewayAuditSqlClient } from '../audit/postgres-gateway-audit.ts';
 import { InvalidSsoAccessTokenConfiguration } from '../identity/rfc9068-sso-access-tokens.ts';
 import { createManagementBrowserHandler } from '../management/browser-http.ts';
 import { createClientErrorResponse } from './client-errors.ts';
@@ -7,14 +8,17 @@ import {
   createPostgresSsoAuditHistory,
   type SsoAuditHistoryAccessEvent,
 } from './postgres-sso-audit-history.ts';
+import { createPostgresSsoAuditHistoryHandler } from './postgres-sso-audit-history-http.ts';
 import { createPostgresRfc9068SsoManagementHandler } from './postgres-sso-management-http.ts';
 import type { PostgresSsoReviewBrowserPorts } from './postgres-sso-review-browser-http.ts';
 import { createPostgresSsoReviewHandler } from './postgres-sso-review-http.ts';
 import { createSsoAuditHistoryHandler } from './sso-audit-history-http.ts';
 
 export interface PostgresSsoAdministrationBrowserPorts extends PostgresSsoReviewBrowserPorts {
-  /** Explicit trusted, approved durable SSO writer; never a proxy audit adapter.
-   * Omit to preserve the old route surface. An explicitly invalid port is an error.
+  /** Explicit approved committed/autocommit SQL store; mutually exclusive with callback. */
+  readonly auditHistoryClient?: GatewayAuditSqlClient;
+  /** Legacy trusted durable SSO writer; never a proxy audit adapter.
+   * Omit both ports to preserve the old route surface. Invalid explicit ports fail.
    */
   readonly writeAuditHistoryAccess?: (event: SsoAuditHistoryAccessEvent) => Promise<void>;
 }
@@ -30,11 +34,17 @@ export function createPostgresSsoAdministrationBrowserHandler(
   const { client, now, issuer, audience, jwks, newRequestId, javascript } = ports;
   const configuration = { client, now, issuer, audience, jwks, newRequestId };
   const auditEnabled = Object.hasOwn(ports, 'writeAuditHistoryAccess');
+  const sqlAuditEnabled = Object.hasOwn(ports, 'auditHistoryClient');
+  if (auditEnabled && sqlAuditEnabled) throw new InvalidSsoAccessTokenConfiguration();
   const writeAudit = ports.writeAuditHistoryAccess;
   if (auditEnabled && typeof writeAudit !== 'function')
     throw new InvalidSsoAccessTokenConfiguration();
-  const audit =
-    auditEnabled && writeAudit
+  const audit = sqlAuditEnabled
+    ? createPostgresSsoAuditHistoryHandler({
+        ...configuration,
+        auditClient: ports.auditHistoryClient as GatewayAuditSqlClient,
+      })
+    : auditEnabled && writeAudit
       ? createSsoAuditHistoryHandler({
           newRequestId,
           audit: createPostgresSsoAuditHistory({ ...configuration, writeAudit }),
