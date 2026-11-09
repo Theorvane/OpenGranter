@@ -12,3 +12,9 @@ Contract: [SSO usage history](../../contracts/sso-usage-history.md).
 ## Local evidence
 
 Initial production-module RED is saved in /tmp/og-1900-usage-red.log. Self-review added a meaningful oversized-cursor RED (513-character stored attempt ID returned an unusable cursor), fixed by the same 512-character continuation bound as the proxy gateway. Final focused suite covers 11 new SSO usage cases plus existing SSO catalog and PostgreSQL reader regressions. These use real signed ephemeral JWTs and SQL in migrated PGlite, not installed PostgreSQL or an IdP login.
+
+## Review correction: encoded continuation round trip
+
+The formal review on 71f1382 found that the 512-character guard does not imply the 2048-character encoded parser bound for UTF-8 IDs. Before releasing a continuation, encode it and validate it with the existing public cursor parser; reject the page as unavailable with zero audited count if it cannot be consumed. Preserve parser limits and existing authorization/audit semantics. Add real migrated-SQL regressions for oversized multibyte JSON/CSV pages, accepted ASCII/multibyte round trips, final pages without continuation, and failed mandatory audit. No session, schema, routing, UI or deployment change.
+
+Review-correction evidence (2026-11-09): two new real PGlite JSON/CSV regressions failed on the reviewed head because it released an overlong continuation. After invoking parseUsageCursor on the encoded continuation, 42/42 focused SSO usage/catalog/PostgreSQL reader tests pass, zero skips. Typecheck, full-tree lint and planning/contract/secret scan pass. Logs in the coordinator workspace: og-2030-cursor-red.log and og-2030-cursor-green.log. The local npm launcher cannot load walk-up-path, so the exact package check components are running explicitly with Node 22; this is not a successful npm run check claim. No browser, installed PostgreSQL, production IdP or provider run.

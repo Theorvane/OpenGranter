@@ -7,3 +7,5 @@ Strict existing usage query rules apply: principal_id, model, from_ms inclusive,
 Internal service only, NOT public route, session or installed acceptance. Integration MUST supply reviewed durable SSO writer; no default writer, DDL, cookie, login, provider invocation or activation. Proxy usage paths unchanged. Future HTTP must supply trusted request IDs and fixed errors, never client identity/IAM/audit callbacks.
 
 Plan: [implementation](../docs/plans/642-sso-usage-history.md). Test: test/postgres-sso-usage-history.test.ts. Parent #637 / #642.
+
+Continuations must pass the existing cursor parser after encoding, including the 2048-character encoded and 512-character decoded ID bounds. An unconsumable continuation fails the entire JSON/CSV page as unavailable and audits zero records; it must not expose partial data or pretend the page is final. A final page needs no continuation.

@@ -401,3 +401,72 @@ test('oversized stored attempt ID cannot create an unusable next-page cursor', a
     await f.db.close();
   }
 });
+
+for (const format of ['json', 'csv']) {
+  test(`multibyte continuation exceeding encoded bounds fails closed for ${format}`, async () => {
+    const f = await fixture();
+    try {
+      await f.db.query(
+        `UPDATE usage_records SET attempt_id=$1, record=jsonb_set(record, '{attemptId}', to_jsonb($1::text)) WHERE attempt_id=$2`,
+        ['界'.repeat(512), 'attempt-c'],
+      );
+      assert.deepEqual(
+        await f.service.read(token, 'multibyte-cursor', `?limit=1&format=${format}`),
+        {
+          state: 'unavailable',
+        },
+      );
+      assert.equal(f.events.at(-1)?.outcome, 'unavailable');
+      assert.equal(f.events.at(-1)?.count, 0);
+      f.failAudit();
+      assert.deepEqual(await f.service.read(token, 'failed-audit', `?limit=1&format=${format}`), {
+        state: 'audit_unavailable',
+      });
+    } finally {
+      await f.db.close();
+    }
+  });
+}
+
+for (const attemptId of ['z'.repeat(512), '界'.repeat(500), '😀'.repeat(256)]) {
+  test(`accepted cursor round-trips for ${attemptId.slice(0, 2)}`, async () => {
+    const f = await fixture();
+    try {
+      await f.db.query(
+        `UPDATE usage_records SET attempt_id=$1, record=jsonb_set(record, '{attemptId}', to_jsonb($1::text)) WHERE attempt_id=$2`,
+        [attemptId, 'attempt-c'],
+      );
+      const first = await f.service.read(token, 'first-page', '?limit=1');
+      if (first.state !== 'ready' || first.format !== 'json') throw Error('expected JSON');
+      assert.equal(first.hasMore, true);
+      assert.equal(first.data[0]?.attemptId, attemptId);
+      assert.ok(first.nextCursor);
+      const second = await f.service.read(
+        token,
+        'second-page',
+        `?limit=1&cursor=${first.nextCursor}`,
+      );
+      if (second.state !== 'ready' || second.format !== 'json') throw Error('expected next page');
+      assert.equal(second.data[0]?.attemptId, 'attempt-b');
+    } finally {
+      await f.db.close();
+    }
+  });
+}
+
+test('final multibyte record needs no continuation cursor', async () => {
+  const f = await fixture();
+  try {
+    await f.db.query(
+      `UPDATE usage_records SET attempt_id=$1, record=jsonb_set(record, '{attemptId}', to_jsonb($1::text)) WHERE attempt_id=$2`,
+      ['界'.repeat(512), 'attempt-c'],
+    );
+    const result = await f.service.read(token, 'final-page', '?from_ms=200');
+    if (result.state !== 'ready' || result.format !== 'json') throw Error('expected JSON');
+    assert.equal(result.data.length, 1);
+    assert.equal(result.hasMore, false);
+    assert.equal(result.nextCursor, null);
+  } finally {
+    await f.db.close();
+  }
+});
