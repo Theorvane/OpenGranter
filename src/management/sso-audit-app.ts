@@ -1,3 +1,4 @@
+import { renderAuditEventDetails } from './audit-event-details.ts';
 import type { CatalogAuthorityGrant } from './catalog-authority.ts';
 import type { SsoAuditFilters } from './sso-audit-client.ts';
 import {
@@ -108,9 +109,13 @@ export function mountManagementAudit(root: UsageElement, options: SsoAuditWorksp
       main.append(form);
       if (snapshot.page) {
         const table = element('table');
+        table.append(element('caption', 'Audit events — current page'));
         const header = element('tr');
-        for (const text of ['Time UTC', 'Event', 'Principal', 'Request', 'Details'])
-          header.append(element('th', text));
+        for (const text of ['Time UTC', 'Event', 'Principal', 'Request', 'Details']) {
+          const cell = element('th', text);
+          cell.setAttribute('scope', 'col');
+          header.append(cell);
+        }
         const head = element('thead');
         head.append(header);
         const body = element('tbody');
@@ -121,9 +126,11 @@ export function mountManagementAudit(root: UsageElement, options: SsoAuditWorksp
             event.kind,
             event.principalId,
             event.requestId,
-            JSON.stringify(event.details),
           ])
             row.append(element('td', text));
+          const inspection = element('td');
+          inspection.append(renderAuditEventDetails(root.ownerDocument, event));
+          row.append(inspection);
           body.append(row);
         }
         table.append(head, body);
