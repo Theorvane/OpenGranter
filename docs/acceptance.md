@@ -1855,3 +1855,9 @@ The shared Node HTTP bridge forces no-store and nosniff on exact /management and
 - A transient failure on a filtered second page can be retried with the exact captured query/cursor and retains Previous page. No stale details/CSV remain while loading or after failure.
 - Required durable-audit failure through signed synthetic SSO and real SQL HTTP yields unavailable; explicit retry after recovery reauthorizes and loads scoped results. Fresh Deny clears detail and removes retry. Suspended expiry and late responses cannot revive data.
 - Native browser local synthetic SSO/PGlite evidence is separate from actual company sign-in, installed PostgreSQL and provider acceptance.
+
+## Usage current-page recovery (#642)
+
+- Failed filtered second page, CSV failure and operator cancellation retain only submitted query/cursor/backstack, not protected data or downloads. Retry current page never consumes unsubmitted edits; first-page recovery remains separate.
+- Required-audit failure/recovery is exercised via source and compiled UI using signed synthetic SSO, real SQL HTTP and fresh Deny/expiry. Invalid filters do not expose Retry current page. Busy/detached controls cannot replay.
+- Native browser verifies failed second-page retry then Previous page: [evidence](plans/642-usage-retry-browser-evidence.md). Company login/session, installed DB and live providers remain separate gates.
