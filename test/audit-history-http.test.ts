@@ -421,3 +421,18 @@ test('other, absent, or spoofed projected model aliases reject injected pages as
     }
   }
 });
+
+test('proxy audit request filter reaches reader and rejects off-request JSON and CSV', async () => {
+  for (const format of ['json', 'csv']) {
+    const { handler, state } = fixture();
+    const response = await handler(request(`?request_id=model-list-1&format=${format}`));
+    assert.equal(response.status, 200);
+    assert.deepEqual(state.queries, [
+      { principalId: 'person-1', limit: 50, cursor: null, requestId: 'model-list-1' },
+    ]);
+    const bad = fixture();
+    const rejected = await bad.handler(request(`?request_id=different&format=${format}`));
+    assert.equal(rejected.status, 503);
+    assert.doesNotMatch(await rejected.text(), /model-list-1|private prompt/);
+  }
+});

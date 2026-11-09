@@ -88,6 +88,7 @@ export function createPostgresAuditHistoryReader(
            AND ($4::bigint IS NULL OR occurred_at_ms >= $4::bigint)
            AND ($5::bigint IS NULL OR occurred_at_ms < $5::bigint)
            AND ($6::text IS NULL OR details->>'modelAlias' = $6::text)
+           AND ($7::text IS NULL OR request_id = $7::text)
          ORDER BY gateway_audit_events.event_id DESC
          LIMIT $3`,
         [
@@ -97,6 +98,7 @@ export function createPostgresAuditHistoryReader(
           query.fromMs ?? null,
           query.toMs ?? null,
           query.modelAlias ?? null,
+          query.requestId ?? null,
         ],
       );
       if (result.rows.length > query.limit + 1) throw new AuditHistoryUnavailable();
@@ -121,7 +123,12 @@ export function createPostgresAuditHistoryReader(
           occurredAt(row.occurred_at_ms),
         );
         if (
-          !matchesAuditHistoryFilters(projected.occurredAt, projected.details, query) ||
+          !matchesAuditHistoryFilters(
+            projected.occurredAt,
+            projected.details,
+            query,
+            projected.requestId,
+          ) ||
           projected.principalId !== query.principalId ||
           projected.credentialId === null ||
           projected.policyVersions === null

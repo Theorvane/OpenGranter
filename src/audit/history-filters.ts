@@ -2,11 +2,16 @@ import { type AuditTimeRange, matchesAuditTimeRange, validAuditTimeRange } from 
 
 export interface AuditHistoryFilters extends AuditTimeRange {
   readonly modelAlias?: string;
+  readonly requestId?: string;
 }
 
 export function validAuditHistoryFilters(filters: AuditHistoryFilters): boolean {
   return (
     validAuditTimeRange(filters) &&
+    (filters.requestId === undefined ||
+      (typeof filters.requestId === 'string' &&
+        filters.requestId.length <= 256 &&
+        /^[A-Za-z0-9][A-Za-z0-9._+:/@-]*$/u.test(filters.requestId))) &&
     (filters.modelAlias === undefined ||
       (typeof filters.modelAlias === 'string' &&
         filters.modelAlias.trim().length > 0 &&
@@ -20,9 +25,11 @@ export function matchesAuditHistoryFilters(
   occurredAt: number,
   details: Readonly<Record<string, unknown>>,
   filters: AuditHistoryFilters,
+  requestId?: string,
 ): boolean {
   return (
     matchesAuditTimeRange(occurredAt, filters) &&
+    (filters.requestId === undefined || requestId === filters.requestId) &&
     (filters.modelAlias === undefined || details.modelAlias === filters.modelAlias)
   );
 }
