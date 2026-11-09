@@ -44,3 +44,10 @@ The existing read-only model detail view now renders the already-decoded public 
 All values enter textContent; descriptions preserve line breaks without markup, links or resource loads. Omitted values read Not published, explicit null bounds read Unknown, empty description reads Empty, empty label lists read None published, and zero remains zero. Base prices retain their exact USD/token strings with no conversion, rounding, estimate or billing computation. Visible caveats identify metadata as non-authoritative for routing/effective limits and base prices as distinct from request costs. Existing navigation, loading, missing, denied and sign-in states still replace the entire detail subtree. No retention, credential input, browser authority acquisition or runtime activation.
 
 Source and compiled public-mount cases cover legacy/empty/unknown/zero, inert markup and logout clearing. Signed-test-SSO loopback HTTP plus migrated PGlite cases cover persisted metadata to displayed details, fresh Deny, removed binding and metadata-free durable access audit. Structural DOM tests are not native-browser, company-SSO or installed-PostgreSQL acceptance.
+
+
+## Concrete SQL audit opt-in (#637 / #642)
+
+An own auditHistoryClient explicitly enables exact GET /management/v1/audit through the existing concrete SQL-backed audit handler. Omission retains 404 unless the legacy writeAuditHistoryAccess callback is supplied. Supplying both ports, even undefined, is a configuration error; invalid explicit SQL ports are rejected before any query. Inherited audit ports do not enable the route. No fallback to callback occurs if SQL fails.
+
+The caller owns the separately reviewed access-audit schema and committed/autocommit SQL semantics. Fresh registered-key identity and current audit:Read authorization precede scoped metadata reads; awaited SQL access audit precedes JSON/CSV or failure responses. Missing-table/write failure withholds data. Public shell assets remain authority-free; no session, DDL promotion or installed runtime activation. See [plan](../docs/plans/637-administration-audit-sql.md).
