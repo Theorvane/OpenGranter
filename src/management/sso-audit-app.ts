@@ -72,6 +72,7 @@ export function mountManagementAudit(root: UsageElement, options: SsoAuditWorksp
       for (const [name, label, type] of [
         ['principalId', 'Principal (requires scoped server permission)', 'text'],
         ['model', 'Model', 'text'],
+        ['requestId', 'Request ID (exact, case-sensitive)', 'text'],
         ['from', 'From UTC (inclusive)', 'datetime-local'],
         ['to', 'To UTC (exclusive)', 'datetime-local'],
       ] as const) {
@@ -98,6 +99,7 @@ export function mountManagementAudit(root: UsageElement, options: SsoAuditWorksp
         const filters: SsoAuditFilters = {
           ...(drafts.principalId ? { principalId: drafts.principalId } : {}),
           ...(drafts.model ? { model: drafts.model } : {}),
+          ...(drafts.requestId ? { requestId: drafts.requestId } : {}),
           ...(drafts.from ? { fromMs: parseUsageUtcInput(drafts.from) } : {}),
           ...(drafts.to ? { toMs: parseUsageUtcInput(drafts.to) } : {}),
         };

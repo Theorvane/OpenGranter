@@ -4,6 +4,7 @@ import { validAuditPrincipalReference } from '../audit/principal-reference.ts';
 import type { CatalogRequest } from './catalog-client.ts';
 
 export interface SsoAuditFilters {
+  readonly requestId?: string;
   readonly principalId?: string;
   readonly model?: string;
   readonly fromMs?: number;
@@ -28,6 +29,7 @@ function query(filters: SsoAuditFilters, format: 'json' | 'csv') {
   const params = new URLSearchParams();
   for (const [key, value] of [
     ['principal_id', filters.principalId],
+    ['request_id', filters.requestId],
     ['model', filters.model],
     ['from_ms', filters.fromMs],
     ['to_ms', filters.toMs],
