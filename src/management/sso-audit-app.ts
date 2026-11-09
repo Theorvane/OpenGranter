@@ -137,6 +137,15 @@ export function mountManagementAudit(root: UsageElement, options: SsoAuditWorksp
         main.append(table);
       }
       main.append(
+        button(
+          snapshot.state === 'unavailable' || snapshot.state === 'cancelled'
+            ? 'Retry current page'
+            : 'Refresh current page',
+          !busy && snapshot.state !== 'invalid_query',
+          () => {
+            void workspace.refresh();
+          },
+        ),
         button('Previous page', snapshot.canPrevious, () => {
           void workspace.previous();
         }),

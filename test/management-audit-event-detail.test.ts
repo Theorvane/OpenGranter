@@ -217,3 +217,51 @@ test('audit disclosure makes missing versions explicit and uses text rather than
     false,
   );
 });
+
+test('current-page retry recovers a required-audit failure through real signed SSO SQL HTTP', async () => {
+  const f = await fixture();
+  const root = new TokenElement();
+  const paths: string[] = [];
+  const app = mountManagementAudit(root, { now: () => 100, schedule: () => () => {} });
+  async function waitFor(text: RegExp) {
+    for (let attempt = 0; attempt < 100 && !text.test(root.text()); attempt++)
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    assert.match(root.text(), text);
+  }
+  try {
+    await app.authorize({
+      ...grant,
+      request: async (path) => {
+        paths.push(path);
+        return f.get(path.slice('/management/v1/audit'.length));
+      },
+    });
+    root.named('requestId').value = 'event-human';
+    root.named('audit-filters').submit();
+    await waitFor(/Audit events loaded/);
+    const submitted = paths.at(-1);
+    f.hold(async () => {
+      throw Error('private-audit-storage-fault');
+    });
+    root.button('Refresh current page').click();
+    assert.doesNotMatch(root.text(), /proxy-private|read-policy/);
+    await waitFor(/Audit unavailable/);
+    assert.doesNotMatch(root.text(), /private-audit-storage-fault|proxy-private/);
+    f.hold(async () => {});
+    root.button('Retry current page').click();
+    await waitFor(/Audit events loaded/);
+    assert.equal(paths.at(-1), submitted);
+    assert.equal(root.all().filter((node) => node.tag === 'details').length, 2);
+    assert.match(root.text(), /read-policy/);
+    await f.db.exec('DELETE FROM iam_principal_policies');
+    root.button('Refresh current page').click();
+    await waitFor(/Access denied/);
+    assert.doesNotMatch(
+      root.text(),
+      /Retry current page|Refresh current page|proxy-private|read-policy/,
+    );
+  } finally {
+    app.dispose();
+    await f.close();
+  }
+});
