@@ -1261,12 +1261,14 @@ test('current-page summary consumes HTTP rows with exact separate costs and cove
   const rows: UsageRecord[] = [
     {
       ...row,
+      occurredAt: 5,
       estimatedCost: { amountDecimal: '9007199254740993.1', currency: 'USD', priceVersion: 'p1' },
       upstreamBilledCost: { amountDecimal: '0.20', currency: 'USD', source: 'direct-provider' },
     },
     {
       ...row,
       attemptId: 'second',
+      occurredAt: 4,
       estimatedCost: { amountDecimal: '0.20', currency: 'USD', priceVersion: 'p2' },
       upstreamBilledCost: { amountDecimal: '0', currency: 'EUR', source: 'openrouter' },
       possibleDuplicate: true,
@@ -1274,6 +1276,7 @@ test('current-page summary consumes HTTP rows with exact separate costs and cove
     {
       ...row,
       attemptId: 'third',
+      occurredAt: 3,
       estimatedCost: { amountDecimal: '0.000000000000000001', currency: 'EUR', priceVersion: 'p3' },
     },
     {
@@ -1531,12 +1534,18 @@ test('HTTP clear filters retires scoped CSV and cursor without inventing princip
             format: 'csv',
             csv: 'model\r\nchat\r\n',
             hasMore: true,
-            nextCursor: cursor,
+            nextCursor: Buffer.from(JSON.stringify([1, 'older-attempt'])).toString('base64url'),
           };
         return {
           state: 'ready',
           format: 'json',
-          data: [{ ...row, modelAlias: params.get('model') ?? row.modelAlias }],
+          data: [
+            {
+              ...row,
+              modelAlias: params.get('model') ?? row.modelAlias,
+              ...(params.has('cursor') ? { occurredAt: 1, attemptId: 'older-attempt' } : {}),
+            },
+          ],
           hasMore: !params.has('cursor'),
           nextCursor: params.has('cursor') ? null : cursor,
         };

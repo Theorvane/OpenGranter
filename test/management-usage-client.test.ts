@@ -27,6 +27,7 @@ const page = { object: 'list', data: [row], has_more: false, next_cursor: null }
 test('real HTTP API client filters, preserves unknown usage/costs, pages and exports CSV', async () => {
   const seen: string[] = [];
   const cursor = Buffer.from(JSON.stringify([2, 'attempt'])).toString('base64url');
+  const previousCursor = Buffer.from(JSON.stringify([3, 'previous-attempt'])).toString('base64url');
   const server = createSsoUsageHistoryServer({
     newRequestId: () => 'trusted',
     usage: {
@@ -60,7 +61,13 @@ test('real HTTP API client filters, preserves unknown usage/costs, pages and exp
     }),
   );
   try {
-    const result = await client.list({ model: 'chat/a&b', fromMs: 0, toMs: 10, limit: 1, cursor });
+    const result = await client.list({
+      model: 'chat/a&b',
+      fromMs: 0,
+      toMs: 10,
+      limit: 1,
+      cursor: previousCursor,
+    });
     assert.equal(result.state, 'ready');
     if (result.state !== 'ready') throw Error('not ready');
     assert.deepEqual(result.data.records, [row]);
@@ -75,7 +82,8 @@ test('real HTTP API client filters, preserves unknown usage/costs, pages and exp
     assert.equal(params.get('from_ms'), '0');
     assert.equal(params.get('to_ms'), '10');
     assert.equal(params.get('limit'), '1');
-    assert.equal(params.get('cursor'), cursor);
+    assert.equal(params.get('cursor'), previousCursor);
+    assert.notEqual(result.data.nextCursor, previousCursor);
     assert.equal(params.get('format'), 'json');
     const empty = await client.list({ model: 'empty' });
     assert.deepEqual(empty, {
