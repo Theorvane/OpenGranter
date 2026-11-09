@@ -72,10 +72,15 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
   let csvMore = false;
   let csvNext: UsageFilters | undefined;
   function revoke() {
-    if (csvUrl) URL.revokeObjectURL(csvUrl);
+    const previousUrl = csvUrl;
     csvUrl = undefined;
     csvMore = false;
     csvNext = undefined;
+    try {
+      if (previousUrl) URL.revokeObjectURL(previousUrl);
+    } catch {
+      // Browser cleanup failure must not retain local download authority.
+    }
   }
   const element = (tag: string, text?: string) => {
     const node = root.ownerDocument.createElement(tag);
@@ -400,7 +405,18 @@ export function mountManagementUsage(root: UsageElement, options: UsageAuthority
       return;
     }
     if (result.state === 'ready') {
-      csvUrl = URL.createObjectURL(new Blob([result.data.csv], { type: 'text/csv;charset=utf-8' }));
+      try {
+        csvUrl = URL.createObjectURL(
+          new Blob([result.data.csv], { type: 'text/csv;charset=utf-8' }),
+        );
+      } catch {
+        // A successful API read is not a successful browser download. Keep only
+        // query scope for explicit recovery, never CSV text or private errors.
+        page = undefined;
+        state = 'unavailable';
+        render(true);
+        return;
+      }
       csvMore = result.data.hasMore;
       csvNext =
         result.data.hasMore && result.data.nextCursor !== null

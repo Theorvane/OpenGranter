@@ -1242,3 +1242,7 @@ The authorized audit mount now offers explicit current-page refresh/retry, prese
 ## Usage current-page failure recovery (#642)
 
 Transient read/CSV failures and cancellation expose explicit Retry current page, preserving submitted filters, exact opaque cursor and query-only previous navigation, never protected records or exports. Invalid queries require correction; auth/Deny/expiry clear authority. See [plan](plans/642-usage-retry.md) and [contract](../contracts/usage-previous-page.md). No session or installed runtime activation.
+
+## Recoverable usage browser CSV failures (#642)
+
+Browser Blob/object-URL allocation failures after an authorized usage CSV read now clear protected page/export data and expose explicit query-scoped recovery instead of leaving Preparing CSV page stuck. Best-effort URL revocation cannot interrupt local authority cleanup. No new session, permission or runtime activation. See [plan](plans/642-usage-download-recovery.md) and [contract](../contracts/usage-previous-page.md#browser-download-failure-containment-642).

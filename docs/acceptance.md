@@ -1861,3 +1861,8 @@ The shared Node HTTP bridge forces no-store and nosniff on exact /management and
 - Failed filtered second page, CSV failure and operator cancellation retain only submitted query/cursor/backstack, not protected data or downloads. Retry current page never consumes unsubmitted edits; first-page recovery remains separate.
 - Required-audit failure/recovery is exercised via source and compiled UI using signed synthetic SSO, real SQL HTTP and fresh Deny/expiry. Invalid filters do not expose Retry current page. Busy/detached controls cannot replay.
 - Native browser verifies failed second-page retry then Previous page: [evidence](plans/642-usage-retry-browser-evidence.md). Company login/session, installed DB and live providers remain separate gates.
+
+## Usage CSV browser failure recovery (#642)
+
+- Force browser download allocation failure after a successful usage CSV read: render only a safe unavailable state, clear records/downloads, leak no exception or CSV text, and permit explicit current-page retry with the exact submitted query.
+- Force URL revocation failure at authority expiry/logout: cleanup still clears the UI, detached download events are prevented, and a newly authorized read is usable. This is local containment, not proof of browser resource erasure or live SSO.
