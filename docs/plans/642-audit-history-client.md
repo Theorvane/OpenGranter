@@ -27,3 +27,9 @@
 - RED missing public module in /tmp/og-0230-audit-red.log. GREEN 43/43 zero skipped in /tmp/og-0230-audit-green.log, including 11 new client tests and real Fetch handler plus migrated PGlite composition, fresh permission revocation, durable read/deny audit, failed audit and private fields. No actual browser, installed PostgreSQL or SSO/provider acceptance claimed.
 - Typecheck and lint pass (existing 42 warnings/161 infos). No frontend-owned files changed.
 - Planning/secret scan, all six offline compatibility pins, diff check and browser esbuild bundle (20.7 KiB) pass. Standard npm run check running at /tmp/og-0230-fullcheck.log with one-CPU affinity to bound concurrency; no full-pass claim until summary.
+
+## Response byte-integrity correction
+- Before production edits, regress complete-looking JSON whose identity Content-Length differs from observed UTF-8 bytes at EOF. Withhold short and long mismatches as unavailable; preserve exact multibyte, absent-length and compressed Fetch decoded bodies under existing limits.
+- No endpoint, IAM, session, rendering, runtime or retention change. Exercise the public audit client and retain real Fetch/migrated SQL authorization and failed-audit acceptance.
+
+- Integrity RED corrected13pass1expectedfail: /tmp/og-0830-audit-red-corrected.log. Initial multibyte fixture used an invalid non-ASCII request ID; changed to an ignored extra field before final regression. GREEN46/46zeroSKIP including public client14, actual Fetch and migrated SQL: /tmp/og-0830-audit-green.log. No browser/installed/IdP/provider acceptance.

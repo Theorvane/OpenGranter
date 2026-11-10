@@ -332,3 +332,77 @@ test('migrated SQL history flows through HTTP with scoped pagination and fresh r
     await db.close();
   }
 });
+
+test('audit pages reject identity length mismatches without exposing partial data', async () => {
+  const body = JSON.stringify({
+    object: 'list',
+    data: [event()],
+    has_more: false,
+    next_cursor: null,
+  });
+  const bytes = Buffer.byteLength(body);
+  for (const length of [bytes - 1, bytes + 1]) {
+    for (const encoding of [undefined, 'identity']) {
+      const result = await createAuditHistoryClient(
+        async () =>
+          new Response(body, {
+            headers: {
+              'content-type': 'application/json',
+              'content-length': String(length),
+              ...(encoding ? { 'content-encoding': encoding } : {}),
+            },
+          }),
+      ).read(filters);
+      assert.deepEqual(result, { state: 'unavailable' });
+    }
+  }
+});
+test('audit lengths measure UTF-8 bytes, not characters, including split multibyte chunks', async () => {
+  const body = JSON.stringify({
+    object: 'list',
+    data: [{ ...event(), ignored: '요청' }],
+    has_more: false,
+    next_cursor: null,
+  });
+  const bytes = new TextEncoder().encode(body);
+  assert.notEqual(bytes.byteLength, body.length);
+  const result = await createAuditHistoryClient(
+    async () =>
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            for (const byte of bytes) controller.enqueue(new Uint8Array([byte]));
+            controller.close();
+          },
+        }),
+        {
+          headers: {
+            'content-type': 'application/json',
+            'content-length': String(bytes.byteLength),
+          },
+        },
+      ),
+  ).read(filters);
+  assert.equal(result.state, 'ready');
+});
+test('audit Fetch decoded compressed bodies are not compared to wire length', async () => {
+  const body = JSON.stringify({
+    object: 'list',
+    data: [event()],
+    has_more: false,
+    next_cursor: null,
+  });
+  for (const encoding of ['gzip', 'br']) {
+    const result = await createAuditHistoryClient(
+      async () =>
+        new Response(body, {
+          headers: {
+            'content-type': 'application/json',
+            'content-encoding': encoding,
+            'content-length': '15',
+          },
+        }),
+    ).read(filters);
+    assert.equal(result.state, 'ready');
+  }
+});

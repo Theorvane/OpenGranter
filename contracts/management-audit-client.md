@@ -7,3 +7,5 @@
 - Validate query before I/O. Snapshot filters before await. Validate entire page, target principal, descending event-ID order, filter bounds, page size and final-row continuation. Reproject allowlisted event metadata and discard unknown content.
 - A 2 MiB streaming body bound, fatal UTF-8, media check and 15-second timeout apply. New read invalidates old read. Host MUST invalidate on logout, expiry or identity change and clear any rendered data; no client-side cache exists.
 - Host must supply approved authentication transport; browser SSO/BFF/CSRF, mounting, CSV UI, retained content policy and installed acceptance remain separate, unresolved where not approved.
+
+- Identity-encoded JSON with Content-Length must match observed UTF-8 bytes at EOF or the entire page is unavailable. Compare bytes, not characters. Compressed Fetch decoded bodies do not compare to compressed wire length; existing decoded byte and deadline bounds still apply. Missing length remains supported.

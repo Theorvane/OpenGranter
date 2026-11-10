@@ -103,6 +103,11 @@ async function boundedJson(response: Response, signal: AbortSignal): Promise<str
       if (size > MAX_BYTES) throw new Error('Audit page exceeds limit');
       text.push(decoder.decode(value, { stream: true }));
     }
+    // Fetch exposes decoded bytes; compressed wire lengths are not comparable.
+    const encoding = response.headers.get('content-encoding')?.trim().toLowerCase();
+    if (length !== null && (!encoding || encoding === 'identity') && size !== Number(length)) {
+      throw new Error('Incomplete audit body');
+    }
     text.push(decoder.decode());
     return text.join('');
   } catch (error) {

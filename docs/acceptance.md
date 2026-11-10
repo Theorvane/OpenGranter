@@ -1870,3 +1870,7 @@ Reject identity-encoded CSV whose observed UTF-8 byte length disagrees with a su
 ## Audit browser transport (#642)
 
 An injected authorized request port can read one explicit principal from the existing /v1/audit JSON endpoint with time/model filters and decimal event-ID pagination. The metadata-only client reuses audit validation/projection, bounds UTF-8 response bytes, suppresses private error bodies and cancels superseded reads. Host must invalidate on identity/expiry changes. This does not authenticate SSO, add a management audit route, activate a screen, retain content or enable downloads. Server IAM and mandatory read auditing remain authoritative.
+
+## Audit browser response byte integrity (#642)
+
+Withhold complete-looking audit JSON pages when identity Content-Length differs from observed UTF-8 bytes. Accept exact multibyte streaming, missing length and compressed Fetch decoded bodies within existing bounds. This does not activate the audit UI, sessions or listeners. See [plan](plans/642-audit-history-client.md).
