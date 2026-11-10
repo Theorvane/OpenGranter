@@ -354,3 +354,27 @@ test('exact publication lookup fails closed on duplicate, wrong-alias, malformed
     message: 'Model catalog unavailable',
   });
 });
+
+test('SQL catalog snapshots reject missing rows instead of returning a partial publication', async () => {
+  const row = {
+    alias: 'disabled',
+    created_at_seconds: '0',
+    enabled: false,
+    active_route_id: null,
+    route_id: null,
+  };
+  const leading = new Array<unknown>(2);
+  leading[1] = row;
+  const trailing = new Array<unknown>(2);
+  trailing[0] = row;
+  for (const rows of [new Array<unknown>(1), leading, trailing]) {
+    const reader = createPostgresModelCatalogReader({ query: async () => ({ rows }) });
+    await assert.rejects(reader.listPublishedModels(), { name: 'ModelCatalogUnavailable' });
+  }
+  assert.deepEqual(
+    await createPostgresModelCatalogReader({
+      query: async () => ({ rows: [] }),
+    }).listPublishedModels(),
+    [],
+  );
+});
