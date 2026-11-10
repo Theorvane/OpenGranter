@@ -12,3 +12,8 @@
 ## Exact request correlation (#641)
 
 Optional `request_id` selects the projected event request ID, never arbitrary details. One value, 1..256 characters, `[A-Za-z0-9][A-Za-z0-9._+:/@-]*`; matching is case-sensitive (encode plus as `%2B`). Empty/duplicate/invalid values fail the existing invalid-query path after authentication. Principal scope, `audit:Read`, fresh IAM and mandatory audit are unchanged. Combine with model/time/cursor filters for JSON or CSV; every continuation request must retain its filters. SQL binds the ID as a value and validates the entire result including lookahead. Query values are not added to access audit records. No session, UI, runtime or deployment grant.
+
+
+## Reader-owned request scope (#642)
+
+The production SQL reader captures the scalar principal, filters, page limit and opaque cursor before validation or awaiting SQL. The same owned values drive parameter binding, full returned-row validation including lookahead, page slicing and next-cursor selection. Caller mutation while SQL is pending cannot widen a request or legitimize substituted foreign-principal/filter rows. This is internal asynchronous ownership, not a claim that browsers can mutate server-side query objects. Fresh IAM and mandatory access audit remain unchanged.

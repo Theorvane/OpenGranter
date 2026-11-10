@@ -66,7 +66,26 @@ export interface AuditHistoryPage {
 export function createPostgresAuditHistoryReader(
   client: GatewayAuditSqlClient,
 ): (query: AuditHistoryQuery) => Promise<AuditHistoryPage> {
-  return async (query) => {
+  return async (input) => {
+    // Own the same scalar scope across validation, SQL and asynchronous projection.
+    const {
+      principalId,
+      limit,
+      cursor: requestedCursor,
+      modelAlias,
+      requestId,
+      fromMs,
+      toMs,
+    } = input;
+    const query: AuditHistoryQuery = {
+      principalId,
+      limit,
+      ...(requestedCursor === undefined ? {} : { cursor: requestedCursor }),
+      ...(modelAlias === undefined ? {} : { modelAlias }),
+      ...(requestId === undefined ? {} : { requestId }),
+      ...(fromMs === undefined ? {} : { fromMs }),
+      ...(toMs === undefined ? {} : { toMs }),
+    };
     if (
       !validAuditPrincipalReference(query.principalId) ||
       !Number.isSafeInteger(query.limit) ||

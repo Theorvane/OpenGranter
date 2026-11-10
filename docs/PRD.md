@@ -1250,3 +1250,8 @@ Browser Blob/object-URL allocation failures after an authorized usage CSV read n
 ## Usage continuation progress (#642)
 
 Usage JSON/CSV clients reject a continuation that repeats the submitted opaque cursor, clearing protected response/export state and allowing explicit existing recovery without automatic retry or cursor fabrication. This complements existing server ordering enforcement, not new session or deployment authority. See [plan](plans/642-usage-cursor-progress.md) and [contract](../contracts/usage-previous-page.md#non-stalling-continuation-642).
+
+
+## Stable audit review scope (#642)
+
+Audit JSON/CSV review uses an owned SQL request scope throughout asynchronous reads, preserving original principal, model/request/time filters, page size and keyset lookahead under caller mutation. No session, permission or schema change. See [plan](plans/642-audit-reader-snapshot.md), [contract](../contracts/sso-audit-history.md#reader-owned-request-scope-642) and production reader/PGlite regression evidence. Browser login, installed PostgreSQL and provider/deployment acceptance remain separate gates.
