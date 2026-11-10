@@ -46,6 +46,27 @@ function validCursor(value: unknown): value is string {
     return false;
   }
 }
+/** Compare validated keyset metadata only; never use decoded values to build requests. */
+function advances(next: string, previous: string): boolean {
+  const decode = (value: string): readonly [number, string] => {
+    const bytes = atob(value.replace(/-/gu, '+').replace(/_/gu, '/'));
+    return JSON.parse(
+      new TextDecoder('utf-8', { fatal: true }).decode(
+        Uint8Array.from(bytes, (character) => character.charCodeAt(0)),
+      ),
+    ) as [number, string];
+  };
+  const [nextTime, nextId] = decode(next);
+  const [previousTime, previousId] = decode(previous);
+  if (nextTime !== previousTime) return nextTime < previousTime;
+  const encoder = new TextEncoder();
+  const left = encoder.encode(nextId);
+  const right = encoder.encode(previousId);
+  for (let index = 0; index < Math.min(left.length, right.length); index += 1) {
+    if (left[index] !== right[index]) return (left[index] ?? 0) < (right[index] ?? 0);
+  }
+  return left.length < right.length;
+}
 function query(filters: UsageExportFilters): string | undefined {
   const { principalId, model, fromMs, toMs, limit, cursor } = filters;
   if (
@@ -138,6 +159,7 @@ export function createSsoUsageExportClient(request: CatalogRequest) {
         return { state: 'invalid_query' };
       }
       if (search === undefined) return { state: 'invalid_query' };
+      const submittedCursor = new URLSearchParams(search).get('cursor');
       const controller = new AbortController();
       pending = controller;
       let timedOut = false;
@@ -180,7 +202,11 @@ export function createSsoUsageExportClient(request: CatalogRequest) {
               response.headers.get('content-type') ?? '',
             ) ||
             (more !== 'true' && more !== 'false') ||
-            (more === 'true' ? !validCursor(next) : next !== null)
+            (more === 'true' ? !validCursor(next) : next !== null) ||
+            (more === 'true' &&
+              next !== null &&
+              submittedCursor !== null &&
+              !advances(next, submittedCursor))
           ) {
             discard(response);
             return { state: 'unavailable' };
