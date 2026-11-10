@@ -1866,3 +1866,7 @@ Preserve an existing leading UTF-8 byte-order mark, including when it is split a
 ## CSV response length integrity (#642)
 
 Reject identity-encoded CSV whose observed UTF-8 byte length disagrees with a supplied Content-Length; never return partial text as ready. Compare bytes rather than characters. For compressed Fetch responses, the browser exposes decoded bytes, so do not compare them to the compressed wire length. Existing decoded byte/deadline bounds, scope and cancellation remain unchanged. No UI, session, runtime or installed acceptance is implied. See [plan](plans/642-csv-length-integrity.md).
+
+## Audit browser transport (#642)
+
+An injected authorized request port can read one explicit principal from the existing /v1/audit JSON endpoint with time/model filters and decimal event-ID pagination. The metadata-only client reuses audit validation/projection, bounds UTF-8 response bytes, suppresses private error bodies and cancels superseded reads. Host must invalidate on identity/expiry changes. This does not authenticate SSO, add a management audit route, activate a screen, retain content or enable downloads. Server IAM and mandatory read auditing remain authoritative.
