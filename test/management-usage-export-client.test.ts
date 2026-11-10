@@ -378,3 +378,57 @@ test('BOM preservation retains strict rejection of a truncated UTF-8 sequence', 
   assert.deepEqual(result, { state: 'unavailable' });
   assert.equal(JSON.stringify(result).includes('\uFEFF'), false);
 });
+
+test('CSV rejects clean EOF with inconsistent unencoded byte length', async () => {
+  for (const encoding of [undefined, 'identity']) {
+    for (const length of ['0', '1', '99']) {
+      const response = csv('模型\r\n');
+      response.headers.set('content-length', length);
+      if (encoding) response.headers.set('content-encoding', encoding);
+      assert.deepEqual(await createSsoUsageExportClient(async () => response).read(), {
+        state: 'unavailable',
+      });
+    }
+  }
+});
+
+test('CSV length uses UTF8 bytes across chunks, not character counts', async () => {
+  const text = '模型\r\n';
+  const bytes = new TextEncoder().encode(text);
+  const response = new Response(
+    new ReadableStream({
+      start(controller) {
+        controller.enqueue(bytes.subarray(0, 1));
+        controller.enqueue(bytes.subarray(1));
+        controller.close();
+      },
+    }),
+    {
+      headers: {
+        'content-type': 'text/csv',
+        'x-has-more': 'false',
+        'content-length': String(bytes.length),
+      },
+    },
+  );
+  assert.deepEqual(await createSsoUsageExportClient(async () => response).read(), {
+    state: 'ready',
+    csv: text,
+    hasMore: false,
+    nextCursor: null,
+  });
+});
+
+test('decoded Fetch CSV does not compare compressed wire length to text bytes', async () => {
+  for (const encoding of ['gzip', 'br']) {
+    const response = csv('模型\r\n');
+    response.headers.set('content-length', '1');
+    response.headers.set('content-encoding', encoding);
+    assert.deepEqual(await createSsoUsageExportClient(async () => response).read(), {
+      state: 'ready',
+      csv: '模型\r\n',
+      hasMore: false,
+      nextCursor: null,
+    });
+  }
+});

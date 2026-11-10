@@ -14,3 +14,7 @@ Plan: [implementation](../docs/plans/642-browser-usage-export.md). Test: test/ma
 ## Verbatim CSV encoding (#642)
 
 Preserve an existing leading UTF-8 byte-order mark, including when it is split across stream chunks; never add a marker to an unmarked export. Strict UTF-8 decoding and existing byte/time bounds remain enforced. This transport-only correction does not activate UI/session/downloads. See [plan](../docs/plans/642-csv-byte-order-mark.md).
+
+## CSV response length integrity (#642)
+
+Reject identity-encoded CSV whose observed UTF-8 byte length disagrees with a supplied Content-Length; never return partial text as ready. Compare bytes rather than characters. For compressed Fetch responses, the browser exposes decoded bytes, so do not compare them to the compressed wire length. Existing decoded byte/deadline bounds, scope and cancellation remain unchanged. No UI, session, runtime or installed acceptance is implied. See [plan](../docs/plans/642-csv-length-integrity.md).
