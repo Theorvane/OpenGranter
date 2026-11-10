@@ -1824,3 +1824,21 @@ The unused mount adapter builds fixed detached main/heading/status nodes with te
 - Real local loopback listener with migrated PGlite and a registered signed test issuer serves catalog list and encoded-alias detail, with or without optional browser assets.
 - Verify durable human/policy attribution, anonymous denial, next-request Deny/revoked binding, required-audit outage, unchanged token authentication and unrelated/inference path isolation.
 - Verify one connection and idempotent close. Local test issuer/PGlite sockets are not browser login, installed PostgreSQL, company IdP or provider acceptance.
+
+
+## Management transport privacy (#639)
+
+The shared Node HTTP bridge forces no-store and nosniff on exact /management and slash descendants, including handler errors and custom fallback responses. This preserves existing status/body/authentication/audit behavior and activates no routes or session. See [contract](../contracts/management-http-privacy.md) and [plan](plans/639-management-http-privacy.md). Loopback socket evidence is not native-browser, company SSO or installed ingress acceptance.
+
+- Assert management 200/201, 401/403/404/503 and unexpected 500 fallback responses carry no-store and nosniff over a real Node socket, overriding unsafe child headers without changing body/status/request IDs or Bearer challenge.
+- Assert /management-public and query-only management strings retain unrelated cache policy; existing discovery and proxy error-format regressions remain green.
+
+## Management transport fallback containment (#639)
+
+- Real loopback HTTP with an isolated process verifies throwing factories, invalid fallback status/header, partially errored streams and consumed bodies produce fixed 500 responses with no custom fallback metadata or private error text. Repeat requests demonstrate process survival.
+- Management no-store/nosniff and compatible discovery no-store/error shape survive fallback failure. Existing valid custom responses remain supported. These are transport checks, not browser SSO, installed PostgreSQL or provider acceptance.
+
+## Management response metadata isolation (#639)
+
+- Actual loopback HTTP invalid status/header and consumed body cases yield fixed errors without failed-response cookies, redirects, encodings, framing or private headers. Repeated requests demonstrate survival.
+- Valid responses retain intended status, headers and body. These checks do not certify browser sign-in or installed acceptance.

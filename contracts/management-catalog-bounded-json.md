@@ -9,3 +9,7 @@ The client cancels active readers on invalidation, deadline or read failure with
 ## Response encoding (#639)
 
 Successful catalog bodies must be well-formed UTF-8. Decode the complete bounded byte sequence with fatal error handling before JSON parsing. Invalid, truncated, overlong or surrogate encodings return only unavailable; never replace them with U+FFFD and render altered identifiers or publishers. Valid multibyte Unicode remains unchanged across response chunks. Non-200 errors retain status-only authentication/denial mapping without body parsing. No session or permission grant is introduced.
+
+## List navigation integrity (#639)
+
+Every list row must pass the same alias validation as detail navigation. Proxy collection aliases count/user remain reserved; SSO does not inherit those proxy exclusions. Duplicate exact IDs reject the entire list as unavailable, without silent deduplication or partial display. Unicode and exact-case-distinct IDs remain unchanged. A malformed refresh replaces any previous detail with loading then unavailable; it does not retain stale private content. This is a client navigation invariant, not new server authority or a publication permission.

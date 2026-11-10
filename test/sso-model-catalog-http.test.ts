@@ -342,3 +342,212 @@ test('real loopback Node + signed JWT + migrated PGlite: role IAM, live deny/rev
     await db.close();
   }
 });
+
+test('descriptive SSO publication is bounded and never implies rich proxy publication', async () => {
+  const f = fixture();
+  const display = {
+    ...model,
+    name: 'Public <b>text</b>',
+    description: '',
+    context_length: null,
+    architecture: { input_modalities: ['text'], output_modalities: ['text'] },
+    supported_parameters: ['tools'],
+  };
+  const extra = {
+    ...display,
+    canonical_slug: 'private-secret',
+    credentialRef: 'private-secret',
+  };
+  f.setList({ state: 'ready', data: [extra] });
+  f.setDetail({ state: 'ready', data: extra });
+  assert.deepEqual(await safe(await f.handle(request()), 200), { object: 'list', data: [display] });
+  assert.deepEqual(await safe(await f.handle(request('/team%2Fchat')), 200), display);
+  for (const patch of [
+    { name: undefined },
+    { name: null },
+    { name: '' },
+    { name: '  ' },
+    { name: 'x'.repeat(257) },
+    { description: undefined },
+    { description: null },
+    { description: 3 },
+    { description: 'x'.repeat(8193) },
+    { context_length: undefined },
+    { context_length: -1 },
+    { context_length: 0.1 },
+    { context_length: Number.MAX_SAFE_INTEGER + 1 },
+    { context_length: '8192' },
+  ]) {
+    const invalid = { ...display, ...patch } as unknown as SsoCatalogModel;
+    f.setList({ state: 'ready', data: [model, invalid] });
+    f.setDetail({ state: 'ready', data: invalid });
+    await safe(await f.handle(request()), 503);
+    await safe(await f.handle(request('/team%2Fchat')), 503);
+  }
+  const boundary = {
+    ...model,
+    name: 'x'.repeat(256),
+    description: 'x'.repeat(8192),
+    context_length: 0,
+  };
+  f.setDetail({ state: 'ready', data: boundary });
+  assert.deepEqual(await safe(await f.handle(request('/team%2Fchat')), 200), boundary);
+});
+
+test('published base prices preserve exact decimals, strip extras and reject malformed output', async () => {
+  const f = fixture();
+  const pricing = { prompt: '0.0000001234567890123456789', completion: '0e-9' };
+  const priced = {
+    ...model,
+    pricing: { ...pricing, credentialRef: 'private-secret', request: '99' },
+  };
+  f.setList({ state: 'ready', data: [priced] });
+  f.setDetail({ state: 'ready', data: priced });
+  assert.deepEqual(await safe(await f.handle(request()), 200), {
+    object: 'list',
+    data: [{ ...model, pricing }],
+  });
+  assert.deepEqual(await safe(await f.handle(request('/team%2Fchat')), 200), { ...model, pricing });
+  for (const bad of [
+    undefined,
+    null,
+    [],
+    {},
+    { prompt: '0' },
+    { prompt: 0, completion: '0' },
+    { prompt: '-1', completion: '0' },
+    { prompt: '1e999', completion: '0' },
+    { prompt: '01', completion: '0' },
+    { prompt: '1'.repeat(129), completion: '0' },
+  ]) {
+    const invalid = { ...model, pricing: bad } as unknown as SsoCatalogModel;
+    f.setList({ state: 'ready', data: [model, invalid] });
+    f.setDetail({ state: 'ready', data: invalid });
+    await safe(await f.handle(request()), 503);
+    await safe(await f.handle(request('/team%2Fchat')), 503);
+  }
+});
+
+test('published modality and parameter labels survive HTTP without private nested metadata', async () => {
+  const f = fixture();
+  const architecture = { input_modalities: ['text', 'image'], output_modalities: ['text'] };
+  const supported_parameters = ['tools', 'temperature'];
+  const row = {
+    ...model,
+    architecture: { ...architecture, modality: 'private-secret' },
+    supported_parameters,
+  };
+  f.setList({ state: 'ready', data: [row] });
+  f.setDetail({ state: 'ready', data: row });
+  assert.deepEqual(await safe(await f.handle(request()), 200), {
+    object: 'list',
+    data: [{ ...model, architecture, supported_parameters }],
+  });
+  assert.deepEqual(await safe(await f.handle(request('/team%2Fchat')), 200), {
+    ...model,
+    architecture,
+    supported_parameters,
+  });
+  const empty = {
+    ...model,
+    architecture: { input_modalities: [], output_modalities: [] },
+    supported_parameters: [],
+  };
+  f.setDetail({ state: 'ready', data: empty });
+  assert.deepEqual(await safe(await f.handle(request('/team%2Fchat')), 200), empty);
+});
+
+test('malformed present modality or parameter labels suppress the entire list and detail', async () => {
+  const f = fixture();
+  const invalidArrays = [
+    undefined,
+    null,
+    {},
+    'text',
+    [1],
+    [''],
+    [' '],
+    ['text', 'text'],
+    ['x'.repeat(129)],
+    Array(65).fill('text'),
+    Array(1),
+  ];
+  const invalidArchitectures = [
+    undefined,
+    null,
+    [],
+    {},
+    { input_modalities: [] },
+    ...invalidArrays.map((input_modalities) => ({ input_modalities, output_modalities: [] })),
+    ...invalidArrays.map((output_modalities) => ({ input_modalities: [], output_modalities })),
+  ];
+  for (const fields of [
+    ...invalidArchitectures.map((architecture) => ({ architecture })),
+    ...invalidArrays.map((supported_parameters) => ({ supported_parameters })),
+  ]) {
+    const row = { ...model, ...fields } as unknown as SsoCatalogModel;
+    f.setList({ state: 'ready', data: [model, row] });
+    f.setDetail({ state: 'ready', data: row });
+    await safe(await f.handle(request()), 503);
+    await safe(await f.handle(request('/team%2Fchat')), 503);
+  }
+});
+
+test('published label bounds preserve order and do not invent text or known capabilities', async () => {
+  const f = fixture();
+  const labels = Array.from({ length: 64 }, (_, i) => `${i}${'x'.repeat(125)}`);
+  const row = {
+    ...model,
+    architecture: { input_modalities: labels, output_modalities: ['future-modality'] },
+    supported_parameters: labels,
+  };
+  f.setDetail({ state: 'ready', data: row });
+  assert.deepEqual(await safe(await f.handle(request('/team%2Fchat')), 200), row);
+});
+
+test('published provider token bounds retain null, zero and integers without private fields', async () => {
+  const f = fixture();
+  for (const top_provider of [
+    {},
+    { context_length: null },
+    { max_completion_tokens: null },
+    { context_length: 0, max_completion_tokens: 0 },
+    { context_length: Number.MAX_SAFE_INTEGER, max_completion_tokens: 8192 },
+  ]) {
+    const row = {
+      ...model,
+      top_provider: { ...top_provider, credentialRef: 'private-secret', is_moderated: true },
+    };
+    f.setList({ state: 'ready', data: [row] });
+    f.setDetail({ state: 'ready', data: row });
+    assert.deepEqual(await safe(await f.handle(request()), 200), {
+      object: 'list',
+      data: [{ ...model, top_provider }],
+    });
+    assert.deepEqual(await safe(await f.handle(request('/team%2Fchat')), 200), {
+      ...model,
+      top_provider,
+    });
+  }
+});
+
+test('invalid present provider token bounds fail the entire HTTP projection', async () => {
+  const f = fixture();
+  const invalid = [
+    undefined,
+    null,
+    [],
+    false,
+    '8192',
+    ...[undefined, -1, 0.5, Number.MAX_SAFE_INTEGER + 1, Infinity, '8192', false].flatMap(
+      (value) => [{ context_length: value }, { max_completion_tokens: value }],
+    ),
+  ];
+  for (const top_provider of invalid) {
+    const row = { ...model, top_provider } as unknown as SsoCatalogModel;
+    f.setList({ state: 'ready', data: [model, row] });
+    f.setDetail({ state: 'ready', data: row });
+    await safe(await f.handle(request()), 503);
+    await safe(await f.handle(request('/team%2Fchat')), 503);
+  }
+});

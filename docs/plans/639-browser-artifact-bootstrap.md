@@ -16,4 +16,6 @@
 
 ## Trusted bootstrap example
 
-Build and publish a reviewed src/management entry with npm run management:build -- src/management/<reviewed-entry>.ts. Do not serve unreviewed output. In the already approved SSO bootstrap, call startPostgresSsoBrowserGateway({ ...trustedSsoRuntimePorts, browserArtifactPath: absolutePublishedArtifactPath }); retain the returned runtime and await runtime.close() on shutdown. The existing runtime owns database/listener cleanup. Return address is not proof of externally reachable ingress. Invalid artifact paths never acquire the database. No command or environment variable automatically enables this helper.
+Build and publish a reviewed src/management entry with npm run management:build -- src/management/<reviewed-entry>.ts --output /absolute/trusted/path/app-version.js. Do not serve unreviewed output. In the already approved SSO bootstrap, call startPostgresSsoBrowserGateway({ ...trustedSsoRuntimePorts, browserArtifactPath: absolutePublishedArtifactPath }); retain the returned runtime and await runtime.close() on shutdown. The existing runtime owns database/listener cleanup. Return address is not proof of externally reachable ingress. Invalid artifact paths never acquire the database. No command or environment variable automatically enables this helper.
+
+Explicit atomic non-overwriting publication is specified in [plan 795](795-browser-artifact-publication.md). The trusted parent must exist; use a new versioned output filename. This does not authorize deployment or sessions.
