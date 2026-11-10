@@ -32,3 +32,6 @@
 - GREEN: 44 focused tests, zero failures and skips, including actual signed JWT, migrated PGlite, Fetch and insert-block/failure cases (`/tmp/og-0000-green2.log`).
 - Full typecheck, lint (existing 42 warnings/160 infos), planning/contract scan and six offline compatibility pins pass.
 - Standard npm run check started separately (`/tmp/og-0000-fullcheck.log`); result must be recorded after completion, not inferred from focused success.
+
+- Standard full-check execution exposed a dependent runtime test with a fixed version-012 history expectation. Its assertion was wrapped as GatewayStartupUnavailable. Updated that assertion to require all 13 versions, preserving its ordering and exact-history check. This is a test expectation update, not a runtime workaround.
+- Additional isolated runtime attempts while fullcheck was still active were SIGKILLed (`/tmp/og-0000-runtime.log`, `/tmp/og-0000-runtime-regression.log`); these do not establish regression success. Fullcheck also recorded SIGKILL in other database test files. Do not label this standard fullcheck PASS.
