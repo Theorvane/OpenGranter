@@ -225,11 +225,20 @@ export function createManagementUsageClient(request: CatalogRequest) {
     invalidate,
     list: (filters: UsageFilters = {}) => {
       // Snapshot explicit scope before awaiting the trusted transport.
-      const { principalId, model, requestId, fromMs, toMs, limit = 50 } = filters;
+      const {
+        principalId,
+        model,
+        requestId,
+        fromMs,
+        toMs,
+        limit = 50,
+        cursor: requestedCursor,
+      } = filters;
       return read(filters, 'json', (raw) => {
         const page = jsonPage(raw);
         return page &&
           page.records.length <= limit &&
+          page.nextCursor !== requestedCursor &&
           page.records.every(
             (record) =>
               (principalId === undefined || record.principalId === principalId) &&
@@ -242,12 +251,14 @@ export function createManagementUsageClient(request: CatalogRequest) {
           : undefined;
       });
     },
-    csv: (filters: UsageFilters = {}) =>
-      read(filters, 'csv', (csv, response): UsageCsvPage | undefined => {
+    csv: (filters: UsageFilters = {}) => {
+      const requestedCursor = filters.cursor;
+      return read(filters, 'csv', (csv, response): UsageCsvPage | undefined => {
         const more = response.headers.get('x-usage-has-more');
         if (more !== 'true' && more !== 'false') return;
         const page = paging(more === 'true', response.headers.get('x-usage-next-cursor'));
-        return page ? { csv, ...page } : undefined;
-      }),
+        return page && page.nextCursor !== requestedCursor ? { csv, ...page } : undefined;
+      });
+    },
   };
 }

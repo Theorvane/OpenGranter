@@ -117,7 +117,7 @@ for (const { dimension, artifact } of (['request'] as const).flatMap((dimension)
               'x-usage-next-cursor': 'csvOpaque',
             },
           });
-        return reply(!query.has('request_id'));
+        return reply(!query.has('cursor') && !query.has('request_id'));
       };
       const filter = () => root.button('Trace usage request ' + row.requestId);
       try {

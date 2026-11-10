@@ -117,7 +117,9 @@ for (const { dimension, artifact } of (['model', 'principal'] as const).flatMap(
               'x-usage-next-cursor': 'csvOpaque',
             },
           });
-        return reply(!query.has(dimension === 'model' ? 'model' : 'principal_id'));
+        return reply(
+          !query.has('cursor') && !query.has(dimension === 'model' ? 'model' : 'principal_id'),
+        );
       };
       const filter = () =>
         root.button(

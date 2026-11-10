@@ -1246,3 +1246,7 @@ Transient read/CSV failures and cancellation expose explicit Retry current page,
 ## Recoverable usage browser CSV failures (#642)
 
 Browser Blob/object-URL allocation failures after an authorized usage CSV read now clear protected page/export data and expose explicit query-scoped recovery instead of leaving Preparing CSV page stuck. Best-effort URL revocation cannot interrupt local authority cleanup. No new session, permission or runtime activation. See [plan](plans/642-usage-download-recovery.md) and [contract](../contracts/usage-previous-page.md#browser-download-failure-containment-642).
+
+## Usage continuation progress (#642)
+
+Usage JSON/CSV clients reject a continuation that repeats the submitted opaque cursor, clearing protected response/export state and allowing explicit existing recovery without automatic retry or cursor fabrication. This complements existing server ordering enforcement, not new session or deployment authority. See [plan](plans/642-usage-cursor-progress.md) and [contract](../contracts/usage-previous-page.md#non-stalling-continuation-642).
