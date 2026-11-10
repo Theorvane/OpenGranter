@@ -11,3 +11,5 @@ Integration evidence: signed JWT, migrated embedded PGlite, actual Fetch adapter
 Plan: [implementation](../docs/plans/642-browser-usage-history.md). Tests: test/management-usage-client.test.ts. Parent #637 / #642. CSV transport remains separate and unchanged.
 
 Response integrity: at EOF, require identity-encoded observed UTF-8 byte length to equal a supplied Content-Length, including zero. Missing lengths use streaming limits only. Compressed Fetch responses expose decoded bytes; do not compare them to compressed wire length. Continue to bound decoded bytes and time and withhold the whole page on mismatch.
+
+Pending-request scope: capture the six allowlisted scalar filters once before building the query, and validate responses against that exact snapshot. Caller mutation or accessor changes while network/body reads are pending cannot relax principal/model/time/page-size/continuation checks or invalidate a page matching the originally requested scope. Accessor failures return invalid_query without a request. This is client response integrity, not an authorization substitute.

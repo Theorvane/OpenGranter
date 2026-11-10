@@ -200,8 +200,19 @@ export function createSsoUsageClient(request: CatalogRequest) {
     async read(filters: UsageFilters = {}): Promise<UsageResult> {
       invalidate();
       let search: string | undefined;
+      let snapshot: UsageFilters;
       try {
-        search = query(filters);
+        // Bind response validation to the exact filters serialized for this request.
+        const { principalId, model, fromMs, toMs, limit, cursor } = filters;
+        snapshot = {
+          ...(principalId === undefined ? {} : { principalId }),
+          ...(model === undefined ? {} : { model }),
+          ...(fromMs === undefined ? {} : { fromMs }),
+          ...(toMs === undefined ? {} : { toMs }),
+          ...(limit === undefined ? {} : { limit }),
+          ...(cursor === undefined ? {} : { cursor }),
+        };
+        search = query(snapshot);
       } catch {
         return { state: 'invalid_query' };
       }
@@ -251,7 +262,7 @@ export function createSsoUsageClient(request: CatalogRequest) {
           }
           const text = await boundedJson(response, controller.signal);
           if (controller.signal.aborted) return interrupted();
-          const data = parsePage(JSON.parse(text), filters);
+          const data = parsePage(JSON.parse(text), snapshot);
           return { state: 'ready', ...data };
         } catch {
           return controller.signal.aborted ? interrupted() : { state: 'unavailable' };

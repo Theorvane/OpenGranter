@@ -351,3 +351,71 @@ test('JSON accepts byte-exact UTF8 identity, absent length and compressed decode
     });
   }
 });
+
+test('pending JSON read preserves its original filter scope after caller mutation', async () => {
+  for (const matchesOriginal of [true, false]) {
+    const filters = {
+      principalId: 'human',
+      model: 'chat',
+      fromMs: 0,
+      toMs: 11,
+      limit: 1,
+      cursor: cursor(11, 'anchor'),
+    };
+    let release!: (response: Response) => void;
+    let requested = '';
+    const client = createSsoUsageClient(async (url) => {
+      requested = url;
+      return new Promise<Response>((resolve) => {
+        release = resolve;
+      });
+    });
+    const pending = client.read(filters);
+    Object.assign(filters, {
+      principalId: 'other',
+      model: 'other-model',
+      fromMs: 20,
+      toMs: 30,
+      limit: 2,
+      cursor: cursor(30, 'z'),
+    });
+    release(
+      matchesOriginal
+        ? page()
+        : page([{ ...row('y', 25), principalId: 'other', modelAlias: 'other-model' }]),
+    );
+    assert.equal(
+      new URL(requested, 'https://example.test').searchParams.get('principal_id'),
+      'human',
+    );
+    assert.equal((await pending).state, matchesOriginal ? 'ready' : 'unavailable');
+  }
+});
+
+test('JSON page size cannot be relaxed while the response is pending', async () => {
+  const filters = { limit: 1 };
+  let release!: (response: Response) => void;
+  const client = createSsoUsageClient(
+    async () =>
+      new Promise<Response>((resolve) => {
+        release = resolve;
+      }),
+  );
+  const pending = client.read(filters);
+  filters.limit = 2;
+  release(page([row('z'), row('a')]));
+  assert.equal((await pending).state, 'unavailable');
+});
+
+test('JSON read snapshots each allowlisted accessor once', async () => {
+  let reads = 0;
+  const filters = {
+    get principalId() {
+      reads++;
+      return reads === 1 ? 'human' : 'other';
+    },
+  };
+  const result = await createSsoUsageClient(async () => page()).read(filters);
+  assert.equal(result.state, 'ready');
+  assert.equal(reads, 1);
+});
