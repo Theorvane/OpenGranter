@@ -1432,3 +1432,7 @@ The shared Node HTTP bridge forces no-store and nosniff on exact /management and
 ## Browser CSV usage transport (#642)
 
 Explicit caller-authorized export adapter reads one bounded CSV page with existing principal/model/time/limit/opaque-cursor filters, preserves unknown billing and pagination, and cancels stale identity results. No UI/session/runtime activation or installed acceptance is implied. See [contract](../contracts/management-usage-export.md) and [plan](plans/642-browser-usage-export.md).
+
+## Durable SSO usage Fetch composition (#642)
+
+The explicit `createPostgresSsoUsageHistoryHandler` factory owns a non-overridable PostgreSQL metadata writer and composes the existing fresh signed-token SSO/IAM usage service. Additive migration 013 is included in the trusted source manifest. A dedicated SSO usage audit table retains request/actor/policy/target/mode/outcome/count metadata rather than synthetic proxy identities or content. The awaited INSERT must return one valid event ID before any service result is exposed. Database ownership, migration execution, session/BFF, listener and runtime mounting are not activated by the factory. See [plan](plans/642-durable-sso-usage-http.md).
