@@ -94,7 +94,8 @@ async function boundedCsv(response: Response, signal: AbortSignal): Promise<stri
   };
   signal.addEventListener('abort', cancel, { once: true });
   let size = 0;
-  const decoder = new TextDecoder('utf-8', { fatal: true });
+  // CSV is verbatim: expose an existing BOM instead of consuming it.
+  const decoder = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
   const text: string[] = [];
   try {
     if (signal.aborted) throw new Error('Interrupted');

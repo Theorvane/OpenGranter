@@ -9,3 +9,8 @@ Responses map 400 to invalid_query, 401 to unauthenticated, 403 to denied and ot
 No credentials, persistent storage, DOM/download, listener, session/BFF activation, provider invocation or database changes. This transport alone is not a browser screen or installed acceptance. Local signed-JWT/PGlite/Fetch integration uses an in-memory metadata audit sink, not the durable factory from PR842.
 
 Plan: [implementation](../docs/plans/642-browser-usage-export.md). Test: test/management-usage-export-client.test.ts. Parent #637 / #642.
+
+
+## Verbatim CSV encoding (#642)
+
+Preserve an existing leading UTF-8 byte-order mark, including when it is split across stream chunks; never add a marker to an unmarked export. Strict UTF-8 decoding and existing byte/time bounds remain enforced. This transport-only correction does not activate UI/session/downloads. See [plan](../docs/plans/642-csv-byte-order-mark.md).

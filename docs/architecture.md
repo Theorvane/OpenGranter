@@ -1436,3 +1436,8 @@ Explicit caller-authorized export adapter reads one bounded CSV page with existi
 ## Durable SSO usage Fetch composition (#642)
 
 The explicit `createPostgresSsoUsageHistoryHandler` factory owns a non-overridable PostgreSQL metadata writer and composes the existing fresh signed-token SSO/IAM usage service. Additive migration 013 is included in the trusted source manifest. A dedicated SSO usage audit table retains request/actor/policy/target/mode/outcome/count metadata rather than synthetic proxy identities or content. The awaited INSERT must return one valid event ID before any service result is exposed. Database ownership, migration execution, session/BFF, listener and runtime mounting are not activated by the factory. See [plan](plans/642-durable-sso-usage-http.md).
+
+
+## Verbatim CSV encoding (#642)
+
+Preserve an existing leading UTF-8 byte-order mark, including when it is split across stream chunks; never add a marker to an unmarked export. Strict UTF-8 decoding and existing byte/time bounds remain enforced. This transport-only correction does not activate UI/session/downloads. See [plan](plans/642-csv-byte-order-mark.md).

@@ -336,3 +336,45 @@ test('CSV transport reads signed-SSO SQL history and observes fresh Deny', async
     await db.close();
   }
 });
+
+test('export preserves a supplied UTF-8 BOM across byte chunks without inserting one', async () => {
+  const text = '\uFEFFmodel,cost\r\n한국어,\uFEFFunknown\r\n';
+  const bytes = new TextEncoder().encode(text);
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      for (const byte of bytes) controller.enqueue(Uint8Array.of(byte));
+      controller.close();
+    },
+  });
+  const response = new Response(stream, {
+    headers: {
+      'content-type': 'text/csv; charset=utf-8',
+      'x-has-more': 'false',
+    },
+  });
+  const result = await createSsoUsageExportClient(async () => response).read();
+  assert.equal(result.state, 'ready');
+  if (result.state !== 'ready') throw new Error('Expected CSV');
+  assert.equal(result.csv, text);
+  assert.deepEqual(new TextEncoder().encode(result.csv), bytes);
+  const ordinary = 'model,cost\r\n한국어,unknown\r\n';
+  const plain = await createSsoUsageExportClient(async () => csv(ordinary)).read();
+  assert.deepEqual(plain, { state: 'ready', csv: ordinary, hasMore: false, nextCursor: null });
+});
+
+test('BOM preservation retains strict rejection of a truncated UTF-8 sequence', async () => {
+  const body = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(Uint8Array.of(0xef, 0xbb, 0xbf, 0xe2));
+      controller.close();
+    },
+  });
+  const result = await createSsoUsageExportClient(
+    async () =>
+      new Response(body, {
+        headers: { 'content-type': 'text/csv', 'x-has-more': 'false' },
+      }),
+  ).read();
+  assert.deepEqual(result, { state: 'unavailable' });
+  assert.equal(JSON.stringify(result).includes('\uFEFF'), false);
+});
