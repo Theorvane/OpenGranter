@@ -1346,3 +1346,7 @@ The public Models/Usage workspace reuses the existing frontend request-correlati
 ## Integrated exact request usage trace (#637 / #642)
 
 The existing source/built management workspace now reuses the frontend-owned request-ID control and per-attempt trace action. The optional exact request_id intersects existing principal/model/time scope, resets cursors on filter changes, and is retained for JSON/CSV continuation through signed SSO HTTP and the parameterized usage reader. Fresh IAM, explicit-principal ReadAll semantics, mandatory private audit, foreign-principal isolation and unknown/duplicate markers remain unchanged. This is a bounded review feature, not billing reconciliation, browser login, installed PostgreSQL or paid-provider acceptance. See [integration plan](plans/637-integrate-request-filter.md).
+
+## Stable usage review request boundary (#642)
+
+The existing PostgreSQL usage reader now captures caller-owned scope, pagination and nested cursor values before awaiting SQL, so original-principal and filter validation cannot drift during an in-flight request. This supports section 3 review isolation without changing IAM or activating sessions. Evidence: [contract](../contracts/sso-usage-history.md#reader-request-ownership-642), [plan](plans/642-usage-reader-snapshot.md), production reader tests and PGlite execution. Installed PostgreSQL, browser login and provider acceptance remain separate gates.
