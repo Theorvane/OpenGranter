@@ -1427,3 +1427,8 @@ The operator command adds isolated official-CLI device login, status and logout 
 ## Management transport privacy (#639)
 
 The shared Node HTTP bridge forces no-store and nosniff on exact /management and slash descendants, including handler errors and custom fallback responses. This preserves existing status/body/authentication/audit behavior and activates no routes or session. See [contract](../contracts/management-http-privacy.md) and [plan](plans/639-management-http-privacy.md). Loopback socket evidence is not native-browser, company SSO or installed ingress acceptance.
+
+
+## Durable SSO usage Fetch composition (#642)
+
+The explicit `createPostgresSsoUsageHistoryHandler` factory owns a non-overridable PostgreSQL metadata writer and composes the existing fresh signed-token SSO/IAM usage service. Additive migration 013 is included in the trusted source manifest. A dedicated SSO usage audit table retains request/actor/policy/target/mode/outcome/count metadata rather than synthetic proxy identities or content. The awaited INSERT must return one valid event ID before any service result is exposed. Database ownership, migration execution, session/BFF, listener and runtime mounting are not activated by the factory. See [plan](plans/642-durable-sso-usage-http.md).

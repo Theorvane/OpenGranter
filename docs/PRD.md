@@ -1238,3 +1238,10 @@ Pre-commit Node response failures discard staged response metadata before fixed 
 ## SSO usage history Fetch integration (#642)
 
 An unactivated GET /management/v1/usage factory now reuses the existing fresh-SSO scoped usage service, filters, keyset JSON/CSV and mandatory audit. Signed JWT/migrated embedded SQL/Fetch tests cover scoped/empty pages, explicit-self ReadAll, current Deny/revocation, query/SQL failures, cross-principal hidden lookahead and awaited/failed audit. Durable SSO audit composition, runtime/session/UI and installed/browser acceptance remain open. See [contract](../contracts/sso-usage-history.md).
+
+
+## Explicit durable SSO usage HTTP composition (#642)
+
+`createPostgresSsoUsageHistoryHandler` composes the existing signed-bearer Fetch usage handler with fresh SSO/IAM reads and mandatory awaited PostgreSQL metadata audit. Migration 013 adds dedicated `sso_usage_audit_events` without rewriting historical usage or fabricating proxy credentials. Persist server request ID, actor, policy versions, target principal, self/all mode, outcome and returned row count only. Never store bearer credentials, query strings, model filters, CSV/usage rows or content in this metadata table. JSON/CSV and anonymous/denied/error responses are withheld with HTTP 503 if the audit insert or acknowledgement fails. Additional callback properties cannot replace the durable writer. Existing query, authorization and no-store response contracts remain unchanged.
+
+Acceptance: signed SSO JSON/CSV and empty pages persist attribution; malformed query and fresh Deny persist zero-count outcomes; no response completes while its insert is pending; failed insert withholds results. Additive migration preserves previous checksums and data and is idempotent under the existing runner. The factory is unactivated; database migration/lifecycle, runtime mount, browser sessions, retention/readers and installed PostgreSQL/IdP/provider E2E remain separate gates. See [plan](plans/642-durable-sso-usage-http.md).
