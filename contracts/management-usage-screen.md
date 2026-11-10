@@ -1,0 +1,9 @@
+# Mounted SSO usage review (#642)
+
+mountSsoUsageReview(root) owns only the supplied DOM subtree. It begins locked. A trusted host calls authorize(CatalogRequest), then search(optional UsageSearch). Authorize resets all filters and protected content, including when the same request port is reused. Host must call clear synchronously on logout, expiry and identity changes. dispose permanently removes content and authority. This is not an authenticator, a session timer, or a BFF activation.
+
+Native labeled principal/model/from-inclusive/to-exclusive epoch-ms/page-size controls submit only validated filter names through the existing client. Invalid numbers render a private invalid-filter state without a request. Each search resets pagination; Next page carries only the current server cursor and owned original filters. Pages replace rather than append. Loading immediately removes old rows. Late completions after clear/reauthorize/dispose cannot restore prior identity data. No previous-page cache, browser storage, HTML interpolation or content retention.
+
+Rows use textContent, native table headers, explicit unknown token counts, original decimal estimated prices and original upstream reported costs/source; no floating arithmetic or synthetic zero costs. Duplicate/potential billing markers are not billing conclusions. Missing data, unavailable transport/audit, 401 and 403 remain distinct and private. Server authorization remains authoritative on every read. No CSV download UI is added here; the existing separately validated export client remains available to the host.
+
+Verification: public DOM-port behavior tests plus mounted signed-JWT/PGlite/migrations/SQL/Fetch-handler isolation, failed-audit and policy-revocation composition. This does not certify browser login, installed PostgreSQL, real IdP, production ingress or providers.
