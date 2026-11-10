@@ -279,3 +279,42 @@ test('exact request transport on JSON/CSV and mismatched JSON rejection', async 
   assert.equal(seen.length, count);
   client.invalidate();
 });
+
+test('JSON pages honor explicit and default limits without truncating pagination', async () => {
+  for (const [filters, count, expected] of [
+    [{ limit: 1 }, 2, 'unavailable'],
+    [{}, 51, 'unavailable'],
+    [{ limit: 1 }, 1, 'ready'],
+    [{}, 50, 'ready'],
+    [{ limit: 100 }, 100, 'ready'],
+  ] as const) {
+    const records = Array.from({ length: count }, (_, index) => ({
+      ...row,
+      attemptId: 'attempt-' + index,
+    }));
+    const client = createManagementUsageClient(async () =>
+      Response.json({ ...page, data: records }),
+    );
+    const result = await client.list(filters);
+    assert.equal(result.state, expected);
+    if (result.state === 'ready') {
+      assert.equal(result.data.records.length, count);
+      assert.equal(result.data.nextCursor, null);
+    } else assert.deepEqual(result, { state: 'unavailable' });
+  }
+});
+
+test('requested JSON page limit is captured before asynchronous transport', async () => {
+  let release!: (response: Response) => void;
+  const client = createManagementUsageClient(
+    () =>
+      new Promise<Response>((resolve) => {
+        release = resolve;
+      }),
+  );
+  const filters = { limit: 1 };
+  const pending = client.list(filters);
+  filters.limit = 100;
+  release(Response.json({ ...page, data: [row, { ...row, attemptId: 'other' }] }));
+  assert.deepEqual(await pending, { state: 'unavailable' });
+});

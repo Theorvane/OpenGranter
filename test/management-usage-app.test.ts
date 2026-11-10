@@ -1382,15 +1382,15 @@ test('page totals handle decimal carry, maximum ledger amounts and explicit zero
   const max = '9'.repeat(128);
   await app.connect(async () =>
     response(
-      Array.from({ length: 100 }, (_, index) => ({
+      Array.from({ length: 50 }, (_, index) => ({
         ...row,
         attemptId: String(index),
         estimatedCost: { amountDecimal: max, currency: 'USD', priceVersion: 'p' },
       })),
     ),
   );
-  assert.ok(summary().includes('Estimated totals: ' + (BigInt(max) * 100n).toString() + ' USD'));
-  assert.match(summary(), /Estimated cost coverage: 100 of 100 records/);
+  assert.ok(summary().includes('Estimated totals: ' + (BigInt(max) * 50n).toString() + ' USD'));
+  assert.match(summary(), /Estimated cost coverage: 50 of 50 records/);
   app.dispose();
 });
 

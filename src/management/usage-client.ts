@@ -225,17 +225,19 @@ export function createManagementUsageClient(request: CatalogRequest) {
     invalidate,
     list: (filters: UsageFilters = {}) => {
       // Snapshot explicit scope before awaiting the trusted transport.
-      const { principalId, model, requestId, fromMs, toMs } = filters;
+      const { principalId, model, requestId, fromMs, toMs, limit = 50 } = filters;
       return read(filters, 'json', (raw) => {
         const page = jsonPage(raw);
-        return page?.records.every(
-          (record) =>
-            (principalId === undefined || record.principalId === principalId) &&
-            (model === undefined || record.modelAlias === model) &&
-            (requestId === undefined || record.requestId === requestId) &&
-            (fromMs === undefined || record.occurredAt >= fromMs) &&
-            (toMs === undefined || record.occurredAt < toMs),
-        )
+        return page &&
+          page.records.length <= limit &&
+          page.records.every(
+            (record) =>
+              (principalId === undefined || record.principalId === principalId) &&
+              (model === undefined || record.modelAlias === model) &&
+              (requestId === undefined || record.requestId === requestId) &&
+              (fromMs === undefined || record.occurredAt >= fromMs) &&
+              (toMs === undefined || record.occurredAt < toMs),
+          )
           ? page
           : undefined;
       });
