@@ -3,6 +3,7 @@ import test from 'node:test';
 import { createSsoUsageHistoryHandler } from '../src/gateway/sso-usage-history-http.ts';
 import { createSsoUsageExportClient } from '../src/management/usage-export-client.ts';
 
+const earlierCursor = btoa(JSON.stringify([11, 'attempt'])).replace(/=+$/u, '');
 const cursor = btoa(JSON.stringify([12, 'attempt'])).replace(/=+$/u, '');
 function csv(body = 'request_id\r\n', more = false, next: string | null = null) {
   return new Response(body, {
@@ -33,7 +34,7 @@ test('export uses real Fetch boundary and preserves CSV and continuation without
           format: 'csv',
           csv: 'usage_status,estimated_amount\r\nmissing,\r\n',
           hasMore: true,
-          nextCursor: cursor,
+          nextCursor: earlierCursor,
         };
       },
     },
@@ -64,7 +65,7 @@ test('export uses real Fetch boundary and preserves CSV and continuation without
       state: 'ready',
       csv: 'usage_status,estimated_amount\r\nmissing,\r\n',
       hasMore: true,
-      nextCursor: cursor,
+      nextCursor: earlierCursor,
     },
   );
 });
@@ -335,4 +336,52 @@ test('CSV transport reads signed-SSO SQL history and observes fresh Deny', async
   } finally {
     await db.close();
   }
+});
+
+function continuation(time: number, id: string): string {
+  const bytes = new TextEncoder().encode(JSON.stringify([time, id]));
+  return btoa(Array.from(bytes, (byte) => String.fromCharCode(byte)).join(''))
+    .replace(/=/gu, '')
+    .replace(/\+/gu, '-')
+    .replace(/\//gu, '_');
+}
+test('CSV rejects stalled or backwards continuation before consuming private body', async () => {
+  for (const next of [continuation(12, 'attempt'), continuation(13, 'a'), continuation(12, 'z')]) {
+    let cancelled = false;
+    const response = new Response(
+      new ReadableStream({
+        cancel() {
+          cancelled = true;
+        },
+      }),
+      {
+        headers: { 'content-type': 'text/csv', 'x-has-more': 'true', 'x-next-cursor': next },
+      },
+    );
+    // A stalled stream also proves that rejection occurs before CSV consumption.
+    const client = createSsoUsageExportClient(async () => response);
+    assert.deepEqual(await client.read({ cursor }), { state: 'unavailable' });
+    assert.equal(cancelled, true);
+  }
+});
+test('CSV continuation advances in descending UTF-8 order, not UTF-16 order', async () => {
+  const from = continuation(12, '𐀀');
+  const next = continuation(12, '');
+  assert.equal(
+    (await createSsoUsageExportClient(async () => csv('safe', true, next)).read({ cursor: from }))
+      .state,
+    'ready',
+  );
+  assert.deepEqual(
+    await createSsoUsageExportClient(async () => csv('private', true, from)).read({ cursor: next }),
+    { state: 'unavailable' },
+  );
+});
+test('CSV snapshots request cursor before an asynchronous transport', async () => {
+  const filters = { cursor };
+  const client = createSsoUsageExportClient(async () => {
+    filters.cursor = continuation(0, 'changed');
+    return csv('safe', true, earlierCursor);
+  });
+  assert.equal((await client.read(filters)).state, 'ready');
 });

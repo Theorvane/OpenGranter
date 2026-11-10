@@ -9,3 +9,8 @@ Responses map 400 to invalid_query, 401 to unauthenticated, 403 to denied and ot
 No credentials, persistent storage, DOM/download, listener, session/BFF activation, provider invocation or database changes. This transport alone is not a browser screen or installed acceptance. Local signed-JWT/PGlite/Fetch integration uses an in-memory metadata audit sink, not the durable factory from PR842.
 
 Plan: [implementation](../docs/plans/642-browser-usage-export.md). Test: test/management-usage-export-client.test.ts. Parent #637 / #642.
+
+
+## CSV continuation progress (#642)
+
+Browser CSV export rejects repeated or backwards next-cursor metadata before consuming the body. Continuations must advance in descending timestamp and UTF-8 attempt-ID order relative to the serialized request cursor, including when the caller mutates its filters while transport is pending. Invalid metadata yields a private unavailable state and cancels the unread body. This is a transport guard, not CSV-row revalidation, session activation or installed/browser acceptance. See [plan](../docs/plans/642-export-cursor-progress.md).
