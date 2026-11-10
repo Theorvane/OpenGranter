@@ -1846,3 +1846,8 @@ The shared Node HTTP bridge forces no-store and nosniff on exact /management and
 ## SSO usage history Fetch integration (#642)
 
 An unactivated GET /management/v1/usage factory now reuses the existing fresh-SSO scoped usage service, filters, keyset JSON/CSV and mandatory audit. Signed JWT/migrated embedded SQL/Fetch tests cover scoped/empty pages, explicit-self ReadAll, current Deny/revocation, query/SQL failures, cross-principal hidden lookahead and awaited/failed audit. Durable SSO audit composition, runtime/session/UI and installed/browser acceptance remain open. See [contract](../contracts/sso-usage-history.md).
+
+
+## Browser CSV usage transport (#642)
+
+Explicit caller-authorized export adapter reads one bounded CSV page with existing principal/model/time/limit/opaque-cursor filters, preserves unknown billing and pagination, and cancels stale identity results. No UI/session/runtime activation or installed acceptance is implied. See [contract](../contracts/management-usage-export.md) and [plan](plans/642-browser-usage-export.md).
