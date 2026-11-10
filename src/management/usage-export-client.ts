@@ -107,6 +107,11 @@ async function boundedCsv(response: Response, signal: AbortSignal): Promise<stri
       if (size > MAX_BYTES) throw new Error('Export exceeds limit');
       text.push(decoder.decode(value, { stream: true }));
     }
+    // Fetch exposes decoded bytes; compressed Content-Length describes the wire body.
+    const encoding = response.headers.get('content-encoding')?.trim().toLowerCase();
+    if (length !== null && (!encoding || encoding === 'identity') && size !== Number(length)) {
+      throw new Error('Incomplete export body');
+    }
     text.push(decoder.decode());
     return text.join('');
   } catch (error) {
