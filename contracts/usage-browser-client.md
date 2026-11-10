@@ -13,3 +13,7 @@ Plan: [642](../docs/plans/642-usage-browser-client.md). Tests: test/management-u
 The usage client imports the shared pure record parser, not the server history/cursor module. The existing management builder permits exactly `src/usage/record-parser.ts`, `src/usage/record-usage.ts` and `src/audit/attribution.ts` as reviewed shared public dependencies. These are not entry points. Canonical paths must match; server directories, packages, symlink escapes and future unapproved transitive imports remain blocked. History retains its parser re-export for existing server consumers. Parsing and accounting semantics are unchanged.
 
 Build integration tests execute the real bundled client and import the real bundled usage app. They verify unknown usage/costs, allowlisted projection and malformed record rejection without Node Buffer. This is not real DOM/browser, installed listener/session, schema or provider acceptance. See [plan](../docs/plans/642-usage-public-build.md).
+
+## Requested JSON page size (#642)
+
+Reject the entire JSON page as unavailable if its record count exceeds the limit captured before transport (50 when omitted, explicit 1 through 100). Do not truncate or invent paging metadata. Mutation of caller filters while awaiting transport cannot widen that page size. CSV behavior is unchanged.
