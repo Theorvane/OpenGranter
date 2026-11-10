@@ -1,0 +1,10 @@
+# Usage review lifecycle
+
+`createSsoUsageSession()` owns one read-only JSON review epoch. It does not authenticate or authorize. A trusted session adapter supplies `authorize(CatalogRequest)` and must call `clear('unauthenticated' | 'expired' | 'denied' | 'unavailable')` on teardown or expiry; each authorize clears all old data even for the same request function. IAM is enforced on every server request.
+
+- `snapshot()` returns immutable `unauthenticated`, `idle`, `loading`, `empty`, `rows`, `invalid_query`, `denied`, `unavailable`, `expired` or permanent `disposed`. Rows include validated usage records and `hasMore`, never raw transport errors or credentials. Deeply freeze owned records; unknown money/tokens and duplicate markers retain transport semantics.
+- `search({principalId?, model?, fromMs?, toMs?, limit?})` copies filters and starts page one; runtime-supplied cursors are not accepted here. Loading removes previous rows immediately. A new search cancels the previous request.
+- `next()` is a no-op unless the current rows have continuation; it sends the exact opaque server cursor with the copied filters and replaces the page, not appends it. Loading/error/empty never expose old rows or continuation. To retry a failed continuation, start a new search; no hidden previous-page cache exists.
+- 401/403 discard transport authority until reauthorized. Transient and invalid-query failures can be replaced with a new search. Clear, reauthorize, dispose and new navigation suppress late completions. Dispose is permanent.
+
+Frontend owns rendering, notifications and session lifecycle wiring; it must render the loading snapshot synchronously after initiating a read and render the final snapshot after awaiting it. This module does not wire the public browser entry, store tokens, provide expiry timers, create login/session contracts, enable runtime listeners or invoke providers. See [JSON client](management-usage-client.md).

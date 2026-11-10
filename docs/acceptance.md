@@ -1872,3 +1872,7 @@ Reject identity-encoded CSV whose observed UTF-8 byte length disagrees with a su
 An explicit caller-authorized JSON page adapter preserves unknown usage, estimated/billed decimal costs and duplicate markers; validates and sanitizes the entire page, filter isolation, order and opaque continuation; bounds bytes/time and suppresses stale identity results. No UI/session/runtime activation. Local signed-SSO + migrated embedded SQL + durable-audit Fetch integration is not installed/browser acceptance. See [contract](../contracts/management-usage-client.md) and [plan](plans/642-browser-usage-history.md).
 
 JSON usage transport also withholds complete-looking pages when uncompressed Content-Length disagrees with observed UTF-8 bytes. Exact multibyte lengths, absent lengths and compressed Fetch decoded bodies remain accepted within the existing bounds. No UI/session/runtime activation.
+
+## Usage review lifecycle (#642)
+
+Read-only SSO usage lifecycle copies filters, follows only current opaque continuation and replaces pages. Loading, identity change, expiry and teardown clear old rows; stale completions cannot publish. Unknown costs and duplicate markers are preserved. Caller owns trusted authorization, expiry and rendering; no session/runtime activation. See [plan](plans/642-usage-review-session.md) and [contract](../contracts/management-usage-session.md).
