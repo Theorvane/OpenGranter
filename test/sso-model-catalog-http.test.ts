@@ -83,6 +83,22 @@ test('list/empty/detail use exact safe envelopes and server-owned request ID', a
   assert.deepEqual(f.calls[2], ['detail', 'signed-access-token', 'server-1', 'team/chat']);
 });
 
+test('sparse service lists fail closed instead of publishing null models', async () => {
+  const allHoles = new Array<SsoCatalogModel>(1);
+  const leadingHole = new Array<SsoCatalogModel>(2);
+  leadingHole[1] = model;
+  const trailingHole = new Array<SsoCatalogModel>(2);
+  trailingHole[0] = model;
+  for (const data of [allHoles, leadingHole, trailingHole]) {
+    const f = fixture();
+    f.setList({ state: 'ready', data });
+    const body = await safe(await f.handle(request()), 503);
+    assert.equal(body.error.code, 'internal_error');
+    assert.equal(Object.hasOwn(body, 'data'), false);
+    assert.deepEqual(f.calls, [['list', 'signed-access-token', 'server-1']]);
+  }
+});
+
 test('only frozen known fields are serialized, never trusted service extra fields', async () => {
   const f = fixture();
   const extra = { ...model, credentialRef: 'private-secret' };
