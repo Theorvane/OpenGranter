@@ -7,3 +7,7 @@ Strict existing usage query rules apply: principal_id, model, from_ms inclusive,
 Internal service only, NOT public route, session or installed acceptance. Integration MUST supply reviewed durable SSO writer; no default writer, DDL, cookie, login, provider invocation or activation. Proxy usage paths unchanged. Future HTTP must supply trusted request IDs and fixed errors, never client identity/IAM/audit callbacks.
 
 Plan: [implementation](../docs/plans/642-sso-usage-history.md). Test: test/postgres-sso-usage-history.test.ts. Parent #637 / #642.
+
+## Reader request ownership (#642)
+
+The PostgreSQL usage reader owns a synchronous copy of principal, page limit, request/model/time filters and nested cursor coordinates before its SQL await. SQL parameters, returned-row scope checks, descending order, hidden lookahead and final slicing all use that same copy. Reusing or mutating the caller query must neither widen scope nor reject a valid original result. A substituted out-of-original-scope row still fails closed. This is not new authorization; the calling service must still establish current IAM scope. See [plan](../docs/plans/642-usage-reader-snapshot.md) and the production-reader/PGlite tests.
