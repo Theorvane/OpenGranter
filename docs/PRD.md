@@ -1234,3 +1234,7 @@ The shared HTTP bridge contains broken custom fallback factories/bodies before s
 ## Management response isolation (#639)
 
 Pre-commit Node response failures discard staged response metadata before fixed errors are sent. Successful headers and streaming remain unchanged. No session, authentication, policy or deployment decision is introduced. See [plan](plans/639-node-response-headers.md).
+
+## SSO usage history Fetch integration (#642)
+
+An unactivated GET /management/v1/usage factory now reuses the existing fresh-SSO scoped usage service, filters, keyset JSON/CSV and mandatory audit. Signed JWT/migrated embedded SQL/Fetch tests cover scoped/empty pages, explicit-self ReadAll, current Deny/revocation, query/SQL failures, cross-principal hidden lookahead and awaited/failed audit. Durable SSO audit composition, runtime/session/UI and installed/browser acceptance remain open. See [contract](../contracts/sso-usage-history.md).
