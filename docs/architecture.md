@@ -1455,3 +1455,8 @@ JSON usage transport also withholds complete-looking pages when uncompressed Con
 ## Usage review lifecycle (#642)
 
 Read-only SSO usage lifecycle copies filters, follows only current opaque continuation and replaces pages. Loading, identity change, expiry and teardown clear old rows; stale completions cannot publish. Unknown costs and duplicate markers are preserved. Caller owns trusted authorization, expiry and rendering; no session/runtime activation. See [plan](plans/642-usage-review-session.md) and [contract](../contracts/management-usage-session.md).
+
+
+## Usage review DOM composition (#642)
+
+Read-only native filters, table and cursor pagination compose the validated SSO usage lifecycle. Unknown tokens/money and exact estimated/reported distinctions remain visible. Loading, identity clear and disposal remove old rows immediately; signed SSO/SQL composition tests verify scope, failed audit and fresh policy revocation. The trusted host still owns session acquisition, expiry and teardown. No runtime activation or live acceptance is implied. See [plan](plans/642-usage-review-screen.md) and [contract](../contracts/management-usage-screen.md).
