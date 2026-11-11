@@ -1246,3 +1246,8 @@ Transient read/CSV failures and cancellation expose explicit Retry current page,
 ## Bounded filtered usage CSV export (#642)
 
 An explicit caller may gather the existing freshly authorized CSV pages into one result, preserving server rows and returning no partial CSV on denial, cancellation or bounds. The coordinator does not mount UI, obtain browser authority or guarantee a transactionally consistent snapshot. See [plan](plans/642-filtered-usage-export.md) and [contract](../contracts/management-usage-filtered-export.md).
+
+
+## Filtered audit CSV traversal (#642)
+
+Explicit export action can gather all pages of captured audit filters through the existing SSO audit client. Every page freshly authorizes and awaits durable access audit. Bounds, cancellation, denial, changed schema or pagination failure return no partial CSV. Terminal traversal is not a consistent snapshot or tamper-resistant archive. Frontend wiring and native browser download acceptance remain separate. See [plan](plans/642-filtered-audit-export.md) and [contract](../contracts/management-audit-filtered-export.md).
