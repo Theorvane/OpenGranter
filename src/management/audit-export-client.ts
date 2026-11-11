@@ -30,9 +30,10 @@ export function createAuditPageExportClient(request: CatalogRequest) {
       // Own scalar inputs before the first await, including the exact decimal cursor.
       let query: AuditFilters;
       try {
-        const { principalId, model, fromMs, toMs, limit, cursor } = filters;
+        const { principalId, requestId, model, fromMs, toMs, limit, cursor } = filters;
         query = {
           principalId,
+          ...(requestId === undefined ? {} : { requestId }),
           ...(model === undefined ? {} : { model }),
           ...(fromMs === undefined ? {} : { fromMs }),
           ...(toMs === undefined ? {} : { toMs }),
@@ -53,6 +54,7 @@ export function createAuditPageExportClient(request: CatalogRequest) {
           {
             limit: query.limit ?? 50,
             cursor: query.cursor ?? null,
+            ...(query.requestId === undefined ? {} : { requestId: query.requestId }),
             ...(query.model === undefined ? {} : { modelAlias: query.model }),
             ...(query.fromMs === undefined ? {} : { fromMs: query.fromMs }),
             ...(query.toMs === undefined ? {} : { toMs: query.toMs }),

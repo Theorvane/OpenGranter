@@ -4,6 +4,7 @@ import type { CatalogRequest } from './catalog-client.ts';
 
 export interface AuditFilters {
   readonly principalId: string;
+  readonly requestId?: string;
   readonly model?: string;
   readonly fromMs?: number;
   readonly toMs?: number;
@@ -25,6 +26,10 @@ const MAX_BYTES = 2 * 1024 * 1024;
 function query(filters: AuditFilters): string | undefined {
   if (typeof filters.principalId !== 'string') return undefined;
   const params = new URLSearchParams({ format: 'json', principal_id: filters.principalId });
+  if (filters.requestId !== undefined) {
+    if (typeof filters.requestId !== 'string') return undefined;
+    params.set('request_id', filters.requestId);
+  }
   if (filters.model !== undefined) {
     if (typeof filters.model !== 'string') return undefined;
     params.set('model', filters.model);
@@ -64,6 +69,7 @@ function parsePage(value: unknown, filters: AuditFilters) {
     filters.limit ?? 50,
     filters.cursor ?? null,
     {
+      ...(filters.requestId === undefined ? {} : { requestId: filters.requestId }),
       ...(filters.model === undefined ? {} : { modelAlias: filters.model }),
       ...(filters.fromMs === undefined ? {} : { fromMs: filters.fromMs }),
       ...(filters.toMs === undefined ? {} : { toMs: filters.toMs }),
@@ -132,7 +138,16 @@ export function createAuditHistoryClient(request: CatalogRequest) {
       let snapshot: AuditFilters;
       let search: string | undefined;
       try {
-        snapshot = { ...filters };
+        const { principalId, requestId, model, fromMs, toMs, limit, cursor } = filters;
+        snapshot = {
+          principalId,
+          ...(requestId === undefined ? {} : { requestId }),
+          ...(model === undefined ? {} : { model }),
+          ...(fromMs === undefined ? {} : { fromMs }),
+          ...(toMs === undefined ? {} : { toMs }),
+          ...(limit === undefined ? {} : { limit }),
+          ...(cursor === undefined ? {} : { cursor }),
+        };
         search = query(snapshot);
       } catch {
         return { state: 'invalid_query' };

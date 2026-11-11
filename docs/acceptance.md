@@ -1891,3 +1891,7 @@ Withhold complete-looking audit JSON pages when identity Content-Length differs 
 - An authorized explicit-principal JSON audit page yields metadata-only CSV, header-only empty output, hasMore and exact decimal nextCursor. Unknown fields and retained content are excluded; invalid identifiers fail closed.
 - Input mutation cannot retarget an in-flight export. Invalidation and supersession suppress late CSV results. Invalid query, Deny, authentication and required read-audit failure return no CSV or private error body.
 - Public Fetch gateway and migrated embedded SQL tests cover scoped continuation, fresh revocation and read-audit failure. This is not installed PostgreSQL, browser login/download or provider acceptance. See [plan](plans/851-audit-page-csv.md) and [contract](../contracts/management-audit-export.md).
+
+## Exact audit browser request filtering (#642)
+
+JSON/CSV send encoded exact request_id, reject invalid identifiers before transport and withhold foreign/case-mismatched rows. Pending input mutation and changing accessors cannot retarget validation. Migrated PGlite through actual HTTP handler validates scoped continuation, fresh Deny and mandatory audit failure; not native browser or installed acceptance. See [plan](plans/642-audit-request-client.md).

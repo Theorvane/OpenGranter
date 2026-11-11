@@ -1459,3 +1459,7 @@ An injected authorized request port can read one explicit principal from the exi
 ## Authorized audit page CSV projection (#851)
 
 The metadata export client composes the existing explicit-principal JSON audit API with the existing safe CSV serializer, returning one validated page and lossless decimal continuation. Permission and mandatory JSON read-audit behavior are unchanged; no content retention, authentication, DOM or runtime activation is introduced. See [plan](plans/851-audit-page-csv.md) and [contract](../contracts/management-audit-export.md).
+
+## Exact audit browser request correlation (#642)
+
+Existing JSON/page CSV adapters capture requestId once with principal/time/model/decimal cursor; the shared parser/projector enforce request intersection. No new endpoint, session or automatic pagination. See [contract](../contracts/audit-request-client.md).
