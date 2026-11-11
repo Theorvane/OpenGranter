@@ -1451,3 +1451,7 @@ Reject identity-encoded CSV whose observed UTF-8 byte length disagrees with a su
 An explicit caller-authorized JSON page adapter preserves unknown usage, estimated/billed decimal costs and duplicate markers; validates and sanitizes the entire page, filter isolation, order and opaque continuation; bounds bytes/time and suppresses stale identity results. No UI/session/runtime activation. Local signed-SSO + migrated embedded SQL + durable-audit Fetch integration is not installed/browser acceptance. See [contract](../contracts/management-usage-client.md) and [plan](plans/642-browser-usage-history.md).
 
 JSON usage transport also withholds complete-looking pages when uncompressed Content-Length disagrees with observed UTF-8 bytes. Exact multibyte lengths, absent lengths and compressed Fetch decoded bodies remain accepted within the existing bounds. No UI/session/runtime activation.
+
+## Explicit public browser import closure (#853)
+
+The canonical management UI may reuse explicitly reviewed pure shared TypeScript sources via exact build-time publicSources grants. Default management-only restrictions, entry containment, transitive grant requirements, node/package denial and atomic artifact publication remain unchanged. No browser session or API activation is implied. See [plan](plans/853-reviewed-browser-sources.md) and [contract](../contracts/management-browser-build.md).

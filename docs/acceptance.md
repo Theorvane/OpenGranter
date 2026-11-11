@@ -1877,3 +1877,10 @@ JSON usage transport also withholds complete-looking pages when uncompressed Con
 
 - While a JSON usage request is pending, mutate caller principal/model/time/limit/cursor filters. Release a valid original-scope page and require ready; release a page matching only mutated scope and require unavailable. Increasing the caller limit must not release oversized original pages.
 - Read each allowlisted accessor once before query construction and bind response validation to the same captured values. Preserve existing identity invalidation, no-store, bounded body and private errors. This is not a server authorization or session decision. See [client contract](../contracts/management-usage-client.md).
+
+## Reviewed shared browser source acceptance (#853)
+
+- Build a management entry importing a shared file only when that exact canonical TypeScript source is explicitly granted. Missing transitive grants must fail; granting a shared source must not permit it as an entry.
+- Reject source-tree and symlink escapes, non-TypeScript files, bare packages and Node imports, including imports from explicitly granted sources. Preserve default management-only builds and non-overwriting publication.
+- Exercise repeated CLI --public-source arguments with and without --output; reject missing values, unknown options and duplicate outputs using the fixed redacted error and no module output.
+- Compile the selected FE snapshot with the exact reviewed shared closure and verify signed-out navigation in a real browser. Report build, public navigation, private API/session and installed acceptance separately. This does not approve the source selection or a deployment. See [plan](plans/853-reviewed-browser-sources.md) and [contract](../contracts/management-browser-build.md).
