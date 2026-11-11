@@ -1877,3 +1877,7 @@ JSON usage transport also withholds complete-looking pages when uncompressed Con
 
 - While a JSON usage request is pending, mutate caller principal/model/time/limit/cursor filters. Release a valid original-scope page and require ready; release a page matching only mutated scope and require unavailable. Increasing the caller limit must not release oversized original pages.
 - Read each allowlisted accessor once before query construction and bind response validation to the same captured values. Preserve existing identity invalidation, no-store, bounded body and private errors. This is not a server authorization or session decision. See [client contract](../contracts/management-usage-client.md).
+
+## SSO usage GET framing (#858)
+
+Direct Fetch and real Node socket fixed-length/chunked GETs must return private 400 without any usage service call or partial CSV/JSON. Missing framing and exact Content-Length 0 retain ordinary JSON/CSV, 401/403 and mandatory-audit-failure behavior. See [plan](plans/858-usage-http-framing.md) and [contract](../contracts/sso-usage-http-framing.md).
