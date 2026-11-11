@@ -1463,3 +1463,7 @@ The metadata export client composes the existing explicit-principal JSON audit A
 ## Exact audit browser request correlation (#642)
 
 Existing JSON/page CSV adapters capture requestId once with principal/time/model/decimal cursor; the shared parser/projector enforce request intersection. No new endpoint, session or automatic pagination. See [contract](../contracts/audit-request-client.md).
+
+## Pure audit event projection (#642)
+
+The audit/gateway-event-projection.ts module owns allowlisted metadata projection and its error class. PostgreSQL append reexports these symbols for source compatibility; public history projection imports the pure module directly. Storage behavior and authorization remain unchanged. See [contract](../contracts/audit-browser-projection.md).

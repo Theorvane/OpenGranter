@@ -1294,3 +1294,7 @@ The metadata export client composes the existing explicit-principal JSON audit A
 ## Exact audit request browser transport (#642)
 
 Existing explicit-principal JSON audit reads and page CSV export accept exact requestId intersected with principal/model/time/keyset. Reject mismatching rows and capture filters before await. No UI/session/runtime activation or browser acceptance implied. See [plan](plans/642-audit-request-client.md) and [contract](../contracts/audit-request-client.md).
+
+## Browser-safe audit metadata projection (#642)
+
+Existing audit JSON and page CSV clients share a pure event projector with server storage without importing PostgreSQL runtime modules into the publication closure. Exact filter isolation and server authorization/audit remain unchanged. No source grant, UI activation or browser-login acceptance is implied. See [contract](../contracts/audit-browser-projection.md) and [plan](plans/642-audit-browser-projection.md).

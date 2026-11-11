@@ -1895,3 +1895,7 @@ Withhold complete-looking audit JSON pages when identity Content-Length differs 
 ## Exact audit browser request filtering (#642)
 
 JSON/CSV send encoded exact request_id, reject invalid identifiers before transport and withhold foreign/case-mismatched rows. Pending input mutation and changing accessors cannot retarget validation. Migrated PGlite through actual HTTP handler validates scoped continuation, fresh Deny and mandatory audit failure; not native browser or installed acceptance. See [plan](plans/642-audit-request-client.md).
+
+## Audit browser publication closure (#642)
+
+Compiled production JSON/page CSV clients must exclude PostgreSQL runtime sources, preserve request/principal filters, reject case-mismatching request rows, and preserve server projection/error identities. SQL regressions remain required. This is bundled-code execution, not native login or installation acceptance. See [contract](../contracts/audit-browser-projection.md).
