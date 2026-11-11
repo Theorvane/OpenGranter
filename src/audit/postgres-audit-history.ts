@@ -102,7 +102,7 @@ export function createPostgresAuditHistoryReader(
       );
       if (result.rows.length > query.limit + 1) throw new AuditHistoryUnavailable();
       let previous = cursor?.numeric ?? MAX_BIGINT + 1n;
-      const events: AuditHistoryEvent[] = result.rows.map((value) => {
+      const events: AuditHistoryEvent[] = Array.from(result.rows, (value) => {
         const row = object(value);
         const eventId = positiveBigint(row.event_id);
         if (eventId.numeric >= previous || row.principal_id !== query.principalId) {
