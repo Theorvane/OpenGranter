@@ -421,3 +421,29 @@ test('other, absent, or spoofed projected model aliases reject injected pages as
     }
   }
 });
+
+test('proxy audit exact request filter propagates for JSON/CSV and rejects forged rows', async () => {
+  const f = fixture();
+  for (const format of ['json', 'csv']) {
+    const response = await f.handler(request(`?request_id=model-list-1&format=${format}`));
+    assert.equal(response.status, 200);
+    assert.equal((f.state.queries.at(-1) as { requestId: string }).requestId, 'model-list-1');
+    assert.doesNotMatch(await response.text(), /private prompt/u);
+  }
+  for (const format of ['json', 'csv']) {
+    const mismatch = await f.handler(request(`?request_id=absent&format=${format}`));
+    assert.equal(mismatch.status, 503);
+    assert.doesNotMatch(await mismatch.text(), /model-list-1/u);
+  }
+  const before = f.state.queries.length;
+  for (const query of ['?request_id=', '?request_id=a&request_id=a', '?request_id=a+b']) {
+    assert.equal((await f.handler(request(query))).status, 400);
+  }
+  assert.equal(f.state.queries.length, before);
+  assert.doesNotMatch(JSON.stringify(f.state.audit), /request_id|absent|model-list-1/u);
+  const denied = fixture({
+    statements: [{ effect: 'Deny', actions: ['audit:Read'], resources: ['*'] }],
+  });
+  assert.equal((await denied.handler(request('?request_id=model-list-1'))).status, 403);
+  assert.equal(denied.state.queries.length, 0);
+});
