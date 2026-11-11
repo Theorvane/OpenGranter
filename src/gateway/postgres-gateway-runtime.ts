@@ -46,6 +46,8 @@ export interface PostgresSsoManagementRuntimePorts
 /** Only this explicit workspace can opt in to the audit history route. */
 export interface PostgresSsoWorkspaceRuntimePorts extends PostgresSsoManagementRuntimePorts {
   readonly browserJavascript: string;
+  /** Own explicit opt-in using the owned committed SQL connection; no schema activation. */
+  readonly enableAuditHistoryReads?: boolean;
   readonly writeAuditHistoryAccess?: NonNullable<
     PostgresSsoAdministrationBrowserPorts['writeAuditHistoryAccess']
   >;
@@ -229,7 +231,12 @@ export async function startPostgresSsoManagementGateway(ports: PostgresSsoManage
  * Missing schema fails closed. No session, cookie bridge or new IAM grant.
  */
 export async function startPostgresSsoWorkspaceGateway(ports: PostgresSsoWorkspaceRuntimePorts) {
+  const enabled =
+    Object.hasOwn(ports, 'enableAuditHistoryReads') && ports.enableAuditHistoryReads === true;
   if (
+    (Object.hasOwn(ports, 'enableAuditHistoryReads') &&
+      typeof ports.enableAuditHistoryReads !== 'boolean') ||
+    (enabled && Object.hasOwn(ports, 'writeAuditHistoryAccess')) ||
     typeof ports.browserJavascript !== 'string' ||
     !ports.browserJavascript.trim() ||
     (Object.hasOwn(ports, 'writeAuditHistoryAccess') &&
@@ -239,6 +246,7 @@ export async function startPostgresSsoWorkspaceGateway(ports: PostgresSsoWorkspa
   }
   const {
     browserJavascript,
+    enableAuditHistoryReads: _auditReads,
     openConnection: _open,
     host: _host,
     port: _port,
@@ -250,6 +258,7 @@ export async function startPostgresSsoWorkspaceGateway(ports: PostgresSsoWorkspa
       ...managementPorts,
       client,
       principalAuditClient: client,
+      ...(enabled ? { auditHistoryClient: client } : {}),
       javascript: browserJavascript,
     }),
   );

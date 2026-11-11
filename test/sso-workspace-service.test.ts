@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { test } from 'node:test';
-import { runSsoWorkspaceService } from '../src/gateway/sso-workspace-service.ts';
+import {
+  isSsoWorkspacePorts,
+  runSsoWorkspaceService,
+} from '../src/gateway/sso-workspace-service.ts';
 
 const tick = () => new Promise<void>((resolve) => setImmediate(resolve));
 const ports = {
@@ -183,4 +186,23 @@ test('workspace preserves the trusted audit writer reference and owned lifecycle
   assert.equal(h.closes(), 1);
   assert.deepEqual(h.messages, ['Gateway listening']);
   assert.deepEqual(h.exits, [0]);
+});
+
+test('workspace service validates own durable audit mode before resource acquisition', () => {
+  for (const value of [undefined, null, 0, 1, 'true', {}, []])
+    assert.equal(isSsoWorkspacePorts({ ...ports, enableAuditHistoryReads: value }), false);
+  for (const value of [false, true])
+    assert.equal(isSsoWorkspacePorts({ ...ports, enableAuditHistoryReads: value }), true);
+  assert.equal(
+    isSsoWorkspacePorts({
+      ...ports,
+      enableAuditHistoryReads: true,
+      writeAuditHistoryAccess: async () => {},
+    }),
+    false,
+  );
+  assert.equal(
+    isSsoWorkspacePorts(Object.assign(Object.create({ enableAuditHistoryReads: true }), ports)),
+    true,
+  );
 });

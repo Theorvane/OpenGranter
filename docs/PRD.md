@@ -1242,3 +1242,7 @@ The authorized audit mount now offers explicit current-page refresh/retry, prese
 ## Usage current-page failure recovery (#642)
 
 Transient read/CSV failures and cancellation expose explicit Retry current page, preserving submitted filters, exact opaque cursor and query-only previous navigation, never protected records or exports. Invalid queries require correction; auth/Deny/expiry clear authority. See [plan](plans/642-usage-retry.md) and [contract](../contracts/usage-previous-page.md). No session or installed runtime activation.
+
+## Explicit workspace durable audit integration (#637, #642)
+
+The trusted workspace executable can explicitly enable audit history using its owned committed SQL connection, without an injected audit callback. Omission retains the previous routes; missing candidate schema fails closed. No default activation or browser login is implied. See [plan](plans/642-workspace-durable-audit.md) and [contract](../contracts/workspace-durable-audit.md).
