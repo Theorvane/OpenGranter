@@ -80,3 +80,34 @@ test('CLI emits a pin-ready receipt and rejects missing or extra arguments witho
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test('fixed workspace grants never become ambient generic-builder permissions', async () => {
+  const { buildManagementBrowser } = await import('../scripts/build-management-browser.ts');
+  const root = resolve('.');
+  const entry = 'src/management/sso-catalog-entry.ts';
+  const publicSources = [
+    'src/usage/record-parser.ts',
+    'src/usage/record-usage.ts',
+    'src/audit/attribution.ts',
+    'src/audit/history-http.ts',
+    'src/audit/history-filters.ts',
+    'src/audit/time-range.ts',
+    'src/audit/principal-reference.ts',
+    'src/audit/gateway-audit-projection.ts',
+  ];
+  await assert.rejects(buildManagementBrowser({ root, entry }));
+  const product = await buildManagementWorkspace(root);
+  assert.equal(await buildManagementBrowser({ root, entry, publicSources }), product.javascript);
+  for (const excluded of publicSources) {
+    await assert.rejects(
+      buildManagementBrowser({
+        root,
+        entry,
+        publicSources: publicSources.filter((file) => file !== excluded),
+      }),
+      `Missing transitive grant must fail: ${excluded}`,
+    );
+  }
+  // A successful fixed-profile build must not mutate the canonical builder's default policy.
+  await assert.rejects(buildManagementBrowser({ root, entry }));
+});

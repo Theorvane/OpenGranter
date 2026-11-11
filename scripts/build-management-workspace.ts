@@ -7,7 +7,21 @@ import { buildManagementBrowser } from './build-management-browser.ts';
 /** Fixed product entry, not a session grant or source-provenance assertion. */
 export async function buildManagementWorkspace(root: string) {
   const entry = 'src/management/sso-catalog-entry.ts';
-  const javascript = await buildManagementBrowser({ root, entry });
+  const javascript = await buildManagementBrowser({
+    root,
+    entry,
+    // Fixed reviewed publication closure, never ambient generic-builder authority.
+    publicSources: [
+      'src/usage/record-parser.ts',
+      'src/usage/record-usage.ts',
+      'src/audit/attribution.ts',
+      'src/audit/history-http.ts',
+      'src/audit/history-filters.ts',
+      'src/audit/time-range.ts',
+      'src/audit/principal-reference.ts',
+      'src/audit/gateway-audit-projection.ts',
+    ],
+  });
   return Object.freeze({
     profile: 'sso-workspace-v1' as const,
     entry,
