@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
+import { once } from 'node:events';
 import test from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
 import { createPostgresGatewayAuditStore } from '../src/audit/postgres-gateway-audit.ts';
+import { createNodeRequestServer } from '../src/gateway/node-request-server.ts';
 import { createPostgresSsoAuditHistoryHandler } from '../src/gateway/postgres-sso-audit-history-http.ts';
 import { loadPostgresMigrationSources } from '../src/storage/postgres-migration-sources.ts';
 import { createSsoAccessTokenFixture } from './sso-access-token-fixture.ts';
@@ -79,6 +81,7 @@ async function fixture() {
   return {
     db,
     sql,
+    handler,
     request,
     failSql: () => {
       sqlFailure = true;
@@ -197,6 +200,82 @@ test('durable insert is awaited and failure withholds JSON, CSV and anonymous re
     );
   } finally {
     release();
+    await f.db.close();
+  }
+});
+
+test('real HTTP signed SSO exact request tracing keeps scope, pagination and durable audit', async () => {
+  const f = await fixture();
+  const server = createNodeRequestServer(f.handler);
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  try {
+    // Multiple events per request; a foreign principal has the same request ID.
+    await f.db.exec(`UPDATE gateway_audit_events SET request_id='first' WHERE principal_id='other';
+      INSERT INTO gateway_audit_events (occurred_at_ms,kind,request_id,principal_id,credential_id,policy_versions,details)
+      SELECT occurred_at_ms,kind,request_id,principal_id,credential_id,policy_versions,details
+      FROM gateway_audit_events WHERE request_id='first' AND principal_id='human';`);
+    const address = server.address();
+    assert.ok(address && typeof address === 'object');
+    const read = (query: string, credential = token) =>
+      fetch(`http://127.0.0.1:${address.port}/management/v1/audit${query}`, {
+        headers: { authorization: `Bearer ${credential}` },
+      });
+    const response = await read('?request_id=first&limit=1');
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+    const page = await json(response);
+    assert.deepEqual(
+      page.data.map((e) => [e.requestId, e.principalId]),
+      [['first', 'human']],
+    );
+    assert.equal(page.has_more, true);
+    const second = await json(await read(`?request_id=first&limit=1&cursor=${page.next_cursor}`));
+    assert.deepEqual(
+      second.data.map((e) => e.eventId),
+      ['1'],
+    );
+    assert.equal(second.next_cursor, null);
+    const csv = await read('?request_id=first&format=csv');
+    assert.equal(csv.status, 200);
+    const text = await csv.text();
+    assert.match(text, /first/u);
+    assert.doesNotMatch(text, /second|other/u);
+    assert.deepEqual((await json(await read('?request_id=FIRST'))).data, []);
+    const emptyCsv = await read('?request_id=absent&format=csv');
+    assert.equal((await emptyCsv.text()).trim().split('\n').length, 1);
+    const before = f.sql.filter((q) => q.includes('FROM gateway_audit_events')).length;
+    for (const query of ['?request_id=', '?request_id=a&request_id=a', '?request_id=a+b']) {
+      assert.equal((await read(query)).status, 400);
+    }
+    assert.equal((await read('?request_id=first&principal_id=other')).status, 403);
+    assert.equal((await read('?request_id=', 'invalid')).status, 401);
+    assert.equal(f.sql.filter((q) => q.includes('FROM gateway_audit_events')).length, before);
+    const audit = (
+      await f.db.query<Record<string, unknown>>(
+        'SELECT * FROM sso_audit_history_access_events ORDER BY event_id',
+      )
+    ).rows;
+    assert.equal(audit.length, 10);
+    assert.equal(audit[0]?.target_principal_id, 'human');
+    assert.doesNotMatch(JSON.stringify(audit), /request_id=|prior-proxy|Bearer|absent|first/u);
+    f.failAudit();
+    for (const query of [
+      '?request_id=first',
+      '?request_id=first&format=csv',
+      '?request_id=',
+      '?request_id=first&principal_id=other',
+    ]) {
+      const failed = await read(query);
+      assert.equal(failed.status, 503);
+      assert.doesNotMatch(await failed.text(), /first|prior-proxy/u);
+    }
+  } finally {
+    server.closeAllConnections();
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
     await f.db.close();
   }
 });
