@@ -21,6 +21,7 @@ const names = [
   '011_sso_identity_bindings.sql',
   '012_sso_catalog_audit.sql',
   '013_sso_usage_audit.sql',
+  '014_sso_audit_history_access.sql',
 ];
 const migrations = await Promise.all(
   names.map(async (name) => ({
@@ -66,6 +67,7 @@ test('apply all migration files once and retain matching checksums', async () =>
       '011',
       '012',
       '013',
+      '014',
     ]);
     const second = await applyPostgresMigrations(connection(db), migrations, () => 2_000);
     assert.deepEqual(second, []);
@@ -74,7 +76,22 @@ test('apply all migration files once and retain matching checksums', async () =>
     );
     assert.deepEqual(
       result.rows.map((row) => row.version),
-      ['001', '002', '003', '004', '005', '006', '007', '008', '009', '010', '011', '012', '013'],
+      [
+        '001',
+        '002',
+        '003',
+        '004',
+        '005',
+        '006',
+        '007',
+        '008',
+        '009',
+        '010',
+        '011',
+        '012',
+        '013',
+        '014',
+      ],
     );
     assert.equal(
       result.rows.every((row) => /^[a-f0-9]{64}$/u.test(row.checksum)),
@@ -101,6 +118,7 @@ test('SSO migration upgrades populated historical storage without backfill or ch
       '011',
       '012',
       '013',
+      '014',
     ]);
     const history = await db.query(
       'SELECT version, checksum, applied_at_ms FROM schema_migrations ORDER BY version',
@@ -218,6 +236,7 @@ test('catalog audit migration preserves populated version-011 history and human 
     assert.deepEqual(await applyPostgresMigrations(connection(db), migrations, () => 2000), [
       '012',
       '013',
+      '014',
     ]);
     const after = await db.query('SELECT * FROM schema_migrations ORDER BY version');
     assert.deepEqual(after.rows.slice(0, 11), before.rows);
@@ -242,6 +261,7 @@ test('usage audit migration preserves populated version-012 history and catalog 
     const audits = await db.query('SELECT * FROM sso_catalog_audit_events');
     assert.deepEqual(await applyPostgresMigrations(connection(db), migrations, () => 2000), [
       '013',
+      '014',
     ]);
     assert.deepEqual(
       (await db.query('SELECT * FROM schema_migrations ORDER BY version')).rows.slice(0, 12),
