@@ -1,0 +1,8 @@
+# Bounded filtered usage CSV export (#642)
+
+1. Add an explicit user-action coordinator over existing authorized CSV page transport; never obtain credentials, persist grants, activate sessions or edit frontend-owned UI. Begin at the first page of captured filters.
+2. Follow opaque cursors exactly, require every page header to match, preserve CSV data bytes including multiline cells and decimal strings, and return a single header only after a terminal page. No snapshot or billing-completeness guarantee.
+3. Bound pages (default 50, hard maximum 100) and UTF-8 bytes (default/hard maximum 8 MiB); reject truncation, cursor cycles, authorization errors and cancellation without exposing partial CSV. Each page remains freshly authorized/audited by the existing server.
+4. Record meaningful missing-module RED then GREEN with real loopback HTTP, filters/continuations, quoted newlines, denial, abort, cycles and limits. Existing page export remains unchanged. Hand off explicit UI integration; require exact-head CI and formal independent approval before merge.
+
+5. Evidence: missing-module RED recorded after correcting the local Node toolchain to ARM64 Node22.23.4. New eight cases pass, including actual ephemeral PGlite/PostgreSQL dialect + signed test JWT + loopback server, two durable page audit records and fresh policy denial on the second page. Combined regression20/20 passes with zero skip. Full tsc, scoped Biome (informational template suggestions only), planning scan and diff check pass. Full npm check and browser UI integration not claimed. No provider, production or installed IdP call.
