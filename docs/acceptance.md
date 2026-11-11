@@ -1877,3 +1877,17 @@ JSON usage transport also withholds complete-looking pages when uncompressed Con
 
 - While a JSON usage request is pending, mutate caller principal/model/time/limit/cursor filters. Release a valid original-scope page and require ready; release a page matching only mutated scope and require unavailable. Increasing the caller limit must not release oversized original pages.
 - Read each allowlisted accessor once before query construction and bind response validation to the same captured values. Preserve existing identity invalidation, no-store, bounded body and private errors. This is not a server authorization or session decision. See [client contract](../contracts/management-usage-client.md).
+
+## Audit browser transport (#642)
+
+An injected authorized request port can read one explicit principal from the existing /v1/audit JSON endpoint with time/model filters and decimal event-ID pagination. The metadata-only client reuses audit validation/projection, bounds UTF-8 response bytes, suppresses private error bodies and cancels superseded reads. Host must invalidate on identity/expiry changes. This does not authenticate SSO, add a management audit route, activate a screen, retain content or enable downloads. Server IAM and mandatory read auditing remain authoritative.
+
+## Audit browser response byte integrity (#642)
+
+Withhold complete-looking audit JSON pages when identity Content-Length differs from observed UTF-8 bytes. Accept exact multibyte streaming, missing length and compressed Fetch decoded bodies within existing bounds. This does not activate the audit UI, sessions or listeners. See [plan](plans/642-audit-history-client.md).
+
+## Audit metadata CSV projection (#851)
+
+- An authorized explicit-principal JSON audit page yields metadata-only CSV, header-only empty output, hasMore and exact decimal nextCursor. Unknown fields and retained content are excluded; invalid identifiers fail closed.
+- Input mutation cannot retarget an in-flight export. Invalidation and supersession suppress late CSV results. Invalid query, Deny, authentication and required read-audit failure return no CSV or private error body.
+- Public Fetch gateway and migrated embedded SQL tests cover scoped continuation, fresh revocation and read-audit failure. This is not installed PostgreSQL, browser login/download or provider acceptance. See [plan](plans/851-audit-page-csv.md) and [contract](../contracts/management-audit-export.md).
