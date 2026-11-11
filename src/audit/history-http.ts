@@ -1,10 +1,10 @@
+import { projectGatewayAuditEvent } from './gateway-event-projection.ts';
 import {
   type AuditHistoryFilters,
   matchesAuditHistoryFilters,
   validAuditHistoryFilters,
 } from './history-filters.ts';
 import type { AuditHistoryEvent, AuditHistoryPage } from './postgres-audit-history.ts';
-import { projectGatewayAuditEvent } from './postgres-gateway-audit.ts';
 import { parseAuditTimeRange } from './time-range.ts';
 
 const MAX_BIGINT = 9_223_372_036_854_775_807n;

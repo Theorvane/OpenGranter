@@ -1282,3 +1282,23 @@ Explicit SSO browser bootstrap accepts a reviewed SHA-256 pin for the exact publ
 ## Exact audit request trace (#642)
 
 Existing proxy and SSO audit JSON/CSV intersect optional exact request_id with principal/model/time/keyset scope. Bind SQL and own reader inputs before await; reject mismatching visible and hidden rows. No UI/session/runtime/content activation. See [plan](plans/642-audit-request-trace.md) and [contract](../contracts/audit-request-trace.md).
+
+## Audit browser transport (#642)
+
+An injected authorized request port can read one explicit principal from the existing /v1/audit JSON endpoint with time/model filters and decimal event-ID pagination. The metadata-only client reuses audit validation/projection, bounds UTF-8 response bytes, suppresses private error bodies and cancels superseded reads. Host must invalidate on identity/expiry changes. This does not authenticate SSO, add a management audit route, activate a screen, retain content or enable downloads. Server IAM and mandatory read auditing remain authoritative.
+
+## Authorized audit page CSV projection (#851)
+
+The metadata export client composes the existing explicit-principal JSON audit API with the existing safe CSV serializer, returning one validated page and lossless decimal continuation. Permission and mandatory JSON read-audit behavior are unchanged; no content retention, authentication, DOM or runtime activation is introduced. See [plan](plans/851-audit-page-csv.md) and [contract](../contracts/management-audit-export.md).
+
+## Exact audit request browser transport (#642)
+
+Existing explicit-principal JSON audit reads and page CSV export accept exact requestId intersected with principal/model/time/keyset. Reject mismatching rows and capture filters before await. No UI/session/runtime activation or browser acceptance implied. See [plan](plans/642-audit-request-client.md) and [contract](../contracts/audit-request-client.md).
+
+## Browser-safe audit metadata projection (#642)
+
+Existing audit JSON and page CSV clients share a pure event projector with server storage without importing PostgreSQL runtime modules into the publication closure. Exact filter isolation and server authorization/audit remain unchanged. No source grant, UI activation or browser-login acceptance is implied. See [contract](../contracts/audit-browser-projection.md) and [plan](plans/642-audit-browser-projection.md).
+
+## Complete nested audit evidence (#642)
+
+The shared audit event projector rejects missing policy-version or eligible-candidate entries before durable insertion and public review/export. Preserve dense and empty metadata arrays without compaction, invented evidence or null placeholders. See [plan](plans/642-audit-metadata-completeness.md) and [contract](../contracts/audit-browser-projection.md#complete-nested-metadata).

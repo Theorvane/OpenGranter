@@ -1451,3 +1451,19 @@ Reject identity-encoded CSV whose observed UTF-8 byte length disagrees with a su
 An explicit caller-authorized JSON page adapter preserves unknown usage, estimated/billed decimal costs and duplicate markers; validates and sanitizes the entire page, filter isolation, order and opaque continuation; bounds bytes/time and suppresses stale identity results. No UI/session/runtime activation. Local signed-SSO + migrated embedded SQL + durable-audit Fetch integration is not installed/browser acceptance. See [contract](../contracts/management-usage-client.md) and [plan](plans/642-browser-usage-history.md).
 
 JSON usage transport also withholds complete-looking pages when uncompressed Content-Length disagrees with observed UTF-8 bytes. Exact multibyte lengths, absent lengths and compressed Fetch decoded bodies remain accepted within the existing bounds. No UI/session/runtime activation.
+
+## Audit browser transport (#642)
+
+An injected authorized request port can read one explicit principal from the existing /v1/audit JSON endpoint with time/model filters and decimal event-ID pagination. The metadata-only client reuses audit validation/projection, bounds UTF-8 response bytes, suppresses private error bodies and cancels superseded reads. Host must invalidate on identity/expiry changes. This does not authenticate SSO, add a management audit route, activate a screen, retain content or enable downloads. Server IAM and mandatory read auditing remain authoritative.
+
+## Authorized audit page CSV projection (#851)
+
+The metadata export client composes the existing explicit-principal JSON audit API with the existing safe CSV serializer, returning one validated page and lossless decimal continuation. Permission and mandatory JSON read-audit behavior are unchanged; no content retention, authentication, DOM or runtime activation is introduced. See [plan](plans/851-audit-page-csv.md) and [contract](../contracts/management-audit-export.md).
+
+## Exact audit browser request correlation (#642)
+
+Existing JSON/page CSV adapters capture requestId once with principal/time/model/decimal cursor; the shared parser/projector enforce request intersection. No new endpoint, session or automatic pagination. See [contract](../contracts/audit-request-client.md).
+
+## Pure audit event projection (#642)
+
+The audit/gateway-event-projection.ts module owns allowlisted metadata projection and its error class. PostgreSQL append reexports these symbols for source compatibility; public history projection imports the pure module directly. Storage behavior and authorization remain unchanged. See [contract](../contracts/audit-browser-projection.md).
