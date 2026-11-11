@@ -18,3 +18,11 @@ OPENGRANTER_BOOTSTRAP_MODULE="$(pwd)/scripts/sso-browser-bootstrap.ts" OPENGRANT
 ```
 
 Use a separate explicitly selected port alongside the proxy. Defaults remain loopback. This command is not deployment/ingress approval. Replace the reviewed public JWKS and restart to rotate trust; no hot reload is claimed. Never substitute an ID token or proxy token for an API-specific access token. Browser cookie sessions, login redirects, company IdP, TLS ingress, real PostgreSQL recovery and installed acceptance remain independent gates.
+
+## Optional installed-artifact integrity pin (#643)
+
+Set OPENGRANTER_BROWSER_ARTIFACT_SHA256 to the reviewed public build artifact SHA-256 (exact lowercase 64 hexadecimal characters). Empty, uppercase, whitespace, malformed and nonstring module values fail with fixed startup diagnostics. Absence preserves unpinned startup; a deployment that requires an exact reviewed artifact must explicitly supply its approved pin. Custom factories use browserArtifactSha256.
+
+The bootstrap hashes bounded raw file bytes from the same open descriptor used to load the public JavaScript, including multibyte UTF-8. It verifies before acquiring PostgreSQL, applying migrations or binding HTTP. A mismatch is Management browser artifact unavailable, with no path, digest, contents or cause disclosed. Symlink release paths remain supported; the verified bytes, not a later reread, are served for the lifetime of that listener. Obtain the expected digest from the reviewed build/release evidence, not by trusting an unreviewed runtime file. For a reviewed artifact, sha256sum reports the digest; a hash is not a signature or source-provenance proof.
+
+This adds no deployment approval, authentication, session, role, provider call or paid budget. Installed PostgreSQL and browser/IdP/provider acceptance remain independent evidence.

@@ -1273,3 +1273,8 @@ An explicit unactivated signed-bearer service and Fetch factory reuse existing p
 ## Durable SSO audit-history access attribution (#642)
 
 An explicit unactivated PostgreSQL/Fetch composition now selects a dedicated metadata-only audit writer for scoped SSO audit-history reads. Additive migration 014 stores actor/current policies/target/outcome/count/request/time without bearer credentials, queries, filters, results or content. JSON/CSV and service errors are withheld on failed append; pending inserts block completion. Migration/runtime/session/retention activation and installed/browser/provider acceptance remain separate gates. See [plan](plans/642-durable-sso-audit-history.md) and [contract](../contracts/sso-audit-history.md#concrete-durable-composition-642).
+
+
+## Optional reviewed management artifact pin (#643)
+
+Explicit SSO browser bootstrap accepts a reviewed SHA-256 pin for the exact public UI bytes. Configured mismatch/malformed pin fails before DB/migration/listener ownership; absence preserves the separate legacy opt-in process. This is an operator integrity gate, not deployment approval or live installed certification. See [contract](../contracts/sso-operator-bootstrap.md#optional-installed-artifact-integrity-pin-643) and [plan](plans/643-browser-artifact-pin.md).
