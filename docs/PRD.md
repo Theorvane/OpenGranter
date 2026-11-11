@@ -1269,3 +1269,7 @@ JSON usage transport also withholds complete-looking pages when uncompressed Con
 ## Scoped SSO audit metadata history (#642)
 
 An explicit unactivated signed-bearer service and Fetch factory reuse existing principal-scoped PostgreSQL gateway metadata, strict time/model filters, keyset JSON/CSV and whole-page validation. Require fresh SSO/IAM and audit:Read on the target even for self; mandatory awaited access-audit failure withholds all service outcomes. No durable writer, migration, runtime/session activation or content retention is implied. See [contract](../contracts/sso-audit-history.md) and [plan](plans/642-sso-audit-history.md).
+
+## Durable SSO audit-history access attribution (#642)
+
+An explicit unactivated PostgreSQL/Fetch composition now selects a dedicated metadata-only audit writer for scoped SSO audit-history reads. Additive migration 014 stores actor/current policies/target/outcome/count/request/time without bearer credentials, queries, filters, results or content. JSON/CSV and service errors are withheld on failed append; pending inserts block completion. Migration/runtime/session/retention activation and installed/browser/provider acceptance remain separate gates. See [plan](plans/642-durable-sso-audit-history.md) and [contract](../contracts/sso-audit-history.md#concrete-durable-composition-642).
