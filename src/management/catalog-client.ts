@@ -133,6 +133,16 @@ async function boundedJson(response: Response, signal: AbortSignal): Promise<unk
       if (size > MAX_CATALOG_BYTES) throw new Error('Catalog body exceeds limit');
       bytes.set(value, size - value.byteLength);
     }
+    // Fetch exposes decoded bytes rather than the compressed wire length.
+    const encoding = response.headers.get('content-encoding')?.trim().toLowerCase();
+    if (
+      declared !== null &&
+      /^\d+$/u.test(declared) &&
+      (!encoding || encoding === 'identity') &&
+      size !== Number(declared)
+    ) {
+      throw new Error('Incomplete catalog body');
+    }
     return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes.subarray(0, size)));
   } catch (error) {
     cancel();
@@ -283,6 +293,17 @@ function createCatalogClient(request: CatalogRequest, sso: boolean) {
         if (response.status === 403) return { state: 'denied' };
         if (response.status === 404) return { state: 'missing' };
         if (response.status !== 200) return { state: 'unavailable' };
+        // SSO HTTP publications are JSON, never an ingress fallback document.
+        // Keep the legacy proxy decoder unchanged.
+        if (
+          sso &&
+          !/^application\/json(?:;\s*charset=utf-8)?$/iu.test(
+            response.headers.get('content-type') ?? '',
+          )
+        ) {
+          discard(response);
+          return { state: 'unavailable' };
+        }
         const body: unknown = await boundedJson(response, controller.signal);
         if (stale()) return { state: 'cancelled' };
         const data = decode(body);

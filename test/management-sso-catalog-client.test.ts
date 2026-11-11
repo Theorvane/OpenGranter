@@ -178,3 +178,61 @@ test('SSO malformed provider bounds fail complete lists and detail without chang
     assert.deepEqual(await proxy.detail(base.id), { state: 'ready', data: base });
   }
 });
+
+test('SSO rejects non-JSON publications before consuming list or detail bodies', async () => {
+  const row = { id: 'chat', object: 'model', created: 0, owned_by: 'opengranter' };
+  for (const contentType of [
+    null,
+    'text/plain',
+    'text/html',
+    'application/jsonp',
+    'application/json; charset=iso-8859-1',
+  ]) {
+    for (const operation of ['list', 'detail'] as const) {
+      let cancelled = 0;
+      let response!: Response;
+      const client = createSsoManagementCatalogClient(async () => {
+        response = new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              controller.enqueue(
+                new TextEncoder().encode(
+                  JSON.stringify(operation === 'list' ? { data: [row] } : row),
+                ),
+              );
+              controller.close();
+            },
+            cancel() {
+              cancelled++;
+              return new Promise<void>(() => {});
+            },
+          }),
+          { headers: contentType === null ? {} : { 'content-type': contentType } },
+        );
+        return response;
+      });
+      const result = operation === 'list' ? await client.list() : await client.detail('chat');
+      assert.deepEqual(result, { state: 'unavailable' }, String(contentType));
+      assert.equal(cancelled, 1);
+      assert.equal(response.body?.locked, false);
+    }
+  }
+});
+
+test('SSO JSON and UTF-8 media types remain compatible for list and detail', async () => {
+  const row = { id: 'chat', object: 'model', created: 0, owned_by: 'opengranter' };
+  for (const contentType of [
+    'application/json',
+    'application/json; charset=utf-8',
+    'Application/JSON; Charset=UTF-8',
+  ]) {
+    const client = createSsoManagementCatalogClient(
+      async (path) =>
+        new Response(JSON.stringify(path.endsWith('/models') ? { data: [row] } : row), {
+          headers: { 'content-type': contentType },
+        }),
+    );
+    assert.deepEqual(await client.list(), { state: 'ready', data: [row] });
+    assert.deepEqual(await client.detail('chat'), { state: 'ready', data: row });
+  }
+});

@@ -1269,3 +1269,16 @@ JSON usage transport also withholds complete-looking pages when uncompressed Con
 ## Explicit SSO usage runtime integration (#854)
 
 The explicitly started PostgreSQL SSO management listener serves the existing scoped JSON/CSV usage API at `/management/v1/usage`, sharing its migrated connection and trusted JWT configuration. Existing authorization and awaited durable metadata audit remain mandatory. This adds no session policy, default activation or production approval; browser login and installed acceptance remain open.
+
+## Scoped SSO audit metadata history (#642)
+
+An explicit unactivated signed-bearer service and Fetch factory reuse existing principal-scoped PostgreSQL gateway metadata, strict time/model filters, keyset JSON/CSV and whole-page validation. Require fresh SSO/IAM and audit:Read on the target even for self; mandatory awaited access-audit failure withholds all service outcomes. No durable writer, migration, runtime/session activation or content retention is implied. See [contract](../contracts/sso-audit-history.md) and [plan](plans/642-sso-audit-history.md).
+
+## Durable SSO audit-history access attribution (#642)
+
+An explicit unactivated PostgreSQL/Fetch composition now selects a dedicated metadata-only audit writer for scoped SSO audit-history reads. Additive migration 014 stores actor/current policies/target/outcome/count/request/time without bearer credentials, queries, filters, results or content. JSON/CSV and service errors are withheld on failed append; pending inserts block completion. Migration/runtime/session/retention activation and installed/browser/provider acceptance remain separate gates. See [plan](plans/642-durable-sso-audit-history.md) and [contract](../contracts/sso-audit-history.md#concrete-durable-composition-642).
+
+
+## Optional reviewed management artifact pin (#643)
+
+Explicit SSO browser bootstrap accepts a reviewed SHA-256 pin for the exact public UI bytes. Configured mismatch/malformed pin fails before DB/migration/listener ownership; absence preserves the separate legacy opt-in process. This is an operator integrity gate, not deployment approval or live installed certification. See [contract](../contracts/sso-operator-bootstrap.md#optional-installed-artifact-integrity-pin-643) and [plan](plans/643-browser-artifact-pin.md).
