@@ -1281,3 +1281,8 @@ The existing owned PostgreSQL SSO management listener can explicitly mount both 
 ## Operator-scoped history switch (#642)
 
 The explicit SSO bootstrap accepts strict optional OPENGRANTER_SSO_HISTORY_READS=true/false, propagating the boolean through the owned process to the existing opt-in listener. Absence remains disabled; malformed values fail before startup. No session/deployment activation or installed/browser/provider acceptance is implied. See [plan](plans/642-operator-history-switch.md) and [contract](../contracts/sso-operator-bootstrap.md#explicit-scoped-history-reads-642).
+
+
+## Optional reviewed management artifact pin (#643)
+
+Explicit SSO browser bootstrap accepts a reviewed SHA-256 pin for the exact public UI bytes. Configured mismatch/malformed pin fails before DB/migration/listener ownership; absence preserves the separate legacy opt-in process. This is an operator integrity gate, not deployment approval or live installed certification. See [contract](../contracts/sso-operator-bootstrap.md#optional-installed-artifact-integrity-pin-643) and [plan](plans/643-browser-artifact-pin.md).

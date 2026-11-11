@@ -32,6 +32,17 @@ test('operator bootstrap validates local public trust and defers PostgreSQL owne
       opened++;
       return connection;
     });
+    assert.equal(ports.browserArtifactSha256, undefined);
+    const pin = 'a'.repeat(64);
+    assert.equal(
+      (
+        await loadSsoBrowserBootstrap(
+          { ...env, OPENGRANTER_BROWSER_ARTIFACT_SHA256: pin },
+          () => connection,
+        )
+      ).browserArtifactSha256,
+      pin,
+    );
     assert.equal(opened, 0);
     assert.equal(ports.enableHistoryReads, undefined);
     for (const [value, expected] of [
@@ -88,6 +99,16 @@ test('operator bootstrap rejects missing configuration and unsafe trust with red
     await writeFile(path, JSON.stringify(jwt.config.jwks));
     for (const value of ['', 'TRUE', '1', ' true', 'false ', 'false\0']) {
       await reject({ ...env, OPENGRANTER_SSO_HISTORY_READS: value });
+    }
+    for (const value of [
+      '',
+      ' ',
+      'A'.repeat(64),
+      'a'.repeat(63),
+      'a'.repeat(65),
+      `${'a'.repeat(64)}\n`,
+    ]) {
+      await reject({ ...env, OPENGRANTER_BROWSER_ARTIFACT_SHA256: value });
     }
     for (const name of Object.keys(env)) {
       const input: NodeJS.ProcessEnv = { ...env };

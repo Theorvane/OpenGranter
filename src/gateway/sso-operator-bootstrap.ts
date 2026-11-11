@@ -3,6 +3,7 @@ import { open } from 'node:fs/promises';
 import { isAbsolute } from 'node:path';
 import { createRfc9068SsoAccessTokenVerifier } from '../identity/rfc9068-sso-access-tokens.ts';
 import type { PostgresConnection } from '../storage/postgres-connection.ts';
+import { validBrowserArtifactSha256 } from './postgres-sso-browser-bootstrap.ts';
 import type { SsoBrowserBootstrapPorts } from './sso-browser-service.ts';
 
 export class SsoOperatorBootstrapUnavailable extends Error {
@@ -58,6 +59,9 @@ export async function loadSsoBrowserBootstrap(
     if (history !== undefined && history !== 'true' && history !== 'false') {
       throw new SsoOperatorBootstrapUnavailable();
     }
+    const pin = env.OPENGRANTER_BROWSER_ARTIFACT_SHA256;
+    if (pin !== undefined && !validBrowserArtifactSha256(pin))
+      throw new SsoOperatorBootstrapUnavailable();
     const issuer = required(env, 'OPENGRANTER_SSO_ISSUER');
     const audience = required(env, 'OPENGRANTER_SSO_AUDIENCE');
     const jwksPath = path(env, 'OPENGRANTER_SSO_JWKS_PATH');
@@ -72,6 +76,7 @@ export async function loadSsoBrowserBootstrap(
       browserArtifactPath,
       openConnection,
       ...(history === undefined ? {} : { enableHistoryReads: history === 'true' }),
+      ...(pin === undefined ? {} : { browserArtifactSha256: pin }),
     };
   } catch {
     // Errors may contain filesystem paths, JSON source, or operator configuration.
