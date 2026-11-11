@@ -1298,3 +1298,7 @@ Existing explicit-principal JSON audit reads and page CSV export accept exact re
 ## Browser-safe audit metadata projection (#642)
 
 Existing audit JSON and page CSV clients share a pure event projector with server storage without importing PostgreSQL runtime modules into the publication closure. Exact filter isolation and server authorization/audit remain unchanged. No source grant, UI activation or browser-login acceptance is implied. See [contract](../contracts/audit-browser-projection.md) and [plan](plans/642-audit-browser-projection.md).
+
+## Complete nested audit evidence (#642)
+
+The shared audit event projector rejects missing policy-version or eligible-candidate entries before durable insertion and public review/export. Preserve dense and empty metadata arrays without compaction, invented evidence or null placeholders. See [plan](plans/642-audit-metadata-completeness.md) and [contract](../contracts/audit-browser-projection.md#complete-nested-metadata).

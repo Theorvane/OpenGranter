@@ -1899,3 +1899,7 @@ JSON/CSV send encoded exact request_id, reject invalid identifiers before transp
 ## Audit browser publication closure (#642)
 
 Compiled production JSON/page CSV clients must exclude PostgreSQL runtime sources, preserve request/principal filters, reject case-mismatching request rows, and preserve server projection/error identities. SQL regressions remain required. This is bundled-code execution, not native login or installation acceptance. See [contract](../contracts/audit-browser-projection.md).
+
+## Nested audit metadata completeness (#642)
+
+First/middle/last missing policy-version and eligible-candidate entries must reject before SQL insertion and HTTP projection. Browser-compiled JSON/page CSV must withhold null wire entries. Migrated embedded SQL valid dense/empty metadata must round-trip without altered order. These tests do not certify installed PostgreSQL or browser login. See [plan](plans/642-audit-metadata-completeness.md).

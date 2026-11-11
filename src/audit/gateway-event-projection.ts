@@ -53,7 +53,8 @@ function oneOf<T extends string>(value: unknown, choices: readonly T[]): T {
 
 function identifiers(value: unknown): string[] {
   if (!Array.isArray(value) || value.length > 1024) throw new InvalidGatewayAuditEvent();
-  return value.map(identifier);
+  // Array.from visits missing slots too; never persist holes as null evidence.
+  return Array.from(value, identifier);
 }
 
 function optionalIdentifier(value: unknown): string | undefined {
@@ -66,7 +67,7 @@ function optionalBoolean(value: unknown): boolean | undefined {
 
 function policyVersions(value: unknown): { id: string; version: string }[] {
   if (!Array.isArray(value) || value.length > 1024) throw new InvalidGatewayAuditEvent();
-  return value.map((entry: unknown) => {
+  return Array.from(value, (entry: unknown) => {
     const policy = record(entry);
     return { id: identifier(policy.id), version: identifier(policy.version) };
   });
