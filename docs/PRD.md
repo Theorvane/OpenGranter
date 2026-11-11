@@ -1251,3 +1251,8 @@ An explicit caller may gather the existing freshly authorized CSV pages into one
 ## Filtered audit CSV traversal (#642)
 
 Explicit export action can gather all pages of captured audit filters through the existing SSO audit client. Every page freshly authorizes and awaits durable access audit. Bounds, cancellation, denial, changed schema or pagination failure return no partial CSV. Terminal traversal is not a consistent snapshot or tamper-resistant archive. Frontend wiring and native browser download acceptance remain separate. See [plan](plans/642-filtered-audit-export.md) and [contract](../contracts/management-audit-filtered-export.md).
+
+
+## Whole-action CSV deadline (#642)
+
+Filtered usage and audit exports apply one monotonic 60-second deadline (configurable up to 120 seconds) across all pages, aborting the dedicated client and returning no partial CSV on expiry. This bounds local waiting, not server audit work or synchronous event-loop stalls. Caller cancellation remains distinct. See [contract](../contracts/filtered-export-deadline.md) and [plan](plans/642-export-deadline.md). No browser/session/deployment activation.

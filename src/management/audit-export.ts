@@ -11,6 +11,8 @@ export interface FilteredAuditExportOptions {
   readonly signal: AbortSignal;
   readonly maxPages?: number;
   readonly maxBytes?: number;
+  /** Whole action, never reset per page: default 60s, maximum 120s. */
+  readonly maxDurationMs?: number;
 }
 export type FilteredAuditExportResult =
   | SsoAuditClientResult<{ readonly csv: string; readonly pages: number; readonly bytes: number }>
@@ -27,7 +29,7 @@ export async function exportFilteredAuditCsv(
   filters: SsoAuditFilters,
   options: FilteredAuditExportOptions,
 ): Promise<FilteredAuditExportResult> {
-  const { signal, maxPages = 50, maxBytes = 8 * 1024 * 1024 } = options;
+  const { signal, maxPages = 50, maxBytes = 8 * 1024 * 1024, maxDurationMs = 60_000 } = options;
   if (
     !validAuditPrincipalReference(currentPrincipalId) ||
     !Number.isSafeInteger(maxPages) ||
@@ -35,7 +37,10 @@ export async function exportFilteredAuditCsv(
     maxPages > 100 ||
     !Number.isSafeInteger(maxBytes) ||
     maxBytes < 1 ||
-    maxBytes > 8 * 1024 * 1024
+    maxBytes > 8 * 1024 * 1024 ||
+    !Number.isSafeInteger(maxDurationMs) ||
+    maxDurationMs < 1 ||
+    maxDurationMs > 120_000
   )
     return { state: 'invalid_query' };
   if (signal.aborted) return { state: 'cancelled' };
@@ -58,11 +63,20 @@ export async function exportFilteredAuditCsv(
   let header: string | undefined;
   let bytes = 0;
   const encoder = new TextEncoder();
+  const deadline = performance.now() + maxDurationMs;
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    client.invalidate();
+  }, maxDurationMs);
+  const expired = () => timedOut || performance.now() >= deadline;
   try {
     for (let pages = 1; pages <= maxPages; pages++) {
       if (signal.aborted) return { state: 'cancelled' };
+      if (expired()) return { state: 'unavailable' };
       const result = await client.csv({ ...captured, ...(cursor === undefined ? {} : { cursor }) });
       if (signal.aborted) return { state: 'cancelled' };
+      if (expired()) return { state: 'unavailable' };
       if (result.state !== 'ready') return result;
       // The server emits a fixed single-line quoted header and CRLF rows. Do not
       // split data rows: quoted cells can contain CRLF and must remain byte-exact.
@@ -79,6 +93,8 @@ export async function exportFilteredAuditCsv(
       bytes += encoder.encode(part).byteLength;
       if (bytes > maxBytes) return { state: 'limit_exceeded' };
       parts.push(part);
+      if (signal.aborted) return { state: 'cancelled' };
+      if (expired()) return { state: 'unavailable' };
       if (!result.data.hasMore)
         return { state: 'ready', data: { csv: parts.join(''), pages, bytes } };
       const next = result.data.nextCursor;
@@ -90,6 +106,7 @@ export async function exportFilteredAuditCsv(
   } catch {
     return { state: signal.aborted ? 'cancelled' : 'unavailable' };
   } finally {
+    clearTimeout(timer);
     signal.removeEventListener('abort', abort);
     client.invalidate();
   }
