@@ -17,6 +17,7 @@
     "compatibility:opencode": "node --experimental-strip-types scripts/conformance-opencode.ts",
     "start": "node --experimental-strip-types scripts/start-gateway.ts",
     "codex:auth": "node --experimental-strip-types scripts/codex-auth.ts",
+    "management:workspace:build": "node --experimental-strip-types scripts/build-management-workspace.ts",
     "management:build": "node --experimental-strip-types scripts/build-management-browser.ts"
   },
   "devDependencies": {
