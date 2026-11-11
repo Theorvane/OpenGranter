@@ -152,7 +152,7 @@ export function mountSsoUsageWorkspace(
     if (view === 'audit') {
       // Resolve the actual current identity without changing the authority grant.
       // Navigating away disposes the bounded reader and suppresses late results.
-      const identity = mountManagementPrincipal(content, identityOptions);
+      const identity = mountManagementPrincipal(content, { ...identityOptions, context: 'audit' });
       app = identity;
       if (!grant) {
         identity.clear(reason);
