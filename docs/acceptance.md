@@ -1881,3 +1881,7 @@ JSON usage transport also withholds complete-looking pages when uncompressed Con
 ## Usage review lifecycle (#642)
 
 Read-only SSO usage lifecycle copies filters, follows only current opaque continuation and replaces pages. Loading, identity change, expiry and teardown clear old rows; stale completions cannot publish. Unknown costs and duplicate markers are preserved. Caller owns trusted authorization, expiry and rendering; no session/runtime activation. See [plan](plans/642-usage-review-session.md) and [contract](../contracts/management-usage-session.md).
+
+## Exact failed usage page recovery (#642)
+
+Explicit usage lifecycle retry repeats the failed first page or continuation with the original copied principal/model/time/limit and exact opaque cursor. Loading hides old rows; no previous rows are retained. Success, new search, invalid query, denial, logout/expiry, replacement authority and disposal remove retry authority. A pending retry cannot publish after identity teardown. This is an unactivated UI-independent lifecycle, not browser/session/runtime acceptance. See [contract](../contracts/management-usage-session.md).

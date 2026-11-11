@@ -27,6 +27,7 @@ export function createSsoUsageSession() {
   let snapshot: UsageSnapshot = Object.freeze({ state: 'unauthenticated' });
   let filters: UsageSearch = {};
   let cursor: string | undefined;
+  let retryQuery: UsageFilters | undefined;
   let revision = 0;
   let disposed = false;
 
@@ -36,6 +37,7 @@ export function createSsoUsageSession() {
     client = undefined;
     filters = {};
     cursor = undefined;
+    retryQuery = undefined;
   }
   function clear(state: LockedState) {
     if (disposed) return;
@@ -47,6 +49,7 @@ export function createSsoUsageSession() {
     const active = client;
     const current = ++revision;
     cursor = undefined;
+    retryQuery = undefined;
     snapshot = Object.freeze({ state: 'loading' });
     const result = await active.read(query);
     if (current !== revision || disposed) return;
@@ -61,6 +64,7 @@ export function createSsoUsageSession() {
     } else if (result.state === 'unauthenticated' || result.state === 'denied') {
       clear(result.state);
     } else {
+      if (result.state === 'unavailable') retryQuery = query;
       snapshot = Object.freeze({
         state: result.state === 'cancelled' ? 'unavailable' : result.state,
       });
@@ -91,6 +95,11 @@ export function createSsoUsageSession() {
     async next() {
       if (!client || disposed || snapshot.state !== 'rows' || !cursor) return;
       await read({ ...filters, cursor });
+    },
+    async retry() {
+      if (!client || disposed || snapshot.state !== 'unavailable' || !retryQuery) return;
+      // Reuse only the failed query, including its opaque continuation; never old rows.
+      await read(retryQuery);
     },
     dispose() {
       if (disposed) return;

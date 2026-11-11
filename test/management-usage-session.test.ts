@@ -161,3 +161,86 @@ test('dispose is permanent and silent after teardown', async () => {
   assert.equal(session.snapshot().state, 'disposed');
   assert.equal(calls, 1);
 });
+
+test('explicit retry recovers exactly the failed first page or continuation', async () => {
+  for (const continuation of [false, true]) {
+    const session = createSsoUsageSession();
+    const cursor = Buffer.from(JSON.stringify([10, 'z'])).toString('base64url');
+    const paths: string[] = [];
+    let fail = !continuation;
+    session.authorize(async (url) => {
+      paths.push(url);
+      if (fail) return new Response(null, { status: 503 });
+      return url.includes('cursor=') ? page([row('a', 9)]) : page([row()], cursor);
+    });
+    const filters = { principalId: 'human', model: 'chat', fromMs: 0, toMs: 11, limit: 1 };
+    await session.search(filters);
+    if (continuation) {
+      fail = true;
+      await session.next();
+    }
+    assert.deepEqual(session.snapshot(), { state: 'unavailable' });
+    const failedPath = paths.at(-1);
+    filters.model = 'changed';
+    fail = false;
+    await session.retry();
+    assert.equal(paths.at(-1), failedPath);
+    const snapshot = session.snapshot();
+    assert.equal(snapshot.state, 'rows');
+    if (snapshot.state === 'rows')
+      assert.equal(snapshot.data[0]?.attemptId, continuation ? 'a' : 'z');
+    const count = paths.length;
+    await session.retry();
+    assert.equal(paths.length, count);
+  }
+});
+
+test('retry authority cannot survive clear, replacement, invalid query, denial or disposal', async () => {
+  for (const change of ['clear', 'authorize', 'invalid', 'denied', 'dispose']) {
+    const session = createSsoUsageSession();
+    let calls = 0;
+    let status = 503;
+    const request = async () => {
+      calls++;
+      return new Response(null, { status });
+    };
+    session.authorize(request);
+    await session.search({ model: 'chat' });
+    assert.equal(session.snapshot().state, 'unavailable');
+    if (change === 'clear') session.clear('unavailable');
+    if (change === 'authorize') session.authorize(request);
+    if (change === 'invalid') await session.search({ limit: 0 });
+    if (change === 'denied') {
+      status = 403;
+      await session.search();
+    }
+    if (change === 'dispose') session.dispose();
+    const before = session.snapshot();
+    const count = calls;
+    await session.retry();
+    assert.equal(calls, count);
+    assert.deepEqual(session.snapshot(), before);
+  }
+});
+
+test('a pending retry hides rows and cannot publish after expiry', async () => {
+  const session = createSsoUsageSession();
+  let release: ((response: Response) => void) | undefined;
+  let calls = 0;
+  session.authorize(async () => {
+    if (++calls === 1) return new Response(null, { status: 503 });
+    return new Promise<Response>((resolve) => {
+      release = resolve;
+    });
+  });
+  await session.search();
+  const pending = session.retry();
+  assert.deepEqual(session.snapshot(), { state: 'loading' });
+  await session.retry();
+  assert.equal(calls, 2);
+  session.clear('expired');
+  await pending;
+  release?.(page());
+  await Promise.resolve();
+  assert.deepEqual(session.snapshot(), { state: 'expired' });
+});
