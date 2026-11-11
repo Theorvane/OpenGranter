@@ -149,3 +149,92 @@ test('CLI publication never replaces files or symlinks and removes staging', asy
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test('explicit reviewed shared sources build without granting transitive access', async () =>
+  fixture(async (root, source) => {
+    const shared = join(root, 'src/usage');
+    await mkdir(shared);
+    await writeFile(join(shared, 'value.ts'), 'export { value } from "./dependency.ts";');
+    await writeFile(join(shared, 'dependency.ts'), 'export const value: number = 42;');
+    await writeFile(join(source, 'entry.ts'), 'export { value } from "../usage/value.ts";');
+    const options = {
+      root,
+      entry: 'src/management/entry.ts',
+      publicSources: ['src/usage/value.ts', 'src/usage/dependency.ts'],
+    };
+    assert.equal((await load(await buildManagementBrowser(options))).value, 42);
+    await assert.rejects(
+      buildManagementBrowser({ ...options, publicSources: ['src/usage/value.ts'] }),
+    );
+    await assert.rejects(buildManagementBrowser({ root, entry: options.entry }));
+    await assert.rejects(buildManagementBrowser({ ...options, entry: 'src/usage/value.ts' }));
+  }));
+
+test('shared source grants reject escapes, non-TypeScript and server imports', async () =>
+  fixture(async (root, source) => {
+    await mkdir(join(root, 'src/shared'));
+    await writeFile(join(root, 'outside.ts'), 'export const value = 1;');
+    await writeFile(join(root, 'src/shared/value.json'), '{}');
+    await symlink(join(root, 'outside.ts'), join(root, 'src/shared/link.ts'));
+    await writeFile(join(source, 'entry.ts'), 'export const value = 1;');
+    for (const grant of [
+      'outside.ts',
+      'src/shared/link.ts',
+      'src/shared/value.json',
+      join(source, 'entry.ts'),
+      'missing.ts',
+    ]) {
+      await assert.rejects(
+        buildManagementBrowser({ root, entry: 'src/management/entry.ts', publicSources: [grant] }),
+      );
+    }
+    for (const specifier of ['node:fs', 'esbuild']) {
+      await writeFile(
+        join(root, 'src/shared/private.ts'),
+        'import "' + specifier + '"; export const value = 1;',
+      );
+      await writeFile(join(source, 'entry.ts'), 'export { value } from "../shared/private.ts";');
+      await assert.rejects(
+        buildManagementBrowser({
+          root,
+          entry: 'src/management/entry.ts',
+          publicSources: ['src/shared/private.ts'],
+        }),
+      );
+    }
+  }));
+
+test('CLI requires each shared source explicitly and preserves fixed failure', async () =>
+  fixture(async (root, source) => {
+    await mkdir(join(root, 'src/shared'));
+    await writeFile(join(root, 'src/shared/value.ts'), 'export const value = 42;');
+    await writeFile(join(source, 'entry.ts'), 'export { value } from "../shared/value.ts";');
+    const script = resolve('scripts/build-management-browser.ts');
+    const run = (...args: string[]) =>
+      spawnSync(
+        process.execPath,
+        ['--experimental-strip-types', script, 'src/management/entry.ts', ...args],
+        { cwd: root, encoding: 'utf8' },
+      );
+    const good = run('--public-source', 'src/shared/value.ts');
+    assert.equal(good.status, 0, good.stderr);
+    assert.equal((await load(good.stdout)).value, 42);
+    const output = join(root, 'app.js');
+    assert.equal(run('--output', output, '--public-source', 'src/shared/value.ts').status, 0);
+    assert.equal((await load(await readFile(output, 'utf8'))).value, 42);
+    for (const args of [
+      [],
+      ['--public-source'],
+      ['--public-source', '--output'],
+      ['--unknown', 'value'],
+      ['--output', output, '--output', output],
+    ]) {
+      const bad = run(...args);
+      assert.equal(bad.status, 1);
+      assert.equal(bad.stdout, '');
+      assert.equal(
+        bad.stderr,
+        'Management browser build failed; supply a reviewed local TypeScript entry.\n',
+      );
+    }
+  }));

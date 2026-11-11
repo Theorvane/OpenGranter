@@ -6,6 +6,8 @@ import { build } from 'esbuild';
 export interface ManagementBrowserBuildOptions {
   readonly root: string;
   readonly entry: string;
+  /** Exact reviewed public shared files relative to root. No transitive/directory grant. */
+  readonly publicSources?: readonly string[];
 }
 
 /** Builds reviewed public source, not a secret scanner or untrusted-code sandbox.
@@ -14,23 +16,36 @@ export interface ManagementBrowserBuildOptions {
 export async function buildManagementBrowser(
   options: ManagementBrowserBuildOptions,
 ): Promise<string> {
-  const root = resolve(options.root);
+  const grants = [...(options.publicSources ?? [])];
+  const root = await realpath(resolve(options.root));
   const source = await realpath(resolve(root, 'src/management'));
-  async function local(path: string) {
+  const repositorySource = await realpath(resolve(root, 'src'));
+  function within(parent: string, path: string) {
+    const child = relative(parent, path);
+    return !!child && child !== '..' && !child.startsWith('..' + sep) && !isAbsolute(child);
+  }
+  if (!within(root, repositorySource) || !within(repositorySource, source))
+    throw new Error('Management build requires repository-local sources');
+  const allowed = new Set<string>();
+  for (const grant of grants) {
+    if (typeof grant !== 'string' || isAbsolute(grant))
+      throw new Error('Management build requires root-relative public sources');
+    const canonical = await realpath(resolve(root, grant));
+    if (!within(repositorySource, canonical) || !canonical.endsWith('.ts'))
+      throw new Error('Management build requires local TypeScript sources');
+    allowed.add(canonical);
+  }
+  async function local(path: string, entry = false) {
     const canonical = await realpath(path);
-    const child = relative(source, canonical);
     if (
-      !child ||
-      child === '..' ||
-      child.startsWith('..' + sep) ||
-      isAbsolute(child) ||
-      !canonical.endsWith('.ts')
+      !canonical.endsWith('.ts') ||
+      (!within(source, canonical) && (entry || !allowed.has(canonical)))
     ) {
       throw new Error('Management build requires local TypeScript sources');
     }
     return canonical;
   }
-  const entry = await local(resolve(root, options.entry));
+  const entry = await local(resolve(root, options.entry), true);
   const result = await build({
     absWorkingDir: root,
     entryPoints: [entry],
@@ -74,10 +89,18 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
   try {
     const args = process.argv.slice(2);
     const entry = args[0];
-    const output = args[2];
-    if (!entry || (args.length !== 1 && (args.length !== 3 || args[1] !== '--output' || !output)))
-      throw new Error('Explicit entry and optional output required');
-    const javascript = await buildManagementBrowser({ root: process.cwd(), entry });
+    if (!entry) throw new Error('Explicit entry required');
+    let output: string | undefined;
+    const publicSources: string[] = [];
+    for (let index = 1; index < args.length; index += 2) {
+      const flag = args[index];
+      const value = args[index + 1];
+      if (!value || value.startsWith('--')) throw new Error('Missing option value');
+      if (flag === '--output' && output === undefined) output = value;
+      else if (flag === '--public-source') publicSources.push(value);
+      else throw new Error('Invalid build option');
+    }
+    const javascript = await buildManagementBrowser({ root: process.cwd(), entry, publicSources });
     if (output === undefined) {
       process.stdout.write(javascript);
     } else {
