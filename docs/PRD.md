@@ -1289,3 +1289,7 @@ Explicit SSO browser bootstrap accepts a reviewed SHA-256 pin for the exact publ
 ## Isolated scoped usage request tracing (#642)
 
 Both proxy and SSO usage JSON/CSV intersect optional exact request_id with existing principal/model/time/cursor scope, using bound SQL and an owned reader snapshot. This ports backend #760/#838 functionality without their old UI/session stack; it neither supplies login nor enables deployment. See [contract](../contracts/usage-request-filter-main.md) and [plan](plans/642-request-filter-main.md).
+
+## Exact audit request trace (#642)
+
+Existing proxy and SSO audit JSON/CSV intersect optional exact request_id with principal/model/time/keyset scope. Bind SQL and own reader inputs before await; reject mismatching visible and hidden rows. No UI/session/runtime/content activation. See [plan](plans/642-audit-request-trace.md) and [contract](../contracts/audit-request-trace.md).
