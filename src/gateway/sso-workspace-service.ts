@@ -13,6 +13,11 @@ export type SsoWorkspaceBootstrapPorts = Omit<
 /** Validate only the explicit trusted workspace factory; absence keeps old routes. */
 export function isSsoWorkspacePorts(value: unknown): value is SsoWorkspaceBootstrapPorts {
   if (!isSsoBrowserPorts(value)) return false;
+  const row = value as SsoWorkspaceBootstrapPorts;
+  if (Object.hasOwn(row, 'enableAuditHistoryReads')) {
+    if (typeof row.enableAuditHistoryReads !== 'boolean') return false;
+    if (row.enableAuditHistoryReads && Object.hasOwn(row, 'writeAuditHistoryAccess')) return false;
+  }
   return (
     !Object.hasOwn(value, 'writeAuditHistoryAccess') ||
     typeof (value as SsoWorkspaceBootstrapPorts).writeAuditHistoryAccess === 'function'
