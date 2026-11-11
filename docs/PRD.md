@@ -1242,3 +1242,7 @@ The authorized audit mount now offers explicit current-page refresh/retry, prese
 ## Usage current-page failure recovery (#642)
 
 Transient read/CSV failures and cancellation expose explicit Retry current page, preserving submitted filters, exact opaque cursor and query-only previous navigation, never protected records or exports. Invalid queries require correction; auth/Deny/expiry clear authority. See [plan](plans/642-usage-retry.md) and [contract](../contracts/usage-previous-page.md). No session or installed runtime activation.
+
+## Read-only review audit route (#642)
+
+The existing read-only review HTTP/browser composition can explicitly opt into the signed-SSO audit JSON/CSV endpoint using an approved durable reader-audit SQL client. Omission preserves the old route surface; writes remain unavailable. See [plan](plans/642-readonly-audit-review.md) and [contract](../contracts/readonly-review-audit.md). This source composition does not certify browser login, schema promotion or installed activation.
