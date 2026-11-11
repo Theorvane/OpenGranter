@@ -1,3 +1,7 @@
+## Exact request usage browser transport (#642)
+
+JSON and CSV usage transports accept an exact optional request ID intersected with existing scope and filters. JSON withholds mismatching rows. Transport integration is not browser or deployment acceptance. See [plan](plans/642-request-client-transport.md) and [contract](../contracts/usage-request-client-transport.md).
+
 # OpenGranter Product Requirements
 
 ## Reviewed model response source checkpoint (#543)

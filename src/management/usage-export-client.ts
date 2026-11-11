@@ -2,6 +2,7 @@ import type { CatalogRequest } from './catalog-client.ts';
 
 export interface UsageExportFilters {
   readonly principalId?: string;
+  readonly requestId?: string;
   readonly model?: string;
   readonly fromMs?: number;
   readonly toMs?: number;
@@ -47,8 +48,12 @@ function validCursor(value: unknown): value is string {
   }
 }
 function query(filters: UsageExportFilters): string | undefined {
-  const { principalId, model, fromMs, toMs, limit, cursor } = filters;
+  const { principalId, requestId, model, fromMs, toMs, limit, cursor } = filters;
   if (
+    (requestId !== undefined &&
+      (typeof requestId !== 'string' ||
+        requestId.length > 256 ||
+        !/^[A-Za-z0-9][A-Za-z0-9._+:/@-]*$/u.test(requestId))) ||
     (principalId !== undefined &&
       (typeof principalId !== 'string' ||
         !principalId.trim() ||
@@ -71,6 +76,7 @@ function query(filters: UsageExportFilters): string | undefined {
     return undefined;
   const params = new URLSearchParams({ format: 'csv' });
   if (principalId !== undefined) params.set('principal_id', principalId);
+  if (requestId !== undefined) params.set('request_id', requestId);
   if (model !== undefined) params.set('model', model);
   if (fromMs !== undefined) params.set('from_ms', String(fromMs));
   if (toMs !== undefined) params.set('to_ms', String(toMs));
