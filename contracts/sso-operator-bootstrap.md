@@ -18,3 +18,7 @@ OPENGRANTER_BOOTSTRAP_MODULE="$(pwd)/scripts/sso-browser-bootstrap.ts" OPENGRANT
 ```
 
 Use a separate explicitly selected port alongside the proxy. Defaults remain loopback. This command is not deployment/ingress approval. Replace the reviewed public JWKS and restart to rotate trust; no hot reload is claimed. Never substitute an ID token or proxy token for an API-specific access token. Browser cookie sessions, login redirects, company IdP, TLS ingress, real PostgreSQL recovery and installed acceptance remain independent gates.
+
+## Explicit scoped history reads (#642)
+
+Optional OPENGRANTER_SSO_HISTORY_READS accepts only exact true or false. Absence keeps legacy history dispatch disabled; empty, whitespace, uppercase and other values fail with fixed diagnostics before DB ownership. The loader forwards an explicit boolean to the owned browser listener; custom module factories must likewise provide a boolean or omit the field. Enabling mounts only signed-access-token usage/audit APIs, preserving fresh IAM and mandatory durable audit. It is not browser-session authentication, role provisioning or deployment approval. Never enable from request parameters or JavaScript truthiness.

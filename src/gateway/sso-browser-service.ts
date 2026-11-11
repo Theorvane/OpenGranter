@@ -25,6 +25,7 @@ function isSsoBrowserPorts(value: unknown): value is SsoBrowserBootstrapPorts {
     ['openConnection', 'issuer', 'audience', 'jwks', 'browserArtifactPath'].every((key) =>
       Object.hasOwn(row, key),
     ) &&
+    (row.enableHistoryReads === undefined || typeof row.enableHistoryReads === 'boolean') &&
     typeof row.openConnection === 'function' &&
     typeof row.issuer === 'string' &&
     row.issuer.length > 0 &&

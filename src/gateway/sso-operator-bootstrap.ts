@@ -54,6 +54,10 @@ export async function loadSsoBrowserBootstrap(
   openConnection: () => PostgresConnection | Promise<PostgresConnection>,
 ): Promise<SsoBrowserBootstrapPorts> {
   try {
+    const history = env.OPENGRANTER_SSO_HISTORY_READS;
+    if (history !== undefined && history !== 'true' && history !== 'false') {
+      throw new SsoOperatorBootstrapUnavailable();
+    }
     const issuer = required(env, 'OPENGRANTER_SSO_ISSUER');
     const audience = required(env, 'OPENGRANTER_SSO_AUDIENCE');
     const jwksPath = path(env, 'OPENGRANTER_SSO_JWKS_PATH');
@@ -61,7 +65,14 @@ export async function loadSsoBrowserBootstrap(
     const jwks = await publicJwks(jwksPath);
     // Reuse the existing complete public-key/issuer/audience rules before DB ownership.
     createRfc9068SsoAccessTokenVerifier({ issuer, audience, jwks, now: Date.now });
-    return { issuer, audience, jwks, browserArtifactPath, openConnection };
+    return {
+      issuer,
+      audience,
+      jwks,
+      browserArtifactPath,
+      openConnection,
+      ...(history === undefined ? {} : { enableHistoryReads: history === 'true' }),
+    };
   } catch {
     // Errors may contain filesystem paths, JSON source, or operator configuration.
     throw new SsoOperatorBootstrapUnavailable();

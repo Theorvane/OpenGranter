@@ -154,3 +154,24 @@ test('SSO runtime errors and failed shutdown expose fixed diagnostics only', asy
   assert.deepEqual(h.messages, ['Gateway listening', 'Gateway shutdown unavailable']);
   assert.deepEqual(h.exits, [1]);
 });
+
+test('history switch is boolean-only before owned process startup', async () => {
+  for (const value of ['true', 'false', null, 0, 1, {}]) {
+    const h = harness({ createSsoBrowserPorts: () => ({ ...ports, enableHistoryReads: value }) });
+    const done = runSsoBrowserService(h.options);
+    await tick();
+    h.signals.emit('SIGTERM');
+    await done;
+    assert.equal(h.starts.length, 0);
+    assert.deepEqual(h.exits, [1]);
+  }
+  for (const value of [true, false]) {
+    const h = harness({ createSsoBrowserPorts: () => ({ ...ports, enableHistoryReads: value }) });
+    const done = runSsoBrowserService(h.options);
+    await tick();
+    assert.equal((h.starts[0] as Record<string, unknown>).enableHistoryReads, value);
+    h.signals.emit('SIGTERM');
+    await done;
+    assert.deepEqual(h.exits, [0]);
+  }
+});

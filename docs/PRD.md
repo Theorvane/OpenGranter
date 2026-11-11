@@ -1277,3 +1277,7 @@ An explicit unactivated PostgreSQL/Fetch composition now selects a dedicated met
 ## Opt-in usage/audit management listener (#642)
 
 The existing owned PostgreSQL SSO management listener can explicitly mount both signed-bearer history APIs using enableHistoryReads:true; default history dispatch remains disabled. Existing migrations/lifecycle, fresh IAM and mandatory durable attribution are reused. No session or deployment activation is inferred. See [plan](plans/642-opt-in-history-listener.md) and [contract](../contracts/sso-audit-history.md#explicit-owned-listener-integration-642).
+
+## Operator-scoped history switch (#642)
+
+The explicit SSO bootstrap accepts strict optional OPENGRANTER_SSO_HISTORY_READS=true/false, propagating the boolean through the owned process to the existing opt-in listener. Absence remains disabled; malformed values fail before startup. No session/deployment activation or installed/browser/provider acceptance is implied. See [plan](plans/642-operator-history-switch.md) and [contract](../contracts/sso-operator-bootstrap.md#explicit-scoped-history-reads-642).

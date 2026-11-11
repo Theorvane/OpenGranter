@@ -33,6 +33,17 @@ test('operator bootstrap validates local public trust and defers PostgreSQL owne
       return connection;
     });
     assert.equal(opened, 0);
+    assert.equal(ports.enableHistoryReads, undefined);
+    for (const [value, expected] of [
+      ['true', true],
+      ['false', false],
+    ] as const) {
+      const configured = await loadSsoBrowserBootstrap(
+        { ...env, OPENGRANTER_SSO_HISTORY_READS: value },
+        () => connection,
+      );
+      assert.equal(configured.enableHistoryReads, expected);
+    }
     assert.equal(ports.issuer, jwt.issuer);
     assert.equal(ports.audience, jwt.audience);
     assert.equal(ports.browserArtifactPath, env.OPENGRANTER_BROWSER_ARTIFACT_PATH);
@@ -75,6 +86,9 @@ test('operator bootstrap rejects missing configuration and unsafe trust with red
     });
   try {
     await writeFile(path, JSON.stringify(jwt.config.jwks));
+    for (const value of ['', 'TRUE', '1', ' true', 'false ', 'false\0']) {
+      await reject({ ...env, OPENGRANTER_SSO_HISTORY_READS: value });
+    }
     for (const name of Object.keys(env)) {
       const input: NodeJS.ProcessEnv = { ...env };
       delete input[name];
