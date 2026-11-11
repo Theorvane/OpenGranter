@@ -1285,3 +1285,7 @@ An explicit unactivated PostgreSQL/Fetch composition now selects a dedicated met
 ## Optional reviewed management artifact pin (#643)
 
 Explicit SSO browser bootstrap accepts a reviewed SHA-256 pin for the exact public UI bytes. Configured mismatch/malformed pin fails before DB/migration/listener ownership; absence preserves the separate legacy opt-in process. This is an operator integrity gate, not deployment approval or live installed certification. See [contract](../contracts/sso-operator-bootstrap.md#optional-installed-artifact-integrity-pin-643) and [plan](plans/643-browser-artifact-pin.md).
+
+## Exact audit request trace (#642)
+
+Existing proxy and SSO audit JSON/CSV intersect optional exact request_id with principal/model/time/keyset scope. Bind SQL and own reader inputs before await; reject mismatching visible and hidden rows. No UI/session/runtime/content activation. See [plan](plans/642-audit-request-trace.md) and [contract](../contracts/audit-request-trace.md).
