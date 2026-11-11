@@ -1266,6 +1266,10 @@ An explicit caller-authorized JSON page adapter preserves unknown usage, estimat
 JSON usage transport also withholds complete-looking pages when uncompressed Content-Length disagrees with observed UTF-8 bytes. Exact multibyte lengths, absent lengths and compressed Fetch decoded bodies remain accepted within the existing bounds. No UI/session/runtime activation.
 
 
+## Explicit SSO usage runtime integration (#854)
+
+The explicitly started PostgreSQL SSO management listener serves the existing scoped JSON/CSV usage API at `/management/v1/usage`, sharing its migrated connection and trusted JWT configuration. Existing authorization and awaited durable metadata audit remain mandatory. This adds no session policy, default activation or production approval; browser login and installed acceptance remain open.
+
 ## Scoped SSO audit metadata history (#642)
 
 An explicit unactivated signed-bearer service and Fetch factory reuse existing principal-scoped PostgreSQL gateway metadata, strict time/model filters, keyset JSON/CSV and whole-page validation. Require fresh SSO/IAM and audit:Read on the target even for self; mandatory awaited access-audit failure withholds all service outcomes. No durable writer, migration, runtime/session activation or content retention is implied. See [contract](../contracts/sso-audit-history.md) and [plan](plans/642-sso-audit-history.md).
