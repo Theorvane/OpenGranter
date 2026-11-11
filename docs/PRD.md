@@ -1265,6 +1265,13 @@ An explicit caller-authorized JSON page adapter preserves unknown usage, estimat
 
 JSON usage transport also withholds complete-looking pages when uncompressed Content-Length disagrees with observed UTF-8 bytes. Exact multibyte lengths, absent lengths and compressed Fetch decoded bodies remain accepted within the existing bounds. No UI/session/runtime activation.
 
+## Bodyless SSO usage reads (#858)
+
+Reject framed GET bodies before usage service work on the management JSON/CSV boundary, including Node requests whose bodies are omitted during Fetch adaptation. Ordinary usage authorization and mandatory audit remain unchanged. See [plan](plans/858-usage-http-framing.md) and [contract](../contracts/sso-usage-http-framing.md).
+
+## Explicit SSO usage runtime integration (#854)
+
+The explicitly started PostgreSQL SSO management listener serves the existing scoped JSON/CSV usage API at `/management/v1/usage`, sharing its migrated connection and trusted JWT configuration. Existing authorization and awaited durable metadata audit remain mandatory. This adds no session policy, default activation or production approval; browser login and installed acceptance remain open.
 
 ## Scoped SSO audit metadata history (#642)
 
