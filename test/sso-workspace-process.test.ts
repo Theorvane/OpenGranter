@@ -32,16 +32,11 @@ test('workspace executable loads its explicit factory, serves actual bundle and 
   try {
     const build = spawnSync(
       process.execPath,
-      [
-        '--experimental-strip-types',
-        'scripts/build-management-browser.ts',
-        'src/management/sso-catalog-entry.ts',
-        '--output',
-        artifact,
-      ],
+      ['--experimental-strip-types', 'scripts/build-management-workspace.ts', '--output', artifact],
       { encoding: 'utf8' },
     );
     assert.equal(build.status, 0, build.stderr);
+    const receipt = JSON.parse(build.stdout);
     const sso = await createSsoAccessTokenFixture();
     // Public configuration only. Signing keys and access tokens never enter the module.
     await writeFile(
@@ -50,7 +45,7 @@ test('workspace executable loads its explicit factory, serves actual bundle and 
         `import { PGlite } from ${JSON.stringify(import.meta.resolve('@electric-sql/pglite'))};`,
         "import { writeFile } from 'node:fs/promises';",
         'export function createSsoWorkspacePorts() {',
-        `const config = ${JSON.stringify({ issuer: sso.issuer, audience: sso.audience, jwks: sso.config.jwks, browserArtifactPath: artifact })};`,
+        `const config = ${JSON.stringify({ issuer: sso.issuer, audience: sso.audience, jwks: sso.config.jwks, browserArtifactPath: artifact, browserArtifactSha256: receipt.sha256 })};`,
         'return { ...config, writeAuditHistoryAccess: async () => {}, openConnection() {',
         'const db = new PGlite();',
         'return {',

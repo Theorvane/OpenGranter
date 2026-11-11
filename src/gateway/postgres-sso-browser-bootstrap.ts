@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
 import { open } from 'node:fs/promises';
 import { isAbsolute } from 'node:path';
@@ -12,12 +13,15 @@ export interface PostgresSsoBrowserBootstrapPorts
   extends Omit<PostgresSsoManagementRuntimePorts, 'browserJavascript'> {
   /** Explicit trusted PUBLIC build output. Never selected by an HTTP request. */
   readonly browserArtifactPath: string;
+  /** Optional reviewed SHA-256 of the exact public artifact bytes. */
+  readonly browserArtifactSha256?: string;
 }
 
-/** Workspace-only opt-in; legacy browser ports do not acquire audit authority. */
+/** Workspace shares the canonical public artifact boundary, not session authority. */
 export interface PostgresSsoWorkspaceBrowserBootstrapPorts
   extends Omit<PostgresSsoWorkspaceRuntimePorts, 'browserJavascript'> {
   readonly browserArtifactPath: string;
+  readonly browserArtifactSha256?: string;
 }
 
 export class ManagementBrowserArtifactUnavailable extends Error {
@@ -29,13 +33,20 @@ export class ManagementBrowserArtifactUnavailable extends Error {
 
 const maximumBytes = 8 * 1024 * 1024;
 
-async function readArtifact(path: string): Promise<string> {
+export function validBrowserArtifactSha256(value: unknown): value is string {
+  return typeof value === 'string' && value.length === 64 && /^[a-f0-9]+$/u.test(value);
+}
+
+async function readArtifact(path: string, expectedSha256: unknown): Promise<string> {
   try {
+    if (expectedSha256 !== undefined && !validBrowserArtifactSha256(expectedSha256))
+      throw new Error();
     if (typeof path !== 'string' || !isAbsolute(path)) throw new Error();
     const file = await open(path, constants.O_RDONLY | constants.O_NONBLOCK);
     try {
       const stat = await file.stat();
       if (!stat.isFile() || stat.size === 0 || stat.size > maximumBytes) throw new Error();
+      const hash = createHash('sha256');
       const decoder = new TextDecoder('utf-8', { fatal: true });
       const chunk = Buffer.alloc(65536);
       let bytes = 0;
@@ -49,8 +60,10 @@ async function readArtifact(path: string): Promise<string> {
         if (!bytesRead) break;
         bytes += bytesRead;
         if (bytes > maximumBytes) throw new Error();
+        hash.update(chunk.subarray(0, bytesRead));
         javascript += decoder.decode(chunk.subarray(0, bytesRead), { stream: true });
       }
+      if (expectedSha256 !== undefined && hash.digest('hex') !== expectedSha256) throw new Error();
       javascript += decoder.decode();
       if (!javascript.trim() || javascript.includes('\0')) throw new Error();
       return javascript;
@@ -67,18 +80,18 @@ async function readArtifact(path: string): Promise<string> {
  * Build separately; no runtime compiler, default activation or new IAM authority.
  */
 export async function startPostgresSsoBrowserGateway(ports: PostgresSsoBrowserBootstrapPorts) {
-  const { browserArtifactPath, ...runtime } = ports;
-  const browserJavascript = await readArtifact(browserArtifactPath);
+  const { browserArtifactPath, browserArtifactSha256, ...runtime } = ports;
+  const browserJavascript = await readArtifact(browserArtifactPath, browserArtifactSha256);
   return startPostgresSsoManagementGateway({ ...runtime, browserJavascript });
 }
 
-/** Explicit trusted-file workspace entry; never selected by the existing operator service.
- * Caller owns approved schemas and ingress. No session, DDL or identity authority.
+/** Explicit workspace only; verify the same byte snapshot before acquiring SQL.
+ * A digest is an operator pin, not provenance, approval or authentication.
  */
 export async function startPostgresSsoWorkspaceBrowserGateway(
   ports: PostgresSsoWorkspaceBrowserBootstrapPorts,
 ) {
-  const { browserArtifactPath, ...runtime } = ports;
-  const browserJavascript = await readArtifact(browserArtifactPath);
+  const { browserArtifactPath, browserArtifactSha256, ...runtime } = ports;
+  const browserJavascript = await readArtifact(browserArtifactPath, browserArtifactSha256);
   return startPostgresSsoWorkspaceGateway({ ...runtime, browserJavascript });
 }

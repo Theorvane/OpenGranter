@@ -1,0 +1,6 @@
+# Workspace artifact integrity integration (#637 / #643)
+
+1. Reuse current-main artifact SHA-256 implementation without changing its byte, bound, UTF-8 or diagnostic rules. Extend the existing opt-in workspace bootstrap to pass its optional reviewed pin before database acquisition.
+2. Reconcile current-main bootstrap port validation and operator configuration so invalid pins cannot reach a listener. Keep the workspace validator export needed by the existing composition. No session, API, IAM, SQL migration, deployment or provider behavior changes.
+3. RED: build the actual workspace artifact and prove a wrong digest currently reaches the database opener; invalid explicit pins are currently accepted. GREEN: mismatch, replaced artifact, malformed pin and exact byte changes fail before opening SQL. Valid actual artifact serves its verified snapshot over the existing HTTP listener; legacy omission remains supported.
+4. Preserve existing #868/#860 branches and integrate through their owners, not a duplicate PR. Full main merge currently has seventeen divergent API/store conflicts; do not declare reconciliation complete. Require exact-head CI and independent formal approval before any merge.

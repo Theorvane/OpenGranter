@@ -3,6 +3,7 @@ import { type OwnedGatewayProcessOptions, runOwnedGatewayProcess } from './gatew
 import {
   type PostgresSsoBrowserBootstrapPorts,
   startPostgresSsoBrowserGateway,
+  validBrowserArtifactSha256,
 } from './postgres-sso-browser-bootstrap.ts';
 
 export type SsoBrowserBootstrapPorts = Omit<
@@ -25,6 +26,8 @@ export function isSsoBrowserPorts(value: unknown): value is SsoBrowserBootstrapP
     ['openConnection', 'issuer', 'audience', 'jwks', 'browserArtifactPath'].every((key) =>
       Object.hasOwn(row, key),
     ) &&
+    (row.browserArtifactSha256 === undefined ||
+      validBrowserArtifactSha256(row.browserArtifactSha256)) &&
     typeof row.openConnection === 'function' &&
     typeof row.issuer === 'string' &&
     row.issuer.length > 0 &&

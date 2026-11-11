@@ -19,17 +19,12 @@ test('workspace artifact connects scoped audit JSON/CSV and existing routes with
   const published = join(directory, 'published.js');
   const build = spawnSync(
     process.execPath,
-    [
-      '--experimental-strip-types',
-      'scripts/build-management-browser.ts',
-      'src/management/sso-catalog-entry.ts',
-      '--output',
-      published,
-    ],
+    ['--experimental-strip-types', 'scripts/build-management-workspace.ts', '--output', published],
     { encoding: 'utf8' },
   );
   assert.equal(build.status, 0, build.stderr);
-  assert.equal(build.stdout, '');
+  const receipt = JSON.parse(build.stdout);
+  assert.equal(receipt.profile, 'sso-workspace-v1');
   const javascript = await readFile(published, 'utf8');
   await symlink(published, path);
   const db = new PGlite();
@@ -58,6 +53,7 @@ test('workspace artifact connects scoped audit JSON/CSV and existing routes with
       port: 0,
       newRequestId: () => 'artifact-bootstrap',
       browserArtifactPath: path,
+      browserArtifactSha256: receipt.sha256,
       writeAuditHistoryAccess: async (event) => {
         if (failAudit) throw new Error('private writer failure');
         accessEvents.push(event);
