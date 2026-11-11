@@ -133,6 +133,16 @@ async function boundedJson(response: Response, signal: AbortSignal): Promise<unk
       if (size > MAX_CATALOG_BYTES) throw new Error('Catalog body exceeds limit');
       bytes.set(value, size - value.byteLength);
     }
+    // Fetch exposes decoded bytes rather than the compressed wire length.
+    const encoding = response.headers.get('content-encoding')?.trim().toLowerCase();
+    if (
+      declared !== null &&
+      /^\d+$/u.test(declared) &&
+      (!encoding || encoding === 'identity') &&
+      size !== Number(declared)
+    ) {
+      throw new Error('Incomplete catalog body');
+    }
     return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes.subarray(0, size)));
   } catch (error) {
     cancel();
