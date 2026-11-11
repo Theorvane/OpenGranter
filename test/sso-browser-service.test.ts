@@ -46,6 +46,7 @@ test('dedicated SSO service connects trusted browser ports and owns lifecycle fi
   const h = harness({
     createSsoBrowserPorts: () => ({
       ...ports,
+      browserArtifactSha256: 'a'.repeat(64),
       host: 'ignored',
       port: 1,
       now: null,
@@ -56,6 +57,7 @@ test('dedicated SSO service connects trusted browser ports and owns lifecycle fi
   await tick();
   assert.equal(h.starts.length, 1);
   const input = h.starts[0] as Record<string, unknown>;
+  assert.equal(input.browserArtifactSha256, 'a'.repeat(64));
   assert.equal(input.host, '127.0.0.1');
   assert.equal(input.port, 18081);
   assert.equal(input.browserArtifactPath, '/trusted/app.js');
@@ -71,6 +73,9 @@ test('dedicated SSO service connects trusted browser ports and owns lifecycle fi
 });
 test('SSO service rejects proxy factories and incomplete browser ports without starting', async () => {
   for (const module of [
+    ...[null, true, 0, '', 'A'.repeat(64), 'a'.repeat(63)].map((pin) => ({
+      createSsoBrowserPorts: () => ({ ...ports, browserArtifactSha256: pin }),
+    })),
     { createGatewayPorts: () => ports },
     {},
     { createSsoBrowserPorts: () => null },
@@ -80,7 +85,10 @@ test('SSO service rejects proxy factories and incomplete browser ports without s
     { createSsoBrowserPorts: () => ({ ...ports, browserArtifactPath: './app.js' }) },
   ]) {
     const h = harness(module);
-    await runSsoBrowserService(h.options);
+    const done = runSsoBrowserService(h.options);
+    await tick();
+    h.signals.emit('SIGTERM');
+    await done;
     assert.equal(h.starts.length, 0);
     assert.deepEqual(h.exits, [1]);
     assert.deepEqual(h.messages, ['Gateway startup unavailable']);
@@ -153,4 +161,25 @@ test('SSO runtime errors and failed shutdown expose fixed diagnostics only', asy
   await done;
   assert.deepEqual(h.messages, ['Gateway listening', 'Gateway shutdown unavailable']);
   assert.deepEqual(h.exits, [1]);
+});
+
+test('history switch is boolean-only before owned process startup', async () => {
+  for (const value of ['true', 'false', null, 0, 1, {}]) {
+    const h = harness({ createSsoBrowserPorts: () => ({ ...ports, enableHistoryReads: value }) });
+    const done = runSsoBrowserService(h.options);
+    await tick();
+    h.signals.emit('SIGTERM');
+    await done;
+    assert.equal(h.starts.length, 0);
+    assert.deepEqual(h.exits, [1]);
+  }
+  for (const value of [true, false]) {
+    const h = harness({ createSsoBrowserPorts: () => ({ ...ports, enableHistoryReads: value }) });
+    const done = runSsoBrowserService(h.options);
+    await tick();
+    assert.equal((h.starts[0] as Record<string, unknown>).enableHistoryReads, value);
+    h.signals.emit('SIGTERM');
+    await done;
+    assert.deepEqual(h.exits, [0]);
+  }
 });

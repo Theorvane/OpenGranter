@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -28,7 +29,8 @@ test('reviewed prebuilt file starts the owned migrated SSO browser listener', as
   );
   assert.equal(build.status, 0, build.stderr);
   assert.equal(build.stdout, '');
-  const javascript = await readFile(published, 'utf8');
+  const javascript = `${await readFile(published, 'utf8')}\n// 管理者 artifact`;
+  await writeFile(published, javascript);
   await symlink(published, path);
   const db = new PGlite();
   let opens = 0;
@@ -54,6 +56,7 @@ test('reviewed prebuilt file starts the owned migrated SSO browser listener', as
       port: 0,
       newRequestId: () => 'artifact-bootstrap',
       browserArtifactPath: path,
+      browserArtifactSha256: createHash('sha256').update(Buffer.from(javascript)).digest('hex'),
       openConnection: () => {
         opens++;
         return connection;
@@ -64,6 +67,8 @@ test('reviewed prebuilt file starts the owned migrated SSO browser listener', as
       const page = await fetch(`${origin}/management`);
       assert.equal(page.status, 200);
       assert.match(await page.text(), /src="\/management\/app.js"/);
+      // A release-path replacement cannot change the already verified snapshot.
+      await writeFile(published, 'console.log("replaced");');
       const script = await fetch(`${origin}/management/app.js`);
       assert.equal(script.status, 200);
       assert.equal(await script.text(), javascript);
@@ -116,6 +121,42 @@ test('bad artifacts fail before acquiring a database, with sanitized diagnostics
           message: 'Management browser artifact unavailable',
         },
       );
+    }
+    assert.equal(opens, 0);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('artifact pin rejects mismatch and malformed values before database ownership', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'og-browser-pin-'));
+  const path = join(directory, 'app.js');
+  let opens = 0;
+  try {
+    await writeFile(path, 'console.log("管理");');
+    for (const pin of ['0'.repeat(64), '', ' ', 'A'.repeat(64), 'a'.repeat(63), null, true, 0]) {
+      let runtime: Awaited<ReturnType<typeof startPostgresSsoBrowserGateway>> | undefined;
+      await assert.rejects(
+        async () => {
+          runtime = await startPostgresSsoBrowserGateway({
+            ...sso.config,
+            host: '127.0.0.1',
+            port: 0,
+            newRequestId: () => 'artifact-pin',
+            browserArtifactPath: path,
+            ...({ browserArtifactSha256: pin } as object),
+            openConnection: () => {
+              opens++;
+              throw new Error('unexpected DB ownership');
+            },
+          });
+        },
+        {
+          name: 'ManagementBrowserArtifactUnavailable',
+          message: 'Management browser artifact unavailable',
+        },
+      );
+      await runtime?.close();
     }
     assert.equal(opens, 0);
   } finally {
