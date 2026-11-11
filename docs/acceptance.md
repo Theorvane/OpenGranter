@@ -1877,3 +1877,9 @@ JSON usage transport also withholds complete-looking pages when uncompressed Con
 
 - While a JSON usage request is pending, mutate caller principal/model/time/limit/cursor filters. Release a valid original-scope page and require ready; release a page matching only mutated scope and require unavailable. Increasing the caller limit must not release oversized original pages.
 - Read each allowlisted accessor once before query construction and bind response validation to the same captured values. Preserve existing identity invalidation, no-store, bounded body and private errors. This is not a server authorization or session decision. See [client contract](../contracts/management-usage-client.md).
+
+## Audit page completeness (#856)
+
+- Missing first/middle/last/all event positions and SQL lookahead fail the whole audit page. JSON and CSV public reads return503 without partial evidence; mandatory failure audit is awaited.
+- Dense valid/empty pages preserve continuation and redaction; explicit Deny prevents reads and failed audit remains private.
+- Local loopback HTTP uses controlled authentication, not company IdP/browser login or installed PostgreSQL/provider certification. See [contract](../contracts/audit-page-completeness.md).

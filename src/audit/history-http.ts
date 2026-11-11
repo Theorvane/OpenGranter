@@ -86,7 +86,7 @@ export function projectAuditHistoryPage(
     throw new InvalidAuditHistoryQuery();
   }
   let previous = cursor === null ? MAX_BIGINT + 1n : eventId(cursor);
-  const events: AuditHistoryEvent[] = value.events.map((input) => {
+  const events: AuditHistoryEvent[] = Array.from(value.events, (input) => {
     if (!input || typeof input !== 'object') throw new InvalidAuditHistoryQuery();
     const id = eventId(input.eventId);
     if (id >= previous || input.principalId !== targetPrincipalId) {
