@@ -6,7 +6,7 @@ import type { UsageElement } from './usage-app.ts';
  */
 export function mountManagementPrincipal(
   root: UsageElement,
-  options: { readonly onRetry?: () => void } = {},
+  options: { readonly onRetry?: () => void; readonly context?: 'audit' } = {},
 ) {
   let disposed = false;
   let revision = 0;
@@ -20,13 +20,14 @@ export function mountManagementPrincipal(
   function render(message: string) {
     const currentRender = ++rendered;
     const heading = root.ownerDocument.createElement('h1');
-    heading.textContent = 'Account';
+    heading.textContent = options.context === 'audit' ? 'Audit' : 'Account';
     const status = root.ownerDocument.createElement('p');
     status.setAttribute('role', 'status');
     status.textContent = message;
     const warning = root.ownerDocument.createElement('p');
     warning.textContent = 'Identity is not permission to administer resources.';
-    root.replaceChildren(heading, status, warning);
+    root.replaceChildren(heading, status);
+    if (options.context !== 'audit') root.append(warning);
     if (message === 'Current principal unavailable.' && options.onRetry) {
       const retry = root.ownerDocument.createElement('button');
       retry.setAttribute('type', 'button');
