@@ -1264,3 +1264,8 @@ Reject identity-encoded CSV whose observed UTF-8 byte length disagrees with a su
 An explicit caller-authorized JSON page adapter preserves unknown usage, estimated/billed decimal costs and duplicate markers; validates and sanitizes the entire page, filter isolation, order and opaque continuation; bounds bytes/time and suppresses stale identity results. No UI/session/runtime activation. Local signed-SSO + migrated embedded SQL + durable-audit Fetch integration is not installed/browser acceptance. See [contract](../contracts/management-usage-client.md) and [plan](plans/642-browser-usage-history.md).
 
 JSON usage transport also withholds complete-looking pages when uncompressed Content-Length disagrees with observed UTF-8 bytes. Exact multibyte lengths, absent lengths and compressed Fetch decoded bodies remain accepted within the existing bounds. No UI/session/runtime activation.
+
+
+## Explicit SSO usage runtime integration (#854)
+
+The explicitly started PostgreSQL SSO management listener serves the existing scoped JSON/CSV usage API at `/management/v1/usage`, sharing its migrated connection and trusted JWT configuration. Existing authorization and awaited durable metadata audit remain mandatory. This adds no session policy, default activation or production approval; browser login and installed acceptance remain open.
