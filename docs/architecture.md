@@ -1455,3 +1455,7 @@ JSON usage transport also withholds complete-looking pages when uncompressed Con
 ## SSO usage framing integrity (#858)
 
 The management usage Fetch handler validates original Content-Length and Transfer-Encoding, because the shared Node adapter omits GET bodies. Transport rejection occurs before service invocation, without changing authentication, policy, SQL, session or activation boundaries. See [plan](plans/858-usage-http-framing.md) and [contract](../contracts/sso-usage-http-framing.md).
+
+## Explicit usage listener composition (#854)
+
+The optional SSO management runtime composes `createPostgresSsoUsageHistoryHandler` alongside catalog/token handlers on its single migrated connection, dispatching only exact `/management/v1/usage`. Static browser middleware forwards that Request unchanged. See [runtime contract](../contracts/management-sso-usage-runtime.md). No additional listener, migration, cookie/session/CSRF or provider path.

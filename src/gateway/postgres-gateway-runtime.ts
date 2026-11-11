@@ -15,6 +15,7 @@ import {
   type createPostgresRfc9068SsoManagementServer,
 } from './postgres-sso-management-http.ts';
 import { createPostgresSsoModelCatalogHandler } from './postgres-sso-model-catalog-http.ts';
+import { createPostgresSsoUsageHistoryHandler } from './postgres-sso-usage-history-http.ts';
 
 interface GatewayRuntimeInfrastructure {
   readonly host: string;
@@ -192,8 +193,10 @@ export async function startPostgresSsoManagementGateway(ports: PostgresSsoManage
   return startOwnedPostgresGateway(ports, async (client) => {
     const tokens = createPostgresRfc9068SsoManagementHandler({ ...managementPorts, client });
     const catalog = createPostgresSsoModelCatalogHandler({ ...managementPorts, client });
+    const usage = createPostgresSsoUsageHistoryHandler({ ...managementPorts, client });
     const application = (request: Request) => {
       const path = new URL(request.url).pathname;
+      if (path === '/management/v1/usage') return usage(request);
       return path === '/management/v1/models' || path.startsWith('/management/v1/models/')
         ? catalog(request)
         : tokens(request);

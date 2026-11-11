@@ -1269,6 +1269,10 @@ JSON usage transport also withholds complete-looking pages when uncompressed Con
 
 Reject framed GET bodies before usage service work on the management JSON/CSV boundary, including Node requests whose bodies are omitted during Fetch adaptation. Ordinary usage authorization and mandatory audit remain unchanged. See [plan](plans/858-usage-http-framing.md) and [contract](../contracts/sso-usage-http-framing.md).
 
+## Explicit SSO usage runtime integration (#854)
+
+The explicitly started PostgreSQL SSO management listener serves the existing scoped JSON/CSV usage API at `/management/v1/usage`, sharing its migrated connection and trusted JWT configuration. Existing authorization and awaited durable metadata audit remain mandatory. This adds no session policy, default activation or production approval; browser login and installed acceptance remain open.
+
 ## Scoped SSO audit metadata history (#642)
 
 An explicit unactivated signed-bearer service and Fetch factory reuse existing principal-scoped PostgreSQL gateway metadata, strict time/model filters, keyset JSON/CSV and whole-page validation. Require fresh SSO/IAM and audit:Read on the target even for self; mandatory awaited access-audit failure withholds all service outcomes. No durable writer, migration, runtime/session activation or content retention is implied. See [contract](../contracts/sso-audit-history.md) and [plan](plans/642-sso-audit-history.md).

@@ -1881,3 +1881,7 @@ JSON usage transport also withholds complete-looking pages when uncompressed Con
 ## SSO usage GET framing (#858)
 
 Direct Fetch and real Node socket fixed-length/chunked GETs must return private 400 without any usage service call or partial CSV/JSON. Missing framing and exact Content-Length 0 retain ordinary JSON/CSV, 401/403 and mandatory-audit-failure behavior. See [plan](plans/858-usage-http-framing.md) and [contract](../contracts/sso-usage-http-framing.md).
+
+## SSO usage runtime dispatch (#854)
+
+Real loopback HTTP with migrated embedded SQL and signed test JWTs must cover both optional browser modes, JSON/CSV production clients, filters/pagination/self isolation, Deny precedence, missing/expired/unbound tokens, fresh binding revocation, durable audit attribution and audit/SQL failure redaction. Verify canonical-path-only dispatch, unchanged catalog/token/static routes and single resource shutdown. This is not live IdP/browser login or installed PostgreSQL evidence.
