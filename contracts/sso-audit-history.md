@@ -24,3 +24,11 @@ The injected writer is a contract, **not** a durable store implementation. Deplo
 ## Evidence
 
 `test/postgres-sso-audit-history.test.ts` uses signed test JWTs and migrated embedded PostgreSQL (PGlite), actual stored gateway events and the Fetch handler. It covers JSON/CSV, filters, keyset pagination, empty pages, cross-principal scopes, current policy changes and deactivation, explicit Deny, malformed/expired credentials, invalid queries, corrupt rows, SQL failure, failed/pending access audit and HTTP framing/privacy. This is local SQL/Fetch evidence, not native browser or installed E2E certification.
+
+## Concrete durable composition (#642)
+
+createPostgresSsoAuditHistoryHandler selects the dedicated createPostgresSsoAuditHistoryAccessStore itself; additional callback properties cannot replace JWT verification or the writer. Additive migration 014 defines sso_audit_history_access_events. The composition is not mounted or activated and callers own migration approval, database lifecycle and trusted issuer/JWKS configuration.
+
+Persist only server occurrence time/request ID, actor, policy versions, target, outcome and returned row count. Validate metadata before SQL and project away extra fields. Anonymous attribution is null; failure counts are zero. Require an acknowledged single inserted event ID. Failed SQL/clock/acknowledgement withholds data and service errors with audit_unavailable; pending inserts block publication. This is access metadata, not model content, a usage event, or a synthetic proxy-credential event.
+
+Local signed JWT + migrated PGlite + Fetch composition tests cover success JSON/CSV/empty pages, fresh Deny, malformed query, invalid credentials, SQL failures, delayed and failed append, and attempted callback override. Store tests cover metadata privacy/validation, clock/acknowledgement failures and additive migration-runner preservation/idempotence. These are not installed database, native-browser, session or provider acceptance.
