@@ -1874,3 +1874,9 @@ An injected authorized request port can read one explicit principal from the exi
 ## Audit browser response byte integrity (#642)
 
 Withhold complete-looking audit JSON pages when identity Content-Length differs from observed UTF-8 bytes. Accept exact multibyte streaming, missing length and compressed Fetch decoded bodies within existing bounds. This does not activate the audit UI, sessions or listeners. See [plan](plans/642-audit-history-client.md).
+
+## Audit metadata CSV projection (#851)
+
+- An authorized explicit-principal JSON audit page yields metadata-only CSV, header-only empty output, hasMore and exact decimal nextCursor. Unknown fields and retained content are excluded; invalid identifiers fail closed.
+- Input mutation cannot retarget an in-flight export. Invalidation and supersession suppress late CSV results. Invalid query, Deny, authentication and required read-audit failure return no CSV or private error body.
+- Public Fetch gateway and migrated embedded SQL tests cover scoped continuation, fresh revocation and read-audit failure. This is not installed PostgreSQL, browser login/download or provider acceptance. See [plan](plans/851-audit-page-csv.md) and [contract](../contracts/management-audit-export.md).

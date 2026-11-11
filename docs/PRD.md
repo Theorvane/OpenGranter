@@ -1262,3 +1262,7 @@ Reject identity-encoded CSV whose observed UTF-8 byte length disagrees with a su
 ## Audit browser transport (#642)
 
 An injected authorized request port can read one explicit principal from the existing /v1/audit JSON endpoint with time/model filters and decimal event-ID pagination. The metadata-only client reuses audit validation/projection, bounds UTF-8 response bytes, suppresses private error bodies and cancels superseded reads. Host must invalidate on identity/expiry changes. This does not authenticate SSO, add a management audit route, activate a screen, retain content or enable downloads. Server IAM and mandatory read auditing remain authoritative.
+
+## Authorized audit page CSV projection (#851)
+
+The metadata export client composes the existing explicit-principal JSON audit API with the existing safe CSV serializer, returning one validated page and lossless decimal continuation. Permission and mandatory JSON read-audit behavior are unchanged; no content retention, authentication, DOM or runtime activation is introduced. See [plan](plans/851-audit-page-csv.md) and [contract](../contracts/management-audit-export.md).
