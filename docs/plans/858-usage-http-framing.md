@@ -20,3 +20,17 @@ Direct main6757eee branch fix/858-usage-http-framing. No dependency on unmerged8
 - GREEN /tmp/og-1300-green.log:21/21 zero skips including11 new transport tests and10 existing signed-JWT/embedded-SQL HTTP and durable-audit composition tests.
 - Initial test-only typecheck errors (union return contextual inference and captured address narrowing) corrected with explicit result return type and immutable port; production behavior unchanged. Typecheck and lint PASS;42 existing warnings161 infos.
 - Standard npm run check pending; no browser login, installed PostgreSQL or provider evidence is claimed.
+
+## Owned-listener integration plan (2026-11-12 04:00 KST)
+
+1. Reconcile existing PR859 with main and PR855 in an isolated worktree; preserve both appended documentation sections and the existing handler implementation. PR855 remains an independent merge prerequisite.
+2. Extend the signed-JWT, migrated-PGlite owned runtime cases (API-only and public-browser shell variants) with fixed-length and chunked JSON/CSV GET bodies. Assert private 400 without usage SQL reads or durable read events; ordinary authorized reads remain successful.
+3. Temporarily restore the pre-fix handler for meaningful RED, restore the security fix for GREEN, then run runtime regressions, typecheck, lint and contract checks. No new session or deployment authority.
+4. Push to existing PR859, request exact-head formal review and hosted CI; do not merge before all gates.
+
+### Integration evidence
+
+- RED: restoring pre-fix main handler fails both owned runtime variants with HTTP200 instead of400; /tmp/og-0400-red.log. An earlier invocation used system Node18, then an x64 binary on arm64; those environment errors are not RED evidence.
+- GREEN: original framing fix restored, 24/24 focused runtime and transport cases pass, zero skips; /tmp/og-0400-green.log. Both actual owned sockets use signed generated test JWTs and migrated embedded SQL; fixed-length/chunked JSON/CSV bodies produce private400 without ledger reads or durable read-access events. Ordinary reads, attribution, policy revocation and failures still pass.
+- Full TypeScript, Biome597files (42 existing warnings/162infos, no errors), planning/link/contract checker, six offline compatibility pins and diff checks pass. Formatter invocation through bundled npm failed permission; direct Node invocation succeeded. No full local suite claimed.
+- Existing PR859 updated, stacked on exact PR855 a6a0db5; no new duplicate PR. Browser login, session approval, installed PostgreSQL and provider/deployment acceptance remain open.

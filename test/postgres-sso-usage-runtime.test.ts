@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { request as httpRequest } from 'node:http';
 import test from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
 import { startPostgresSsoManagementGateway } from '../src/gateway/postgres-gateway-runtime.ts';
@@ -18,10 +19,12 @@ for (const browserJavascript of [undefined, 'export {};']) {
     let opens = 0;
     let closes = 0;
     let ids = 0;
+    let usageReads = 0;
     let failSql = false;
     let failAudit = false;
     const connection: PostgresConnection = {
       query: (sql, params) => {
+        if (sql.includes('FROM usage_records')) usageReads++;
         if (
           (failSql && sql.includes('FROM usage_records')) ||
           (failAudit && sql.includes('INSERT INTO sso_usage_audit_events'))
@@ -109,6 +112,54 @@ for (const browserJavascript of [undefined, 'export {};']) {
             possibleDuplicate: false,
           }),
         );
+      }
+      // Node drops GET bodies when creating Fetch requests; reject the framing
+      // before usage SQL or read-access audit on the actual owned listener.
+      for (const format of ['json', 'csv']) {
+        for (const framing of [{ 'content-length': '7' }, { 'transfer-encoding': 'chunked' }]) {
+          const before = usageReads;
+          const response = await new Promise<{
+            status: number;
+            headers: import('node:http').IncomingHttpHeaders;
+            body: string;
+          }>((resolve, reject) => {
+            const req = httpRequest(
+              `${base}/management/v1/usage?format=${format}`,
+              {
+                method: 'GET',
+                agent: false,
+                headers: { authorization: `Bearer ${token}`, ...framing },
+              },
+              (res) => {
+                let body = '';
+                res.setEncoding('utf8');
+                res.on('data', (chunk: string) => {
+                  body += chunk;
+                });
+                res.on('error', reject);
+                res.on('end', () =>
+                  resolve({ status: res.statusCode ?? 0, headers: res.headers, body }),
+                );
+              },
+            );
+            req.on('error', reject);
+            req.setTimeout(5000, () => req.destroy(new Error('test socket timeout')));
+            req.end('private');
+          });
+          assert.equal(response.status, 400);
+          assert.equal(response.headers['cache-control'], 'no-store');
+          assert.equal(response.headers['x-content-type-options'], 'nosniff');
+          assert.equal(response.headers['content-disposition'], undefined);
+          assert.equal(response.headers['x-next-cursor'], undefined);
+          assert.equal(JSON.parse(response.body).error.code, 'invalid_request');
+          assert.ok(!response.body.includes(token));
+          assert.doesNotMatch(response.body, /private|attempt_id|foreign|has_more/u);
+          assert.equal(usageReads, before);
+          const auditCount = await db.query<{ count: number }>(
+            'SELECT count(*)::integer AS count FROM sso_usage_audit_events',
+          );
+          assert.equal(auditCount.rows[0]?.count, 0);
+        }
       }
       const page = await read(
         '/management/v1/usage?format=json&limit=2&model=chat&from_ms=100&to_ms=301',
