@@ -3,6 +3,7 @@ import type { GatewayAuditSqlClient } from '../audit/postgres-gateway-audit.ts';
 import { InvalidSsoAccessTokenConfiguration } from '../identity/rfc9068-sso-access-tokens.ts';
 import { createClientErrorResponse } from './client-errors.ts';
 import { createNodeRequestServer } from './node-request-server.ts';
+import { createPostgresSsoAuditHistoryHandler } from './postgres-sso-audit-history-http.ts';
 import { createPostgresRfc9068SsoCurrentPrincipalHandler } from './postgres-sso-current-principal-http.ts';
 import { createPostgresRfc9068SsoManagementHandler } from './postgres-sso-management-http.ts';
 import { createPostgresSsoModelCatalogHandler } from './postgres-sso-model-catalog-http.ts';
@@ -12,6 +13,8 @@ import {
 } from './postgres-sso-usage-history-http.ts';
 
 export interface PostgresSsoReviewHttpPorts extends PostgresSsoUsageHistoryHttpPorts {
+  /** Explicit approved committed/autocommit reader-audit SQL; omission keeps 404. */
+  readonly auditHistoryClient?: GatewayAuditSqlClient;
   /** Explicit opt-in; caller owns reviewed DDL and committed/autocommit SQL. */
   readonly principalAuditClient?: GatewayAuditSqlClient | undefined;
 }
@@ -26,6 +29,12 @@ export function createPostgresSsoReviewHandler(
 ): (request: Request) => Promise<Response> {
   const { client, now, issuer, audience, jwks, newRequestId } = ports;
   const configuration = { client, now, issuer, audience, jwks, newRequestId };
+  const audit = Object.hasOwn(ports, 'auditHistoryClient')
+    ? createPostgresSsoAuditHistoryHandler({
+        ...configuration,
+        auditClient: ports.auditHistoryClient as GatewayAuditSqlClient,
+      })
+    : undefined;
   const catalog = createPostgresSsoModelCatalogHandler(configuration);
   const usage = createPostgresSsoUsageHistoryHandler(configuration);
   const auditClient = Object.hasOwn(ports, 'principalAuditClient')
@@ -39,6 +48,7 @@ export function createPostgresSsoReviewHandler(
   return async (request) => {
     const path = new URL(request.url).pathname;
     if (request.method === 'GET') {
+      if (audit && path === '/management/v1/audit') return audit(request);
       // Identity projection only: never dispatch token issue/revoke operations.
       if (path === '/management/v1/me') return principal(request);
       if (path === '/management/v1/usage') return usage(request);
