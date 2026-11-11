@@ -10,11 +10,13 @@ import { createNodePostgresDirectChatServer } from './node-postgres-chat-server.
 import { createNodePostgresDualRouteChatServer } from './node-postgres-dual-chat-server.ts';
 import { createNodeRequestServer } from './node-request-server.ts';
 import type { PostgresDualRouteChatHandlerPorts } from './postgres-dual-chat-handler.ts';
+import { createPostgresSsoAuditHistoryHandler } from './postgres-sso-audit-history-http.ts';
 import {
   createPostgresRfc9068SsoManagementHandler,
   type createPostgresRfc9068SsoManagementServer,
 } from './postgres-sso-management-http.ts';
 import { createPostgresSsoModelCatalogHandler } from './postgres-sso-model-catalog-http.ts';
+import { createPostgresSsoUsageHistoryHandler } from './postgres-sso-usage-history-http.ts';
 
 interface GatewayRuntimeInfrastructure {
   readonly host: string;
@@ -37,6 +39,8 @@ export interface PostgresSsoManagementRuntimePorts
     GatewayRuntimeInfrastructure {
   /** Explicit trusted PUBLIC bundle; absent means no browser routes. Never a session grant. */
   readonly browserJavascript?: string;
+  /** Explicit signed-bearer history routes; absent/false preserves the legacy dispatch. */
+  readonly enableHistoryReads?: boolean;
 }
 
 export class InvalidGatewayRuntimeInput extends Error {
@@ -174,7 +178,10 @@ export async function startPostgresDualRouteGateway(ports: PostgresDualRouteGate
 
 /** Explicitly own a migrated, separate SSO proxy-token management listener. */
 export async function startPostgresSsoManagementGateway(ports: PostgresSsoManagementRuntimePorts) {
-  const { browserJavascript } = ports;
+  const { browserJavascript, enableHistoryReads } = ports;
+  if (enableHistoryReads !== undefined && typeof enableHistoryReads !== 'boolean') {
+    throw new InvalidGatewayRuntimeInput();
+  }
   if (
     browserJavascript !== undefined &&
     (typeof browserJavascript !== 'string' || browserJavascript.length === 0)
@@ -187,13 +194,24 @@ export async function startPostgresSsoManagementGateway(ports: PostgresSsoManage
     port: _port,
     migrationDirectory: _directory,
     browserJavascript: _browser,
+    enableHistoryReads: _history,
     ...managementPorts
   } = ports;
   return startOwnedPostgresGateway(ports, async (client) => {
     const tokens = createPostgresRfc9068SsoManagementHandler({ ...managementPorts, client });
     const catalog = createPostgresSsoModelCatalogHandler({ ...managementPorts, client });
+    const usage =
+      enableHistoryReads === true
+        ? createPostgresSsoUsageHistoryHandler({ ...managementPorts, client })
+        : undefined;
+    const audit =
+      enableHistoryReads === true
+        ? createPostgresSsoAuditHistoryHandler({ ...managementPorts, client })
+        : undefined;
     const application = (request: Request) => {
       const path = new URL(request.url).pathname;
+      if (path === '/management/v1/usage' && usage) return usage(request);
+      if (path === '/management/v1/audit' && audit) return audit(request);
       return path === '/management/v1/models' || path.startsWith('/management/v1/models/')
         ? catalog(request)
         : tokens(request);

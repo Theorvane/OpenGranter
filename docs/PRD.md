@@ -1273,3 +1273,7 @@ An explicit unactivated signed-bearer service and Fetch factory reuse existing p
 ## Durable SSO audit-history access attribution (#642)
 
 An explicit unactivated PostgreSQL/Fetch composition now selects a dedicated metadata-only audit writer for scoped SSO audit-history reads. Additive migration 014 stores actor/current policies/target/outcome/count/request/time without bearer credentials, queries, filters, results or content. JSON/CSV and service errors are withheld on failed append; pending inserts block completion. Migration/runtime/session/retention activation and installed/browser/provider acceptance remain separate gates. See [plan](plans/642-durable-sso-audit-history.md) and [contract](../contracts/sso-audit-history.md#concrete-durable-composition-642).
+
+## Opt-in usage/audit management listener (#642)
+
+The existing owned PostgreSQL SSO management listener can explicitly mount both signed-bearer history APIs using enableHistoryReads:true; default history dispatch remains disabled. Existing migrations/lifecycle, fresh IAM and mandatory durable attribution are reused. No session or deployment activation is inferred. See [plan](plans/642-opt-in-history-listener.md) and [contract](../contracts/sso-audit-history.md#explicit-owned-listener-integration-642).
