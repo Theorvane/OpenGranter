@@ -1343,3 +1343,7 @@ An independently mountable proxy-token issuance panel now reuses the existing au
 ## Shared token-management lifecycle (#640)
 
 The additive shared token-management panel composes explicit issuance and revocation with a common terminal authentication/authorization boundary, clearing sibling one-time credentials and aborting pending work on fresh 401/403. Canonical navigation, approved session wiring and installed acceptance remain separate gates. See [contract](../contracts/token-management-panel.md) and [plan](plans/640-token-management-panel.md).
+
+### Management-process history integration (#642)
+
+The explicit owned SSO management listener composes reviewed usage/audit JSON/CSV APIs alongside catalog and token management with fresh SSO binding/IAM and mandatory durable access audit. This does not enable browser sessions or select a production deployment.

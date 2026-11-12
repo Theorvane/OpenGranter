@@ -1484,3 +1484,7 @@ The native token-issuance panel consumes the existing caller-owned authorized Ca
 ## Shared token-management lifecycle (#640)
 
 The shared token-management panel wraps the approved request port and composes the existing issuance/revocation modules without new endpoints, session decisions or IAM behavior. Fresh 401/403 terminates both children before rendering the safe boundary view. Caller disposal on known expiry/logout/identity/navigation remains mandatory; cleanup never implies revocation or rollback. See [contract](../contracts/token-management-panel.md) and [plan](plans/640-token-management-panel.md).
+
+### Owned management history dispatch (#642)
+
+The existing opt-in management runtime dispatches exact usage/audit API paths to their canonical durable factories on its one migrated connection; trusted configuration is explicitly enumerated. Catalog/token dispatch and optional shell remain unchanged. The separate canonical read-only runtime remains separate and read-only. No new schema, session authority or default activation.
