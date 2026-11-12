@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
 import { createPostgresSsoUsageHistoryHandler } from '../src/gateway/postgres-sso-usage-history-http.ts';
+import { createSsoUsageClient } from '../src/management/usage-client.ts';
 import { loadPostgresMigrationSources } from '../src/storage/postgres-migration-sources.ts';
 import { createPostgresUsageLedger } from '../src/usage/postgres-ledger.ts';
 import { buildUsageRecord } from '../src/usage/record-usage.ts';
@@ -234,6 +235,34 @@ test('durable insert is awaited and failure withholds JSON, CSV and anonymous re
     );
   } finally {
     release();
+    await f.db.close();
+  }
+});
+
+test('signed SSO SQL usage reaches the browser transport with exact cost comparison and mandatory audit', async () => {
+  const f = await fixture();
+  try {
+    const client = createSsoUsageClient(async (path) =>
+      f.request(new URL(path, 'https://management.test').search),
+    );
+    const result = await client.read({ limit: 1, model: 'chat' });
+    assert.equal(result.state, 'ready');
+    if (result.state !== 'ready') return;
+    assert.deepEqual(result.data[0]?.costComparison, {
+      status: 'reported_above_estimate',
+      reportedMinusEstimated: '0.000000000000000001',
+      currency: 'USD',
+    });
+    assert.equal(result.data[0]?.principalId, 'human');
+    assert.equal(result.data[0]?.attemptId, 'c');
+    assert.ok(!JSON.stringify(result).includes(token));
+    const audit = await f.db.query<Record<string, unknown>>('SELECT * FROM sso_usage_audit_events');
+    assert.equal(audit.rows.length, 1);
+    assert.equal(audit.rows[0]?.principal_id, 'human');
+    assert.equal((await client.read({ principalId: 'other', limit: 1 })).state, 'denied');
+    f.failAudit();
+    assert.deepEqual(await client.read({ limit: 1 }), { state: 'unavailable' });
+  } finally {
     await f.db.close();
   }
 });
