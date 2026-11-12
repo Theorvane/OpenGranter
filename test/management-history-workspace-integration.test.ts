@@ -19,6 +19,43 @@ for (const source of ['usage', 'audit'] as const) {
     const { createHistoryWorkspace } = (await import(
       `data:text/javascript;base64,${Buffer.from(javascript).toString('base64')}`
     )) as typeof import('../src/management/history-workspace.ts');
+    const downloadJavascript = await buildManagementBrowser({
+      root: process.cwd(),
+      entry: 'src/management/csv-download.ts',
+    });
+    assert.doesNotMatch(downloadJavascript, /node:|process\.env|INSERT INTO|sourceMappingURL/u);
+    const downloadModule = (await import(
+      `data:text/javascript;base64,${Buffer.from(downloadJavascript).toString('base64')}`
+    )) as typeof import('../src/management/csv-download.ts');
+    const saved: Promise<Response>[] = [];
+    const filenames: string[] = [];
+    const revoked: string[] = [];
+    const download = downloadModule.createCsvDownload({
+      document: {
+        createElement: () => {
+          const attributes = new Map<string, string>();
+          return {
+            setAttribute: (name, value) => {
+              attributes.set(name, value);
+            },
+            click: () => {
+              filenames.push(attributes.get('download') ?? '');
+              saved.push(fetch(attributes.get('href') ?? ''));
+            },
+            remove() {},
+          };
+        },
+        body: { append() {} },
+      },
+      urls: {
+        createObjectURL: (blob) => URL.createObjectURL(blob),
+        revokeObjectURL: (url) => {
+          revoked.push(url);
+          URL.revokeObjectURL(url);
+        },
+      },
+      deferCleanup: () => () => {},
+    });
     const jwt = await createSsoAccessTokenFixture();
     const token = await jwt.token();
     const db = new PGlite();
@@ -112,6 +149,12 @@ for (const source of ['usage', 'audit'] as const) {
       );
       const exported = await workspace[source].exportCsv();
       assert.equal(exported.state, 'ready');
+      if (exported.state !== 'ready') throw new Error('Expected authorized CSV');
+      assert.equal(download.save(source, exported.csv), 'started');
+      const blobResponse = await saved[0];
+      assert.equal(await blobResponse?.text(), exported.csv);
+      assert.equal(blobResponse?.headers.get('content-type'), 'text/csv;charset=utf-8');
+      assert.deepEqual(filenames, [`opengranter-${source}-page.csv`]);
       const action = source === 'usage' ? 'usage:ReadSelf' : 'audit:Read';
       await db.query('UPDATE iam_policies SET version=$1, statements=$2::jsonb', [
         'v2',
@@ -126,6 +169,11 @@ for (const source of ['usage', 'audit'] as const) {
       ]);
       await workspace[source].exportCsv();
       assert.equal(workspace.snapshot().state, 'denied');
+      download.dispose();
+      assert.equal(download.save(source, exported.csv), 'disposed');
+      assert.equal(saved.length, 1);
+      assert.equal(revoked.length, 1);
+      await assert.rejects(fetch(revoked[0] ?? ''));
       assert.deepEqual(workspace.snapshot().usage.data, []);
       assert.deepEqual(workspace.snapshot().audit.data, []);
       assert.equal(states.filter((state) => state === 'denied').length, 1);
@@ -145,6 +193,7 @@ for (const source of ['usage', 'audit'] as const) {
       assert.doesNotMatch(JSON.stringify(workspace.snapshot()), /Bearer|historical|upstream/u);
       workspace.dispose();
     } finally {
+      download.dispose();
       await runtime.close();
     }
     assert.equal(closes, 1);
