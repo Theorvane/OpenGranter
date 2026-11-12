@@ -3,7 +3,9 @@ import { constants } from 'node:fs';
 import { open } from 'node:fs/promises';
 import { isAbsolute } from 'node:path';
 import {
+  type PostgresSsoCanonicalReviewRuntimePorts,
   type PostgresSsoManagementRuntimePorts,
+  startPostgresSsoCanonicalReviewGateway,
   startPostgresSsoManagementGateway,
 } from './postgres-gateway-runtime.ts';
 
@@ -74,4 +76,44 @@ export async function startPostgresSsoBrowserGateway(ports: PostgresSsoBrowserBo
   const { browserArtifactPath, browserArtifactSha256, ...runtime } = ports;
   const browserJavascript = await readArtifact(browserArtifactPath, browserArtifactSha256);
   return startPostgresSsoManagementGateway({ ...runtime, browserJavascript });
+}
+
+/** Explicit public artifact + canonical read-only APIs; never a session grant. */
+export interface PostgresSsoCanonicalReviewBrowserBootstrapPorts
+  extends Omit<PostgresSsoCanonicalReviewRuntimePorts, 'javascript'> {
+  readonly browserArtifactPath: string;
+  /** Required reviewed SHA-256 for this separate integration boundary. */
+  readonly browserArtifactSha256: string;
+}
+
+export async function startPostgresSsoCanonicalReviewBrowserGateway(
+  ports: PostgresSsoCanonicalReviewBrowserBootstrapPorts,
+) {
+  if (!validBrowserArtifactSha256(ports.browserArtifactSha256))
+    throw new ManagementBrowserArtifactUnavailable();
+  const javascript = await readArtifact(ports.browserArtifactPath, ports.browserArtifactSha256);
+  // Enumerate trusted runtime inputs: no caller shell, reader or audit overrides.
+  const {
+    openConnection,
+    host,
+    port,
+    migrationDirectory,
+    now,
+    issuer,
+    audience,
+    jwks,
+    newRequestId,
+  } = ports;
+  return startPostgresSsoCanonicalReviewGateway({
+    openConnection,
+    host,
+    port,
+    ...(migrationDirectory === undefined ? {} : { migrationDirectory }),
+    now,
+    issuer,
+    audience,
+    jwks,
+    newRequestId,
+    javascript,
+  });
 }

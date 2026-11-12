@@ -1291,3 +1291,7 @@ An opt-in Fetch composition and unbound server combine the existing signed-SSO c
 ## Explicit owned canonical review runtime (#637)
 
 An explicitly invoked listener owns migration, SQL and shutdown for canonical signed-SSO catalog, usage and audit reads. Existing token runtime and session contracts are unchanged. See [plan](plans/637-owned-canonical-review.md) and [contract](../contracts/owned-canonical-review.md).
+
+## Reviewed canonical browser artifact bootstrap (#637, #643)
+
+An explicit separately named bootstrap requires an exact reviewed public-artifact SHA-256 before SQL ownership and connects that snapshot to the owned canonical read-only catalog, usage and audit listener. Legacy token bootstrap, session contracts and service defaults remain unchanged. See [plan](plans/637-canonical-browser-artifact.md) and [contract](../contracts/canonical-browser-artifact.md). This is not browser-login or installed deployment certification.
