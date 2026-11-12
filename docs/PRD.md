@@ -1339,3 +1339,7 @@ An opt-in DOM-free coordinator joins authorized usage JSON and CSV clients for o
 The additive [token revocation panel](../contracts/token-revocation-panel.md) requires an already-authorized request port, explicit credential-ID review and confirmation before the existing SSO revoke POST. It renders safe success/no-revocation/uncertain outcomes without secret input or automatic mutation replay. Fresh 401/403 terminally clears the mounted identity; dispose on all identity changes. This is a reusable native DOM component, not completed application navigation, session, live deployment or browser acceptance. See [plan](plans/640-token-revocation-panel.md).
 
 An independently mountable proxy-token issuance panel now reuses the existing authorized SSO issuance API with explicit review/confirmation and a one-time in-memory credential display. Clearing/disposal removes displayed credentials, not the issued token; uncertain outcomes never trigger automatic reissuance. Canonical navigation/session wiring and native-browser/installed acceptance remain separate.
+
+## Shared token-management lifecycle (#640)
+
+The additive shared token-management panel composes explicit issuance and revocation with a common terminal authentication/authorization boundary, clearing sibling one-time credentials and aborting pending work on fresh 401/403. Canonical navigation, approved session wiring and installed acceptance remain separate gates. See [contract](../contracts/token-management-panel.md) and [plan](plans/640-token-management-panel.md).

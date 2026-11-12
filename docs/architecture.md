@@ -1480,3 +1480,7 @@ The additive [token revocation panel](../contracts/token-revocation-panel.md) re
 
 ## Additive confirmed token issuance component
 The native token-issuance panel consumes the existing caller-owned authorized CatalogRequest port and POST /management/v1/proxy-tokens contract. Server authorization, lifetime and audit remain authoritative. Exact bounded JSON decoding rejects malformed success; clear/dispose wipes owned credential text nodes, with no storage or clipboard. The caller must dispose on identity change/logout/expiry. It adds no runtime session contract or canonical navigation. See [issuance contract](../contracts/token-issuance-panel.md).
+
+## Shared token-management lifecycle (#640)
+
+The shared token-management panel wraps the approved request port and composes the existing issuance/revocation modules without new endpoints, session decisions or IAM behavior. Fresh 401/403 terminates both children before rendering the safe boundary view. Caller disposal on known expiry/logout/identity/navigation remains mandatory; cleanup never implies revocation or rollback. See [contract](../contracts/token-management-panel.md) and [plan](plans/640-token-management-panel.md).

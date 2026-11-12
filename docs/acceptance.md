@@ -1909,3 +1909,7 @@ The additive [token revocation panel](../contracts/token-revocation-panel.md) re
 - Successful 201 displays validated credential ID and bearer token only in the current panel; clear/dispose wipes those owned text nodes and cannot redisplay via old callbacks. Clearing is not revocation.
 - 401/403 clear and lock; invalid input is rejected; private/malformed/oversized/server/network failures never disclose raw bodies or claim rollback and never automatically retry.
 - Component/controlled SSO handler tests are not installed session/IdP/PostgreSQL, native-browser or provider E2E evidence.
+
+## Shared token-management lifecycle (#640)
+
+With both token operations mounted, review/cancel performs no mutation; explicit confirmation uses the existing SSO HTTP contracts. Fresh 401/403 from either operation clears sibling owned credential nodes (even detached references), aborts pending work and suppresses late results/stale callbacks. Idempotent disposal clears both. Network/audit uncertainty is not fabricated as access denial; independently mounted instances remain isolated. See [contract](../contracts/token-management-panel.md) and [plan](plans/640-token-management-panel.md).
