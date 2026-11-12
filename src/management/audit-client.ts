@@ -22,8 +22,8 @@ export type AuditResult =
       readonly state: 'invalid_query' | 'unauthenticated' | 'denied' | 'unavailable' | 'cancelled';
     };
 
-function query(filters: AuditFilters): string | undefined {
-  const params = new URLSearchParams({ format: 'json' });
+function query(filters: AuditFilters, format: 'json' | 'csv' = 'json'): string | undefined {
+  const params = new URLSearchParams({ format });
   for (const [field, parameter] of [
     ['principalId', 'principal_id'],
     ['requestId', 'request_id'],
@@ -55,7 +55,7 @@ const MAX_BYTES = 2 * 1024 * 1024;
 function discard(response: Response) {
   void response.body?.cancel().catch(() => undefined);
 }
-async function boundedJson(response: Response, signal: AbortSignal): Promise<string> {
+async function boundedText(response: Response, signal: AbortSignal): Promise<string> {
   const length = response.headers.get('content-length');
   if (length !== null && (!/^(0|[1-9][0-9]*)$/u.test(length) || Number(length) > MAX_BYTES)) {
     discard(response);
@@ -83,7 +83,7 @@ async function boundedJson(response: Response, signal: AbortSignal): Promise<str
     // Fetch exposes decoded bytes, not the compressed wire length.
     const encoding = response.headers.get('content-encoding')?.trim().toLowerCase();
     if (length !== null && (!encoding || encoding === 'identity') && size !== Number(length)) {
-      throw new Error('Incomplete JSON body');
+      throw new Error('Incomplete response body');
     }
     text.push(decoder.decode());
     return text.join('');
@@ -132,7 +132,21 @@ function parsePage(value: unknown, filters: AuditFilters) {
 /** One already-authorized metadata page; no session, DOM, credential handling or cache.
  * Invalidate and drop prior data on identity change. The server remains authoritative.
  */
-export function createSsoAuditClient(request: CatalogRequest) {
+type AuditFailure = Exclude<AuditResult, { readonly state: 'ready' }>;
+export type AuditExportResult =
+  | {
+      readonly state: 'ready';
+      readonly csv: string;
+      readonly hasMore: boolean;
+      readonly nextCursor: string | null;
+    }
+  | AuditFailure;
+
+function createAuditTransport<T>(
+  request: CatalogRequest,
+  format: 'json' | 'csv',
+  project: (response: Response, text: string, filters: AuditFilters) => T,
+) {
   let pending: AbortController | undefined;
   function invalidate() {
     pending?.abort();
@@ -140,7 +154,7 @@ export function createSsoAuditClient(request: CatalogRequest) {
   }
   return {
     invalidate,
-    async read(filters: AuditFilters = {}): Promise<AuditResult> {
+    async read(filters: AuditFilters = {}): Promise<T | AuditFailure> {
       invalidate();
       let search: string | undefined;
       let snapshot: AuditFilters;
@@ -156,7 +170,7 @@ export function createSsoAuditClient(request: CatalogRequest) {
           ...(limit === undefined ? {} : { limit }),
           ...(cursor === undefined ? {} : { cursor }),
         };
-        search = query(snapshot);
+        search = query(snapshot, format);
       } catch {
         return { state: 'invalid_query' };
       }
@@ -168,21 +182,21 @@ export function createSsoAuditClient(request: CatalogRequest) {
         timedOut = true;
         controller.abort();
       }, 15_000);
-      const interrupted = (): AuditResult => ({
+      const interrupted = (): AuditFailure => ({
         state: timedOut ? 'unavailable' : 'cancelled',
       });
       let onAbort: (() => void) | undefined;
-      const interruption = new Promise<AuditResult>((resolve) => {
+      const interruption = new Promise<T | AuditFailure>((resolve) => {
         onAbort = () => resolve(interrupted());
         controller.signal.addEventListener('abort', onAbort, { once: true });
       });
-      const operation = async (): Promise<AuditResult> => {
+      const operation = async (): Promise<T | AuditFailure> => {
         try {
           const response = await request(`/management/v1/audit?${search}`, {
             method: 'GET',
             cache: 'no-store',
             redirect: 'error',
-            headers: { accept: 'application/json' },
+            headers: { accept: format === 'json' ? 'application/json' : 'text/csv' },
             signal: controller.signal,
           });
           if (controller.signal.aborted) {
@@ -197,17 +211,18 @@ export function createSsoAuditClient(request: CatalogRequest) {
             return { state: 'unavailable' };
           }
           if (
-            !/^application\/json(?:;\s*charset=utf-8)?$/iu.test(
-              response.headers.get('content-type') ?? '',
-            )
+            !(
+              format === 'json'
+                ? /^application\/json(?:;\s*charset=utf-8)?$/iu
+                : /^text\/csv(?:;\s*charset=utf-8)?$/iu
+            ).test(response.headers.get('content-type') ?? '')
           ) {
             discard(response);
             return { state: 'unavailable' };
           }
-          const text = await boundedJson(response, controller.signal);
+          const text = await boundedText(response, controller.signal);
           if (controller.signal.aborted) return interrupted();
-          const data = parsePage(JSON.parse(text), snapshot);
-          return { state: 'ready', ...data };
+          return project(response, text, snapshot);
         } catch {
           return controller.signal.aborted ? interrupted() : { state: 'unavailable' };
         }
@@ -221,4 +236,38 @@ export function createSsoAuditClient(request: CatalogRequest) {
       }
     },
   };
+}
+
+/** Authorized JSON metadata page. No session or browser-build activation. */
+export function createSsoAuditClient(request: CatalogRequest) {
+  return createAuditTransport(
+    request,
+    'json',
+    (_response, text, filters): AuditResult => ({
+      state: 'ready',
+      ...parsePage(JSON.parse(text), filters),
+    }),
+  );
+}
+
+/** Authorized server CSV page, not reconstructed JSON or an automatic download.
+ * Keep the same filters when following the opaque cursor. Invalidate on identity change.
+ */
+export function createSsoAuditExportClient(request: CatalogRequest) {
+  return createAuditTransport(request, 'csv', (response, csv, filters): AuditExportResult => {
+    const more = response.headers.get('x-has-more');
+    const next = response.headers.get('x-next-cursor');
+    if (more !== 'true' && more !== 'false') throw new Error('Missing pagination');
+    if (more === 'true') {
+      if (next === null) throw new Error('Missing cursor');
+      // Reuse the canonical positive PostgreSQL bigint validator, never Number.
+      parseAuditHistoryQuery(new URL(`https://audit.invalid/?cursor=${encodeURIComponent(next)}`));
+      if (filters.cursor !== undefined && BigInt(next) >= BigInt(filters.cursor)) {
+        throw new Error('Nonprogressing cursor');
+      }
+    } else if (next !== null) {
+      throw new Error('Unexpected terminal cursor');
+    }
+    return { state: 'ready', csv, hasMore: more === 'true', nextCursor: next };
+  });
 }
