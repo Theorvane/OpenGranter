@@ -1315,3 +1315,7 @@ The authorized usage JSON client now retains a freshly recomputed exact comparis
 ## CSV browser page progress (#642)
 
 The authorized usage CSV page transport rejects equal or regressing continuation keys against the exact serialized request cursor before exposing a page. This prevents stalled browser pagination without parsing CSV rows, granting authority, or activating sessions. See the [contract](../contracts/management-usage-export.md) and [plan](plans/642-csv-client-progress.md). Native browser and installed acceptance remain separate.
+
+## Browser audit metadata transport (#642)
+
+An already-authorized browser request port reads one filtered, paginated signed-SSO audit JSON page with existing metadata redaction, immutable scope and bounded cancellation. It does not render a screen, establish identity or activate sessions. See [contract](../contracts/management-audit-client.md) and [plan](plans/642-browser-audit-history.md). Native browser and installed acceptance remain separate.
