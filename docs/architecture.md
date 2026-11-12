@@ -1468,3 +1468,8 @@ The additive audit export client shares the existing audit JSON transport lifecy
 ## Audit review screen state (#642)
 
 An opt-in DOM-free coordinator now joins existing authorized audit JSON and CSV clients for immutable filter searches, exact next/back navigation, loading/empty/safe failures, explicit current-page export and terminal identity teardown. New searches reset pagination; stale requests cannot republish rows or export CSV. A fresh 401/403 removes rows and blocks port reuse. Server IAM and mandatory durable access audit remain authoritative. See [contract](../contracts/management-audit-review.md) and [plan](plans/642-audit-review-state.md). No browser entry, DOM, session, canonical-build integration or deployment activation is included; native browser acceptance remains outstanding.
+
+
+## Usage review screen state (#642)
+
+An opt-in DOM-free coordinator joins authorized usage JSON and CSV clients for once-captured filters, opaque next/back cursors, retry, loading/empty/safe errors and explicit current-page export. It preserves exact estimated/reported cost comparisons, missing token usage and independent duplicate/billing markers without inventing totals or reconciliation. New searches and identity teardown cancel stale work; fresh 401/403 clears rows and blocks port reuse. Server scope and mandatory durable access audit remain unchanged. See [contract](../contracts/management-usage-review.md) and [plan](plans/642-usage-review-state.md). No DOM/entry/builder/session, provider or deployment activation; native browser acceptance remains separate.
