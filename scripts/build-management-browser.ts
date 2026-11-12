@@ -14,7 +14,7 @@ export interface ManagementBrowserBuildOptions {
 export async function buildManagementBrowser(
   options: ManagementBrowserBuildOptions,
 ): Promise<string> {
-  const root = resolve(options.root);
+  const root = await realpath(resolve(options.root));
   const source = await realpath(resolve(root, 'src/management'));
   // Fixed reviewed pure closure, not a general shared/server source allowlist.
   const shared = new Set(

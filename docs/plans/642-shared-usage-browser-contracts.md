@@ -19,3 +19,9 @@ Contract: [shared usage browser contracts](../../contracts/shared-usage-browser-
 - Initial broader build regression had 66 pass and one existing npm-publication failure: npm cannot be spawned in this local environment. npm run check could not start because npm was not found. These are not aggregate-green results; CI must provide the full required gate. No dependency repair or skipped-test rewrite.
 - The first additional runtime test incorrectly applied migrations before the runtime-owned migration ledger; startup correctly failed. Test setup was corrected to let the owned runtime migrate once, without production changes.
 - Native Chromium remains unavailable (existing Aw Snap Error 9); built-module HTTP execution does not certify native browser rendering or company login.
+
+## Review follow-up: canonical checkout roots
+
+- Reproduce the formal review failure using a symlink to the actual checkout and the actual usage-review entry, then canonicalize the checkout root before constructing the fixed shared allowlist.
+- Prove both direct and symlink-root builds produce identical runnable artifacts; retain rejection of shared entries, non-reviewed imports and allowlisted-file symlink escapes through either root. No additional source permissions or session/runtime changes.
+- RED: actual symlink-root usage-review regression failed as expected (4 pass, 1 fail, zero skipped). GREEN: canonical build/artifact/owned HTTP runtime selection passed 8/8, zero skipped. Full typecheck and planning checks passed. Broader build selection remains 15 pass / 1 npm-publication environment failure; discovered npm launcher fails on missing walk-up-path, so full npm check remains blocked locally. No test skip or toolchain repair.

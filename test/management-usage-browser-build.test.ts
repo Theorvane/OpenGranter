@@ -136,6 +136,11 @@ test('shared build permission does not permit shared entry, server imports or sy
     await rm(join(shared, 'json.ts'));
     await symlink(join(root, 'private.ts'), join(shared, 'json.ts'));
     await assert.rejects(buildManagementBrowser({ root, entry: 'src/management/entry.ts' }));
+    const linkedRoot = join(root, 'checkout-link');
+    await symlink(root, linkedRoot, 'dir');
+    await assert.rejects(
+      buildManagementBrowser({ root: linkedRoot, entry: 'src/management/entry.ts' }),
+    );
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -149,4 +154,26 @@ test('server compatibility exports preserve canonical function and error identit
   assert.equal(compareUsageCosts, sharedCost.compareUsageCosts);
   assert.equal(validAuditAttribution, sharedAttribution.validAuditAttribution);
   assert.throws(() => sharedJson.projectUsageJson({}), InvalidUsageRecordInput);
+});
+
+test('canonical usage review builds identically through a symlink checkout root', async () => {
+  const scratch = await mkdtemp(join(tmpdir(), 'og-usage-root-link-'));
+  const root = join(scratch, 'checkout');
+  try {
+    await symlink(resolve('.'), root, 'dir');
+    const entry = 'src/management/usage-review.ts';
+    const direct = await buildManagementBrowser({ root: resolve('.'), entry });
+    const linked = await buildManagementBrowser({ root, entry });
+    assert.equal(linked, direct);
+    const module = await import(
+      `data:text/javascript;base64,${Buffer.from(linked).toString('base64')}`
+    );
+    const review = module.createUsageReview(async () => page());
+    await review.load();
+    assert.equal(review.snapshot().state, 'ready');
+    review.dispose();
+    await assert.rejects(buildManagementBrowser({ root, entry: 'src/shared/usage/json.ts' }));
+  } finally {
+    await rm(scratch, { recursive: true, force: true });
+  }
 });
