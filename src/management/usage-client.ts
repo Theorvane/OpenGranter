@@ -1,5 +1,4 @@
-import { parseStoredUsageRecord } from '../usage/history.ts';
-import type { UsageRecord } from '../usage/record-usage.ts';
+import { projectUsageJson, type UsageJsonRecord } from '../usage/json.ts';
 import type { CatalogRequest } from './catalog-client.ts';
 
 export interface UsageFilters {
@@ -13,7 +12,7 @@ export interface UsageFilters {
 export type UsageResult =
   | {
       readonly state: 'ready';
-      readonly data: readonly UsageRecord[];
+      readonly data: readonly UsageJsonRecord[];
       readonly hasMore: boolean;
       readonly nextCursor: string | null;
     }
@@ -140,7 +139,7 @@ function parsePage(value: unknown, filters: UsageFilters) {
     (page.has_more && page.data.length === 0)
   )
     throw new Error('Invalid page');
-  const data = page.data.map(parseStoredUsageRecord);
+  const data = page.data.map(projectUsageJson);
   let previous: readonly [number, string] | undefined;
   if (filters.cursor) {
     const bytes = atob(filters.cursor.replace(/-/gu, '+').replace(/_/gu, '/'));
