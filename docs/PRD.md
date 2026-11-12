@@ -1311,3 +1311,7 @@ Existing proxy and signed-SSO usage JSON rows expose the same exact cost compari
 ## Browser transport cost comparison (#642)
 
 The authorized usage JSON client now retains a freshly recomputed exact comparison rather than dropping it at the row allowlist boundary. It supports legacy rows, ignores forged projections and preserves original metadata and unknown/duplicate markers. This is browser transport support, not a rendered cost screen, session or deployment certification. See [plan](plans/642-browser-cost-comparison.md) and [contract](../contracts/management-usage-client.md#validated-cost-comparison-642).
+
+## CSV browser page progress (#642)
+
+The authorized usage CSV page transport rejects equal or regressing continuation keys against the exact serialized request cursor before exposing a page. This prevents stalled browser pagination without parsing CSV rows, granting authority, or activating sessions. See the [contract](../contracts/management-usage-export.md) and [plan](plans/642-csv-client-progress.md). Native browser and installed acceptance remain separate.

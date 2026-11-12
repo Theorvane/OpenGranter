@@ -3,6 +3,7 @@ import test from 'node:test';
 import { createSsoUsageHistoryHandler } from '../src/gateway/sso-usage-history-http.ts';
 import { createSsoUsageExportClient } from '../src/management/usage-export-client.ts';
 
+const advancedCursor = Buffer.from(JSON.stringify([11, 'older'])).toString('base64url');
 const cursor = btoa(JSON.stringify([12, 'attempt'])).replace(/=+$/u, '');
 function csv(body = 'request_id\r\n', more = false, next: string | null = null) {
   return new Response(body, {
@@ -33,7 +34,7 @@ test('export uses real Fetch boundary and preserves CSV and continuation without
           format: 'csv',
           csv: 'usage_status,estimated_amount\r\nmissing,\r\n',
           hasMore: true,
-          nextCursor: cursor,
+          nextCursor: advancedCursor,
         };
       },
     },
@@ -64,7 +65,7 @@ test('export uses real Fetch boundary and preserves CSV and continuation without
       state: 'ready',
       csv: 'usage_status,estimated_amount\r\nmissing,\r\n',
       hasMore: true,
-      nextCursor: cursor,
+      nextCursor: advancedCursor,
     },
   );
 });
@@ -431,4 +432,78 @@ test('decoded Fetch CSV does not compare compressed wire length to text bytes', 
       nextCursor: null,
     });
   }
+});
+
+const key = (time: number, id: string) =>
+  Buffer.from(JSON.stringify([time, id])).toString('base64url');
+test('CSV continuation rejects stalled and regressing keys before reading body', async () => {
+  for (const [before, after] of [
+    [key(10, 'z'), key(10, 'z')],
+    [key(10, 'z'), key(11, 'a')],
+    [key(10, 'z'), key(10, 'é')],
+    [key(10, 'a'), key(10, 'aa')],
+    [key(10, '\uE000'), key(10, '😀')],
+  ] as const) {
+    let cancelled = false;
+    const response = new Response(
+      new ReadableStream({
+        cancel() {
+          cancelled = true;
+        },
+      }),
+      {
+        headers: {
+          'content-type': 'text/csv',
+          'x-has-more': 'true',
+          'x-next-cursor': after,
+        },
+      },
+    );
+    const client = createSsoUsageExportClient(async () => response);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const result = await Promise.race([
+      client.read({ cursor: before }),
+      new Promise((resolve) => {
+        timer = setTimeout(() => resolve('body-was-read'), 1000);
+      }),
+    ]);
+    clearTimeout(timer);
+    client.invalidate();
+    assert.deepEqual(result, { state: 'unavailable' });
+    assert.equal(cancelled, true);
+  }
+});
+test('CSV continuation uses descending time and UTF8 bytes, not locale or UTF16 order', async () => {
+  for (const [before, after] of [
+    [key(10, 'a'), key(9, 'z')],
+    [key(10, 'é'), key(10, 'z')],
+    [key(10, 'aa'), key(10, 'a')],
+    [key(10, '😀'), key(10, '\uE000')],
+  ] as const) {
+    const result = await createSsoUsageExportClient(async () => csv('verbatim', true, after)).read({
+      cursor: before,
+    });
+    assert.deepEqual(result, { state: 'ready', csv: 'verbatim', hasMore: true, nextCursor: after });
+  }
+});
+test('CSV progress binds to serialized cursor despite caller mutation during request', async () => {
+  const filters = { cursor: key(10, 'z') };
+  const client = createSsoUsageExportClient(async (path) => {
+    assert.equal(new URL(path, 'https://local.invalid').searchParams.get('cursor'), key(10, 'z'));
+    filters.cursor = key(30, 'z');
+    await Promise.resolve();
+    return csv('private duplicate page', true, key(20, 'z'));
+  });
+  assert.deepEqual(await client.read(filters), { state: 'unavailable' });
+});
+test('CSV terminal response needs no progress key even with request cursor', async () => {
+  assert.deepEqual(
+    await createSsoUsageExportClient(async () => csv()).read({ cursor: key(10, 'z') }),
+    {
+      state: 'ready',
+      csv: 'request_id\r\n',
+      hasMore: false,
+      nextCursor: null,
+    },
+  );
 });
