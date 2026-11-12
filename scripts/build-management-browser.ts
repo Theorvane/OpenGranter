@@ -16,14 +16,25 @@ export async function buildManagementBrowser(
 ): Promise<string> {
   const root = resolve(options.root);
   const source = await realpath(resolve(root, 'src/management'));
+  const shared = new Set(
+    [
+      'src/usage/json.ts',
+      'src/usage/stored-record.ts',
+      'src/usage/record-usage.ts',
+      'src/usage/cost-comparison.ts',
+      'src/audit/attribution.ts',
+      'src/audit/history-http.ts',
+      'src/audit/history-filters.ts',
+      'src/audit/time-range.ts',
+      'src/audit/gateway-event.ts',
+    ].map((path) => resolve(root, path)),
+  );
   async function local(path: string) {
     const canonical = await realpath(path);
     const child = relative(source, canonical);
     if (
-      !child ||
-      child === '..' ||
-      child.startsWith('..' + sep) ||
-      isAbsolute(child) ||
+      ((!child || child === '..' || child.startsWith('..' + sep) || isAbsolute(child)) &&
+        !(shared.has(canonical) && canonical === resolve(path))) ||
       !canonical.endsWith('.ts')
     ) {
       throw new Error('Management build requires local TypeScript sources');

@@ -149,3 +149,31 @@ test('CLI publication never replaces files or symlinks and removes staging', asy
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test('bundles real usage/audit DOM adapters with pure shared runtime only', async () => {
+  const javascript = await buildManagementBrowser({
+    root: resolve('.'),
+    entry: 'src/management/review-app.ts',
+  });
+  const app = await load(javascript);
+  assert.equal(typeof app.mountSsoUsageReview, 'function');
+  assert.equal(typeof app.mountSsoAuditReview, 'function');
+  assert.doesNotMatch(javascript, /Buffer|process\.env|INSERT INTO|node:|sourceMappingURL/);
+});
+
+test('shared allowlist rejects persistence, unreviewed files and transitive externals', async () =>
+  fixture(async (root, source) => {
+    await mkdir(join(root, 'src/usage'), { recursive: true });
+    for (const file of ['history.ts', 'postgres-ledger.ts', 'unreviewed.ts']) {
+      await writeFile(join(root, 'src/usage', file), 'export const secret = 1;');
+      await writeFile(join(source, 'entry.ts'), 'export * from "../usage/' + file + '";');
+      await assert.rejects(buildManagementBrowser({ root, entry: 'src/management/entry.ts' }));
+    }
+    await writeFile(join(root, 'src/usage/json.ts'), 'import "node:fs"; export const value = 1;');
+    await writeFile(join(source, 'entry.ts'), 'export * from "../usage/json.ts";');
+    await assert.rejects(buildManagementBrowser({ root, entry: 'src/management/entry.ts' }));
+    await rm(join(root, 'src/usage/json.ts'));
+    await writeFile(join(root, 'outside.ts'), 'export const secret = 1;');
+    await symlink(join(root, 'outside.ts'), join(root, 'src/usage/json.ts'));
+    await assert.rejects(buildManagementBrowser({ root, entry: 'src/management/entry.ts' }));
+  }));
