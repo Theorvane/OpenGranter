@@ -1473,3 +1473,7 @@ An opt-in DOM-free coordinator now joins existing authorized audit JSON and CSV 
 ## Usage review screen state (#642)
 
 An opt-in DOM-free coordinator joins authorized usage JSON and CSV clients for once-captured filters, opaque next/back cursors, retry, loading/empty/safe errors and explicit current-page export. It preserves exact estimated/reported cost comparisons, missing token usage and independent duplicate/billing markers without inventing totals or reconciliation. New searches and identity teardown cancel stale work; fresh 401/403 clears rows and blocks port reuse. Server scope and mandatory durable access audit remain unchanged. See [contract](../contracts/management-usage-review.md) and [plan](plans/642-usage-review-state.md). No DOM/entry/builder/session, provider or deployment activation; native browser acceptance remains separate.
+
+## Confirmed token revocation panel (#640)
+
+The additive [token revocation panel](../contracts/token-revocation-panel.md) requires an already-authorized request port, explicit credential-ID review and confirmation before the existing SSO revoke POST. It renders safe success/no-revocation/uncertain outcomes without secret input or automatic mutation replay. Fresh 401/403 terminally clears the mounted identity; dispose on all identity changes. This is a reusable native DOM component, not completed application navigation, session, live deployment or browser acceptance. See [plan](plans/640-token-revocation-panel.md).
