@@ -7,6 +7,7 @@ export interface UsageCursor {
 }
 
 export interface UsageHistoryFilters {
+  readonly requestId?: string;
   readonly modelAlias?: string;
   readonly fromMs?: number;
   readonly toMs?: number;
@@ -46,6 +47,10 @@ function count(value: unknown): value is number {
 
 export function validUsageHistoryFilters(filters: UsageHistoryFilters): boolean {
   return (
+    (filters.requestId === undefined ||
+      (typeof filters.requestId === 'string' &&
+        filters.requestId.length <= 256 &&
+        /^[A-Za-z0-9][A-Za-z0-9._+:/@-]*$/u.test(filters.requestId))) &&
     (filters.modelAlias === undefined ||
       (nonempty(filters.modelAlias) &&
         filters.modelAlias.length <= 256 &&
@@ -61,6 +66,7 @@ export function matchesUsageHistoryFilters(
   filters: UsageHistoryFilters,
 ): boolean {
   return (
+    (filters.requestId === undefined || record.requestId === filters.requestId) &&
     (filters.modelAlias === undefined || record.modelAlias === filters.modelAlias) &&
     (filters.fromMs === undefined || record.occurredAt >= filters.fromMs) &&
     (filters.toMs === undefined || record.occurredAt < filters.toMs)
@@ -139,7 +145,16 @@ export function parseUsageHistoryQuery(url: URL): UsageHistoryFilters & {
   const params = url.searchParams;
   for (const key of params.keys()) {
     if (
-      !['principal_id', 'limit', 'cursor', 'model', 'from_ms', 'to_ms', 'format'].includes(key) ||
+      ![
+        'request_id',
+        'principal_id',
+        'limit',
+        'cursor',
+        'model',
+        'from_ms',
+        'to_ms',
+        'format',
+      ].includes(key) ||
       params.getAll(key).length !== 1
     ) {
       throw new InvalidUsageQuery();
@@ -167,7 +182,9 @@ export function parseUsageHistoryQuery(url: URL): UsageHistoryFilters & {
   const modelAlias = params.get('model');
   const fromMs = queryTime(params.get('from_ms'));
   const toMs = queryTime(params.get('to_ms'));
+  const requestId = params.get('request_id');
   const filters = {
+    ...(requestId === null ? {} : { requestId }),
     ...(modelAlias === null ? {} : { modelAlias }),
     ...(fromMs === undefined ? {} : { fromMs }),
     ...(toMs === undefined ? {} : { toMs }),

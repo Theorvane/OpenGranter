@@ -19,7 +19,30 @@ function object(value: unknown): Record<string, unknown> | undefined {
 export function createPostgresUsageReader(
   client: UsageSqlClient,
 ): (query: UsageHistoryQuery) => Promise<UsageHistoryPage> {
-  return async (query) => {
+  return async (input) => {
+    // The SQL port may suspend while a caller reuses its query object. Own all
+    // scope and pagination values once; SQL and projection must agree even then.
+    let query: UsageHistoryQuery;
+    try {
+      const { principalId, limit, cursor, requestId, modelAlias, fromMs, toMs } = input;
+      query = {
+        principalId,
+        limit,
+        cursor:
+          cursor === null
+            ? null
+            : {
+                occurredAt: cursor.occurredAt,
+                attemptId: cursor.attemptId,
+              },
+        ...(requestId === undefined ? {} : { requestId }),
+        ...(modelAlias === undefined ? {} : { modelAlias }),
+        ...(fromMs === undefined ? {} : { fromMs }),
+        ...(toMs === undefined ? {} : { toMs }),
+      };
+    } catch {
+      throw new UsageLedgerUnavailable();
+    }
     if (
       !query.principalId ||
       !Number.isSafeInteger(query.limit) ||
@@ -39,6 +62,7 @@ export function createPostgresUsageReader(
            AND ($5::text IS NULL OR record->>'modelAlias' = $5::text)
            AND ($6::bigint IS NULL OR occurred_at_ms >= $6::bigint)
            AND ($7::bigint IS NULL OR occurred_at_ms < $7::bigint)
+           AND ($8::text IS NULL OR record->>'requestId' = $8::text)
          ORDER BY occurred_at_ms DESC, attempt_id COLLATE "C" DESC
          LIMIT $4`,
         [
@@ -49,6 +73,7 @@ export function createPostgresUsageReader(
           query.modelAlias ?? null,
           query.fromMs ?? null,
           query.toMs ?? null,
+          query.requestId ?? null,
         ],
       );
       if (result.rows.length > query.limit + 1) throw new UsageLedgerUnavailable();
