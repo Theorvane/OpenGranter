@@ -1903,3 +1903,9 @@ Exercise createUsageReview through existing authorized clients: loading/ready/em
 ## Confirmed token revocation panel (#640)
 
 The additive [token revocation panel](../contracts/token-revocation-panel.md) requires an already-authorized request port, explicit credential-ID review and confirmation before the existing SSO revoke POST. It renders safe success/no-revocation/uncertain outcomes without secret input or automatic mutation replay. Fresh 401/403 terminally clears the mounted identity; dispose on all identity changes. This is a reusable native DOM component, not completed application navigation, session, live deployment or browser acceptance. See [plan](plans/640-token-revocation-panel.md).
+
+## Confirmed token issuance component (#640)
+- Review/cancel must not issue. Confirm sends one exact request, duplicates/stale callbacks cannot repeat it. Server permission and lifetime denial remain authoritative.
+- Successful 201 displays validated credential ID and bearer token only in the current panel; clear/dispose wipes those owned text nodes and cannot redisplay via old callbacks. Clearing is not revocation.
+- 401/403 clear and lock; invalid input is rejected; private/malformed/oversized/server/network failures never disclose raw bodies or claim rollback and never automatically retry.
+- Component/controlled SSO handler tests are not installed session/IdP/PostgreSQL, native-browser or provider E2E evidence.

@@ -1477,3 +1477,6 @@ An opt-in DOM-free coordinator joins authorized usage JSON and CSV clients for o
 ## Confirmed token revocation panel (#640)
 
 The additive [token revocation panel](../contracts/token-revocation-panel.md) requires an already-authorized request port, explicit credential-ID review and confirmation before the existing SSO revoke POST. It renders safe success/no-revocation/uncertain outcomes without secret input or automatic mutation replay. Fresh 401/403 terminally clears the mounted identity; dispose on all identity changes. This is a reusable native DOM component, not completed application navigation, session, live deployment or browser acceptance. See [plan](plans/640-token-revocation-panel.md).
+
+## Additive confirmed token issuance component
+The native token-issuance panel consumes the existing caller-owned authorized CatalogRequest port and POST /management/v1/proxy-tokens contract. Server authorization, lifetime and audit remain authoritative. Exact bounded JSON decoding rejects malformed success; clear/dispose wipes owned credential text nodes, with no storage or clipboard. The caller must dispose on identity change/logout/expiry. It adds no runtime session contract or canonical navigation. See [issuance contract](../contracts/token-issuance-panel.md).
