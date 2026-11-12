@@ -69,7 +69,11 @@ async function readBody(request: Request): Promise<unknown> {
   }
   if (!reader) return undefined;
   const cancel = () => {
-    void reader.cancel().catch(() => undefined);
+    try {
+      void reader.cancel().catch(() => undefined);
+    } catch {
+      /* Cleanup failure must not replace the validated input result. */
+    }
   };
   request.signal.addEventListener('abort', cancel, { once: true });
   let complete = false;
@@ -95,8 +99,12 @@ async function readBody(request: Request): Promise<unknown> {
     parsed = undefined;
   } finally {
     request.signal.removeEventListener('abort', cancel);
-    if (!complete) await reader.cancel().catch(() => undefined);
-    reader.releaseLock();
+    if (!complete) cancel();
+    try {
+      reader.releaseLock();
+    } catch {
+      /* Best effort: producer cleanup is not a response prerequisite. */
+    }
   }
   return parsed;
 }
