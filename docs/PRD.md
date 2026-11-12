@@ -1351,3 +1351,7 @@ The explicit owned SSO management listener composes reviewed usage/audit JSON/CS
 ## Canonical usage browser artifact (#642)
 
 The usage JSON client and JSON/CSV review coordinator can now be built by the canonical public-source browser builder using one shared pure validation and exact-cost projection closure. Server exports retain the same functions and error classes. Only five named shared modules are admitted transitively; arbitrary server/shared imports remain forbidden. This removes a usage artifact integration blocker, not session acquisition, navigation, audit artifact integration or installed acceptance. See [plan](plans/642-shared-usage-browser-contracts.md) and [contract](../contracts/shared-usage-browser-contracts.md).
+
+## Shared history identity boundary (#642)
+
+One opt-in history workspace composes the canonical usage/audit review clients for a caller-owned authorized request port. Fresh 401/403 in either JSON or explicit CSV operation clears both histories, aborts sibling work and terminally blocks port reuse. Independent filters/cursors and ordinary local failures remain separate. Caller disposal on known identity teardown is mandatory. See [contract](../contracts/management-history-workspace.md) and [plan](plans/642-history-workspace.md). Canonical artifact execution against the owned loopback HTTP/migrated fixture runtime does not complete DOM navigation, browser login, approved sessions or installed acceptance.

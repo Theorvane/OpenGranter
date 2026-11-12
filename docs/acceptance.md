@@ -1935,3 +1935,7 @@ With both token operations mounted, review/cancel performs no mutation; explicit
 - Preserve exact bigint IDs and allowlisted metadata; reject invalid queries before transport and malformed pages without partial data. Retain loading/ready/empty/unavailable/denied states.
 - Reject direct shared entries, arbitrary shared/server dependencies and allowlisted symlink escapes through direct and linked checkout roots.
 - This does not certify native-browser login, company IdP, installed PostgreSQL or live provider behavior. See [contract](../contracts/shared-audit-browser-contracts.md) and [plan](plans/642-shared-audit-browser-contracts.md).
+
+## Shared history identity boundary (#642)
+
+One opt-in history workspace composes the canonical usage/audit review clients for a caller-owned authorized request port. Fresh 401/403 in either JSON or explicit CSV operation clears both histories, aborts sibling work and terminally blocks port reuse. Independent filters/cursors and ordinary local failures remain separate. Caller disposal on known identity teardown is mandatory. See [contract](../contracts/management-history-workspace.md) and [plan](plans/642-history-workspace.md). Canonical artifact execution against the owned loopback HTTP/migrated fixture runtime does not complete DOM navigation, browser login, approved sessions or installed acceptance.
