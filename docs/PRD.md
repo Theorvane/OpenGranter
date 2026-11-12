@@ -1282,3 +1282,8 @@ Explicit SSO browser bootstrap accepts a reviewed SHA-256 pin for the exact publ
 ## Exact audit request trace (#642)
 
 Existing proxy and SSO audit JSON/CSV intersect optional exact request_id with principal/model/time/keyset scope. Bind SQL and own reader inputs before await; reject mismatching visible and hidden rows. No UI/session/runtime/content activation. See [plan](plans/642-audit-request-trace.md) and [contract](../contracts/audit-request-trace.md).
+
+
+## Explicit canonical read-only management review (#637, #642)
+
+An opt-in Fetch composition and unbound server combine the existing signed-SSO catalog list/detail, scoped usage JSON/CSV and scoped audit JSON/CSV with their canonical mandatory durable access audits. An optional public shell grants no authority. Existing runtime defaults, token writes, sessions, IAM and migrations are unchanged. See [plan](plans/637-canonical-review-composition.md) and [contract](../contracts/canonical-review-composition.md).
