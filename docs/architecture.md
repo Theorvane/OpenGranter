@@ -1492,3 +1492,7 @@ The existing opt-in management runtime dispatches exact usage/audit API paths to
 ## Shared usage wire projection (#642)
 
 The pure usage record/attribution/stored-row/cost/JSON implementation lives in src/shared/usage. Existing audit/usage modules are compatibility re-exports; history query/cursor parsing stays server-side. Management usage transport imports the shared JSON projection directly. The canonical browser builder allows only these five explicit shared files as transitive imports, never entry points or a general server dependency graph. Audit projection extraction and application/session composition remain separate. See [contract](../contracts/shared-usage-browser-contracts.md).
+
+## Shared history identity boundary (#642)
+
+One opt-in history workspace composes the canonical usage/audit review clients for a caller-owned authorized request port. Fresh 401/403 in either JSON or explicit CSV operation clears both histories, aborts sibling work and terminally blocks port reuse. Independent filters/cursors and ordinary local failures remain separate. Caller disposal on known identity teardown is mandatory. See [contract](../contracts/management-history-workspace.md) and [plan](plans/642-history-workspace.md). Canonical artifact execution against the owned loopback HTTP/migrated fixture runtime does not complete DOM navigation, browser login, approved sessions or installed acceptance.
