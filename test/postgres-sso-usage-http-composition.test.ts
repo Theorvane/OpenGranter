@@ -10,7 +10,9 @@ import { createSsoAccessTokenFixture } from './sso-access-token-fixture.ts';
 const jwt = await createSsoAccessTokenFixture();
 const token = await jwt.token();
 interface UsageResponse {
-  readonly data: readonly import('../src/usage/record-usage.ts').UsageRecord[];
+  readonly data: readonly (import('../src/usage/record-usage.ts').UsageRecord & {
+    costComparison: import('../src/usage/cost-comparison.ts').UsageCostComparison;
+  })[];
   readonly has_more: boolean;
   readonly next_cursor: string | null;
 }
@@ -123,6 +125,11 @@ test('concrete composition persists signed SSO attribution for JSON, CSV and emp
     assert.equal(response.headers.get('cache-control'), 'no-store');
     const page = await json(response);
     assert.equal(page.data[0]?.attemptId, 'c');
+    assert.deepEqual(page.data[0]?.costComparison, {
+      status: 'reported_above_estimate',
+      reportedMinusEstimated: '0.000000000000000001',
+      currency: 'USD',
+    });
     assert.equal(page.has_more, true);
     const csvResponse = await f.request('?format=csv&limit=1');
     assert.equal(csvResponse.status, 200);

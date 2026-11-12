@@ -494,3 +494,19 @@ test('valid injected equal-time UTF-8 pages support JSON and CSV continuation', 
     else assert.equal(((await response.json()) as { next_cursor: string }).next_cursor, expected);
   }
 });
+
+test('proxy JSON exposes unknown cost comparison without inventing zero or changing flags', async () => {
+  const f = fixture();
+  const response = await f.handler(
+    new Request('https://gateway.test/v1/usage', {
+      headers: { authorization: 'Bearer proxy' },
+    }),
+  );
+  assert.equal(response.status, 200);
+  const page = (await response.json()) as { data: { costComparison: unknown }[] };
+  assert.deepEqual(page.data[0]?.costComparison, {
+    status: 'unknown',
+    reportedMinusEstimated: null,
+    currency: null,
+  });
+});
