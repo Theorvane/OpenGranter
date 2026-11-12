@@ -1311,3 +1311,7 @@ Existing proxy and signed-SSO usage JSON rows expose the same exact cost compari
 ## Browser transport cost comparison (#642)
 
 The authorized usage JSON client now retains a freshly recomputed exact comparison rather than dropping it at the row allowlist boundary. It supports legacy rows, ignores forged projections and preserves original metadata and unknown/duplicate markers. This is browser transport support, not a rendered cost screen, session or deployment certification. See [plan](plans/642-browser-cost-comparison.md) and [contract](../contracts/management-usage-client.md#validated-cost-comparison-642).
+
+## Current canonical request tracing (#642)
+
+Usage history supports exact case-sensitive request-ID filters intersected with principal, model, time and cursor. Canonical signed SSO JSON retains exact estimated/reported cost comparisons; CSV retains the same comparison metadata. No browser session or deployment authority is added. See [plan](plans/642-request-current-canonical.md) and [contract](../contracts/usage-request-current-canonical.md).
