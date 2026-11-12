@@ -1303,3 +1303,7 @@ A separate opt-in executable connects the reviewed SHA-256-pinned public artifac
 ## Exact usage cost comparison (#642)
 
 Usage CSV appends an exact same-currency reported-versus-estimated comparison and delta, with explicit missing-source and currency-mismatch states. Original amounts and duplicate/unknown-usage flags remain independent; equal amounts never certify invoice reconciliation. See [contract](../contracts/usage-cost-comparison.md) and [plan](plans/642-usage-cost-comparison.md). No session or deployment activation.
+
+## Authorized usage JSON cost projection (#642)
+
+Existing proxy and signed-SSO usage JSON rows expose the same exact cost comparison as CSV, preserving original amounts and independent unknown/duplicate markers. Decimal deltas remain strings and comparisons are recomputed from validated metadata, not persisted or trusted from injected fields. Scope, keyset continuation and mandatory durable audit remain unchanged. This is API support, not rendered browser or invoice certification. See [plan](plans/642-usage-json-cost-comparison.md) and [contract](../contracts/usage-cost-comparison.md#authorized-json-rows-642).
