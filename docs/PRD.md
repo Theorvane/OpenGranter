@@ -1347,3 +1347,7 @@ The additive shared token-management panel composes explicit issuance and revoca
 ### Management-process history integration (#642)
 
 The explicit owned SSO management listener composes reviewed usage/audit JSON/CSV APIs alongside catalog and token management with fresh SSO binding/IAM and mandatory durable access audit. This does not enable browser sessions or select a production deployment.
+
+## Canonical usage browser artifact (#642)
+
+The usage JSON client and JSON/CSV review coordinator can now be built by the canonical public-source browser builder using one shared pure validation and exact-cost projection closure. Server exports retain the same functions and error classes. Only five named shared modules are admitted transitively; arbitrary server/shared imports remain forbidden. This removes a usage artifact integration blocker, not session acquisition, navigation, audit artifact integration or installed acceptance. See [plan](plans/642-shared-usage-browser-contracts.md) and [contract](../contracts/shared-usage-browser-contracts.md).

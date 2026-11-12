@@ -1919,3 +1919,11 @@ With both token operations mounted, review/cancel performs no mutation; explicit
 - On the actual owned management listener, signed API JWT plus active binding and scoped IAM can read usage/audit JSON and CSV with no-store headers and attributed mandatory durable audit.
 - Cookie-only, invalid proxy credential, removed binding and fresh Deny cannot read; failed mandatory audit withholds data/errors. History method/framing and unknown/prefix paths keep existing 400/404 semantics.
 - With or without optional public shell, catalog and token boundaries stay available; one connection is owned and shutdown awaits in-flight required audit before closing SQL. Local signed JWT/PGlite/HTTP tests do not certify native browser login or installed PostgreSQL/provider acceptance.
+
+## Canonical usage artifact integration (#642)
+
+- Build actual usage-client and usage-review with the canonical management builder; execute the resulting self-contained ES modules against controlled JSON/CSV responses.
+- Preserve exact 1e-18 cost delta, original decimal strings, unknown usage and independent duplicate flags; strip private fields and reject malformed usage.
+- Show coordinator loading/ready and explicit export; fresh 403 clears data and terminally blocks the stale request port.
+- Reject shared entry points, unreviewed shared/server modules, external dependencies and shared symlink escapes. Server compatibility exports retain function/error class identity.
+- This is built-module integration evidence, not native browser login, company IdP, installed PostgreSQL or live provider acceptance.
