@@ -1502,3 +1502,7 @@ One opt-in history workspace composes the canonical usage/audit review clients f
 The additive csv-download module receives DOM/URL/deferred-cleanup ports. A bounded existing authorized CSV page becomes a short-lived object URL and one connected download anchor. Remove the anchor immediately; revoke on deferred cleanup or terminal identity teardown. No ambient global, network, storage, new authority or runtime activation. Caller owns session validity and disposal; external downloaded files cannot be erased. See [contract](../contracts/management-csv-download.md).
 
 Management mutation body readers initiate cancellation without awaiting producer cleanup, release locks best-effort and keep cleanup failures private. This avoids retaining invalid-input responses on unresolved cancellation; transport-level read deadlines remain separate.
+
+## Management body cancellation ownership (#640)
+
+Management request bodies use a separate readable around the non-destructive IncomingMessage iterator. Cancelling the Fetch body does not destroy the socket required to deliver a safe rejection. Incomplete management input disables keep-alive for normal and fallback responses. Peer disconnect still aborts the request, and proxy body streaming is unchanged. See [contract](../contracts/management-socket-body.md).

@@ -1361,3 +1361,7 @@ The usage JSON client and JSON/CSV review coordinator can now be built by the ca
 One opt-in history workspace composes the canonical usage/audit review clients for a caller-owned authorized request port. Fresh 401/403 in either JSON or explicit CSV operation clears both histories, aborts sibling work and terminally blocks port reuse. Independent filters/cursors and ordinary local failures remain separate. Caller disposal on known identity teardown is mandatory. See [contract](../contracts/management-history-workspace.md) and [plan](plans/642-history-workspace.md). Canonical artifact execution against the owned loopback HTTP/migrated fixture runtime does not complete DOM navigation, browser login, approved sessions or installed acceptance.
 
 Management token issuance/revocation body cleanup does not await untrusted producer cancellation before rejecting invalid input. This preserves the authentication-first bounded body contract, without adding request deadlines, session authority or automatic retries.
+
+## Management rejection delivery on Node sockets (#640)
+
+The Node management transport preserves bounded invalid-body responses while an upload remains open. Cancellation does not destroy the shared response socket; incomplete input disables connection reuse without draining unbounded bytes. Authentication, audit and mutation contracts remain unchanged. See [plan](plans/640-management-socket-cancellation.md).
