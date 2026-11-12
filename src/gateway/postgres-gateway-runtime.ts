@@ -11,6 +11,10 @@ import { createNodePostgresDualRouteChatServer } from './node-postgres-dual-chat
 import { createNodeRequestServer } from './node-request-server.ts';
 import type { PostgresDualRouteChatHandlerPorts } from './postgres-dual-chat-handler.ts';
 import {
+  createPostgresSsoCanonicalReviewServer,
+  type PostgresSsoCanonicalReviewPorts,
+} from './postgres-sso-canonical-review-http.ts';
+import {
   createPostgresRfc9068SsoManagementHandler,
   type createPostgresRfc9068SsoManagementServer,
 } from './postgres-sso-management-http.ts';
@@ -209,4 +213,28 @@ export async function startPostgresSsoManagementGateway(ports: PostgresSsoManage
       return response;
     });
   });
+}
+
+/** Explicit read-only listener; no token runtime, session or default activation change. */
+export interface PostgresSsoCanonicalReviewRuntimePorts
+  extends Omit<PostgresSsoCanonicalReviewPorts, 'client'>,
+    GatewayRuntimeInfrastructure {}
+
+export async function startPostgresSsoCanonicalReviewGateway(
+  ports: PostgresSsoCanonicalReviewRuntimePorts,
+) {
+  // Deliberately enumerate trusted inputs; never pass extra caller reader/audit ports.
+  const { now, issuer, audience, jwks, newRequestId, javascript } = ports;
+  const shell = Object.hasOwn(ports, 'javascript');
+  return startOwnedPostgresGateway(ports, async (client) =>
+    createPostgresSsoCanonicalReviewServer({
+      client,
+      now,
+      issuer,
+      audience,
+      jwks,
+      newRequestId,
+      ...(shell ? { javascript } : {}),
+    }),
+  );
 }
