@@ -1287,3 +1287,7 @@ Existing proxy and SSO audit JSON/CSV intersect optional exact request_id with p
 ## Explicit canonical read-only management review (#637, #642)
 
 An opt-in Fetch composition and unbound server combine the existing signed-SSO catalog list/detail, scoped usage JSON/CSV and scoped audit JSON/CSV with their canonical mandatory durable access audits. An optional public shell grants no authority. Existing runtime defaults, token writes, sessions, IAM and migrations are unchanged. See [plan](plans/637-canonical-review-composition.md) and [contract](../contracts/canonical-review-composition.md).
+
+## Explicit owned canonical review runtime (#637)
+
+An explicitly invoked listener owns migration, SQL and shutdown for canonical signed-SSO catalog, usage and audit reads. Existing token runtime and session contracts are unchanged. See [plan](plans/637-owned-canonical-review.md) and [contract](../contracts/owned-canonical-review.md).
