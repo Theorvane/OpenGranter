@@ -1894,3 +1894,8 @@ Require public-port RED/GREEN, exact serialized filters and bigint progress, hea
 ## Audit review screen state (#642)
 
 An opt-in DOM-free coordinator now joins existing authorized audit JSON and CSV clients for immutable filter searches, exact next/back navigation, loading/empty/safe failures, explicit current-page export and terminal identity teardown. New searches reset pagination; stale requests cannot republish rows or export CSV. A fresh 401/403 removes rows and blocks port reuse. Server IAM and mandatory durable access audit remain authoritative. See [contract](../contracts/management-audit-review.md) and [plan](plans/642-audit-review-state.md). No browser entry, DOM, session, canonical-build integration or deployment activation is included; native browser acceptance remains outstanding.
+
+
+## Usage review coordinator (#642)
+
+Exercise createUsageReview through existing authorized clients: loading/ready/empty, once-read filters and cursor reset, exact opaque next/back, failed-next retry, explicit current-page JSON/CSV filter parity, bounded cancellation, stale JSON/export suppression, overlapping exports, terminal 401/403 and disposal, observer failure and synchronous teardown. Confirm frozen exact cost comparisons and original decimals, missing usage rather than zeros, and independent duplicate/billing markers. Signed-SSO Fetch over migrated PGlite must isolate self rows, withhold rows on required-audit failure, recover only via retry, persist each successful/denied access, and honor a fresh Deny. See [contract](../contracts/management-usage-review.md) and [plan](plans/642-usage-review-state.md). This does not certify installed PostgreSQL, native browser/IdP, canonical browser artifact, deployment or paid-provider acceptance.
