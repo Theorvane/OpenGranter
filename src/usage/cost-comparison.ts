@@ -1,4 +1,4 @@
-import { parseStoredUsageRecord } from './history.ts';
+import { parseStoredUsageRecord } from './stored-record.ts';
 
 export interface UsageCostComparison {
   readonly status:

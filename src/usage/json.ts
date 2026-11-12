@@ -1,6 +1,6 @@
 import { compareUsageCosts, type UsageCostComparison } from './cost-comparison.ts';
-import { parseStoredUsageRecord } from './history.ts';
 import type { UsageRecord } from './record-usage.ts';
+import { parseStoredUsageRecord } from './stored-record.ts';
 
 export interface UsageJsonRecord extends UsageRecord {
   readonly costComparison: UsageCostComparison;
