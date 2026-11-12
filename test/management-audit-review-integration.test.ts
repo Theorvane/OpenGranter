@@ -1,17 +1,27 @@
 import assert from 'node:assert/strict';
+import { once } from 'node:events';
 import test from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
+import { buildManagementBrowser } from '../scripts/build-management-browser.ts';
 import { createPostgresGatewayAuditStore } from '../src/audit/postgres-gateway-audit.ts';
+import { createNodeRequestServer } from '../src/gateway/node-request-server.ts';
 import { createPostgresSsoAuditHistoryHandler } from '../src/gateway/postgres-sso-audit-history-http.ts';
-import { createAuditReview } from '../src/management/audit-review.ts';
 import { loadPostgresMigrationSources } from '../src/storage/postgres-migration-sources.ts';
 import { createSsoAccessTokenFixture } from './sso-access-token-fixture.ts';
 
-test('review coordinator reads signed SSO JSON/CSV over migrated storage, records access and applies fresh Deny', async () => {
+test('canonical audit artifact reads signed SSO JSON/CSV over actual loopback HTTP and migrated storage with fresh Deny', async () => {
   const jwt = await createSsoAccessTokenFixture();
   const token = await jwt.token();
   const db = new PGlite();
+  let server: ReturnType<typeof createNodeRequestServer> | undefined;
   try {
+    const javascript = await buildManagementBrowser({
+      root: process.cwd(),
+      entry: 'src/management/audit-review.ts',
+    });
+    const { createAuditReview } = (await import(
+      `data:text/javascript;base64,${Buffer.from(javascript).toString('base64')}`
+    )) as typeof import('../src/management/audit-review.ts');
     for (const source of await loadPostgresMigrationSources()) await db.exec(source.sql);
     await db.exec(`INSERT INTO iam_principals VALUES ('human', 'human', true);
       INSERT INTO iam_policies VALUES ('reader', 'v1', '[{"effect":"Allow","actions":["audit:Read"],"resources":["principal:human"]}]');
@@ -43,13 +53,17 @@ test('review coordinator reads signed SSO JSON/CSV over migrated storage, record
       client,
       newRequestId: () => 'review',
     });
+    server = createNodeRequestServer(handler);
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    const base = `http://127.0.0.1:${address.port}`;
     const review = createAuditReview(async (path, init) =>
-      handler(
-        new Request(`https://management.test${path}`, {
-          ...init,
-          headers: { ...init.headers, authorization: `Bearer ${token}` },
-        }),
-      ),
+      fetch(base + path, {
+        ...init,
+        headers: { ...init.headers, authorization: `Bearer ${token}` },
+      }),
     );
     await review.load({ principalId: 'human', fromMs: 0, toMs: 101, limit: 1 });
     assert.equal(review.snapshot().state, 'ready');
@@ -86,6 +100,12 @@ test('review coordinator reads signed SSO JSON/CSV over migrated storage, record
     assert.doesNotMatch(JSON.stringify(review.snapshot()), /PRIVATE|Bearer/u);
     review.dispose();
   } finally {
+    if (server) {
+      server.closeAllConnections();
+      await new Promise<void>((resolve, reject) =>
+        server?.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
     await db.close();
   }
 });

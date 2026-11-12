@@ -1927,3 +1927,11 @@ With both token operations mounted, review/cancel performs no mutation; explicit
 - Show coordinator loading/ready and explicit export; fresh 403 clears data and terminally blocks the stale request port.
 - Reject shared entry points, unreviewed shared/server modules, external dependencies and shared symlink escapes. Server compatibility exports retain function/error class identity.
 - This is built-module integration evidence, not native browser login, company IdP, installed PostgreSQL or live provider acceptance.
+
+## Canonical audit artifact integration (#642)
+
+- Build actual audit-client and audit-review using the fixed shared audit closure, without server runtime imports. Preserve server parser/projector/error identities.
+- Execute the compiled coordinator against signed-SSO JSON/CSV over real loopback HTTP and migrated local SQL: bounded descending pages, previous/next, explicit export, empty search, durable access events and fresh Deny clearing remain effective.
+- Preserve exact bigint IDs and allowlisted metadata; reject invalid queries before transport and malformed pages without partial data. Retain loading/ready/empty/unavailable/denied states.
+- Reject direct shared entries, arbitrary shared/server dependencies and allowlisted symlink escapes through direct and linked checkout roots.
+- This does not certify native-browser login, company IdP, installed PostgreSQL or live provider behavior. See [contract](../contracts/shared-audit-browser-contracts.md) and [plan](plans/642-shared-audit-browser-contracts.md).
