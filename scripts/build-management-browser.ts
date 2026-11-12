@@ -16,16 +16,23 @@ export async function buildManagementBrowser(
 ): Promise<string> {
   const root = resolve(options.root);
   const source = await realpath(resolve(root, 'src/management'));
-  async function local(path: string) {
+  // Fixed reviewed pure closure, not a general shared/server source allowlist.
+  const shared = new Set(
+    ['attribution', 'record-usage', 'stored-row', 'cost-comparison', 'json'].map((name) =>
+      resolve(root, 'src/shared/usage', `${name}.ts`),
+    ),
+  );
+  async function local(path: string, transitive = false) {
     const canonical = await realpath(path);
     const child = relative(source, canonical);
     if (
       !child ||
       child === '..' ||
-      child.startsWith('..' + sep) ||
+      child.startsWith(`..${sep}`) ||
       isAbsolute(child) ||
       !canonical.endsWith('.ts')
     ) {
+      if (transitive && shared.has(canonical)) return canonical;
       throw new Error('Management build requires local TypeScript sources');
     }
     return canonical;
@@ -53,7 +60,7 @@ export async function buildManagementBrowser(
             if (!args.path.startsWith('./') && !args.path.startsWith('../')) {
               throw new Error('Management build forbids external dependencies');
             }
-            return { path: await local(resolve(dirname(args.importer), args.path)) };
+            return { path: await local(resolve(dirname(args.importer), args.path), true) };
           });
         },
       },

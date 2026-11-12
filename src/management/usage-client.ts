@@ -1,4 +1,4 @@
-import { projectUsageJson, type UsageJsonRecord } from '../usage/json.ts';
+import { projectUsageJson, type UsageJsonRecord } from '../shared/usage/json.ts';
 import type { CatalogRequest } from './catalog-client.ts';
 
 export interface UsageFilters {

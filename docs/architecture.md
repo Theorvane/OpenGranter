@@ -1488,3 +1488,7 @@ The shared token-management panel wraps the approved request port and composes t
 ### Owned management history dispatch (#642)
 
 The existing opt-in management runtime dispatches exact usage/audit API paths to their canonical durable factories on its one migrated connection; trusted configuration is explicitly enumerated. Catalog/token dispatch and optional shell remain unchanged. The separate canonical read-only runtime remains separate and read-only. No new schema, session authority or default activation.
+
+## Shared usage wire projection (#642)
+
+The pure usage record/attribution/stored-row/cost/JSON implementation lives in src/shared/usage. Existing audit/usage modules are compatibility re-exports; history query/cursor parsing stays server-side. Management usage transport imports the shared JSON projection directly. The canonical browser builder allows only these five explicit shared files as transitive imports, never entry points or a general server dependency graph. Audit projection extraction and application/session composition remain separate. See [contract](../contracts/shared-usage-browser-contracts.md).
