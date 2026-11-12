@@ -1946,3 +1946,7 @@ One opt-in history workspace composes the canonical usage/audit review clients f
 - Invalid kind/non-string/UTF-8 overflow allocates no object URL. Browser-port failures expose safe states, remove anchors/revoke pending URLs best-effort, never raw CSV/errors or automatic retries.
 - Dispose on identity invalidation, including reentrant creation/append, cancels cleanup, revokes pending URLs and terminally blocks retained save methods. Previously downloaded external files cannot be erased.
 - Canonical module over actual loopback SSO/current IAM/migrated PGlite exports must preserve bytes through real Blob URLs; native browser download/installed acceptance remains a separate gate. See [contract](../contracts/management-csv-download.md).
+
+## Management mutation body cleanup (#640)
+
+- Issuance and revocation return no-store 400 invalid_request for oversized bodies even when producer cancellation never settles; authentication runs first and no mutation is dispatched. Verify abort, rejecting cleanup and unchanged valid/denied/failed-audit paths. This is stream-boundary evidence, not browser or installed deployment acceptance.
