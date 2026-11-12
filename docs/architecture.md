@@ -1496,3 +1496,7 @@ The pure usage record/attribution/stored-row/cost/JSON implementation lives in s
 ## Shared history identity boundary (#642)
 
 One opt-in history workspace composes the canonical usage/audit review clients for a caller-owned authorized request port. Fresh 401/403 in either JSON or explicit CSV operation clears both histories, aborts sibling work and terminally blocks port reuse. Independent filters/cursors and ordinary local failures remain separate. Caller disposal on known identity teardown is mandatory. See [contract](../contracts/management-history-workspace.md) and [plan](plans/642-history-workspace.md). Canonical artifact execution against the owned loopback HTTP/migrated fixture runtime does not complete DOM navigation, browser login, approved sessions or installed acceptance.
+
+## Explicit history CSV download adapter (#642)
+
+The additive csv-download module receives DOM/URL/deferred-cleanup ports. A bounded existing authorized CSV page becomes a short-lived object URL and one connected download anchor. Remove the anchor immediately; revoke on deferred cleanup or terminal identity teardown. No ambient global, network, storage, new authority or runtime activation. Caller owns session validity and disposal; external downloaded files cannot be erased. See [contract](../contracts/management-csv-download.md).

@@ -1,3 +1,7 @@
+## Explicit history CSV file saves (#642)
+
+An opt-in caller-owned browser adapter starts a fixed-filename UTF-8 CSV download for one already-authorized usage/audit page, preserving server bytes. Dispose with the identity epoch; no automatic fetch, authority or public-entry activation. Download dispatch is not completion. See [plan](plans/642-csv-download.md) and [contract](../contracts/management-csv-download.md).
+
 # OpenGranter Product Requirements
 
 ## Reviewed model response source checkpoint (#543)

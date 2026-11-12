@@ -1939,3 +1939,10 @@ With both token operations mounted, review/cancel performs no mutation; explicit
 ## Shared history identity boundary (#642)
 
 One opt-in history workspace composes the canonical usage/audit review clients for a caller-owned authorized request port. Fresh 401/403 in either JSON or explicit CSV operation clears both histories, aborts sibling work and terminally blocks port reuse. Independent filters/cursors and ordinary local failures remain separate. Caller disposal on known identity teardown is mandatory. See [contract](../contracts/management-history-workspace.md) and [plan](plans/642-history-workspace.md). Canonical artifact execution against the owned loopback HTTP/migrated fixture runtime does not complete DOM navigation, browser login, approved sessions or installed acceptance.
+
+## Explicit history CSV file saves (#642)
+
+- Explicit usage/audit save dispatches one fixed page filename and preserves exact UTF-8 server bytes, formula hardening and missing values. Never fetch/merge more pages or infer completion.
+- Invalid kind/non-string/UTF-8 overflow allocates no object URL. Browser-port failures expose safe states, remove anchors/revoke pending URLs best-effort, never raw CSV/errors or automatic retries.
+- Dispose on identity invalidation, including reentrant creation/append, cancels cleanup, revokes pending URLs and terminally blocks retained save methods. Previously downloaded external files cannot be erased.
+- Canonical module over actual loopback SSO/current IAM/migrated PGlite exports must preserve bytes through real Blob URLs; native browser download/installed acceptance remains a separate gate. See [contract](../contracts/management-csv-download.md).
