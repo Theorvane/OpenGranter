@@ -1299,3 +1299,7 @@ An explicit separately named bootstrap requires an exact reviewed public-artifac
 ## Explicit canonical review process (#637, #643)
 
 A separate opt-in executable connects the reviewed SHA-256-pinned public artifact to the owned canonical read-only SSO APIs. It preserves existing launchers and does not acquire a browser session or approve deployment. See [operator instructions](canonical-review-process.md).
+
+## Exact usage cost comparison (#642)
+
+Usage CSV appends an exact same-currency reported-versus-estimated comparison and delta, with explicit missing-source and currency-mismatch states. Original amounts and duplicate/unknown-usage flags remain independent; equal amounts never certify invoice reconciliation. See [contract](../contracts/usage-cost-comparison.md) and [plan](plans/642-usage-cost-comparison.md). No session or deployment activation.

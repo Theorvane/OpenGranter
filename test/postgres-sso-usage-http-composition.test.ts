@@ -66,6 +66,20 @@ async function fixture() {
         outcome: 'succeeded',
         possiblyBilled: true,
         possibleDuplicate: false,
+        ...(attemptId === 'c'
+          ? {
+              estimatedCost: {
+                amountDecimal: '9007199254740993.000000000000000001',
+                currency: 'USD',
+                priceVersion: 'v1',
+              },
+              upstreamBilledCost: {
+                amountDecimal: '9007199254740993.000000000000000002',
+                currency: 'USD',
+                source: 'openrouter',
+              },
+            }
+          : {}),
       }),
     );
   }
@@ -110,7 +124,12 @@ test('concrete composition persists signed SSO attribution for JSON, CSV and emp
     const page = await json(response);
     assert.equal(page.data[0]?.attemptId, 'c');
     assert.equal(page.has_more, true);
-    assert.equal((await f.request('?format=csv&limit=1')).status, 200);
+    const csvResponse = await f.request('?format=csv&limit=1');
+    assert.equal(csvResponse.status, 200);
+    const csv = await csvResponse.text();
+    assert.ok(csv.includes('"reported_above_estimate","0.000000000000000001","USD"'));
+    assert.ok(!csv.includes('foreign'));
+    assert.ok(!csv.includes(token));
     assert.equal((await json(await f.request('?model=absent'))).data.length, 0);
     const rows = (
       await f.db.query<Record<string, unknown>>(
