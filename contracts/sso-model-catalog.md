@@ -18,3 +18,8 @@ A real HTTP/session adapter, request validation, no-store response mapping, dura
 ## Published provider token bounds (#641)
 
 Optional `top_provider` projects only administrator-published `context_length` and `max_completion_tokens`. Fields remain absent when unpublished, explicit null means unknown, and zero remains zero. Present non-null values must be nonnegative safe integers; malformed values fail the entire HTTP response with fixed 503. Unknown nested fields (including moderation labels and credential references) are never serialized. Registered metadata with neither field yields an empty object; legacy rows without metadata omit the object. Service output is copied and frozen. These are descriptive metadata, not enforced quotas, effective per-route bounds, routing authority or a guarantee that an invocation will fit. Fresh IAM, mandatory audit, no-store and hidden-model semantics remain unchanged. No session/runtime activation, UI parser adoption, migrations or provider calls. See [plan](../docs/plans/641-sso-output-limits.md).
+
+
+## Complete SQL publication snapshots (#641)
+
+The shared PostgreSQL catalog reader validates every returned row position before visibility filtering. Sparse adapter results are unavailable, not successful empty/partial catalogs. The SSO HTTP boundary returns fixed 503 catalog_unavailable with no data, after mandatory authenticated unavailable audit (count zero); audit append failure retains audit_unavailable precedence. Genuine empty row collections remain valid. This restores catalog integrity and adds no session or permissions. See [plan](../docs/plans/641-catalog-row-completeness.md).
