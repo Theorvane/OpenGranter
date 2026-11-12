@@ -1913,3 +1913,9 @@ The additive [token revocation panel](../contracts/token-revocation-panel.md) re
 ## Shared token-management lifecycle (#640)
 
 With both token operations mounted, review/cancel performs no mutation; explicit confirmation uses the existing SSO HTTP contracts. Fresh 401/403 from either operation clears sibling owned credential nodes (even detached references), aborts pending work and suppresses late results/stale callbacks. Idempotent disposal clears both. Network/audit uncertainty is not fabricated as access denial; independently mounted instances remain isolated. See [contract](../contracts/token-management-panel.md) and [plan](plans/640-token-management-panel.md).
+
+### Management-process history APIs (#642)
+
+- On the actual owned management listener, signed API JWT plus active binding and scoped IAM can read usage/audit JSON and CSV with no-store headers and attributed mandatory durable audit.
+- Cookie-only, invalid proxy credential, removed binding and fresh Deny cannot read; failed mandatory audit withholds data/errors. History method/framing and unknown/prefix paths keep existing 400/404 semantics.
+- With or without optional public shell, catalog and token boundaries stay available; one connection is owned and shutdown awaits in-flight required audit before closing SQL. Local signed JWT/PGlite/HTTP tests do not certify native browser login or installed PostgreSQL/provider acceptance.
