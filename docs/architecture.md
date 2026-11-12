@@ -1459,3 +1459,7 @@ The authorized usage CSV page transport rejects equal or regressing continuation
 ## Browser audit metadata transport (#642)
 
 An already-authorized browser request port reads one filtered, paginated signed-SSO audit JSON page with existing metadata redaction, immutable scope and bounded cancellation. It does not render a screen, establish identity or activate sessions. See [contract](../contracts/management-audit-client.md) and [plan](plans/642-browser-audit-history.md). Native browser and installed acceptance remain separate.
+
+## Audit CSV browser request port (#642)
+
+The additive audit export client shares the existing audit JSON transport lifecycle, query validator, immutable filters, deadline and byte-bounded UTF-8 decoder. It calls the server CSV branch directly and validates exact descending PostgreSQL bigint continuation headers. No CSV reconstruction, authority, session, DOM, builder or listener activation. See [contract](../contracts/management-audit-export.md).
