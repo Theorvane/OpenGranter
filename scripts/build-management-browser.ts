@@ -17,11 +17,14 @@ export async function buildManagementBrowser(
   const root = await realpath(resolve(options.root));
   const source = await realpath(resolve(root, 'src/management'));
   // Fixed reviewed pure closure, not a general shared/server source allowlist.
-  const shared = new Set(
-    ['attribution', 'record-usage', 'stored-row', 'cost-comparison', 'json'].map((name) =>
+  const shared = new Set([
+    ...['attribution', 'record-usage', 'stored-row', 'cost-comparison', 'json'].map((name) =>
       resolve(root, 'src/shared/usage', `${name}.ts`),
     ),
-  );
+    ...['history-http', 'history-filters', 'time-range', 'event-projection', 'history-types'].map(
+      (name) => resolve(root, 'src/shared/audit', `${name}.ts`),
+    ),
+  ]);
   async function local(path: string, transitive = false) {
     const canonical = await realpath(path);
     const child = relative(source, canonical);
