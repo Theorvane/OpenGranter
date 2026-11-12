@@ -1295,3 +1295,7 @@ An explicitly invoked listener owns migration, SQL and shutdown for canonical si
 ## Reviewed canonical browser artifact bootstrap (#637, #643)
 
 An explicit separately named bootstrap requires an exact reviewed public-artifact SHA-256 before SQL ownership and connects that snapshot to the owned canonical read-only catalog, usage and audit listener. Legacy token bootstrap, session contracts and service defaults remain unchanged. See [plan](plans/637-canonical-browser-artifact.md) and [contract](../contracts/canonical-browser-artifact.md). This is not browser-login or installed deployment certification.
+
+## Explicit canonical review process (#637, #643)
+
+A separate opt-in executable connects the reviewed SHA-256-pinned public artifact to the owned canonical read-only SSO APIs. It preserves existing launchers and does not acquire a browser session or approve deployment. See [operator instructions](canonical-review-process.md).
