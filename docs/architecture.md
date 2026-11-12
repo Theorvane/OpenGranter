@@ -1463,3 +1463,8 @@ An already-authorized browser request port reads one filtered, paginated signed-
 ## Audit CSV browser request port (#642)
 
 The additive audit export client shares the existing audit JSON transport lifecycle, query validator, immutable filters, deadline and byte-bounded UTF-8 decoder. It calls the server CSV branch directly and validates exact descending PostgreSQL bigint continuation headers. No CSV reconstruction, authority, session, DOM, builder or listener activation. See [contract](../contracts/management-audit-export.md).
+
+
+## Audit review screen state (#642)
+
+An opt-in DOM-free coordinator now joins existing authorized audit JSON and CSV clients for immutable filter searches, exact next/back navigation, loading/empty/safe failures, explicit current-page export and terminal identity teardown. New searches reset pagination; stale requests cannot republish rows or export CSV. A fresh 401/403 removes rows and blocks port reuse. Server IAM and mandatory durable access audit remain authoritative. See [contract](../contracts/management-audit-review.md) and [plan](plans/642-audit-review-state.md). No browser entry, DOM, session, canonical-build integration or deployment activation is included; native browser acceptance remains outstanding.
