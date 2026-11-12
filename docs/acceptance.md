@@ -1889,3 +1889,8 @@ An already-authorized browser request port reads one filtered, paginated signed-
 ## Browser audit CSV transport (#642)
 
 Require public-port RED/GREEN, exact serialized filters and bigint progress, header-only empty output, malformed headers/media/UTF-8/length failures, immutable filter accessors, cancellation/deadline and signed-SSO Fetch over migrated embedded SQL with redaction, foreign denial before history SQL and failed durable audit withholding CSV. Existing JSON behavior must regress cleanly. Native browser UI, canonical artifact integration, real IdP, installed PostgreSQL and deployment remain separate gates. See [plan](plans/642-browser-audit-export.md).
+
+
+## Audit review screen state (#642)
+
+An opt-in DOM-free coordinator now joins existing authorized audit JSON and CSV clients for immutable filter searches, exact next/back navigation, loading/empty/safe failures, explicit current-page export and terminal identity teardown. New searches reset pagination; stale requests cannot republish rows or export CSV. A fresh 401/403 removes rows and blocks port reuse. Server IAM and mandatory durable access audit remain authoritative. See [contract](../contracts/management-audit-review.md) and [plan](plans/642-audit-review-state.md). No browser entry, DOM, session, canonical-build integration or deployment activation is included; native browser acceptance remains outstanding.

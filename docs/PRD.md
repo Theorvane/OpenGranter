@@ -1323,3 +1323,8 @@ An already-authorized browser request port reads one filtered, paginated signed-
 ## Browser audit CSV transport (#642)
 
 An already-authorized browser port can request an existing signed-SSO audit CSV page with preserved filters, exact bigint continuation and safe bounded cancellation. It retains server-produced CSV without reconstructing JSON or bypassing access audit. See [contract](../contracts/management-audit-export.md) and [plan](plans/642-browser-audit-export.md). This is transport support, not rendered UI, canonical browser-build integration or deployment certification.
+
+
+## Audit review screen state (#642)
+
+An opt-in DOM-free coordinator now joins existing authorized audit JSON and CSV clients for immutable filter searches, exact next/back navigation, loading/empty/safe failures, explicit current-page export and terminal identity teardown. New searches reset pagination; stale requests cannot republish rows or export CSV. A fresh 401/403 removes rows and blocks port reuse. Server IAM and mandatory durable access audit remain authoritative. See [contract](../contracts/management-audit-review.md) and [plan](plans/642-audit-review-state.md). No browser entry, DOM, session, canonical-build integration or deployment activation is included; native browser acceptance remains outstanding.
