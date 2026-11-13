@@ -1527,3 +1527,7 @@ operations-session.ts composes the existing operations mount with the existing C
 
 ### Operations body deadline enforcement (#637)
 The trusted operations adapter wraps response bodies with zero-prefetch streaming reads. Each read checks the current grant and clock before and after awaiting source data, including EOF; rejection cancels the reader without waiting for source cancellation before showing the safe boundary. Existing clients retain their bounded JSON/CSV parsers. This fixes the headers-before-expiry/body-after-expiry gap without buffering whole responses or changing authentication contracts.
+
+## Usage request audit investigation (#642)
+
+Each canonical usage row offers Audit for this request. It explicitly loads Audit page one with the already-visible exact principal and request ID, replacing old audit drafts, model/time constraints and cursor. Audit authorization is evaluated afresh by the existing API; this action grants no permission and does not imply complete causal coverage. Retry, pagination and explicit current-page CSV use the same query. Usage state is preserved until normal workspace invalidation. Loading/failure/empty states and shared terminal 401/403 clearing remain unchanged. No fetch occurs from retained stale/disposed controls. No public-entry, session, endpoint or retention change. See [plan](plans/642-request-audit-navigation.md).
