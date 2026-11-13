@@ -1532,3 +1532,8 @@ The trusted operations adapter wraps response bodies with zero-prefetch streamin
 ## Model navigation within trusted operations (#637)
 
 The opt-in trusted operations mount now connects Models list/detail to the existing scoped SSO catalog API, alongside History and Proxy tokens. It preserves loading, empty, missing, retry and global current-denial states; navigation disposes/aborts the prior screen and returning reloads data. Detached controls and late responses cannot revive old content. Existing server authentication, IAM, audit and trusted-session expiry remain authoritative; no login source, public activation or installed acceptance is added. See [plan](plans/637-operations-catalog.md) and [contract](../contracts/management-operations.md).
+
+
+## Published model information in trusted operations (#637)
+
+The opt-in Models detail screen displays existing validated SSO name, description, context/output bounds, modality and parameter labels, and exact prompt/completion base rates in USD/token. Missing fields display Not published, null bounds Unknown, and empty label arrays None published; zero and decimal/scientific strings remain exact. Text-only rendering prevents metadata markup execution. Publications are not verified capabilities, enforced quotas, routing authority or billed request costs. Existing authentication/IAM/audit and expiry/logout/denial/navigation teardown remain unchanged. This is display-only, not CRUD, session acquisition or installed acceptance. See [plan](plans/637-operations-model-details.md).

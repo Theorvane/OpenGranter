@@ -24,3 +24,10 @@ Current non-aborted 401/403 terminates the grant; aborted prior-screen responses
 ## Models navigation in trusted operations (#637)
 
 The opt-in operations mount provides Models alongside History and Proxy tokens. Models uses the existing SSO /management/v1/models list/detail contract, bounded decoder and text-only renderer; it never falls back to proxy discovery. Loading, empty, missing and unavailable states permit the existing safe retry actions. Navigation aborts and disposes the prior screen; returning reloads the current scoped catalog. Retained controls cannot request or republish old data. A current 401/403 terminates all operations navigation; a stale denial cannot terminate its replacement. The existing trusted-session wrapper still owns expiry/logout. No authentication source or public entry is enabled, and this does not certify installed SSO or provider access. See docs/plans/637-operations-catalog.md (repository-root relative).
+
+
+## Published model information in trusted operations (#637)
+
+The opt-in Models detail screen displays existing validated SSO name, description, context/output bounds, modality and parameter labels, and exact prompt/completion base rates in USD/token. Missing fields display Not published, null bounds Unknown, and empty label arrays None published; zero and decimal/scientific strings remain exact. Text-only rendering prevents metadata markup execution. Publications are not verified capabilities, enforced quotas, routing authority or billed request costs. Existing authentication/IAM/audit and expiry/logout/denial/navigation teardown remain unchanged. This is display-only, not CRUD, session acquisition or installed acceptance. See [plan](../docs/plans/637-operations-model-details.md).
+
+Cases: rich data is text-only; unknown/absent/empty/zero remain distinct; malformed pricing suppresses the entire detail through the existing parser; loading, 401/403/503, back navigation and disposal remove stale publication. Test: test/management-operations-model-details.test.ts.
