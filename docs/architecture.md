@@ -1521,3 +1521,9 @@ The history DOM mount preserves the CsvDownloadResult port contract: only `start
 ## Management operations composition (#637)
 
 The additive operations-app.ts mount composes existing history and token panels using an already-authorized request port and a fresh download adapter factory per history visit. Each visit owns an epoch; detached controls and aborted/late responses cannot revive another visit. Current 401/403 disposes all children and leaves only the terminal boundary. Caller disposal remains mandatory on logout, known expiry or identity change. This does not decide SSO/CSRF/IdP contracts or activate the public entry.
+
+### Operations trusted-session adapter (#637)
+operations-session.ts composes the existing operations mount with the existing CatalogAuthorityGrant shape. Epoch isolation, per-grant DOM, capped/re-armed expiry scheduling and request/completion clock checks prevent stale work from surviving known expiry. Caller owns approved authentication and logout/identity notifications; server auth/IAM remains authoritative. No cookie/CSRF/IdP or public-entry wiring is inferred.
+
+### Operations body deadline enforcement (#637)
+The trusted operations adapter wraps response bodies with zero-prefetch streaming reads. Each read checks the current grant and clock before and after awaiting source data, including EOF; rejection cancels the reader without waiting for source cancellation before showing the safe boundary. Existing clients retain their bounded JSON/CSV parsers. This fixes the headers-before-expiry/body-after-expiry gap without buffering whole responses or changing authentication contracts.
