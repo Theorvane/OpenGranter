@@ -116,7 +116,18 @@ export function mountSessionManagementOperations(
           valid(current);
           throw new Error('Management request unavailable');
         }
-        if (!valid(current) || init.signal?.aborted) throw new Error('Management session stopped');
+        if (!valid(current) || init.signal?.aborted) {
+          // The request port may ignore abort and deliver headers after teardown.
+          // No consumer receives this response, so we own its body disposal.
+          try {
+            void response.body?.cancel().catch(() => {
+              /* Source diagnostics must remain private. */
+            });
+          } catch {
+            /* Locked bodies may refuse cancellation; still reject stale data. */
+          }
+          throw new Error('Management session stopped');
+        }
         if (response.status === 401 || response.status === 403) {
           clear(response.status === 401 ? 'unauthenticated' : 'denied');
         }
