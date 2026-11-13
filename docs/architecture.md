@@ -1506,3 +1506,7 @@ Management mutation body readers initiate cancellation without awaiting producer
 ## Management body cancellation ownership (#640)
 
 Management request bodies use a separate readable around the non-destructive IncomingMessage iterator. Cancelling the Fetch body does not destroy the socket required to deliver a safe rejection. Incomplete management input disables keep-alive for normal and fallback responses. Peer disconnect still aborts the request, and proxy body streaming is unchanged. See [contract](../contracts/management-socket-body.md).
+
+## Rejected response producer disposal (#640)
+
+The Node HTTP adapter initiates best-effort cancellation of discarded normal/custom fallback bodies before emitting its safe fallback. Invalid metadata cannot leave an untouched private response producer running. Cancellation rejection, synchronous failure, or an unsettled promise cannot delay or replace the fallback. Valid streams remain unchanged. Locked/consumed streams may refuse cleanup; this is not forced resource reclamation, a total request deadline, or mutation rollback. See [plan](plans/640-node-response-disposal.md).

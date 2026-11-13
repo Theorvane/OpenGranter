@@ -1954,3 +1954,7 @@ One opt-in history workspace composes the canonical usage/audit review clients f
 ## Management socket rejection acceptance (#640)
 
 On real loopback Node sockets, oversized and invalid UTF-8 issue/revoke uploads left open receive 400/no-store with the existing safe error/request ID, Connection: close, and no mutation. Normal authenticated issue/revoke still succeed exactly once. Peer disconnect before body completion must not mutate. These socket tests do not certify browser sessions, real SSO, installed PostgreSQL or provider acceptance.
+
+## Rejected response producer disposal (#640)
+
+The Node HTTP adapter initiates best-effort cancellation of discarded normal/custom fallback bodies before emitting its safe fallback. Invalid metadata cannot leave an untouched private response producer running. Cancellation rejection, synchronous failure, or an unsettled promise cannot delay or replace the fallback. Valid streams remain unchanged. Locked/consumed streams may refuse cleanup; this is not forced resource reclamation, a total request deadline, or mutation rollback. See [plan](plans/640-node-response-disposal.md).

@@ -48,3 +48,7 @@ The boundary performs no inference, provider secret lookup, limit check or usage
 ## Bounded body cleanup (#640)
 
 An oversized, malformed or aborted body never dispatches a mutation. Body-reader cancellation is initiated and rejections are handled privately, but a producer cancellation promise is not awaited before returning invalid_request. Reader lock release is best-effort. This is not a total request/read deadline: a producer that stalls before reaching the byte budget still needs transport cancellation. No retry or mutation rollback is implied.
+
+## Rejected response producer disposal (#640)
+
+The Node HTTP adapter initiates best-effort cancellation of discarded normal/custom fallback bodies before emitting its safe fallback. Invalid metadata cannot leave an untouched private response producer running. Cancellation rejection, synchronous failure, or an unsettled promise cannot delay or replace the fallback. Valid streams remain unchanged. Locked/consumed streams may refuse cleanup; this is not forced resource reclamation, a total request deadline, or mutation rollback. See [plan](../docs/plans/640-node-response-disposal.md).
