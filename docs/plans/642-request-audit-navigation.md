@@ -1,0 +1,6 @@
+# Usage request to audit investigation (#637, #642)
+
+1. Add an explicit per-usage-row action to the canonical history mount. Switch to Audit and load page one with the exact already-visible principal and request ID. Replace old audit drafts, cursor, model and time filters so attempt-adjacent events are not hidden. These are query values, never authority.
+2. Reuse the canonical audit review for fresh authorization, loading, empty, error, retry, pagination and explicit CSV. Preserve usage filters/data; do not claim complete causality or grant audit rights. No public entry/session/endpoint/retention changes.
+3. Behavioral RED before implementation: missing action. GREEN: encoded request IDs, prior-filter replacement, JSON/CSV agreement, retry, empty, 401/403 terminal clearing, stale handlers, disposal. Exercise actual loopback signed-SSO HTTP and migrated embedded PostgreSQL with foreign-principal isolation, fresh IAM denial and durable access auditing.
+4. Run history/operations regressions, full TypeScript/lint/planning checks and CI. Require exact-HEAD formal independent approval and mandatory CI before merge. Local fixture evidence is not deployed URL, real IdP, installed PostgreSQL or provider E2E.

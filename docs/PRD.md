@@ -1386,3 +1386,7 @@ The opt-in history/token operations adapter consumes an existing trusted request
 
 ### Operations streamed-body deadline (#637)
 The trusted operations lifecycle must enforce known expiry through body consumption, not only at response headers. A late streamed issuance body must never reveal its bearer secret after the deadline even with missed timer delivery; existing server authorization and uncertain mutation-outcome guidance remain unchanged.
+
+## Usage request audit investigation (#642)
+
+Each canonical usage row offers Audit for this request. It explicitly loads Audit page one with the already-visible exact principal and request ID, replacing old audit drafts, model/time constraints and cursor. Audit authorization is evaluated afresh by the existing API; this action grants no permission and does not imply complete causal coverage. Retry, pagination and explicit current-page CSV use the same query. Usage state is preserved until normal workspace invalidation. Loading/failure/empty states and shared terminal 401/403 clearing remain unchanged. No fetch occurs from retained stale/disposed controls. No public-entry, session, endpoint or retention change. See [plan](plans/642-request-audit-navigation.md).

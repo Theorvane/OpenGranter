@@ -1983,3 +1983,7 @@ The history DOM mount preserves the CsvDownloadResult port contract: only `start
 ### Streamed operations response expiry regression (#637)
 - Receive issuance status 201 before the grant deadline; deliver bytes or EOF after expiry without firing the timer. Require expired boundary, no issued-secret publication and cancellation of an open source.
 - Require successful streamed issuance before expiry; logout, identity replacement and screen navigation cancel a pending body without stale publication. Source failures show only generic uncertain-outcome guidance, never source diagnostics.
+
+## Usage request investigation (#642)
+
+Verify encoded exact request/principal JSON and current-page CSV, old audit filters/cursor replacement, preserved usage state, empty results, retry, stale handlers, disposal and shared 401/403 clearing. Local signed-fixture HTTP/PGlite evidence must prove foreign-principal isolation, fresh IAM denial and durable ready/forbidden audit; it is not deployed browser login or provider E2E.
