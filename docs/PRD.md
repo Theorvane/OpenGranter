@@ -1376,3 +1376,7 @@ The opt-in history DOM mount now connects trusted SSO usage/audit request ports 
 
 ## History CSV delivery failures (#642)
 The history DOM mount preserves the CsvDownloadResult port contract: only `started` means browser delivery initiation, not completed file persistence. Returned `unavailable`, `invalid`, `disposed`, and thrown adapter errors show a generic retryable CSV alert in the originating tab. Explicit retry clears that delivery alert; other tabs do not inherit it. Raw diagnostics are never rendered, and synchronous disposal during save cannot restore DOM or errors. This adds no session acquisition, authority, retention, deployment or provider behavior.
+
+## Caller-owned operations navigation (#637)
+
+An explicit approved caller can mount History and Proxy tokens together. Navigation disposes the previous screen, aborts local work and clears one-time token displays; a pending mutation may still complete and clearing never revokes tokens. Current-screen 401/403 terminates the whole mount. No session acquisition or public-entry activation is added. See [plan](plans/637-operations-navigation.md) and [contract](../contracts/management-operations.md).

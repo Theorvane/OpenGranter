@@ -1517,3 +1517,7 @@ The opt-in history DOM mount now connects trusted SSO usage/audit request ports 
 
 ## History CSV delivery failures (#642)
 The history DOM mount preserves the CsvDownloadResult port contract: only `started` means browser delivery initiation, not completed file persistence. Returned `unavailable`, `invalid`, `disposed`, and thrown adapter errors show a generic retryable CSV alert in the originating tab. Explicit retry clears that delivery alert; other tabs do not inherit it. Raw diagnostics are never rendered, and synchronous disposal during save cannot restore DOM or errors. This adds no session acquisition, authority, retention, deployment or provider behavior.
+
+## Management operations composition (#637)
+
+The additive operations-app.ts mount composes existing history and token panels using an already-authorized request port and a fresh download adapter factory per history visit. Each visit owns an epoch; detached controls and aborted/late responses cannot revive another visit. Current 401/403 disposes all children and leaves only the terminal boundary. Caller disposal remains mandatory on logout, known expiry or identity change. This does not decide SSO/CSRF/IdP contracts or activate the public entry.
