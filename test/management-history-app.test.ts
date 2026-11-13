@@ -95,6 +95,7 @@ function downloads() {
     },
     save(kind: 'usage' | 'audit', csv: string) {
       saved.push([kind, csv]);
+      return 'started' as const;
     },
     dispose() {
       disposed++;
@@ -348,4 +349,72 @@ test('retained handlers from a replaced screen cannot issue stale filter request
   await tick();
   assert.equal(calls, 2);
   app.dispose();
+});
+
+for (const failure of ['unavailable', 'invalid', 'disposed', 'throw'] as const)
+  test(`browser CSV ${failure} is generic, tab-scoped and retryable`, async () => {
+    const root = new Element();
+    let attempts = 0;
+    const app = mountHistoryWorkspace(
+      root,
+      async (path) =>
+        path.includes('format=csv')
+          ? new Response('header\nrow\n', {
+              headers: { 'content-type': 'text/csv', 'x-has-more': 'false' },
+            })
+          : page(path.includes('/audit?')),
+      {
+        save() {
+          if (++attempts > 1) return 'started' as const;
+          if (failure === 'throw') throw new Error('PRIVATE browser diagnostic');
+          return failure;
+        },
+        dispose() {},
+      },
+    );
+    await tick();
+    click(root, 'Download current page CSV');
+    await tick();
+    assert.match(text(root), /CSV unavailable/);
+    assert.ok(
+      nodes(root).some(
+        (n) => n.attributes.role === 'alert' && n.textContent?.includes('CSV unavailable'),
+      ),
+    );
+    assert.doesNotMatch(text(root), /PRIVATE|browser diagnostic/);
+    click(root, 'Audit');
+    await tick();
+    assert.doesNotMatch(text(root), /CSV unavailable/);
+    click(root, 'Usage');
+    assert.match(text(root), /CSV unavailable/);
+    click(root, 'Download current page CSV');
+    assert.doesNotMatch(text(root), /CSV unavailable/);
+    await tick();
+    assert.equal(attempts, 2);
+    assert.doesNotMatch(text(root), /CSV unavailable/);
+    app.dispose();
+  });
+
+test('reentrant download disposal cannot restore private DOM or error', async () => {
+  const root = new Element();
+  const app = mountHistoryWorkspace(
+    root,
+    async (path) =>
+      path.includes('format=csv')
+        ? new Response('header\nrow\n', {
+            headers: { 'content-type': 'text/csv', 'x-has-more': 'false' },
+          })
+        : page(),
+    {
+      save() {
+        app.dispose();
+        throw new Error('PRIVATE');
+      },
+      dispose() {},
+    },
+  );
+  await tick();
+  click(root, 'Download current page CSV');
+  await tick();
+  assert.equal(root.children.length, 0);
 });

@@ -2,11 +2,12 @@ import type { AuditFilters } from './audit-client.ts';
 import { mountManagementBoundaryView } from './boundary-view.ts';
 import type { CatalogRequest } from './catalog-client.ts';
 import type { CatalogElement } from './catalog-view.ts';
+import type { CsvDownloadResult } from './csv-download.ts';
 import { createHistoryWorkspace } from './history-workspace.ts';
 
 /** Compatible with createCsvDownload; ownership transfers to this mount. */
 export interface HistoryDownload {
-  save(kind: 'usage' | 'audit', csv: string): unknown;
+  save(kind: 'usage' | 'audit', csv: string): CsvDownloadResult;
   dispose(): void;
 }
 type Kind = 'usage' | 'audit';
@@ -23,6 +24,7 @@ export function mountHistoryWorkspace(
   let downloadDisposed = false;
   let active: Kind = 'usage';
   let generation = 0;
+  const deliveryFailed: Record<Kind, boolean> = { usage: false, audit: false };
   const filters: Record<Kind, AuditFilters> = { usage: {}, audit: {} };
   const drafts: Record<Kind, Map<keyof AuditFilters, string>> = {
     usage: new Map(),
@@ -58,13 +60,19 @@ export function mountHistoryWorkspace(
     return node;
   }
   async function exportCsv(kind: Kind) {
+    deliveryFailed[kind] = false;
     const result = await workspace[kind].exportCsv();
     if (!available() || result.state !== 'ready') return;
+    let started = false;
     try {
-      download.save(kind, result.csv);
+      started = download.save(kind, result.csv) === 'started';
     } catch {
-      /* No private diagnostic rendering. */
+      /* Render only the same generic, retryable delivery failure. */
     }
+    // A browser adapter may synchronously dispose the identity epoch.
+    if (!available()) return;
+    deliveryFailed[kind] = !started;
+    render();
   }
   function render() {
     generation++;
@@ -239,7 +247,7 @@ export function mountHistoryWorkspace(
     main.append(
       element('p', 'CSV downloads only this page. Exported files cannot be erased on logout.'),
     );
-    if (view.exportState !== 'idle') {
+    if (view.exportState !== 'idle' || deliveryFailed[kind]) {
       const message = element(
         'p',
         view.exportState === 'loading' ? 'Preparing CSV…' : 'CSV unavailable. Try again.',

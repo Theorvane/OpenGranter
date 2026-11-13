@@ -9,3 +9,6 @@ The opt-in mountHistoryWorkspace(root, trustedSsoRequest, downloadLease) connect
 - Fresh 401/403 in either history clears both tabs and releases download leases once. Dispose clears the DOM, invalidates retained controls, cancels pending work and releases leases once. Late exports after denial/disposal cannot save bytes. No credential storage, session acquisition, new IAM/audit policy, runtime activation or installed acceptance is implied.
 
 Evidence: test/management-history-app.test.ts and existing shared workspace/client suites. Native browser preview uses synthetic responses and is not company SSO, installed PostgreSQL or live-provider acceptance.
+
+## History CSV delivery failures (#642)
+The history DOM mount preserves the CsvDownloadResult port contract: only `started` means browser delivery initiation, not completed file persistence. Returned `unavailable`, `invalid`, `disposed`, and thrown adapter errors show a generic retryable CSV alert in the originating tab. Explicit retry clears that delivery alert; other tabs do not inherit it. Raw diagnostics are never rendered, and synchronous disposal during save cannot restore DOM or errors. This adds no session acquisition, authority, retention, deployment or provider behavior.

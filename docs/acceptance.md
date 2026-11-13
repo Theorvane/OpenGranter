@@ -1962,3 +1962,6 @@ The Node HTTP adapter initiates best-effort cancellation of discarded normal/cus
 ## Scoped history screen integration (#642)
 
 The opt-in history DOM mount now connects trusted SSO usage/audit request ports to native tab/filter, paging, retry and one-page CSV controls. It distinguishes exact estimated/reported/unknown costs and possible duplicates, projects only audit metadata, and clears both histories/download leases on fresh denial or caller teardown. Public session acquisition and entry activation remain unresolved and disabled. See [plan](plans/642-history-dom.md) and [contract](../contracts/history-dom.md); structural DOM and synthetic browser evidence do not certify installed SSO/PostgreSQL or real providers.
+
+## History CSV delivery failures (#642)
+The history DOM mount preserves the CsvDownloadResult port contract: only `started` means browser delivery initiation, not completed file persistence. Returned `unavailable`, `invalid`, `disposed`, and thrown adapter errors show a generic retryable CSV alert in the originating tab. Explicit retry clears that delivery alert; other tabs do not inherit it. Raw diagnostics are never rendered, and synchronous disposal during save cannot restore DOM or errors. This adds no session acquisition, authority, retention, deployment or provider behavior.
