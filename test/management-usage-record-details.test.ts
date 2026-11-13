@@ -41,6 +41,11 @@ function click(root: Element, label: string) {
   assert.ok(node, label);
   node.listeners.click?.();
 }
+async function waitFor(ready: () => boolean) {
+  const deadline = Date.now() + 5000;
+  while (!ready() && Date.now() < deadline) await tick();
+  assert.ok(ready(), 'local HTTP UI transition completed');
+}
 function record(overrides: Partial<Parameters<typeof buildUsageRecord>[0]> = {}) {
   return buildUsageRecord({
     principalId: 'human',
@@ -258,7 +263,7 @@ test('history inspects real local SSO HTTP and migrated embedded PostgreSQL ledg
       download(),
     );
     await pending;
-    await tick();
+    await waitFor(() => nodes(root).some((node) => node.tag === 'details'));
     assert.equal(values(root).get('Outcome'), 'failed');
     assert.equal(values(root).get('Input tokens'), '0');
     assert.equal(values(root).get('Attempt ID'), 'attempt-one');
@@ -277,7 +282,7 @@ test('history inspects real local SSO HTTP and migrated embedded PostgreSQL ledg
     });
     click(root, 'Apply filters');
     await pending;
-    await tick();
+    await waitFor(() => text(root).includes('Access denied'));
     assert.match(text(root), /Access denied/);
     assert.equal(
       nodes(root).some((n) => n.tag === 'details'),
