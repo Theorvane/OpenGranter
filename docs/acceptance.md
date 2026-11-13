@@ -1973,3 +1973,9 @@ The history DOM mount preserves the CsvDownloadResult port contract: only `start
 - Current history or token 401/403 removes all controls; retained handlers cannot restart work. Late aborted denial cannot erase the new visit.
 - Download factory failures remain generic and allow token navigation; reentrant disposal cannot revive DOM or expose cleanup diagnostics.
 - Canonical browser build succeeds. Synthetic browser navigation is not installed SSO or persistence acceptance.
+
+### Trusted-session operations lifecycle (#637)
+- With no grant or an invalid/expired grant: locked generic UI and no request. Valid trusted authority starts the existing history GET, never automatic token mutation.
+- Expiry removes retained issued-token text; missed timers cannot permit mutations or publish late responses. Logout/replacement abort pending work, release downloads and isolate old responses/timers.
+- 401/403 terminates the current non-aborted grant; aborted previous-screen denial cannot erase a current visit. Scheduling/clock failure and throwing cleanup remain generic and fail closed. Early timers re-arm; long waits are capped; dispose is terminal.
+- Evidence: test/management-operations-session.test.ts plus canonical browser bundle. Synthetic evidence is not deployed SSO, persistence, actual token revocation or provider acceptance.

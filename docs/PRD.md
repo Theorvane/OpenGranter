@@ -1380,3 +1380,6 @@ The history DOM mount preserves the CsvDownloadResult port contract: only `start
 ## Caller-owned operations navigation (#637)
 
 An explicit approved caller can mount History and Proxy tokens together. Navigation disposes the previous screen, aborts local work and clears one-time token displays; a pending mutation may still complete and clearing never revokes tokens. Current-screen 401/403 terminates the whole mount. No session acquisition or public-entry activation is added. See [plan](plans/637-operations-navigation.md) and [contract](../contracts/management-operations.md).
+
+### Trusted-session operations lifecycle (#637)
+The opt-in history/token operations adapter consumes an existing trusted request and absolute expiry, automatically clears visible issued secrets and aborts pending local work on known expiry, logout, identity replacement or disposal. It does not acquire a session or activate the public browser entry; installed login/API acceptance remains outstanding. See contracts/management-operations.md.
