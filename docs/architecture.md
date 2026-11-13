@@ -1527,3 +1527,7 @@ operations-session.ts composes the existing operations mount with the existing C
 
 ### Operations body deadline enforcement (#637)
 The trusted operations adapter wraps response bodies with zero-prefetch streaming reads. Each read checks the current grant and clock before and after awaiting source data, including EOF; rejection cancels the reader without waiting for source cancellation before showing the safe boundary. Existing clients retain their bounded JSON/CSV parsers. This fixes the headers-before-expiry/body-after-expiry gap without buffering whole responses or changing authentication contracts.
+
+## Canonical audit event inspection (#642)
+
+Canonical audit rows offer a native Inspect audit event disclosure for the existing authorized event ID and an explicit scalar metadata allowlist: model, route version, candidate/attempt ID, recorded upstream target, outcome, failure category, denial reason, possibly billed, upstream completed, count, target principal and read mode. Missing fields remain Unknown; zero and false remain distinct. The target does not establish the actual model served. No credential or policy references, raw details, nested objects, authorization arrays, prompt/response bodies or new fetches are displayed. Existing loading, failure, denial, navigation and identity teardown remove disclosures with their rows. Authentication, public activation, retention and deployment approvals remain unchanged. See [plan](plans/642-audit-event-details.md).
