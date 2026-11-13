@@ -1386,3 +1386,8 @@ The opt-in history/token operations adapter consumes an existing trusted request
 
 ### Operations streamed-body deadline (#637)
 The trusted operations lifecycle must enforce known expiry through body consumption, not only at response headers. A late streamed issuance body must never reveal its bearer secret after the deadline even with missed timer delivery; existing server authorization and uncertain mutation-outcome guidance remain unchanged.
+
+
+## Model navigation within trusted operations (#637)
+
+The opt-in trusted operations mount now connects Models list/detail to the existing scoped SSO catalog API, alongside History and Proxy tokens. It preserves loading, empty, missing, retry and global current-denial states; navigation disposes/aborts the prior screen and returning reloads data. Detached controls and late responses cannot revive old content. Existing server authentication, IAM, audit and trusted-session expiry remain authoritative; no login source, public activation or installed acceptance is added. See [plan](plans/637-operations-catalog.md) and [contract](../contracts/management-operations.md).
