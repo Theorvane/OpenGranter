@@ -1510,3 +1510,7 @@ Management request bodies use a separate readable around the non-destructive Inc
 ## Rejected response producer disposal (#640)
 
 The Node HTTP adapter initiates best-effort cancellation of discarded normal/custom fallback bodies before emitting its safe fallback. Invalid metadata cannot leave an untouched private response producer running. Cancellation rejection, synchronous failure, or an unsettled promise cannot delay or replace the fallback. Valid streams remain unchanged. Locked/consumed streams may refuse cleanup; this is not forced resource reclamation, a total request deadline, or mutation rollback. See [plan](plans/640-node-response-disposal.md).
+
+## Scoped history screen integration (#642)
+
+The opt-in history DOM mount now connects trusted SSO usage/audit request ports to native tab/filter, paging, retry and one-page CSV controls. It distinguishes exact estimated/reported/unknown costs and possible duplicates, projects only audit metadata, and clears both histories/download leases on fresh denial or caller teardown. Public session acquisition and entry activation remain unresolved and disabled. See [plan](plans/642-history-dom.md) and [contract](../contracts/history-dom.md); structural DOM and synthetic browser evidence do not certify installed SSO/PostgreSQL or real providers.
