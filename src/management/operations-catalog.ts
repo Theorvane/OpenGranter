@@ -1,6 +1,7 @@
 import type { CatalogRequest } from './catalog-client.ts';
 import { createSsoManagementCatalogSession } from './catalog-session.ts';
 import { type CatalogElement, renderCatalogView } from './catalog-view.ts';
+import { appendOperationsModelDetails } from './operations-model-details.ts';
 
 /** Request-only child of trusted operations, not an authentication source.
  * Parent owns authority, denial handling and logout/expiry teardown.
@@ -15,8 +16,11 @@ export function mountOperationsCatalog(root: CatalogElement, request: CatalogReq
     const pending = id === undefined ? session.list() : session.detail(id);
     renderCatalogView(root, session.snapshot(), actions);
     await pending;
-    if (!disposed && current === revision)
-      renderCatalogView(root, session.snapshot(), actions, true);
+    if (!disposed && current === revision) {
+      const snapshot = session.snapshot();
+      renderCatalogView(root, snapshot, actions, true);
+      if (snapshot.state === 'detail') appendOperationsModelDetails(root, snapshot.model);
+    }
   }
   const actions = {
     list: () => {
