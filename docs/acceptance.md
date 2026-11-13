@@ -1950,3 +1950,7 @@ One opt-in history workspace composes the canonical usage/audit review clients f
 ## Management mutation body cleanup (#640)
 
 - Issuance and revocation return no-store 400 invalid_request for oversized bodies even when producer cancellation never settles; authentication runs first and no mutation is dispatched. Verify abort, rejecting cleanup and unchanged valid/denied/failed-audit paths. This is stream-boundary evidence, not browser or installed deployment acceptance.
+
+## Management socket rejection acceptance (#640)
+
+On real loopback Node sockets, oversized and invalid UTF-8 issue/revoke uploads left open receive 400/no-store with the existing safe error/request ID, Connection: close, and no mutation. Normal authenticated issue/revoke still succeed exactly once. Peer disconnect before body completion must not mutate. These socket tests do not certify browser sessions, real SSO, installed PostgreSQL or provider acceptance.

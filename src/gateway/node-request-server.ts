@@ -43,9 +43,19 @@ export function createNodeRequestServer(
         signal: cancellation.signal,
         ...(['GET', 'HEAD'].includes(method)
           ? {}
-          : { body: Readable.toWeb(incoming), duplex: 'half' as const }),
+          : {
+              body: Readable.toWeb(
+                managementRequest
+                  ? Readable.from(incoming.iterator({ destroyOnReturn: false }))
+                  : incoming,
+              ),
+              duplex: 'half' as const,
+            }),
       } as RequestInit & { duplex?: 'half' });
       const response = await handle(request);
+      // A rejected management upload must not destroy its response socket.
+      // Do not drain unbounded input or reuse a connection with unread bytes.
+      if (managementRequest && !incoming.readableEnded) outgoing.shouldKeepAlive = false;
       if (cancellation.signal.aborted || outgoing.destroyed) {
         await response.body?.cancel().catch(() => undefined);
         return;
@@ -67,6 +77,7 @@ export function createNodeRequestServer(
         outgoing.end();
       }
     } catch {
+      if (managementRequest && !incoming.readableEnded) outgoing.shouldKeepAlive = false;
       if (outgoing.destroyed) {
         return;
       }
