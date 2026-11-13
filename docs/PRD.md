@@ -1383,3 +1383,6 @@ An explicit approved caller can mount History and Proxy tokens together. Navigat
 
 ### Trusted-session operations lifecycle (#637)
 The opt-in history/token operations adapter consumes an existing trusted request and absolute expiry, automatically clears visible issued secrets and aborts pending local work on known expiry, logout, identity replacement or disposal. It does not acquire a session or activate the public browser entry; installed login/API acceptance remains outstanding. See contracts/management-operations.md.
+
+### Operations streamed-body deadline (#637)
+The trusted operations lifecycle must enforce known expiry through body consumption, not only at response headers. A late streamed issuance body must never reveal its bearer secret after the deadline even with missed timer delivery; existing server authorization and uncertain mutation-outcome guidance remain unchanged.

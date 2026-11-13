@@ -1524,3 +1524,6 @@ The additive operations-app.ts mount composes existing history and token panels 
 
 ### Operations trusted-session adapter (#637)
 operations-session.ts composes the existing operations mount with the existing CatalogAuthorityGrant shape. Epoch isolation, per-grant DOM, capped/re-armed expiry scheduling and request/completion clock checks prevent stale work from surviving known expiry. Caller owns approved authentication and logout/identity notifications; server auth/IAM remains authoritative. No cookie/CSRF/IdP or public-entry wiring is inferred.
+
+### Operations body deadline enforcement (#637)
+The trusted operations adapter wraps response bodies with zero-prefetch streaming reads. Each read checks the current grant and clock before and after awaiting source data, including EOF; rejection cancels the reader without waiting for source cancellation before showing the safe boundary. Existing clients retain their bounded JSON/CSV parsers. This fixes the headers-before-expiry/body-after-expiry gap without buffering whole responses or changing authentication contracts.

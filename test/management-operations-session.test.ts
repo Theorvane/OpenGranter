@@ -419,3 +419,118 @@ test('reentrant grant replacement during download construction cannot clear the 
   assert.equal(cleanups, 2);
   assert.equal(root.children.length, 0);
 });
+
+for (const late of ['bytes', 'eof'] as const) {
+  test(`streamed issuance rejects late ${late} after expiry without timer delivery`, async () => {
+    const f = fixture();
+    let source: ReadableStreamDefaultController<Uint8Array> | undefined;
+    let cancelled = 0;
+    f.app.authorize({
+      expiresAt: 2000,
+      request: async (_path, init) =>
+        init.method !== 'POST'
+          ? empty()
+          : new Response(
+              new ReadableStream<Uint8Array>({
+                start(controller) {
+                  source = controller;
+                },
+                cancel() {
+                  cancelled++;
+                },
+              }),
+              { status: 201, headers: { 'content-type': 'application/json' } },
+            ),
+    });
+    await tick();
+    click(f.root, 'Proxy tokens');
+    enter(f.root, 'Principal ID', 'person');
+    enter(f.root, 'Expiry (Unix milliseconds, integer)', '3000');
+    click(f.root, 'Review issuance');
+    click(f.root, 'Confirm issuance');
+    await tick();
+    assert.ok(source);
+    const bytes = new TextEncoder().encode(
+      JSON.stringify({ credentialId: 'credential', token: 'synthetic-secret' }),
+    );
+    if (late === 'eof') {
+      source.enqueue(bytes);
+      await tick();
+    }
+    f.setTime(2000);
+    if (late === 'bytes') source.enqueue(bytes);
+    else source.close();
+    await tick();
+    assert.match(text(f.root), /Session expired/);
+    assert.doesNotMatch(text(f.root), /synthetic-secret/);
+    if (late === 'bytes') assert.equal(cancelled, 1);
+    f.app.dispose();
+  });
+}
+
+for (const outcome of ['success', 'logout', 'replace', 'navigate', 'failure'] as const) {
+  test(`streamed issuance handles ${outcome} without stale publication or private diagnostics`, async () => {
+    const f = fixture();
+    let source: ReadableStreamDefaultController<Uint8Array> | undefined;
+    let cancelled = 0;
+    f.app.authorize({
+      expiresAt: 2000,
+      request: async (_path, init) =>
+        init.method !== 'POST'
+          ? empty()
+          : new Response(
+              new ReadableStream<Uint8Array>({
+                start(controller) {
+                  source = controller;
+                },
+                cancel() {
+                  cancelled++;
+                },
+              }),
+              { status: 201, headers: { 'content-type': 'application/json' } },
+            ),
+    });
+    await tick();
+    click(f.root, 'Proxy tokens');
+    enter(f.root, 'Principal ID', 'person');
+    enter(f.root, 'Expiry (Unix milliseconds, integer)', '3000');
+    click(f.root, 'Review issuance');
+    click(f.root, 'Confirm issuance');
+    await tick();
+    assert.ok(source);
+    const bytes = new TextEncoder().encode(
+      JSON.stringify({ credentialId: 'credential', token: 'synthetic-secret' }),
+    );
+    source.enqueue(bytes.subarray(0, 20));
+    await tick();
+    if (outcome === 'success') {
+      source.enqueue(bytes.subarray(20));
+      source.close();
+      await tick();
+      assert.match(text(f.root), /synthetic-secret/);
+    } else if (outcome === 'failure') {
+      source.error(new Error('private-source-diagnostic'));
+      await tick();
+      assert.doesNotMatch(text(f.root), /synthetic-secret|private-source-diagnostic/);
+      assert.match(text(f.root), /outcome is unknown/i);
+    } else {
+      if (outcome === 'logout') f.app.clear();
+      if (outcome === 'replace') f.app.authorize({ expiresAt: 4000, request: async () => empty() });
+      if (outcome === 'navigate') click(f.root, 'History');
+      await tick();
+      assert.equal(cancelled, 1);
+      assert.doesNotMatch(text(f.root), /synthetic-secret/);
+      f.setTime(2000);
+      f.timers[0]?.fire();
+      assert.match(
+        text(f.root),
+        outcome === 'logout'
+          ? /Sign-in required/
+          : outcome === 'replace'
+            ? /No history matches/
+            : /Session expired/,
+      );
+    }
+    f.app.dispose();
+  });
+}

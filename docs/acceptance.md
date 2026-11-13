@@ -1979,3 +1979,7 @@ The history DOM mount preserves the CsvDownloadResult port contract: only `start
 - Expiry removes retained issued-token text; missed timers cannot permit mutations or publish late responses. Logout/replacement abort pending work, release downloads and isolate old responses/timers.
 - 401/403 terminates the current non-aborted grant; aborted previous-screen denial cannot erase a current visit. Scheduling/clock failure and throwing cleanup remain generic and fail closed. Early timers re-arm; long waits are capped; dispose is terminal.
 - Evidence: test/management-operations-session.test.ts plus canonical browser bundle. Synthetic evidence is not deployed SSO, persistence, actual token revocation or provider acceptance.
+
+### Streamed operations response expiry regression (#637)
+- Receive issuance status 201 before the grant deadline; deliver bytes or EOF after expiry without firing the timer. Require expired boundary, no issued-secret publication and cancellation of an open source.
+- Require successful streamed issuance before expiry; logout, identity replacement and screen navigation cancel a pending body without stale publication. Source failures show only generic uncertain-outcome guidance, never source diagnostics.

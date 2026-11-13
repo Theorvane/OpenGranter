@@ -120,7 +120,43 @@ export function mountSessionManagementOperations(
         if (response.status === 401 || response.status === 403) {
           clear(response.status === 401 ? 'unauthenticated' : 'denied');
         }
-        return response;
+        if (!response.body) return response;
+        const reader = response.body.getReader();
+        const stop = async () => {
+          try {
+            await reader.cancel();
+          } catch {
+            /* Source diagnostics must remain private. */
+          }
+        };
+        const active = () => valid(current) && !init.signal?.aborted;
+        // Do not prefetch: every delivery, including EOF, must check authority
+        // after the source read completes, not just when headers arrive.
+        const body = new ReadableStream<Uint8Array>(
+          {
+            async pull(controller) {
+              try {
+                if (!active()) throw new Error('Management session stopped');
+                const chunk = await reader.read();
+                if (!active()) throw new Error('Management session stopped');
+                if (chunk.done) controller.close();
+                else controller.enqueue(chunk.value);
+              } catch {
+                valid(current);
+                // Do not wait for a potentially stalled source cancellation.
+                void stop();
+                controller.error(new Error('Management response unavailable'));
+              }
+            },
+            cancel: stop,
+          },
+          { highWaterMark: 0 },
+        );
+        return new Response(body, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: response.headers,
+        });
       };
       // Isolate each grant's DOM so reentrant construction/late teardown cannot
       // clear a replacement grant's root or revive detached private content.

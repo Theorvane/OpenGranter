@@ -22,3 +22,7 @@
 
 ## Delivery
 - Record RED/GREEN and exact validation limitations in PR. Obtain exact-head CI and formal independent approval before merge. Revert this opt-in adapter independently; existing entry and APIs remain unchanged.
+
+## Review correction: streamed bodies
+- PR910 review found headers can arrive before expiry while token body completes after it with no timer delivery. Guard each body read (including EOF) before delivering bytes to existing bounded clients; preserve streaming/backpressure rather than buffering unbounded bodies. Cancel the source on rejection/caller cancellation and isolate old grants. No API, authentication or policy change.
+- Regression RED first: streamed issuance headers before expiry, bytes or EOF after expiry, missed timer; success before expiry, late old-grant body isolation and source cancellation. Existing JSON, CSV and issuance readers remain bounded.
