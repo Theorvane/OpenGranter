@@ -2,6 +2,7 @@ import { mountManagementBoundaryView } from './boundary-view.ts';
 import type { CatalogRequest } from './catalog-client.ts';
 import type { CatalogElement } from './catalog-view.ts';
 import { type HistoryDownload, mountHistoryWorkspace } from './history-app.ts';
+import { mountOperationsCatalog } from './operations-catalog.ts';
 import { mountTokenManagementPanel } from './token-management-panel.ts';
 
 /** Explicit approved-caller integration, not an authentication boundary.
@@ -27,7 +28,7 @@ export function mountManagementOperations(
     previous?.dispose();
     root.replaceChildren();
   }
-  function navigate(kind: 'history' | 'tokens') {
+  function navigate(kind: 'history' | 'tokens' | 'models') {
     if (stopped) return;
     const current = ++epoch;
     clear();
@@ -54,6 +55,7 @@ export function mountManagementOperations(
     navigation.setAttribute('aria-label', 'Management operations');
     for (const [target, label] of [
       ['history', 'History'],
+      ['models', 'Models'],
       ['tokens', 'Proxy tokens'],
     ] as const) {
       const button = element('button', label);
@@ -96,6 +98,8 @@ export function mountManagementOperations(
         return;
       }
       mounted = mountHistoryWorkspace(content, guarded, download);
+    } else if (kind === 'models') {
+      mounted = mountOperationsCatalog(content, guarded);
     } else {
       mounted = mountTokenManagementPanel(content, guarded);
     }

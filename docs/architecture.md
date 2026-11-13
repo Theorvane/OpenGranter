@@ -1527,3 +1527,8 @@ operations-session.ts composes the existing operations mount with the existing C
 
 ### Operations body deadline enforcement (#637)
 The trusted operations adapter wraps response bodies with zero-prefetch streaming reads. Each read checks the current grant and clock before and after awaiting source data, including EOF; rejection cancels the reader without waiting for source cancellation before showing the safe boundary. Existing clients retain their bounded JSON/CSV parsers. This fixes the headers-before-expiry/body-after-expiry gap without buffering whole responses or changing authentication contracts.
+
+
+## Model navigation within trusted operations (#637)
+
+The opt-in trusted operations mount now connects Models list/detail to the existing scoped SSO catalog API, alongside History and Proxy tokens. It preserves loading, empty, missing, retry and global current-denial states; navigation disposes/aborts the prior screen and returning reloads data. Detached controls and late responses cannot revive old content. Existing server authentication, IAM, audit and trusted-session expiry remain authoritative; no login source, public activation or installed acceptance is added. See [plan](plans/637-operations-catalog.md) and [contract](../contracts/management-operations.md).
