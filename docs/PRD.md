@@ -1365,3 +1365,7 @@ Management token issuance/revocation body cleanup does not await untrusted produ
 ## Management rejection delivery on Node sockets (#640)
 
 The Node management transport preserves bounded invalid-body responses while an upload remains open. Cancellation does not destroy the shared response socket; incomplete input disables connection reuse without draining unbounded bytes. Authentication, audit and mutation contracts remain unchanged. See [plan](plans/640-management-socket-cancellation.md).
+
+## Rejected response producer disposal (#640)
+
+The Node HTTP adapter initiates best-effort cancellation of discarded normal/custom fallback bodies before emitting its safe fallback. Invalid metadata cannot leave an untouched private response producer running. Cancellation rejection, synchronous failure, or an unsettled promise cannot delay or replace the fallback. Valid streams remain unchanged. Locked/consumed streams may refuse cleanup; this is not forced resource reclamation, a total request deadline, or mutation rollback. See [plan](plans/640-node-response-disposal.md).
