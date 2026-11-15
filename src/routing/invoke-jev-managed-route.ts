@@ -1,7 +1,11 @@
 import type { AuditAttribution } from '../audit/attribution.ts';
 import { validRetryAfterSeconds } from '../providers/retry-after.ts';
 import { snapshotUpstreamStatus, type UpstreamStatus } from '../providers/upstream-status.ts';
-import { captureAttemptUsage, type UsageHandoff } from '../usage/capture-attempt.ts';
+import {
+  captureAttemptPrice,
+  captureAttemptUsage,
+  type UsageHandoff,
+} from '../usage/capture-attempt.ts';
 import {
   authorizeCandidates,
   type CandidateAuthorizationInput,
@@ -227,7 +231,11 @@ export async function invokeManagedRoute<T>(
   let earlierAttemptPossiblyBilled = false;
   for (const [index, candidate] of attempts.entries()) {
     const startedAt = input.ports.now?.() ?? Date.now();
-    async function usageUnavailable(outcome: 'succeeded' | 'failed', possiblyBilled: boolean) {
+    async function usageUnavailable(
+      outcome: 'succeeded' | 'failed',
+      possiblyBilled: boolean,
+      responsePossiblyBilled = true,
+    ) {
       try {
         await input.ports.writeAudit({
           ...base,
@@ -240,7 +248,26 @@ export async function invokeManagedRoute<T>(
       } catch {
         // The response still fails closed; the ledger adapter owns durable recovery.
       }
-      return { status: 'failed', reason: 'usage-unavailable', possiblyBilled: true } as const;
+      return {
+        status: 'failed',
+        reason: 'usage-unavailable',
+        possiblyBilled: responsePossiblyBilled,
+      } as const;
+    }
+    let priceSnapshot: ReturnType<typeof captureAttemptPrice>;
+    try {
+      priceSnapshot = captureAttemptPrice(input.ports, {
+        routeVersion: input.routeVersion,
+        requestId: input.requestId,
+        modelAlias: input.modelAlias,
+        routeKind: 'managed',
+        upstreamModelId: candidate.upstreamModelId,
+        selectedCandidateId: candidate.id,
+        attemptNumber: index + 1,
+        startedAt,
+      });
+    } catch {
+      return usageUnavailable('failed', false, earlierAttemptPossiblyBilled);
     }
     let response: T;
     try {
@@ -318,6 +345,7 @@ export async function invokeManagedRoute<T>(
           actualInferenceProviderId: candidate.providerId,
           startedAt,
           outcome: 'succeeded',
+          priceSnapshot,
           possiblyBilled: true,
           possibleDuplicate: earlierAttemptPossiblyBilled,
           response,

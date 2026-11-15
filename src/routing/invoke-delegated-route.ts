@@ -7,7 +7,11 @@ import {
 } from '../providers/openrouter-chat.ts';
 import { validRetryAfterSeconds } from '../providers/retry-after.ts';
 import { snapshotUpstreamStatus, type UpstreamStatus } from '../providers/upstream-status.ts';
-import { captureAttemptUsage, type UsageHandoff } from '../usage/capture-attempt.ts';
+import {
+  captureAttemptPrice,
+  captureAttemptUsage,
+  type UsageHandoff,
+} from '../usage/capture-attempt.ts';
 import {
   authorizeCandidates,
   type CandidateAuthorizationInput,
@@ -156,7 +160,11 @@ export async function invokeDelegatedRoute<T>(
   }
 
   const candidateIds = selected.map((candidate) => candidate.id);
-  async function usageUnavailable(outcome: 'succeeded' | 'failed', possiblyBilled: boolean) {
+  async function usageUnavailable(
+    outcome: 'succeeded' | 'failed',
+    possiblyBilled: boolean,
+    responsePossiblyBilled = true,
+  ) {
     try {
       await input.ports.writeAudit({
         ...base,
@@ -169,7 +177,11 @@ export async function invokeDelegatedRoute<T>(
     } catch {
       // The response still fails closed; the ledger adapter owns durable recovery.
     }
-    return { status: 'failed', reason: 'usage-unavailable', possiblyBilled: true } as const;
+    return {
+      status: 'failed',
+      reason: 'usage-unavailable',
+      possiblyBilled: responsePossiblyBilled,
+    } as const;
   }
   try {
     await input.ports.writeAudit({
@@ -185,6 +197,21 @@ export async function invokeDelegatedRoute<T>(
 
   let response: T;
   const startedAt = input.ports.now?.() ?? Date.now();
+  let priceSnapshot: ReturnType<typeof captureAttemptPrice>;
+  try {
+    priceSnapshot = captureAttemptPrice(input.ports, {
+      routeVersion: input.routeVersion,
+      requestId: input.requestId,
+      modelAlias: input.modelAlias,
+      routeKind: 'delegated',
+      upstreamModelId,
+      selectedCandidateId: selected.length === 1 ? (selected[0]?.id ?? null) : null,
+      attemptNumber: 1,
+      startedAt,
+    });
+  } catch {
+    return usageUnavailable('failed', false, false);
+  }
   try {
     response = await invokeOpenRouter(
       input.credentialRef,
@@ -261,6 +288,7 @@ export async function invokeDelegatedRoute<T>(
         selectedCandidateId: selected.length === 1 ? (selected[0]?.id ?? null) : null,
         startedAt,
         outcome: 'succeeded',
+        priceSnapshot,
         possiblyBilled: true,
         possibleDuplicate: false,
         response,
