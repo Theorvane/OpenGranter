@@ -1527,3 +1527,6 @@ operations-session.ts composes the existing operations mount with the existing C
 
 ### Operations body deadline enforcement (#637)
 The trusted operations adapter wraps response bodies with zero-prefetch streaming reads. Each read checks the current grant and clock before and after awaiting source data, including EOF; rejection cancels the reader without waiting for source cancellation before showing the safe boundary. Existing clients retain their bounded JSON/CSV parsers. This fixes the headers-before-expiry/body-after-expiry gap without buffering whole responses or changing authentication contracts.
+
+## Issued-token revocation handoff (#640)
+The composed canonical token panel offers Review revocation of issued token after successful issuance. This passes only the exact credential ID to the existing revocation review, clears owned one-time secret nodes, and still requires a separate Confirm revocation before any POST. Cancel or clearing does not revoke. Prior unsubmitted review controls become stale; in-flight revocation cannot be replaced and shows a generic busy status while preserving the one-time display for retry. No automatic retry, new authority, endpoint, public-entry activation or session behavior. See [plan](plans/640-issued-token-revocation.md).

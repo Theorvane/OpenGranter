@@ -1983,3 +1983,6 @@ The history DOM mount preserves the CsvDownloadResult port contract: only `start
 ### Streamed operations response expiry regression (#637)
 - Receive issuance status 201 before the grant deadline; deliver bytes or EOF after expiry without firing the timer. Require expired boundary, no issued-secret publication and cancellation of an open source.
 - Require successful streamed issuance before expiry; logout, identity replacement and screen navigation cancel a pending body without stale publication. Source failures show only generic uncertain-outcome guidance, never source diagnostics.
+
+## Issued-token revocation handoff (#640)
+The composed canonical token panel offers Review revocation of issued token after successful issuance. This passes only the exact credential ID to the existing revocation review, clears owned one-time secret nodes, and still requires a separate Confirm revocation before any POST. Cancel or clearing does not revoke. Prior unsubmitted review controls become stale; in-flight revocation cannot be replaced and shows a generic busy status while preserving the one-time display for retry. No automatic retry, new authority, endpoint, public-entry activation or session behavior. See [plan](plans/640-issued-token-revocation.md).

@@ -13,6 +13,56 @@ export function mountTokenRevocationPanel(root: CatalogElement, request: Catalog
     if (text !== undefined) node.textContent = text;
     return node;
   };
+  function show(...nodes: CatalogElement[]) {
+    const section = element('section');
+    section.setAttribute('aria-label', 'Proxy-token revocation');
+    section.append(element('h2', 'Revoke proxy token'), ...nodes);
+    root.replaceChildren(section);
+  }
+  function review(id: string): boolean {
+    if (stopped || locked || pending || !validCredentialId(id)) return false;
+    const confirmTurn = ++generation;
+    const active = () => !stopped && !locked && !pending && generation === confirmTurn;
+    const warning = element('p', `Confirm revocation for credential ID: ${id}`);
+    warning.setAttribute('role', 'alert');
+    const confirm = element('button', 'Confirm revocation');
+    confirm.setAttribute('type', 'button');
+    const cancel = element('button', 'Cancel');
+    cancel.setAttribute('type', 'button');
+    cancel.addEventListener('click', () => {
+      if (active()) render();
+    });
+    confirm.addEventListener('click', () => {
+      if (!active()) return;
+      const controller = new AbortController();
+      pending = controller;
+      ++generation;
+      const waiting = element('p', 'Revocation in progress.');
+      waiting.setAttribute('role', 'status');
+      show(waiting);
+      void revokeManagementToken(request, id, controller.signal).then((result) => {
+        if (stopped || pending !== controller) return;
+        pending = undefined;
+        if (result.state === 'unauthenticated' || result.state === 'denied') {
+          locked = true;
+          render(
+            result.state === 'unauthenticated'
+              ? 'Sign in again before managing tokens.'
+              : 'Token management access denied.',
+          );
+        } else if (result.state === 'ready') {
+          render(result.revoked ? 'Token revocation confirmed.' : 'No token revocation reported.');
+        } else {
+          render(
+            'Revocation outcome is unknown. It may have completed. Verify before submitting another request.',
+          );
+        }
+      });
+    });
+    show(warning, confirm, cancel);
+    confirm.focus();
+    return true;
+  }
   function render(
     message = 'Revoke a proxy token using its credential ID, not its bearer secret.',
   ) {
@@ -31,9 +81,9 @@ export function mountTokenRevocationPanel(root: CatalogElement, request: Catalog
       input.setAttribute('autocomplete', 'off');
       input.setAttribute('maxlength', '256');
       label.append(input);
-      const review = element('button', 'Review revocation');
-      review.setAttribute('type', 'button');
-      review.addEventListener('click', () => {
+      const reviewButton = element('button', 'Review revocation');
+      reviewButton.setAttribute('type', 'button');
+      reviewButton.addEventListener('click', () => {
         if (!current()) return;
         const id = input.value ?? '';
         if (!validCredentialId(id)) {
@@ -41,55 +91,15 @@ export function mountTokenRevocationPanel(root: CatalogElement, request: Catalog
           return;
         }
         input.value = '';
-        const confirmTurn = ++generation;
-        const active = () => !stopped && !locked && !pending && generation === confirmTurn;
-        const warning = element('p', `Confirm revocation for credential ID: ${id}`);
-        warning.setAttribute('role', 'alert');
-        const confirm = element('button', 'Confirm revocation');
-        confirm.setAttribute('type', 'button');
-        const cancel = element('button', 'Cancel');
-        cancel.setAttribute('type', 'button');
-        cancel.addEventListener('click', () => {
-          if (active()) render();
-        });
-        confirm.addEventListener('click', () => {
-          if (!active()) return;
-          const controller = new AbortController();
-          pending = controller;
-          ++generation;
-          const waiting = element('p', 'Revocation in progress.');
-          waiting.setAttribute('role', 'status');
-          root.replaceChildren(waiting);
-          void revokeManagementToken(request, id, controller.signal).then((result) => {
-            if (stopped || pending !== controller) return;
-            pending = undefined;
-            if (result.state === 'unauthenticated' || result.state === 'denied') {
-              locked = true;
-              render(
-                result.state === 'unauthenticated'
-                  ? 'Sign in again before managing tokens.'
-                  : 'Token management access denied.',
-              );
-            } else if (result.state === 'ready') {
-              render(
-                result.revoked ? 'Token revocation confirmed.' : 'No token revocation reported.',
-              );
-            } else {
-              render(
-                'Revocation outcome is unknown. It may have completed. Verify before submitting another request.',
-              );
-            }
-          });
-        });
-        root.replaceChildren(warning, confirm, cancel);
-        confirm.focus();
+        review(id);
       });
-      section.append(label, review);
+      section.append(label, reviewButton);
     }
     root.replaceChildren(section);
   }
   render();
   return {
+    review,
     dispose() {
       stopped = true;
       ++generation;

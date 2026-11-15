@@ -31,9 +31,12 @@ export function mountTokenManagementPanel(root: CatalogElement, request: Catalog
   const revocationRoot = root.ownerDocument.createElement('div');
   section.append(issuanceRoot, revocationRoot);
   root.replaceChildren(section);
+  const revocation = mountTokenRevocationPanel(revocationRoot, guardedRequest);
   children.push(
-    mountTokenIssuancePanel(issuanceRoot, guardedRequest),
-    mountTokenRevocationPanel(revocationRoot, guardedRequest),
+    mountTokenIssuancePanel(issuanceRoot, guardedRequest, {
+      reviewRevocation: (credentialId) => !stopped && revocation.review(credentialId),
+    }),
+    revocation,
   );
   return {
     dispose() {
