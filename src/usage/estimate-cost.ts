@@ -24,11 +24,10 @@ function decimal(value: unknown): value is string {
   );
 }
 
-/** Exact flat aggregate estimate only; never rounding, invoice or budget authority. */
-export function estimateUsageCost(
-  usage: TokenUsage,
+/** Detach and validate trusted pricing before asynchronous provider work. */
+export function snapshotFlatTokenPrice(
   price: FlatTokenPriceSnapshot | null | undefined,
-): EstimatedCost | null {
+): FlatTokenPriceSnapshot | null {
   if (price == null) return null;
   let input: string;
   let output: string;
@@ -56,6 +55,28 @@ export function estimateUsageCost(
   } catch {
     throw new InvalidUsagePrice();
   }
+  return Object.freeze({
+    kind: 'flat-token',
+    priceVersion: version,
+    currency,
+    inputPerToken: input,
+    outputPerToken: output,
+  });
+}
+
+/** Exact flat aggregate estimate only; never rounding, invoice or budget authority. */
+export function estimateUsageCost(
+  usage: TokenUsage,
+  price: FlatTokenPriceSnapshot | null | undefined,
+): EstimatedCost | null {
+  const snapshot = snapshotFlatTokenPrice(price);
+  if (snapshot === null) return null;
+  const {
+    inputPerToken: input,
+    outputPerToken: output,
+    priceVersion: version,
+    currency,
+  } = snapshot;
   const { status, promptTokens, completionTokens, totalTokens } = usage;
   const count = (value: unknown): value is number =>
     typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;

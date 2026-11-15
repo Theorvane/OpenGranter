@@ -1390,3 +1390,7 @@ The trusted operations lifecycle must enforce known expiry through body consumpt
 ## Versioned attempt estimate calculation (#642)
 
 The existing accounting handoff can now attach an exact flat aggregate token-cost estimate from an explicitly caller-supplied applicable version. Preserve unknown usage as unknown, actual zero as zero and estimates separately from reported bills. No automatic price selection, discovery repricing, gateway configuration activation, invoice reconciliation or budget semantics. See [contract](../contracts/versioned-attempt-estimates.md) and [plan](plans/642-versioned-attempt-estimates.md).
+
+## Internal attempt-start pricing handoff (#642)
+
+Delegated and managed nonstream route orchestration now optionally captures a trusted-composer flat-token version before each authorized provider attempt, detaching mutable sources and preserving per-candidate fallback accounting. Price failures prevent dispatch without fabricated usage/billing. See [plan](plans/642-attempt-start-prices.md) and [contract](../contracts/attempt-start-prices.md). No gateway runtime config supplies this optional port; catalog CRUD/effective-version selection, full pricing and installed/browser/provider acceptance remain missing.

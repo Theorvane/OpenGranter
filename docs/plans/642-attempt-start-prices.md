@@ -1,0 +1,7 @@
+# Attempt-start price snapshots (#642)
+
+1. Extend only the internal routing accounting port, not HTTP/configuration or catalog authority. A trusted composer may provide an applicable flat-token price for the exact route/model/candidate and attempt start timestamp. No default or discovery-based selection is implemented.
+2. First reproduce missing estimates through real delegated/managed orchestration. Check selection happens after existing authorization/limits and before provider dispatch, once per attempt, with a detached immutable value.
+3. Validate supplied snapshots before dispatch. Missing price is unknown. A configured resolver failure or malformed price prevents that dispatch, returns usage-unavailable and attempts the existing mandatory accounting-failure audit without copying private price errors. Do not fabricate a usage row for an undispatched attempt.
+4. Preserve fallback order, authorization, audits, limits, awaited ledger handoff and possibly-billed flags. Snapshot failures cannot trigger fallback or become billed attempts. Prior potentially billed attempts remain marked. Disabled usage recording must not resolve pricing.
+5. Verify exact-decimal estimates, in-flight mutation, per-candidate fallback, unknown/failed usage, denial, resolver failures, and existing routing regressions. Require independent exact-head approval and full required CI before merge. No activation, price selection policy, billing authority, live providers or deployment acceptance.

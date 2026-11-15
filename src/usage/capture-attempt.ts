@@ -1,12 +1,40 @@
 import type { AuditAttribution } from '../audit/attribution.ts';
 import type { RouteKind } from '../routing/authorize-candidates.ts';
-import { estimateUsageCost, type FlatTokenPriceSnapshot } from './estimate-cost.ts';
+import {
+  estimateUsageCost,
+  type FlatTokenPriceSnapshot,
+  snapshotFlatTokenPrice,
+} from './estimate-cost.ts';
 import { buildUsageRecord, type UsageRecord } from './record-usage.ts';
 
+export interface AttemptPriceContext {
+  readonly routeVersion: string;
+  readonly requestId: string;
+  readonly routeKind: RouteKind;
+  readonly modelAlias: string;
+  readonly upstreamModelId: string;
+  readonly selectedCandidateId: string | null;
+  readonly attemptNumber: number;
+  readonly startedAt: number;
+}
+
 export interface UsageHandoff {
+  /** Trusted composer only. No default selection, provider data or pricing authority. */
+  readonly resolveAttemptPrice?: (
+    context: AttemptPriceContext,
+  ) => FlatTokenPriceSnapshot | null | undefined;
   /** Must append idempotently by attempt ID or durably enqueue for recovery. */
   readonly writeUsage?: (record: UsageRecord) => Promise<void>;
   readonly now?: () => number;
+}
+
+/** Capture only when accounting is enabled; never retain caller-owned mutable prices. */
+export function captureAttemptPrice(
+  ports: UsageHandoff,
+  context: AttemptPriceContext,
+): FlatTokenPriceSnapshot | null {
+  if (!ports.writeUsage) return null;
+  return snapshotFlatTokenPrice(ports.resolveAttemptPrice?.(Object.freeze({ ...context })));
 }
 
 export interface AttemptUsageInput extends AuditAttribution {
