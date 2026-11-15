@@ -48,3 +48,7 @@ Developer/service-account gateway paths do not replace platform/team administrat
 5. **R5/R6:** reconcile compatibility backlog, then installed browser/gateway/security/usage/restart acceptance using approved credentials/client/model and maximum paid budget. No automatic paid fallback.
 
 R0 exit requires independent review and agreed contract ownership. This document alone does not close #638 or authorize unresolved security policy. See [plan](plans/638-product-traceability.md).
+
+
+### 2026-11-16 opt-in SSO operations HTTP (#637)
+New src/gateway/postgres-sso-operations-http.ts joins existing token issue/revoke and canonical model/history readers without changing the read-only factory. test/sso-operations-http.test.ts verifies actual local SQL/HTTP paths, mandatory audits, fresh Deny/identity disable and token revocation. No session acquisition, cookie boundary, runtime deployment or installed/provider acceptance. Administrator login, remaining original PRD CRUD and release/handoff remain incomplete. See docs/plans/637-sso-operations-http.md and contracts/sso-operations-http.md.
