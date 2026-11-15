@@ -1386,3 +1386,7 @@ The opt-in history/token operations adapter consumes an existing trusted request
 
 ### Operations streamed-body deadline (#637)
 The trusted operations lifecycle must enforce known expiry through body consumption, not only at response headers. A late streamed issuance body must never reveal its bearer secret after the deadline even with missed timer delivery; existing server authorization and uncertain mutation-outcome guidance remain unchanged.
+
+## Request-correlated audit review (#642)
+
+Authorized usage rows can open the existing audit API for the exact principal/request, with fresh server authorization and without inheriting a stale cursor or unrelated model/time filters. Returning preserves the usage page and draft filters. Audit pagination, retry and current-page CSV retain the selected request; manual filter application clears the correlation context. Empty results are limited to the authorized view, not proof of global absence or invoice reconciliation. This internal trusted-SSO UI integration does not activate browser login or change permissions, retention or deployment.
