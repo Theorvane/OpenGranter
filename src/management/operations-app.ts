@@ -1,6 +1,7 @@
 import { mountManagementBoundaryView } from './boundary-view.ts';
 import type { CatalogRequest } from './catalog-client.ts';
 import type { CatalogElement } from './catalog-view.ts';
+import { mountCatalogWorkspace } from './catalog-workspace.ts';
 import { type HistoryDownload, mountHistoryWorkspace } from './history-app.ts';
 import { mountTokenManagementPanel } from './token-management-panel.ts';
 
@@ -27,7 +28,7 @@ export function mountManagementOperations(
     previous?.dispose();
     root.replaceChildren();
   }
-  function navigate(kind: 'history' | 'tokens') {
+  function navigate(kind: 'history' | 'tokens' | 'catalog') {
     if (stopped) return;
     const current = ++epoch;
     clear();
@@ -54,6 +55,7 @@ export function mountManagementOperations(
     navigation.setAttribute('aria-label', 'Management operations');
     for (const [target, label] of [
       ['history', 'History'],
+      ['catalog', 'Models'],
       ['tokens', 'Proxy tokens'],
     ] as const) {
       const button = element('button', label);
@@ -96,6 +98,8 @@ export function mountManagementOperations(
         return;
       }
       mounted = mountHistoryWorkspace(content, guarded, download);
+    } else if (kind === 'catalog') {
+      mounted = mountCatalogWorkspace(content, guarded);
     } else {
       mounted = mountTokenManagementPanel(content, guarded);
     }
