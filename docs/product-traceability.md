@@ -56,3 +56,8 @@ R0 exit requires independent review and agreed contract ownership. This document
 ## Internal route-start estimate checkpoint (#642)
 
 The [delegated](../src/routing/invoke-delegated-route.ts) and [managed](../src/routing/invoke-jev-managed-route.ts) accounting paths can now accept an optional trusted resolver through `UsageHandoff`, snapshot its applicable flat-token version before dispatch and pass it to capture. [Tests](../test/attempt-start-prices.test.ts) cover detached in-flight versions, fallback versions, denied/disabled accounting, pre-dispatch resolver failures and earlier billed-attempt preservation. This closes the internal orchestrator handoff gap only: no gateway composition installs the resolver, and price-store CRUD/applicable-version selection policy, full pricing terms, live usage/bills and administrator session/browser gates remain open.
+
+
+## Trusted gateway price handoff checkpoint (#642)
+
+The gateway now optionally forwards caller-owned attempt price resolution through managed/delegated JSON, text and function streams, including the PostgreSQL direct/dual composition. Loopback HTTP with migrated embedded SQL verifies six paths through stored usage and JSON/CSV history; this is not installed PostgreSQL, browser, SSO or live provider acceptance. No production configuration installs the resolver; approved catalog/version selection, administrator session/API integration and the original PRD deployment/handoff goals remain incomplete. See [contract](../contracts/gateway-attempt-prices.md) and [plan](plans/642-gateway-attempt-prices.md).

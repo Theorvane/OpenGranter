@@ -15,6 +15,7 @@ import { createProxyTokenService } from './proxy-tokens.ts';
 export interface PostgresChatHandlerPorts<T>
   extends Pick<
     ChatHandlerPorts<T>,
+    | 'resolveAttemptPrice'
     | 'newRequestId'
     | 'checkLimit'
     | 'resolveSecret'
