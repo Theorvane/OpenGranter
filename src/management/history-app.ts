@@ -4,12 +4,14 @@ import type { CatalogRequest } from './catalog-client.ts';
 import type { CatalogElement } from './catalog-view.ts';
 import type { CsvDownloadResult } from './csv-download.ts';
 import { createHistoryWorkspace } from './history-workspace.ts';
+import { renderUsageAttemptDetails } from './usage-attempt-details.ts';
 
 /** Compatible with createCsvDownload; ownership transfers to this mount. */
 export interface HistoryDownload {
   save(kind: 'usage' | 'audit', csv: string): CsvDownloadResult;
   dispose(): void;
 }
+
 type Kind = 'usage' | 'audit';
 
 /** Explicit trusted SSO integration only. Caller MUST dispose on known session
@@ -202,6 +204,7 @@ export function mountHistoryWorkspace(
         if (row.possibleDuplicate) item.append(element('p', 'Possible duplicate'));
         if (row.possiblyBilled)
           item.append(element('p', 'Possibly billed; not an invoice reconciliation'));
+        item.append(renderUsageAttemptDetails(root.ownerDocument, row));
         rows.append(item);
       }
     else

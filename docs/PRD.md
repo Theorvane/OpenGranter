@@ -1386,3 +1386,7 @@ The opt-in history/token operations adapter consumes an existing trusted request
 
 ### Operations streamed-body deadline (#637)
 The trusted operations lifecycle must enforce known expiry through body consumption, not only at response headers. A late streamed issuance body must never reveal its bearer secret after the deadline even with missed timer delivery; existing server authorization and uncertain mutation-outcome guidance remain unchanged.
+
+## Usage attempt attribution disclosure (#642)
+
+Reusing the unmerged PR702 metadata renderer in the canonical history screen, authorized usage rows include a collapsed native metadata detail for route, exact upstream model/candidate, reported actual inference provider, attempt ID, outcome, latency and prompt/completion counts. Unknown is never inferred or rendered as zero. No new endpoint, credentials, content or provider calls. See [plan](plans/642-usage-attempt-details.md) and [contract](../contracts/management-usage-attempt-details.md).

@@ -418,3 +418,97 @@ test('reentrant download disposal cannot restore private DOM or error', async ()
   await tick();
   assert.equal(root.children.length, 0);
 });
+
+for (const route of ['managed', 'delegated'] as const)
+  test(`usage attempt details show exact ${route} attribution without interpreting HTML`, async () => {
+    const root = new Element();
+    let calls = 0;
+    const app = mountHistoryWorkspace(
+      root,
+      async () => {
+        calls++;
+        const body = (await page().json()) as { data: Record<string, unknown>[] };
+        const first = body.data[0];
+        assert.ok(first);
+        Object.assign(first, {
+          routeKind: route,
+          attemptId: 'attempt-002',
+          upstreamModelId: '<img src=x onerror=alert(1)>',
+          selectedCandidateId: 'candidate-not-provider',
+          actualInferenceProviderId: 'reported-provider',
+          latencyMs: 0,
+          outcome: 'failed',
+          credentialId: 'PRIVATE-CREDENTIAL-ID',
+          prompt: 'PRIVATE-PROMPT',
+          usage: {
+            status: 'partial',
+            promptTokens: 0,
+            completionTokens: null,
+            totalTokens: null,
+          },
+        });
+        return Response.json(body);
+      },
+      downloads(),
+    );
+    await tick();
+    const details = nodes(root).find((n) => n.tag === 'details');
+    assert.ok(details);
+    assert.equal(details.attributes.open, undefined);
+    assert.equal(details.children[0]?.tag, 'summary');
+    assert.equal(details.children[0]?.textContent, 'Inspect attempt');
+    const fields = new Map(
+      details.children[1]?.children.map((n, i, all) =>
+        n.tag === 'dt' ? [n.textContent, all[i + 1]?.textContent] : [null, null],
+      ),
+    );
+    assert.equal(fields.get('Request ID'), 'req');
+    assert.equal(fields.get('Attempt ID'), 'attempt-002');
+    assert.equal(fields.get('Estimated price version'), 'v1');
+    assert.equal(fields.get('Reported billing source'), 'Unknown');
+    assert.equal(fields.get('Route kind'), route);
+    assert.equal(fields.get('Upstream model'), '<img src=x onerror=alert(1)>');
+    assert.equal(fields.get('Selected candidate'), 'candidate-not-provider');
+    assert.equal(fields.get('Actual inference provider'), 'reported-provider');
+    assert.equal(fields.get('Outcome'), 'failed');
+    assert.equal(fields.get('Latency (ms)'), '0');
+    assert.equal(fields.get('Prompt tokens'), '0');
+    assert.equal(fields.get('Completion tokens'), 'Unknown');
+    assert.doesNotMatch(text(root), /PRIVATE-CREDENTIAL-ID|PRIVATE-PROMPT/);
+    assert.equal(
+      nodes(root).some((n) => ['img', 'script'].includes(n.tag)),
+      false,
+    );
+    assert.equal(calls, 1);
+    app.dispose();
+    assert.equal(root.children.length, 0);
+  });
+
+test('usage details unknown provider is not inferred and disappears with loading, tabs and denial', async () => {
+  const root = new Element();
+  let deny = false;
+  const app = mountHistoryWorkspace(
+    root,
+    async (path) => (deny ? new Response(null, { status: 403 }) : page(path.includes('/audit?'))),
+    downloads(),
+  );
+  await tick();
+  const details = () => nodes(root).filter((n) => n.tag === 'details');
+  assert.equal(details().length, 1);
+  const current = details()[0];
+  assert.ok(current);
+  assert.match(text(current), /Actual inference provider Unknown/);
+  assert.match(text(current), /Selected candidate candidate/);
+  click(root, 'Audit');
+  assert.equal(details().length, 0);
+  await tick();
+  click(root, 'Usage');
+  assert.equal(details().length, 1);
+  deny = true;
+  click(root, 'Apply filters');
+  assert.equal(details().length, 0);
+  await tick();
+  assert.match(text(root), /Access denied/);
+  assert.equal(details().length, 0);
+  app.dispose();
+});
