@@ -1386,3 +1386,7 @@ The opt-in history/token operations adapter consumes an existing trusted request
 
 ### Operations streamed-body deadline (#637)
 The trusted operations lifecycle must enforce known expiry through body consumption, not only at response headers. A late streamed issuance body must never reveal its bearer secret after the deadline even with missed timer delivery; existing server authorization and uncertain mutation-outcome guidance remain unchanged.
+
+## History initialization recovery (#642)
+
+The approved-caller operations screen now exposes explicit Retry history when its CSV adapter cannot initialize. Only successful initialization starts the existing history read. Epoch guards prevent detached retry controls from reopening disposed, denied or replaced screens. No session acquisition, public entry, deployment or provider activation is added. See [plan](plans/642-history-adapter-retry.md) and [contract](../contracts/management-operations.md).
