@@ -229,6 +229,15 @@ export function mountHistoryWorkspace(
         view.canNext,
       ),
     );
+    main.append(
+      button(
+        'Refresh current page',
+        () => {
+          void review.retry();
+        },
+        view.state === 'ready' || view.state === 'empty',
+      ),
+    );
     if (view.state === 'unavailable' || view.state === 'cancelled')
       main.append(
         button('Retry', () => {
