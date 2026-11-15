@@ -48,3 +48,7 @@ Developer/service-account gateway paths do not replace platform/team administrat
 5. **R5/R6:** reconcile compatibility backlog, then installed browser/gateway/security/usage/restart acceptance using approved credentials/client/model and maximum paid budget. No automatic paid fallback.
 
 R0 exit requires independent review and agreed contract ownership. This document alone does not close #638 or authorize unresolved security policy. See [plan](plans/638-product-traceability.md).
+
+## Canonical history loading cancellation checkpoint (#642)
+
+Both canonical review controllers and the existing history mount support explicit cancellation and same-page retry without inventing a cursor or reusing terminal authority. Tests exercise real JSON clients, retained DOM controls and actual loopback fetch abort, in addition to existing scoped SQL/HTTP regressions. This is not administrator login, company IdP/native-browser/installed-provider acceptance or a deployed URL.

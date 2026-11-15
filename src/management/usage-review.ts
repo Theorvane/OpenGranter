@@ -152,6 +152,20 @@ export function createUsageReview(
     async retry() {
       if (!blocked && attempt.length > 0 && view.state !== 'loading') await read(attempt);
     },
+    cancelLoad() {
+      if (blocked || view.state !== 'loading') return;
+      // Retire the read before abort; abort listeners may reenter or dispose.
+      const current = revision + 1;
+      stop();
+      if (blocked || revision !== current) return;
+      publish({
+        state: 'cancelled',
+        data: [],
+        canPrevious: false,
+        canNext: false,
+        exportState: 'idle',
+      });
+    },
     async exportCsv(): Promise<UsageExportResult> {
       if (blocked) return { state: 'cancelled' };
       if (view.state !== 'ready' && view.state !== 'empty') return { state: 'unavailable' };

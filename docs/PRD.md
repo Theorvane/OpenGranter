@@ -1390,3 +1390,7 @@ The trusted operations lifecycle must enforce known expiry through body consumpt
 ## Canonical history current-page refresh (#642)
 
 Usage and Audit now offer an explicit refresh for ready/empty pages through the existing scoped review operation. Applied filters and the exact current cursor are preserved; unapplied draft edits do not change the query. Failure retains same-page Retry; denial and disposal retain shared cleanup. No login or public activation is added. See [plan](plans/642-history-current-refresh.md) and [contract](../contracts/history-current-refresh.md).
+
+## Cancellable canonical history loading (#642)
+
+Already-authorized usage/audit history views now expose Cancel loading during JSON reads and retain the exact attempted page for explicit Retry. Cancellation aborts transport, clears rows and ignores late data/denial without revoking the sibling view. No login/session or entry activation is added. See [plan](plans/642-cancel-history-load.md) and [contract](../contracts/history-load-cancel.md).
