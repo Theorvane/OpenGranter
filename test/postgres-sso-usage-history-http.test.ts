@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
+import { once } from 'node:events';
+import { request as httpRequest } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import test from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
+import { createNodeRequestServer } from '../src/gateway/node-request-server.ts';
 import {
   createPostgresSsoUsageHistory,
   type SsoUsageAuditEvent,
@@ -88,6 +92,7 @@ async function fixture() {
     );
   return {
     db,
+    handler,
     events,
     sql,
     request,
@@ -257,6 +262,124 @@ test('human disable, wrong audience and policy removal deny fresh requests', asy
     assert.equal((await f.request()).status, 401);
     assert.equal(f.events.at(-1)?.principalId, null);
   } finally {
+    await f.db.close();
+  }
+});
+
+test('usage GET framing: Fetch rejects hidden bodies before identity SQL or audit', async () => {
+  const f = await fixture();
+  try {
+    f.sql.length = 0;
+    for (const format of ['json', 'csv']) {
+      for (const headers of [
+        { 'content-length': '1' },
+        { 'content-length': '00' },
+        { 'content-length': '+0' },
+        { 'content-length': '-0' },
+        { 'content-length': '0, 0' },
+        { 'content-length': '' },
+        { 'transfer-encoding': 'chunked' },
+        { 'transfer-encoding': 'identity', 'content-length': '0' },
+      ]) {
+        const response = await f.handler(
+          new Request(`https://management.test/management/v1/usage?format=${format}`, {
+            headers: { authorization: `Bearer ${token}`, ...headers },
+          }),
+        );
+        assert.equal(response.status, 400, JSON.stringify(headers));
+        assert.equal(response.headers.get('cache-control'), 'no-store');
+        assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+        assert.match(await response.text(), /invalid_request/u);
+      }
+    }
+    assert.equal(f.sql.length, 0);
+    assert.equal(f.events.length, 0);
+    for (const format of ['json', 'csv']) {
+      const response = await f.handler(
+        new Request(`https://management.test/management/v1/usage?format=${format}`, {
+          headers: { authorization: `Bearer ${token}`, 'content-length': '0' },
+        }),
+      );
+      assert.equal(response.status, 200);
+      assert.match(
+        response.headers.get('content-type') ?? '',
+        format === 'csv' ? /text\/csv/u : /application\/json/u,
+      );
+      assert.ok((await response.text()).includes('missing'));
+    }
+    assert.equal(f.events.length, 2);
+    assert.ok(f.sql.some((query) => query.includes('FROM usage_records')));
+  } finally {
+    await f.db.close();
+  }
+});
+
+test('usage GET framing: Node HTTP rejects framed JSON/CSV reads and still serves audited zero-body reads', async () => {
+  const f = await fixture();
+  const server = createNodeRequestServer(f.handler);
+  try {
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    const port = (server.address() as AddressInfo).port;
+    async function read(format: string, headers: Record<string, string>, body?: string) {
+      return await new Promise<{
+        status: number | undefined;
+        body: string;
+        cache: string | undefined;
+      }>((resolve, reject) => {
+        const request = httpRequest(
+          {
+            hostname: '127.0.0.1',
+            port,
+            method: 'GET',
+            path: `/management/v1/usage?format=${format}`,
+            agent: false,
+            headers: { authorization: `Bearer ${token}`, ...headers },
+          },
+          (response) => {
+            let text = '';
+            response.setEncoding('utf8');
+            response.on('data', (chunk: string) => {
+              text += chunk;
+            });
+            response.on('error', reject);
+            response.on('end', () =>
+              resolve({
+                status: response.statusCode,
+                body: text,
+                cache: response.headers['cache-control'],
+              }),
+            );
+          },
+        );
+        request.setTimeout(5000, () => request.destroy(new Error('loopback request timed out')));
+        request.on('error', reject);
+        request.end(body);
+      });
+    }
+    f.sql.length = 0;
+    for (const format of ['json', 'csv']) {
+      for (const headers of [{ 'content-length': '1' }, { 'transfer-encoding': 'chunked' }]) {
+        const response = await read(format, headers, 'x');
+        assert.equal(response.status, 400);
+        assert.equal(response.cache, 'no-store');
+        assert.match(response.body, /invalid_request/u);
+      }
+    }
+    assert.equal(f.sql.length, 0);
+    assert.equal(f.events.length, 0);
+    for (const format of ['json', 'csv']) {
+      for (const headers of [{}, { 'content-length': '0' }]) {
+        const response = await read(format, headers);
+        assert.equal(response.status, 200);
+        assert.equal(response.cache, 'no-store');
+        assert.ok(response.body.includes('missing'));
+      }
+    }
+    assert.equal(f.events.length, 4);
+    assert.ok(f.sql.some((query) => query.includes('FROM usage_records')));
+  } finally {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
     await f.db.close();
   }
 });
