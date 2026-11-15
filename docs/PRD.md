@@ -1386,3 +1386,6 @@ The opt-in history/token operations adapter consumes an existing trusted request
 
 ### Operations streamed-body deadline (#637)
 The trusted operations lifecycle must enforce known expiry through body consumption, not only at response headers. A late streamed issuance body must never reveal its bearer secret after the deadline even with missed timer delivery; existing server authorization and uncertain mutation-outcome guidance remain unchanged.
+
+### Unified trusted management workspace (#637, #639)
+An opt-in trusted-session workspace connects signed-SSO Models list/detail and History/Proxy-token operations through native navigation. Navigation disposes old screens and clears issued-token displays; logout, known expiry, identity replacement and active 401/403 clear the entire workspace. Existing server IAM and mutation-outcome semantics remain unchanged. Public entry/session acquisition and installed login acceptance are not enabled. See contracts/management-workspace.md and docs/plans/637-trusted-workspace.md.
