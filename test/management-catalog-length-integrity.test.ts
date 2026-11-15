@@ -18,7 +18,7 @@ for (const [name, factory] of [
         const client = factory(
           async () =>
             new Response(body, {
-              headers: { 'content-length': String(declared) },
+              headers: { 'content-type': 'application/json', 'content-length': String(declared) },
             }),
         );
         assert.deepEqual(await (list ? client.list() : client.detail(row.id)), {
@@ -29,7 +29,10 @@ for (const [name, factory] of [
     for (const encoding of [undefined, 'identity', ' Identity ', 'gzip', 'br']) {
       test(`${name} ${list ? 'list' : 'detail'} preserves ${encoding ?? 'absent encoding'}`, async () => {
         const compressed = encoding === 'gzip' || encoding === 'br';
-        const headers = new Headers({ 'content-length': String(compressed ? 3 : size) });
+        const headers = new Headers({
+          'content-type': 'application/json',
+          'content-length': String(compressed ? 3 : size),
+        });
         if (encoding) headers.set('content-encoding', encoding);
         const client = factory(async () => new Response(body, { headers }));
         assert.deepEqual(await (list ? client.list() : client.detail(row.id)), {
@@ -39,7 +42,9 @@ for (const [name, factory] of [
       });
     }
     test(`${name} ${list ? 'list' : 'detail'} accepts absent length`, async () => {
-      const client = factory(async () => new Response(body));
+      const client = factory(
+        async () => new Response(body, { headers: { 'content-type': 'application/json' } }),
+      );
       assert.deepEqual(await (list ? client.list() : client.detail(row.id)), {
         state: 'ready',
         data: list ? [row] : row,
