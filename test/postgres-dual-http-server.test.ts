@@ -7,8 +7,10 @@ import { createPostgresProxyCredentialStore } from '../src/gateway/postgres-prox
 import { createProxyTokenService } from '../src/gateway/proxy-tokens.ts';
 import { loadPostgresMigrationSources } from '../src/storage/postgres-migration-sources.ts';
 import { applyPostgresMigrations } from '../src/storage/postgres-migrations.ts';
+import type { AttemptPriceContext, UsageHandoff } from '../src/usage/capture-attempt.ts';
+import type { UsageRecord } from '../src/usage/record-usage.ts';
 
-async function fixture(direct = true) {
+async function fixture(direct = true, resolveAttemptPrice?: UsageHandoff['resolveAttemptPrice']) {
   const db = new PGlite();
   const client = { query: (sql: string, params: readonly unknown[]) => db.query(sql, [...params]) };
   await applyPostgresMigrations(
@@ -56,6 +58,7 @@ async function fixture(direct = true) {
   let sequence = 0;
   const server = await createNodePostgresDualRouteChatServer({
     client,
+    ...(resolveAttemptPrice ? { resolveAttemptPrice } : {}),
     now: () => 1000,
     newRequestId: () => `dual-${++sequence}`,
     checkLimit: async () => state.limit,
@@ -631,5 +634,84 @@ test('persisted dual generated native function streams complete correlated resul
     assert.equal(secrets.length, 4);
   } finally {
     await close();
+  }
+});
+
+test('trusted prices survive dual PostgreSQL composition through real JSON/text/function HTTP and history export', async () => {
+  const contexts: AttemptPriceContext[] = [];
+  const f = await fixture(true, (context) => {
+    assert.equal(f.hosts.length, contexts.length);
+    contexts.push(context);
+    return {
+      kind: 'flat-token',
+      priceVersion: `approved-${context.routeKind}`,
+      currency: 'USD',
+      inputPerToken: '0.1',
+      outputPerToken: '0.2',
+    };
+  });
+  try {
+    for (const model of ['direct-chat', 'or-chat']) {
+      for (const mode of ['json', 'text', 'function']) {
+        const response = await fetch(`${f.base}/v1/chat/completions`, {
+          method: 'POST',
+          headers: f.headers,
+          body: JSON.stringify({
+            model,
+            messages: [{ role: 'user', content: 'private-prompt' }],
+            ...(mode === 'json' ? {} : { stream: true }),
+            ...(mode === 'function'
+              ? {
+                  tools: [
+                    {
+                      type: 'function',
+                      function: { name: 'lookup', parameters: { type: 'object', properties: {} } },
+                    },
+                  ],
+                }
+              : {}),
+          }),
+        });
+        const text = await response.text();
+        assert.equal(response.status, 200, text);
+        assert.ok(!text.includes('approved-'));
+        if (mode !== 'json') assert.ok(text.includes('[DONE]'));
+      }
+    }
+    assert.equal(contexts.length, 6);
+    assert.deepEqual(
+      contexts.map((c) => c.routeKind),
+      ['managed', 'managed', 'managed', 'delegated', 'delegated', 'delegated'],
+    );
+    const stored = await f.db.query<{ record: UsageRecord }>('SELECT record FROM usage_records');
+    assert.equal(stored.rows.length, 6);
+    for (const { record } of stored.rows)
+      assert.deepEqual(record.estimatedCost, {
+        amountDecimal: '0.8',
+        currency: 'USD',
+        priceVersion: `approved-${record.routeKind}`,
+      });
+    const history = await fetch(`${f.base}/v1/usage`, { headers: f.headers });
+    assert.equal(history.status, 200);
+    const body = await history.text();
+    const projected = JSON.parse(body) as { data: UsageRecord[] };
+    assert.equal(projected.data.length, 6);
+    assert.ok(projected.data.every((record) => record.estimatedCost?.amountDecimal === '0.8'));
+    const csv = await fetch(`${f.base}/v1/usage?format=csv`, { headers: f.headers });
+    assert.equal(csv.status, 200);
+    const exported = await csv.text();
+    assert.ok(exported.includes('approved-managed'));
+    assert.ok(exported.includes('approved-delegated'));
+    for (const text of [body, exported]) {
+      for (const secret of [
+        'private-prompt',
+        'private-response',
+        'fixture-upstream-key',
+        f.issued.token,
+      ])
+        assert.ok(!text.includes(secret));
+    }
+  } finally {
+    await f.close();
   }
 });

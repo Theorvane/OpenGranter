@@ -30,6 +30,7 @@ import type { DelegatedFunctionStreamInput } from '../streaming/invoke-delegated
 import type { DelegatedTextStreamInput } from '../streaming/invoke-delegated-text-stream.ts';
 import type { ManagedFunctionStreamInput } from '../streaming/invoke-managed-function-stream.ts';
 import type { ManagedTextStreamInput } from '../streaming/invoke-managed-text-stream.ts';
+import type { UsageHandoff } from '../usage/capture-attempt.ts';
 import { serializeUsageCsv } from '../usage/csv.ts';
 import {
   encodeUsageCursor,
@@ -252,6 +253,8 @@ export type GatewayAuditEvent =
     });
 
 export interface ChatHandlerPorts<T> {
+  /** Trusted composition only; no HTTP, discovery or provider-selected pricing. */
+  readonly resolveAttemptPrice?: UsageHandoff['resolveAttemptPrice'];
   readonly invokeOpenRouterFunctionStream?: DelegatedFunctionStreamInput['ports']['invokeOpenRouterFunctionStream'];
   readonly invokeDirectFunctionStream?: ManagedFunctionStreamInput['ports']['invokeDirectFunctionStream'];
   readonly invokeDirectTextStream?: ManagedTextStreamInput['ports']['invokeDirectTextStream'];
@@ -1319,6 +1322,9 @@ export function createChatHandler<T>(
             checkLimit: () => ports.checkLimit(principal.id, requestId),
             writeAudit: ports.writeAudit,
             writeUsage: ports.writeUsage,
+            ...(ports.resolveAttemptPrice
+              ? { resolveAttemptPrice: ports.resolveAttemptPrice }
+              : {}),
             ...(ports.now ? { now: ports.now } : {}),
             ...(ports.resolveVerifiedProviderSlug
               ? { resolveVerifiedProviderSlug: ports.resolveVerifiedProviderSlug }
@@ -1347,6 +1353,9 @@ export function createChatHandler<T>(
             checkLimit: () => ports.checkLimit(principal.id, requestId),
             writeAudit: ports.writeAudit,
             writeUsage: ports.writeUsage,
+            ...(ports.resolveAttemptPrice
+              ? { resolveAttemptPrice: ports.resolveAttemptPrice }
+              : {}),
             ...(ports.now ? { now: ports.now } : {}),
             ...(ports.resolveVerifiedProviderSlug
               ? { resolveVerifiedProviderSlug: ports.resolveVerifiedProviderSlug }
@@ -1434,6 +1443,7 @@ export function createChatHandler<T>(
         resolveSecret: ports.resolveSecret,
         writeAudit: ports.writeAudit,
         writeUsage: ports.writeUsage,
+        ...(ports.resolveAttemptPrice ? { resolveAttemptPrice: ports.resolveAttemptPrice } : {}),
         ...(ports.now ? { now: ports.now } : {}),
         ...(ports.fetchJev ? { fetchJev: ports.fetchJev } : {}),
       };

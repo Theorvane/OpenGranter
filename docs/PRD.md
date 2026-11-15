@@ -1394,3 +1394,8 @@ The existing accounting handoff can now attach an exact flat aggregate token-cos
 ## Internal attempt-start pricing handoff (#642)
 
 Delegated and managed nonstream route orchestration now optionally captures a trusted-composer flat-token version before each authorized provider attempt, detaching mutable sources and preserving per-candidate fallback accounting. Price failures prevent dispatch without fabricated usage/billing. See [plan](plans/642-attempt-start-prices.md) and [contract](../contracts/attempt-start-prices.md). No gateway runtime config supplies this optional port; catalog CRUD/effective-version selection, full pricing and installed/browser/provider acceptance remain missing.
+
+
+## Trusted gateway price handoff checkpoint (#642)
+
+The gateway now optionally forwards caller-owned attempt price resolution through managed/delegated JSON, text and function streams, including the PostgreSQL direct/dual composition. Loopback HTTP with migrated embedded SQL verifies six paths through stored usage and JSON/CSV history; this is not installed PostgreSQL, browser, SSO or live provider acceptance. No production configuration installs the resolver; approved catalog/version selection, administrator session/API integration and the original PRD deployment/handoff goals remain incomplete. See [contract](../contracts/gateway-attempt-prices.md) and [plan](plans/642-gateway-attempt-prices.md).
