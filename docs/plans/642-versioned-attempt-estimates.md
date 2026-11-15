@@ -1,0 +1,7 @@
+# Versioned flat-token attempt estimates (#642)
+
+1. Preserve R4 scope from the original PRD: versioned estimates are not reported invoices. Add only an internal caller-supplied flat input/output token price snapshot; do not select prices, change discovery metadata, authorize catalog writes or activate a gateway configuration.
+2. Before implementation, add failing capture tests proving exact decimal estimates and version linkage are currently absent. Cover unknown/partial/invalid usage, failed attempts, absent prices, exact zero, tiny/large decimals, malformed prices and persistence/export.
+3. Implement bounded BigInt arithmetic with no floating-point money or rounding. Both aggregate input/output counts and a complete reported usage status are required. Reject malformed supplied price snapshots with a fixed error. Output outside existing 128-character money bounds is unavailable (null), never truncated or substituted with zero.
+4. Integrate with existing captureAttemptUsage and retain the ledger schema, idempotency, existing mandatory write handoff and reported-cost separation. Caller owns price selection/version correctness at attempt start. No default price, provider credentials, billing reconciliation, budget enforcement or runtime activation.
+5. Verify focused RED/GREEN, migrated embedded PostgreSQL persistence and existing JSON/CSV projection, typecheck, lint and repository contracts. Require independent exact-head formal approval and all required CI before merge; local evidence is not installed/browser/provider acceptance.
