@@ -1389,3 +1389,7 @@ The trusted operations lifecycle must enforce known expiry through body consumpt
 
 ### Unified trusted management workspace (#637, #639)
 An opt-in trusted-session workspace connects signed-SSO Models list/detail and History/Proxy-token operations through native navigation. Navigation disposes old screens and clears issued-token displays; logout, known expiry, identity replacement and active 401/403 clear the entire workspace. Existing server IAM and mutation-outcome semantics remain unchanged. Public entry/session acquisition and installed login acceptance are not enabled. See contracts/management-workspace.md and docs/plans/637-trusted-workspace.md.
+
+## Explicit browser workspace integration (#637, #642)
+
+The opt-in browser adapter connects the single trusted Models/Operations workspace to real CSV Blob downloads. Pagehide clears authority, pending reads and owned download resources; pageshow never restores a previous grant. No public entry activation, login/session issuer or policy change. See [plan](plans/637-browser-workspace.md) and [contract](../contracts/management-browser-workspace.md).
