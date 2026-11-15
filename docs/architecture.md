@@ -1527,3 +1527,8 @@ operations-session.ts composes the existing operations mount with the existing C
 
 ### Operations body deadline enforcement (#637)
 The trusted operations adapter wraps response bodies with zero-prefetch streaming reads. Each read checks the current grant and clock before and after awaiting source data, including EOF; rejection cancels the reader without waiting for source cancellation before showing the safe boundary. Existing clients retain their bounded JSON/CSV parsers. This fixes the headers-before-expiry/body-after-expiry gap without buffering whole responses or changing authentication contracts.
+
+
+## Disconnected management response cleanup (#637)
+
+The shared Node adapter discards a response returned after client disconnect without awaiting its producer cancellation. This lets request listeners settle even when cleanup stalls; cleanup remains best-effort, not forced producer reclamation or mutation rollback. See [plan](plans/637-disconnected-response-cleanup.md) and [contract](../contracts/disconnected-management-response.md). Actual local socket tests cover cancellation and continued service, not administrator login, installed deployment or provider acceptance.

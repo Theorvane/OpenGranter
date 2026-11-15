@@ -1983,3 +1983,8 @@ The history DOM mount preserves the CsvDownloadResult port contract: only `start
 ### Streamed operations response expiry regression (#637)
 - Receive issuance status 201 before the grant deadline; deliver bytes or EOF after expiry without firing the timer. Require expired boundary, no issued-secret publication and cancellation of an open source.
 - Require successful streamed issuance before expiry; logout, identity replacement and screen navigation cancel a pending body without stale publication. Source failures show only generic uncertain-outcome guidance, never source diagnostics.
+
+
+## Disconnected management response cleanup (#637)
+
+The shared Node adapter discards a response returned after client disconnect without awaiting its producer cancellation. This lets request listeners settle even when cleanup stalls; cleanup remains best-effort, not forced producer reclamation or mutation rollback. See [plan](plans/637-disconnected-response-cleanup.md) and [contract](../contracts/disconnected-management-response.md). Actual local socket tests cover cancellation and continued service, not administrator login, installed deployment or provider acceptance.
