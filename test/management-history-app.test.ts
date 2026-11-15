@@ -418,3 +418,64 @@ test('reentrant download disposal cannot restore private DOM or error', async ()
   await tick();
   assert.equal(root.children.length, 0);
 });
+
+test('loading cancel control aborts transport and explicit Retry restores history', async () => {
+  const root = new Element();
+  let release!: (response: Response) => void;
+  let signal: AbortSignal | undefined;
+  let calls = 0;
+  const app = mountHistoryWorkspace(
+    root,
+    async (_url, init) => {
+      calls++;
+      if (calls === 1) {
+        signal = init.signal ?? undefined;
+        return new Promise<Response>((resolve) => {
+          release = resolve;
+        });
+      }
+      return page();
+    },
+    downloads(),
+  );
+  assert.match(text(root), /Loading history/);
+  click(root, 'Cancel loading');
+  assert.equal(signal?.aborted, true);
+  assert.match(text(root), /History request cancelled/);
+  assert.equal(
+    nodes(root).some((n) => n.textContent === 'Cancel loading'),
+    false,
+  );
+  release(page());
+  await tick();
+  assert.match(text(root), /History request cancelled/);
+  click(root, 'Retry');
+  await tick();
+  assert.match(text(root), /1 records shown/);
+  assert.equal(calls, 2);
+  app.dispose();
+});
+
+test('retained cancel button cannot cancel another view after navigation', async () => {
+  const root = new Element();
+  const signals: AbortSignal[] = [];
+  const app = mountHistoryWorkspace(
+    root,
+    async (_url, init) => {
+      if (init.signal) signals.push(init.signal);
+      return new Promise<Response>(() => {});
+    },
+    downloads(),
+  );
+  const retained = nodes(root).find((n) => n.textContent === 'Cancel loading');
+  assert.ok(retained);
+  click(root, 'Audit');
+  retained.listeners.click?.();
+  assert.equal(signals.length, 2);
+  assert.ok(signals.every((signal) => !signal.aborted));
+  click(root, 'Cancel loading');
+  assert.equal(signals[0]?.aborted, false);
+  assert.equal(signals[1]?.aborted, true);
+  app.dispose();
+  assert.ok(signals.every((signal) => signal.aborted));
+});

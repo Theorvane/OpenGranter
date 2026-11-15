@@ -164,6 +164,7 @@ export function mountHistoryWorkspace(
     if (['invalid_query', 'unavailable', 'cancelled'].includes(view.state))
       status.setAttribute('role', 'alert');
     main.append(status);
+    if (view.state === 'loading') main.append(button('Cancel loading', () => review.cancelLoad()));
     const rows = element('ul');
     rows.setAttribute('aria-label', `${kind} records`);
     if (kind === 'usage')
