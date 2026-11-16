@@ -1401,3 +1401,7 @@ The explicitly started management listener now dispatches exact /management/v1/m
 ## Canonical Account client (#639)
 
 An opt-in caller-authorized transport reads the exact canonical human identity at /management/v1/principal with bounded JSON, cancellation and a whole-operation deadline. It never authenticates a session or grants model access, and does not activate the public entry. See [contract](../contracts/current-principal-client.md) and [plan](plans/639-current-principal-client.md).
+
+### Account identity panel integration (#639)
+
+mountCurrentPrincipalPanel(root, request) consumes the canonical current-principal client via a caller-authorized port. It renders loading, exact identity details, refresh and sanitized retryable errors; 401/403 remove identity and end the mount. Refresh/dispose clear identity synchronously and invalidate pending work. The trusted host must dispose on logout, expiry or identity changes. This display-only module does not activate the frontend shell, establish sessions or grant permissions. Local synthetic JWT/embedded PostgreSQL tests do not establish installed SSO/browser login or deployment acceptance.
