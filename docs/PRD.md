@@ -1391,3 +1391,8 @@ The trusted operations lifecycle must enforce known expiry through body consumpt
 ## Canonical Account identity read (#637 / #639)
 
 The canonical read composition now routes exact /management/v1/me and /management/v1/principal to fresh registered-key active-human authentication and mandatory dedicated SQL audit. This ports the existing PR769/771/775/777 Account contract, not a browser login/session approval or IAM grant. The me response contains only principalId; principal contains only id and kind. The explicit optional [audit SQL contract](../contracts/sql/current-principal-audit.sql) is NOT a default migration and is never auto-installed; missing audit storage fails closed. Caller-owned committed/autocommit SQL and schema approval remain prerequisites. No runtime activation or deployment is included. See [contract](../contracts/canonical-current-principal.md) and [plan](plans/639-canonical-current-principal.md).
+
+
+## Owned management Account routing (#639)
+
+The explicitly started management listener now dispatches exact /management/v1/me and /management/v1/principal to the canonical fresh-SSO identity and mandatory audit boundary on its owned connection. This also applies to its existing optional public-artifact bootstrap. No login/session, migration, default process selection, or deployment activation changes. Missing optional identity audit schema still fails closed; approval and installation remain prerequisites. See [plan](plans/639-current-principal-owned-runtime.md) and [contract](../contracts/current-principal-owned-runtime.md).

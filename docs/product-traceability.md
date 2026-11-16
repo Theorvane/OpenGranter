@@ -57,3 +57,6 @@ R0 exit requires independent review and agreed contract ownership. This document
 | Current authenticated human / Account | src/gateway/postgres-sso-current-principal-http.ts; canonical read composition; GET /management/v1/me and /principal | test/canonical-current-principal.test.ts, test/sso-current-principal-http.test.ts, test/current-principal-audit-store.test.ts | Approved browser session and frontend Account adoption, explicit schema approval/install, installed/browser acceptance |
 
 Existing PR769/771/775/777 behavior is ported onto canonical main rather than adding an alternate identity contract. Audit SQL is contract-only and excluded from migrations; identity is withheld when unavailable. No global goal or R1 completion is asserted.
+
+
+| #639 owned Account API | postgres-gateway-runtime.ts exact Account dispatch + canonical current-principal composition | current-principal-owned-runtime.test.ts real loopback HTTP/test JWT/embedded PG | Login/session contract and optional identity audit schema approval/install, installed IdP/database/TLS/browser acceptance still outstanding |
