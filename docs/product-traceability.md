@@ -60,3 +60,7 @@ Existing PR769/771/775/777 behavior is ported onto canonical main rather than ad
 
 
 | #639 owned Account API | postgres-gateway-runtime.ts exact Account dispatch + canonical current-principal composition | current-principal-owned-runtime.test.ts real loopback HTTP/test JWT/embedded PG | Login/session contract and optional identity audit schema approval/install, installed IdP/database/TLS/browser acceptance still outstanding |
+
+## Request-scoped usage API (#642)
+
+Existing principal-scoped management and proxy usage histories accept an optional exact request_id filter, intersected with model/time/keyset filters for JSON and CSV. Canonical parameterized SQL and full-page/lookahead validation preserve isolation; fresh IAM and mandatory audit remain required. No new authority, session acquisition, schema or deployment activation. Browser drilldown integration and installed/live acceptance remain separate. See [plan](plans/642-usage-request-filter.md) and [contract](../contracts/usage-request-filter.md).
