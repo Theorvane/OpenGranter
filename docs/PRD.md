@@ -1449,3 +1449,7 @@ Usage now accepts an exact Request ID filter and a row action that reloads autho
 ## Account to token issuance preparation (#640)
 
 The opt-in operations workspace now prepares the existing token form from the exact validated signed-in Account ID, without manual copying. Expiry remains blank and issuing still requires a separate review and confirmation. Account identity is not an IAM grant; fresh Deny and mandatory audit remain enforced by the actual API. No login/session or installed acceptance is claimed. See [contract](../contracts/account-token-handoff.md) and [plan](plans/640-account-token-handoff.md).
+
+## Account-scoped history handoff (#637, #642)
+
+Explicitly mounted Account can open usage and audit with its exact principal filter, preserving server authorization and fresh Deny/audit-failure behavior. Explicit usage targets still require usage:ReadAll; identity alone is not a grant. Manual History does not retain this default. No session or deployment activation. See [plan](plans/642-account-history-navigation.md) and [contract](../contracts/account-history-navigation.md).

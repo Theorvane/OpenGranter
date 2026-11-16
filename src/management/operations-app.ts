@@ -97,11 +97,18 @@ export function mountManagementOperations(
         }
         return;
       }
-      mounted = mountHistoryWorkspace(content, guarded, download);
+      mounted = mountHistoryWorkspace(content, guarded, download, principalId);
     } else if (kind === 'account') {
-      mounted = mountCurrentPrincipalPanel(content, guarded, (id) => {
-        if (active()) navigate('tokens', id);
-      });
+      mounted = mountCurrentPrincipalPanel(
+        content,
+        guarded,
+        (id) => {
+          if (active()) navigate('tokens', id);
+        },
+        (id) => {
+          if (active()) navigate('history', id);
+        },
+      );
     } else {
       mounted = mountTokenManagementPanel(content, guarded, principalId);
     }
