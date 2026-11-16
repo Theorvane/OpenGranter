@@ -1431,3 +1431,7 @@ The existing authorized usage list now provides collapsed [content-free record d
 ## Issued-token revocation handoff (#640)
 
 The combined Proxy tokens screen now connects successful issuance to explicit revocation review without manual credential-ID copying. The handoff clears the one-time token display but sends no request; a separate confirmation invokes the existing authorized revoke API. Pending mutation, denial and disposal cannot be replaced or replayed. See [contract](../contracts/issued-token-revocation.md) and [plan](plans/640-issued-token-revocation.md). This does not establish administrator login or installed acceptance.
+
+
+## Account response byte integrity (#639)
+The caller-authorized Account client rejects malformed, oversized or mismatched identity/no-encoding Content-Length before publishing identity. It cancels declared overflow without waiting for EOF. Fetch-decoded compressed representations are not compared with their compressed wire length; all decoded bodies remain limited to 4096 bytes and fatal UTF-8. Rejection uses the existing unavailable/retry UI, never partial identity or raw diagnostics. No session, endpoint, authorization, storage or deployment change. See [plan](plans/639-account-response-integrity.md).

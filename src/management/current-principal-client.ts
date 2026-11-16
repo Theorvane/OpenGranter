@@ -32,6 +32,17 @@ function discard(response: Response) {
   }
 }
 async function body(response: Response, signal: AbortSignal): Promise<unknown> {
+  // Fetch exposes decoded bytes. A compressed wire length is not a decoded length.
+  const encoding = response.headers.get('content-encoding')?.trim().toLowerCase();
+  const declared = response.headers.get('content-length');
+  let expected: number | undefined;
+  if ((!encoding || encoding === 'identity') && declared !== null) {
+    expected = Number(declared);
+    if (!/^\d+$/u.test(declared) || !Number.isSafeInteger(expected) || expected > 4096) {
+      discard(response);
+      throw new Error();
+    }
+  }
   const reader = response.body?.getReader();
   if (!reader) throw new Error();
   const cancel = () => {
@@ -54,10 +65,10 @@ async function body(response: Response, signal: AbortSignal): Promise<unknown> {
         break;
       }
       size += value.byteLength;
-      if (size > 4096) throw new Error();
+      if (size > 4096 || (expected !== undefined && size > expected)) throw new Error();
       text += decoder.decode(value, { stream: true });
     }
-    if (signal.aborted) throw new Error();
+    if (signal.aborted || (expected !== undefined && size !== expected)) throw new Error();
     return JSON.parse(text + decoder.decode()) as unknown;
   } finally {
     signal.removeEventListener('abort', cancel);
