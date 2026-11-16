@@ -39,6 +39,7 @@ export function createPostgresUsageReader(
            AND ($5::text IS NULL OR record->>'modelAlias' = $5::text)
            AND ($6::bigint IS NULL OR occurred_at_ms >= $6::bigint)
            AND ($7::bigint IS NULL OR occurred_at_ms < $7::bigint)
+           AND ($8::text IS NULL OR record->>'requestId' = $8::text)
          ORDER BY occurred_at_ms DESC, attempt_id COLLATE "C" DESC
          LIMIT $4`,
         [
@@ -49,6 +50,7 @@ export function createPostgresUsageReader(
           query.modelAlias ?? null,
           query.fromMs ?? null,
           query.toMs ?? null,
+          query.requestId ?? null,
         ],
       );
       if (result.rows.length > query.limit + 1) throw new UsageLedgerUnavailable();

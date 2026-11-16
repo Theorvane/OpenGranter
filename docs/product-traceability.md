@@ -48,3 +48,8 @@ Developer/service-account gateway paths do not replace platform/team administrat
 5. **R5/R6:** reconcile compatibility backlog, then installed browser/gateway/security/usage/restart acceptance using approved credentials/client/model and maximum paid budget. No automatic paid fallback.
 
 R0 exit requires independent review and agreed contract ownership. This document alone does not close #638 or authorize unresolved security policy. See [plan](plans/638-product-traceability.md).
+
+
+## Request-scoped usage API (#642)
+
+Existing principal-scoped management and proxy usage histories accept an optional exact request_id filter, intersected with model/time/keyset filters for JSON and CSV. Canonical parameterized SQL and full-page/lookahead validation preserve isolation; fresh IAM and mandatory audit remain required. No new authority, session acquisition, schema or deployment activation. Browser drilldown integration and installed/live acceptance remain separate. See [plan](plans/642-usage-request-filter.md) and [contract](../contracts/usage-request-filter.md).
