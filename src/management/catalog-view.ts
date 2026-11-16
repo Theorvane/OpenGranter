@@ -78,7 +78,7 @@ export function renderCatalogView(
       const label = element('label', 'Search models');
       const search = element('input');
       search.setAttribute('type', 'search');
-      search.setAttribute('placeholder', 'Model ID or publisher');
+      search.setAttribute('placeholder', 'Model ID, publisher, name or description');
       label.append(search);
       const list = element('ul');
       const status = element('p');
@@ -86,12 +86,19 @@ export function renderCatalogView(
       const filter = () => {
         const query = (search.value ?? '').trim().toLowerCase();
         const models = value.models.filter((model) =>
-          [model.id, model.owned_by].some((text) => text.toLowerCase().includes(query)),
+          [model.id, model.owned_by, model.name, model.description].some((text) =>
+            text?.toLowerCase().includes(query),
+          ),
         );
         list.replaceChildren();
         for (const model of models) {
           const row = element('li');
           row.append(button(model.id, () => actions.detail(model.id)));
+          if (model.name !== undefined) row.append(element('p', model.name));
+          if (model.description !== undefined)
+            row.append(
+              element('p', model.description === '' ? 'Empty description' : model.description),
+            );
           list.append(row);
         }
         status.textContent = models.length
