@@ -120,7 +120,7 @@ export function mountHistoryWorkspace(
       ['model', 'Model'],
       ['fromMs', 'From (Unix ms, inclusive)'],
       ['toMs', 'To (Unix ms, exclusive)'],
-      ...(kind === 'audit' ? [['requestId', 'Request ID'] as const] : []),
+      ['requestId', 'Request ID'],
     ] as const) {
       const label = element('label', name);
       const input = element('input');
@@ -211,6 +211,15 @@ export function mountHistoryWorkspace(
         if (row.possiblyBilled)
           item.append(element('p', 'Possibly billed; not an invoice reconciliation'));
         item.append(renderUsageRecordDetails(root, row));
+        item.append(
+          button('View attempts for this request', () => {
+            // Exact intersection, not an organization-wide lookup. Clear the
+            // opaque cursor by loading afresh; retain applied time/model bounds.
+            filters.usage = { ...filters.usage, requestId: row.requestId };
+            drafts.usage.set('requestId', row.requestId);
+            void workspace.usage.load(filters.usage);
+          }),
+        );
         rows.append(item);
       }
     else
