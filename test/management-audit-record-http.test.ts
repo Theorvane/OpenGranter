@@ -194,8 +194,13 @@ test('audit record details use owned HTTP, fresh IAM and mandatory durable acces
     await f.db.exec('ALTER TABLE paused_history_audit RENAME TO sso_audit_history_access_events');
     click(root, 'Retry');
     await waitFor(() => text(root).includes('historical-request'));
+    click(root, 'Usage');
+    assert.doesNotMatch(text(root), /historical-request|old-policy/);
+    await waitFor(() => text(root).includes('No history matches'));
     await f.db.exec('UPDATE iam_principals SET active=false');
-    const stale = click(root, 'Apply filters');
+    const stale = click(root, 'Audit');
+    assert.match(text(root), /Loading history/);
+    assert.doesNotMatch(text(root), /historical-request|old-policy/);
     await waitFor(() => text(root).includes('Sign-in required'));
     assert.doesNotMatch(
       text(root),

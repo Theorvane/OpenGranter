@@ -1417,3 +1417,8 @@ The approved-caller management operations workspace now connects Account alongsi
 ## Scoped audit record details (#642)
 
 The explicit history screen lets users expand already-authorized audit metadata records to inspect exact event/credential references, recorded policy versions and allowlisted metadata. Native details are collapsed initially and require no second fetch. Loading and identity teardown remove displayed details; no content retention or new permission is introduced. See [contract](../contracts/management-audit-record-details.md) and [plan](plans/642-audit-record-detail.md).
+
+
+## Fresh history page re-entry (#642)
+
+Re-entering a loaded Usage/Audit tab now clears its prior rendered records before freshly reading the applied filters and exact current page cursor. An explicit Refresh current page does the same without applying unsubmitted filter edits. Existing shared fresh-401/403 handling clears both histories; this is not continuous IAM polling or browser session acquisition. See [plan](plans/642-history-fresh-return.md) and [contract](../contracts/history-fresh-return.md).

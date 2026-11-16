@@ -392,6 +392,7 @@ for (const failure of ['unavailable', 'invalid', 'disposed', 'throw'] as const)
     assert.doesNotMatch(text(root), /CSV unavailable/);
     click(root, 'Usage');
     assert.match(text(root), /CSV unavailable/);
+    await tick();
     click(root, 'Download current page CSV');
     assert.doesNotMatch(text(root), /CSV unavailable/);
     await tick();
@@ -462,6 +463,8 @@ test('audit details expose projected metadata only, with policy versions and no 
   click(root, 'Usage');
   assert.equal(nodes(root).filter((n) => n.tag === 'details').length, 0);
   click(root, 'Audit');
+  assert.doesNotMatch(text(root), /policy-a/);
+  await tick();
   assert.match(text(root), /policy-a/);
   app.dispose();
   assert.equal(root.children.length, 0);
@@ -511,4 +514,87 @@ test('standalone audit renderer never stringifies raw or unsupported metadata', 
       false,
     );
   }
+});
+
+for (const status of [401, 403]) {
+  test(`tab return immediately clears stale rows and rechecks authority ${status}`, async () => {
+    const root = new Element();
+    const paths: string[] = [];
+    let finish!: (response: Response) => void;
+    let revoke = false;
+    const download = downloads();
+    const app = mountHistoryWorkspace(
+      root,
+      async (path) => {
+        paths.push(path);
+        if (revoke)
+          return new Promise<Response>((resolve) => {
+            finish = resolve;
+          });
+        return page(path.includes('/audit?'));
+      },
+      download,
+    );
+    await tick();
+    click(root, 'Audit');
+    await tick();
+    assert.match(text(root), /Event ID/);
+    click(root, 'Usage');
+    await tick();
+    revoke = true;
+    const before = paths.length;
+    click(root, 'Audit');
+    assert.equal(paths.length, before + 1);
+    assert.match(text(root), /Loading history/);
+    assert.doesNotMatch(text(root), /Event ID|Credential ID|models-listed/);
+    finish(new Response(null, { status }));
+    await tick();
+    assert.match(text(root), status === 401 ? /Sign-in required/ : /Access denied/);
+    assert.doesNotMatch(text(root), /Usage and audit history|human|Download/);
+    assert.equal(download.disposed, 1);
+    app.dispose();
+  });
+}
+
+test('explicit refresh preserves the current page and applied filters, not drafts', async () => {
+  const root = new Element();
+  const paths: string[] = [];
+  let finish!: (response: Response) => void;
+  let pause = false;
+  const app = mountHistoryWorkspace(
+    root,
+    async (path) => {
+      paths.push(path);
+      if (pause)
+        return new Promise<Response>((resolve) => {
+          finish = resolve;
+        });
+      if (new URL(path, 'https://local.invalid').searchParams.has('cursor'))
+        return Response.json({ object: 'list', data: [], has_more: false, next_cursor: null });
+      return page(false, true);
+    },
+    downloads(),
+  );
+  await tick();
+  input(root, 'Principal', 'human');
+  click(root, 'Apply filters');
+  await tick();
+  click(root, 'Next page');
+  await tick();
+  const applied = paths.at(-1);
+  input(root, 'Principal', 'unsubmitted');
+  pause = true;
+  click(root, 'Refresh current page');
+  assert.equal(paths.at(-1), applied);
+  assert.match(applied ?? '', /principal_id=human/);
+  assert.match(applied ?? '', /cursor=/);
+  assert.match(text(root), /Loading history/);
+  assert.doesNotMatch(text(root), /Possible duplicate/);
+  const count = paths.length;
+  click(root, 'Refresh current page');
+  assert.equal(paths.length, count);
+  finish(Response.json({ object: 'list', data: [], has_more: false, next_cursor: null }));
+  await tick();
+  assert.match(text(root), /No history matches/);
+  app.dispose();
 });
