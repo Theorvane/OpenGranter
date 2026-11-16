@@ -1409,3 +1409,7 @@ mountCurrentPrincipalPanel(root, request) consumes the canonical current-princip
 ### Account trusted-session lifetime (#639)
 
 The opt-in Account host consumes an existing caller-owned request and absolute expiry, clears identity on expiry/logout/replacement and prevents late headers or streamed bodies from restoring it. This is lifetime enforcement, not a login/session source or public-entry activation. See [contract](../contracts/current-principal-session.md), [plan](plans/639-account-session-lifecycle.md) and [local evidence](plans/639-account-session-evidence.md).
+
+### Account operations integration (#639)
+
+The approved-caller management operations workspace now connects Account alongside History and Proxy tokens. Account reads the canonical principal API; existing session lifecycle and denial handling apply across navigation. This does not implement company login or activate a deployment.
