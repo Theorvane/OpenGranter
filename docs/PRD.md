@@ -1413,3 +1413,7 @@ The opt-in Account host consumes an existing caller-owned request and absolute e
 ### Account operations integration (#639)
 
 The approved-caller management operations workspace now connects Account alongside History and Proxy tokens. Account reads the canonical principal API; existing session lifecycle and denial handling apply across navigation. This does not implement company login or activate a deployment.
+
+## Scoped audit record details (#642)
+
+The explicit history screen lets users expand already-authorized audit metadata records to inspect exact event/credential references, recorded policy versions and allowlisted metadata. Native details are collapsed initially and require no second fetch. Loading and identity teardown remove displayed details; no content retention or new permission is introduced. See [contract](../contracts/management-audit-record-details.md) and [plan](plans/642-audit-record-detail.md).
