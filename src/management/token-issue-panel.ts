@@ -7,12 +7,19 @@ export function mountTokenIssuancePanel(
   root: CatalogElement,
   request: CatalogRequest,
   reviewRevocation?: (credentialId: string) => boolean,
+  initialPrincipalId?: string,
 ) {
   let generation = 0;
   let stopped = false;
   let locked = false;
   let pending: AbortController | undefined;
   let clearSecrets = () => {};
+  // Initial navigation data is not authority; consume once, never retain a default.
+  let prefill =
+    initialPrincipalId !== undefined && validIssuance(initialPrincipalId, 0)
+      ? initialPrincipalId
+      : '';
+  initialPrincipalId = undefined;
   const element = (tag: string, text?: string) => {
     const node = root.ownerDocument.createElement(tag);
     if (text !== undefined) node.textContent = text;
@@ -41,6 +48,12 @@ export function mountTokenIssuancePanel(
       principal.setAttribute('type', 'text');
       principal.setAttribute('autocomplete', 'off');
       principal.setAttribute('maxlength', '256');
+      principal.value = prefill;
+      prefill = '';
+      clearSecrets = () => {
+        principal.value = '';
+        expiry.value = '';
+      };
       principalLabel.append(principal);
       const expiryLabel = element('label', 'Expiry (Unix milliseconds, integer)');
       const expiry = element('input');

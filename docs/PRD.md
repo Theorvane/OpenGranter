@@ -1444,3 +1444,8 @@ Existing principal-scoped management and proxy usage histories accept an optiona
 ## Request-scoped usage review (#642)
 
 Usage now accepts an exact Request ID filter and a row action that reloads authorized attempts for that request while preserving the current principal mode and applied model/time bounds. Self mode does not gain an explicit principal_id (which would require usage:ReadAll); explicit target mode retains its existing authorization. Fresh loads reset cursors; paging and current-page CSV retain request_id. JSON rows are checked against the captured exact request ID, and invalid IDs never reach transport. No complete-history, invoice-total, session or deployment claim. See [plan](plans/642-request-usage-browser.md) and [contract](../contracts/usage-request-review.md).
+
+
+## Account to token issuance preparation (#640)
+
+The opt-in operations workspace now prepares the existing token form from the exact validated signed-in Account ID, without manual copying. Expiry remains blank and issuing still requires a separate review and confirmation. Account identity is not an IAM grant; fresh Deny and mandatory audit remain enforced by the actual API. No login/session or installed acceptance is claimed. See [contract](../contracts/account-token-handoff.md) and [plan](plans/640-account-token-handoff.md).

@@ -5,7 +5,11 @@ import { createCurrentPrincipalClient } from './current-principal-client.ts';
 /** Display only. Trusted caller must dispose on logout, expiry or identity change.
  * Does not create a session, obtain credentials, infer permissions or activate UI.
  */
-export function mountCurrentPrincipalPanel(root: CatalogElement, request: CatalogRequest) {
+export function mountCurrentPrincipalPanel(
+  root: CatalogElement,
+  request: CatalogRequest,
+  prepareToken?: (principalId: string) => void,
+) {
   const client = createCurrentPrincipalClient(request);
   let epoch = 0;
   let stopped = false;
@@ -46,6 +50,14 @@ export function mountCurrentPrincipalPanel(root: CatalogElement, request: Catalo
         element('dd', result.data.kind),
       );
       section.replaceChildren(heading, identity, action('Refresh account'));
+      if (prepareToken) {
+        const prepare = element('button', 'Prepare token for this account');
+        prepare.setAttribute('type', 'button');
+        prepare.addEventListener('click', () => {
+          if (!stopped && current === epoch) prepareToken(result.data.id);
+        });
+        section.append(prepare);
+      }
     } else if (result.state === 'unauthenticated' || result.state === 'denied') {
       stopped = true;
       client.invalidate();
