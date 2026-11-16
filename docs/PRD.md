@@ -1426,3 +1426,8 @@ Re-entering a loaded Usage/Audit tab now clears its prior rendered records befor
 ## Scoped usage record inspection (#642)
 
 The existing authorized usage list now provides collapsed [content-free record details](../contracts/management-usage-record-details.md): attempt/credential/policy/route/provider provenance, partial counters, historical price version, separate estimated/reported costs and exact comparison. Details reuse the current page without additional requests or authority; loading, failure, denial and disposal remove them. Unknown values are not zero, and recorded billing metadata is not invoice reconciliation. Original login, installed deployment and live-provider release gates remain open.
+
+
+## Issued-token revocation handoff (#640)
+
+The combined Proxy tokens screen now connects successful issuance to explicit revocation review without manual credential-ID copying. The handoff clears the one-time token display but sends no request; a separate confirmation invokes the existing authorized revoke API. Pending mutation, denial and disposal cannot be replaced or replayed. See [contract](../contracts/issued-token-revocation.md) and [plan](plans/640-issued-token-revocation.md). This does not establish administrator login or installed acceptance.

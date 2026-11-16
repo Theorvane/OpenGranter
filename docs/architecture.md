@@ -1536,3 +1536,8 @@ The canonical read composition now routes exact /management/v1/me and /managemen
 
 ## Owned Account API integration (#639)
 The existing management runtime dispatches only exact /me and /principal to the canonical current-principal composition with enumerated JWT configuration, newRequestId and the one owned connection. Existing token/catalog/history routing and lifecycle are preserved. The public shell acquires no authority. Optional audit schema is not migrated or installed. See contracts/current-principal-owned-runtime.md.
+
+
+## Issued-token revocation handoff (#640)
+
+The caller-owned token management composition passes only a validated credential ID from issuance to revocation review. The optional callback is presentation wiring, not authority; existing SSO/IAM and durable audit remain server-enforced. Review cannot replace in-flight mutations and never submits a POST. See [contract](../contracts/issued-token-revocation.md).

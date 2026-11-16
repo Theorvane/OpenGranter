@@ -1994,3 +1994,8 @@ Bounded local acceptance: signed registered-key JWT + explicitly prepared embedd
 
 ## Owned management Account API (#639)
 Local loopback HTTP with signed test JWT and migrated embedded PostgreSQL must cover exact Account projections, fresh binding revocation, no implicit model permission, mandatory audit completion, missing-table no-install suppression, malformed acknowledgements, anonymous authentication failure, exact route/method/query handling, public-shell no-authority and idempotent resource closure. Existing management runtime and browser artifact tests remain required. No live IdP, installed PostgreSQL, browser login or deployment certification is implied.
+
+
+## Issued-token revocation handoff (#640)
+
+After a successful authorized issuance, activate Review issued token revocation: both live and retained bearer display nodes clear, exact credential ID appears in a separate confirmation, and no request is sent. Cancel sends nothing; only Confirm revocation sends one existing POST. Pending mutation refuses replacement; stale callbacks, disposal and fresh 401/403 cannot revive credentials or submit again. Verify persisted revocation/event and rejected credential through owned HTTP; Deny/audit outage must leave credential unrevoked and must not report success. Local embedded evidence is not installed SSO acceptance.
