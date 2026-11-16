@@ -1453,3 +1453,7 @@ The opt-in operations workspace now prepares the existing token form from the ex
 ## Account-scoped history handoff (#637, #642)
 
 Explicitly mounted Account can open usage and audit with its exact principal filter, preserving server authorization and fresh Deny/audit-failure behavior. Explicit usage targets still require usage:ReadAll; identity alone is not a grant. Manual History does not retain this default. No session or deployment activation. See [plan](plans/642-account-history-navigation.md) and [contract](../contracts/account-history-navigation.md).
+
+## Bounded token confirmation waits (#640)
+
+Issuance and revocation leave pending state after ten seconds even when a transport or body ignores cancellation. Timeouts remain uncertain, never rollback or automatic retry; late secrets are discarded. No session or server authority changes. See [contract](../contracts/token-mutation-deadline.md) and [plan](plans/640-token-mutation-deadline.md).
