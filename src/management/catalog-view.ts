@@ -1,4 +1,5 @@
 import { mountManagementBoundaryView } from './boundary-view.ts';
+import { renderCatalogModelDetails } from './catalog-model-details.ts';
 import type { ManagementCatalogSnapshot } from './catalog-session.ts';
 
 export interface CatalogElement {
@@ -103,16 +104,9 @@ export function renderCatalogView(
     }
     main.append(button('Refresh models', actions.list));
   } else if (value.state === 'detail') {
-    const model = value.model;
-    const details = element('dl');
-    for (const [label, text] of [
-      ['Model ID', model.id],
-      ['Published by', model.owned_by],
-      ['Created (Unix seconds)', String(model.created)],
-    ]) {
-      details.append(element('dt', label), element('dd', text));
-    }
-    main.append(details, button('Back to models', actions.list));
+    renderCatalogModelDetails(main, value.model);
+    main.append(button('Refresh model', () => actions.detail(value.model.id)));
+    main.append(button('Back to models', actions.list));
   }
   root.replaceChildren(main);
   if (moveFocus && value.state !== 'loading' && value.state !== 'idle') title.focus();

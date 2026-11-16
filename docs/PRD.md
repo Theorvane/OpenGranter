@@ -1461,3 +1461,8 @@ Issuance and revocation leave pending state after ten seconds even when a transp
 ## Audit request usage investigation (#642)
 
 Open an authorized audit event in a fresh request-scoped Usage read, preserving only applied Usage scope and clearing pagination. No visible usage proves neither absence of provider calls nor absence of billing. See [plan](plans/642-audit-usage-investigation.md) and [contract](../contracts/audit-usage-investigation.md).
+
+
+## Published Models detail (#641)
+
+The authorized catalog detail displays published description, context bounds, modalities, supported parameters and exact base USD-per-token price strings. Missing, unknown, empty and zero remain distinct; publication is not a capability guarantee, enforced quota or billed cost. Explicit Refresh model repeats the existing authorized read and clears stale details during loading, missing, failure and denial. No new navigation owner or runtime/session activation. See [plan](plans/641-model-detail-publication-view.md) and [contract](../contracts/model-detail-publication-view.md).
