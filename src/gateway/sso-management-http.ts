@@ -75,6 +75,12 @@ async function readBody(request: Request): Promise<unknown> {
       /* Cleanup failure must not replace the validated input result. */
     }
   };
+  // One deadline for the entire authenticated upload, never renewed by chunks.
+  let expired = false;
+  const deadline = setTimeout(() => {
+    expired = true;
+    cancel();
+  }, 30_000);
   request.signal.addEventListener('abort', cancel, { once: true });
   let complete = false;
   let parsed: unknown;
@@ -92,12 +98,13 @@ async function readBody(request: Request): Promise<unknown> {
       if (size > 16384) return undefined;
       text += decoder.decode(value, { stream: true });
     }
-    if (request.signal.aborted) return undefined;
+    if (expired || request.signal.aborted) return undefined;
     text += decoder.decode();
     parsed = JSON.parse(text) as unknown;
   } catch {
     parsed = undefined;
   } finally {
+    clearTimeout(deadline);
     request.signal.removeEventListener('abort', cancel);
     if (!complete) cancel();
     try {

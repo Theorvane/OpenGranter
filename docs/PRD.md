@@ -1497,3 +1497,7 @@ A separately invoked operations executable accepts only the trusted createCanoni
 ## HTTP HEAD response lifetime (#643)
 
 The shared HTTP adapter now ends HEAD responses without consuming normal or fallback body producers, cancelling unused producers without blocking on cleanup. Validated representation headers and existing authorization stay authoritative; GET streaming is unchanged. See [contract](../contracts/http-head-response-lifetime.md) and [plan](plans/643-head-response-lifetime.md). This is local socket evidence, not installed acceptance.
+
+## Bounded token administration uploads (#640)
+
+Authenticated token issue/revoke uploads now have a non-renewable 30-second body deadline as well as the existing 16 KiB bound. Incomplete uploads cannot hold the mutation request indefinitely or execute from late input. This is not a mutation execution deadline or browser login activation. See [plan](plans/640-token-upload-deadline.md) and [contract](../contracts/token-upload-deadline.md).
