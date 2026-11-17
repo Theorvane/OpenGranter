@@ -12,7 +12,10 @@ export interface ManagementBrowserHttpOptions {
 }
 
 const document =
-  '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>OpenGranter management</title></head><body><main id="app" aria-live="polite"><h1>OpenGranter management</h1><p>Loading application. Sign-in and permission checks are required before private data can be shown.</p></main><noscript>JavaScript is required for this management application.</noscript><script type="module" src="/management/app.js"></script></body></html>';
+  '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>OpenGranter management</title><link rel="stylesheet" href="/management/app.css"></head><body><main id="app" aria-live="polite"><h1>OpenGranter management</h1><p>Loading application. Sign-in and permission checks are required before private data can be shown.</p></main><noscript>JavaScript is required for this management application.</noscript><script type="module" src="/management/app.js"></script></body></html>';
+// Fixed public presentation only; no values from requests or model metadata.
+const stylesheet =
+  '.management-model-description { white-space: pre-wrap; overflow-wrap: anywhere; }';
 const policy =
   "default-src 'none'; script-src 'self'; connect-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'";
 
@@ -24,7 +27,8 @@ export function createManagementBrowserHandler(options: ManagementBrowserHttpOpt
   return async (request: Request): Promise<Response> => {
     const url = new URL(request.url);
     const script = url.pathname === '/management/app.js';
-    if (!script && url.pathname !== '/management' && url.pathname !== '/management/')
+    const style = url.pathname === '/management/app.css';
+    if (!script && !style && url.pathname !== '/management' && url.pathname !== '/management/')
       return application(request);
 
     const headers = new Headers({
@@ -54,9 +58,13 @@ export function createManagementBrowserHandler(options: ManagementBrowserHttpOpt
       return respond('Invalid request', 400);
     headers.set(
       'content-type',
-      script ? 'text/javascript; charset=utf-8' : 'text/html; charset=utf-8',
+      script
+        ? 'text/javascript; charset=utf-8'
+        : style
+          ? 'text/css; charset=utf-8'
+          : 'text/html; charset=utf-8',
     );
-    return respond(script ? javascript : document, 200);
+    return respond(script ? javascript : style ? stylesheet : document, 200);
   };
 }
 
