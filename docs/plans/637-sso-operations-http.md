@@ -22,3 +22,8 @@ Contract: contracts/sso-operations-http.md.
 4. Request a fresh independent formal review on the new exact head; old approvals and embedded SQL evidence do not certify installed browser/IdP/PostgreSQL/provider operation.
 
 Integration result: 48/48 related tests passed, zero skips, including new real HTTP browser-review-controller/CSV isolation and fresh disabled-identity invalidation. Full TypeScript, full lint (existing warnings/information), repository scripts and six pinned schemas passed. This is Node loopback/PGlite/signed local JWT evidence, not native browser or installed deployment acceptance.
+
+## Strict-CSP main integration checkpoint (2026-11-18 03:00 KST)
+Merge main feea149, preserving the reviewed fixed stylesheet, linked HTML and class-only model descriptions as well as this branch functionality. Resolve append-only planning conflicts by retaining both checkpoints. No new session/runtime/DDL or authority contract. Re-run actual HTTP/SQL or disconnect tests and strict-CSP/browser regressions, then request new exact-head CI and independent formal review. Earlier approvals do not approve the new merge commit. Local installed-PostgreSQL and IdP acceptance remain absent.
+
+Combined-tree regression: 37/37 operations/review/build and 28/28 strict-CSP/catalog plus isolated SQL cases passed, zero skips. Earlier aggregate SIGKILLs remain recorded. Full TypeScript, lint, repository scripts and six pinned schemas passed. Full standard npm check is run separately with CPU affinity limiting runner parallelism; results are not assumed from focused success. No new native-browser or installed-deployment claim.
