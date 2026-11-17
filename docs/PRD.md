@@ -1520,3 +1520,8 @@ The existing Models list can intersect exact published input/output modalities a
 ## Confirmed proxy-token revocation rejection (#640)
 
 The management client distinguishes established HTTP 400 input rejection from uncertain mutation outcomes. The panel permits a fresh blank-input review and explicit confirmation without automatic retry or diagnostic disclosure; denial stays locked. See [plan](plans/640-revocation-validation.md) and [contract](../contracts/revocation-validation.md). Loopback tests use synthetic service/authentication ports, not installed SSO/provider acceptance.
+
+
+## Token management page-exit privacy (#640)
+
+The shared token surface terminally clears one-time credentials and pending UI work on native page exit, including cacheable navigation. Restoration requires a fresh authorized mount; clearing does not revoke or undo mutations. See [plan](plans/640-token-pagehide.md) and [contract](../contracts/token-management-pagehide.md).

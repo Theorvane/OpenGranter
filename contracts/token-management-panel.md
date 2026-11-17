@@ -10,3 +10,5 @@ mountTokenManagementPanel(root, request) mounts issuance and revocation and retu
 
 
 See [issued-token revocation handoff](issued-token-revocation.md) for the optional nonsecret review callback, pending-work rejection and separate confirmation. This does not submit revocation automatically.
+
+Native document page exit also terminally clears this mounted surface. See [page-exit cleanup](token-management-pagehide.md); page restoration is not session reauthorization.
