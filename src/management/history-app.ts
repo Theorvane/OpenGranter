@@ -1,4 +1,5 @@
 import type { AuditFilters } from './audit-client.ts';
+import { appendAuditRecordDetails } from './audit-record-details.ts';
 import { mountManagementBoundaryView } from './boundary-view.ts';
 import type { CatalogRequest } from './catalog-client.ts';
 import type { CatalogElement } from './catalog-view.ts';
@@ -206,9 +207,12 @@ export function mountHistoryWorkspace(
       }
     else
       for (const row of snapshot.audit.data) {
-        rows.append(
-          element('li', `${row.occurredAt} · ${row.kind} · ${row.principalId} · ${row.requestId}`),
+        const item = element('li');
+        item.append(
+          element('p', `${row.occurredAt} · ${row.kind} · ${row.principalId} · ${row.requestId}`),
         );
+        appendAuditRecordDetails(item, row);
+        rows.append(item);
       }
     main.append(rows);
     main.append(

@@ -1983,3 +1983,7 @@ The history DOM mount preserves the CsvDownloadResult port contract: only `start
 ### Streamed operations response expiry regression (#637)
 - Receive issuance status 201 before the grant deadline; deliver bytes or EOF after expiry without firing the timer. Require expired boundary, no issued-secret publication and cancellation of an open source.
 - Require successful streamed issuance before expiry; logout, identity replacement and screen navigation cancel a pending body without stale publication. Source failures show only generic uncertain-outcome guidance, never source diagnostics.
+
+## Canonical audit event inspection (#642)
+
+Canonical audit rows offer a native Inspect audit event disclosure for the existing authorized event ID and an explicit scalar metadata allowlist: model, route version, candidate/attempt ID, recorded upstream target, outcome, failure category, denial reason, possibly billed, upstream completed, count, target principal and read mode. Missing fields remain Unknown; zero and false remain distinct. The target does not establish the actual model served. No credential or policy references, raw details, nested objects, authorization arrays, prompt/response bodies or new fetches are displayed. Existing loading, failure, denial, navigation and identity teardown remove disclosures with their rows. Authentication, public activation, retention and deployment approvals remain unchanged. See [plan](plans/642-audit-event-details.md).
