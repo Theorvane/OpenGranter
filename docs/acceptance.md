@@ -2035,3 +2035,9 @@ The management client distinguishes established HTTP 400 input rejection from un
 ## Token page-exit cleanup (#640)
 
 Native pagehide clears live and detached token/input nodes, aborts pending waits, disables retained controls and releases observers. Restored pages do not reauthorize or retry. Fresh 401/403 and explicit disposal also release observers; independent documents remain independent and non-browser documents still support explicit disposal. Unknown server outcomes remain unknown. See [contract](../contracts/token-management-pagehide.md).
+
+### Operations late headers (#639)
+
+- After logout, expiry, disposal, navigation or identity replacement, a late abort-ignoring request response is cancelled unread. Late success/denial cannot replace the current boundary.
+- Rejecting/hanging cancellation hooks, null and already locked bodies cannot expose producer diagnostics or block new identity work. Existing active-stream disposal and fresh-denial behavior remain covered.
+- Pure local stream tests do not certify installed login, PostgreSQL or provider acceptance.

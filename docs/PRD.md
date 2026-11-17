@@ -1525,3 +1525,7 @@ The management client distinguishes established HTTP 400 input rejection from un
 ## Token management page-exit privacy (#640)
 
 The shared token surface terminally clears one-time credentials and pending UI work on native page exit, including cacheable navigation. Restoration requires a fresh authorized mount; clearing does not revoke or undo mutations. See [plan](plans/640-token-pagehide.md) and [contract](../contracts/token-management-pagehide.md).
+
+### Operations late response cleanup (#639)
+
+Trusted request ports that ignore abort still have unread late response bodies cancelled after grant invalidation or caller cancellation. This best-effort resource cleanup never consumes private bytes or changes replacement authority, and is not mutation rollback or revocation. See [contract](../contracts/operations-response-cancellation.md) and [plan](plans/639-operations-response-cancellation.md).
