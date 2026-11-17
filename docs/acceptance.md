@@ -2050,3 +2050,10 @@ Canonical reads and explicit token mutations can use a trusted in-memory bearer 
 ## Grant-owned operations transport cancellation (#639)
 
 Operations invalidation aborts its grant transport before child cleanup, including reentrant logout during mount. Forwarded requests combine caller and grant signals; replacement identity remains isolated from old abort callbacks. This is not credential revocation, helper disposal, mutation rollback or entry activation. See [plan](plans/639-operations-grant-abort.md) and [contract](../contracts/operations-response-cancellation.md#grant-owned-abort-639).
+
+## Exact Unicode history filters (#642)
+
+- All four Usage/Audit JSON/CSV clients reject lone high/low or embedded unpaired surrogates before transport.
+- Preserve permitted valid pairs, literal replacement characters and distinct composed/decomposed model strings exactly; preserve existing Audit ASCII principal restrictions.
+- Synthetic signed-JWT loopback canonical HTTP/PGlite returns authorized valid-model pages/CSV, makes no request/audit for malformed input and enforces fresh Deny. Unit tests retain 401/403/unavailable outcomes. No installed/browser/company IdP/native PostgreSQL/live-provider claim.
+- See [contract](../contracts/history-exact-unicode.md) and [plan](plans/642-history-exact-unicode.md).

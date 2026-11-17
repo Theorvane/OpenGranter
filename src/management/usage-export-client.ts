@@ -1,3 +1,4 @@
+import { isWellFormedUnicode } from '../shared/text/well-formed-unicode.ts';
 import type { CatalogRequest } from './catalog-client.ts';
 
 export interface UsageExportFilters {
@@ -79,6 +80,7 @@ function query(filters: UsageExportFilters): string | undefined {
       (typeof principalId !== 'string' ||
         !principalId.trim() ||
         principalId.length > 256 ||
+        !isWellFormedUnicode(principalId) ||
         Array.from(principalId).some((character) => {
           const code = character.charCodeAt(0);
           return code < 32 || code === 127;
@@ -87,6 +89,7 @@ function query(filters: UsageExportFilters): string | undefined {
       (typeof model !== 'string' ||
         !model.trim() ||
         model.length > 256 ||
+        !isWellFormedUnicode(model) ||
         /\p{Cc}/u.test(model))) ||
     (fromMs !== undefined && !count(fromMs)) ||
     (toMs !== undefined && !count(toMs)) ||
