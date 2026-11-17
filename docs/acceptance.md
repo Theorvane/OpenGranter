@@ -1899,3 +1899,91 @@ An opt-in DOM-free coordinator now joins existing authorized audit JSON and CSV 
 ## Usage review coordinator (#642)
 
 Exercise createUsageReview through existing authorized clients: loading/ready/empty, once-read filters and cursor reset, exact opaque next/back, failed-next retry, explicit current-page JSON/CSV filter parity, bounded cancellation, stale JSON/export suppression, overlapping exports, terminal 401/403 and disposal, observer failure and synchronous teardown. Confirm frozen exact cost comparisons and original decimals, missing usage rather than zeros, and independent duplicate/billing markers. Signed-SSO Fetch over migrated PGlite must isolate self rows, withhold rows on required-audit failure, recover only via retry, persist each successful/denied access, and honor a fresh Deny. See [contract](../contracts/management-usage-review.md) and [plan](plans/642-usage-review-state.md). This does not certify installed PostgreSQL, native browser/IdP, canonical browser artifact, deployment or paid-provider acceptance.
+
+## Confirmed token revocation panel (#640)
+
+The additive [token revocation panel](../contracts/token-revocation-panel.md) requires an already-authorized request port, explicit credential-ID review and confirmation before the existing SSO revoke POST. It renders safe success/no-revocation/uncertain outcomes without secret input or automatic mutation replay. Fresh 401/403 terminally clears the mounted identity; dispose on all identity changes. This is a reusable native DOM component, not completed application navigation, session, live deployment or browser acceptance. See [plan](plans/640-token-revocation-panel.md).
+
+## Confirmed token issuance component (#640)
+- Review/cancel must not issue. Confirm sends one exact request, duplicates/stale callbacks cannot repeat it. Server permission and lifetime denial remain authoritative.
+- Successful 201 displays validated credential ID and bearer token only in the current panel; clear/dispose wipes those owned text nodes and cannot redisplay via old callbacks. Clearing is not revocation.
+- 401/403 clear and lock; invalid input is rejected; private/malformed/oversized/server/network failures never disclose raw bodies or claim rollback and never automatically retry.
+- Component/controlled SSO handler tests are not installed session/IdP/PostgreSQL, native-browser or provider E2E evidence.
+
+## Shared token-management lifecycle (#640)
+
+With both token operations mounted, review/cancel performs no mutation; explicit confirmation uses the existing SSO HTTP contracts. Fresh 401/403 from either operation clears sibling owned credential nodes (even detached references), aborts pending work and suppresses late results/stale callbacks. Idempotent disposal clears both. Network/audit uncertainty is not fabricated as access denial; independently mounted instances remain isolated. See [contract](../contracts/token-management-panel.md) and [plan](plans/640-token-management-panel.md).
+
+### Management-process history APIs (#642)
+
+- On the actual owned management listener, signed API JWT plus active binding and scoped IAM can read usage/audit JSON and CSV with no-store headers and attributed mandatory durable audit.
+- Cookie-only, invalid proxy credential, removed binding and fresh Deny cannot read; failed mandatory audit withholds data/errors. History method/framing and unknown/prefix paths keep existing 400/404 semantics.
+- With or without optional public shell, catalog and token boundaries stay available; one connection is owned and shutdown awaits in-flight required audit before closing SQL. Local signed JWT/PGlite/HTTP tests do not certify native browser login or installed PostgreSQL/provider acceptance.
+
+## Canonical usage artifact integration (#642)
+
+- Build actual usage-client and usage-review with the canonical management builder; execute the resulting self-contained ES modules against controlled JSON/CSV responses.
+- Preserve exact 1e-18 cost delta, original decimal strings, unknown usage and independent duplicate flags; strip private fields and reject malformed usage.
+- Show coordinator loading/ready and explicit export; fresh 403 clears data and terminally blocks the stale request port.
+- Reject shared entry points, unreviewed shared/server modules, external dependencies and shared symlink escapes. Server compatibility exports retain function/error class identity.
+- This is built-module integration evidence, not native browser login, company IdP, installed PostgreSQL or live provider acceptance.
+
+## Canonical audit artifact integration (#642)
+
+- Build actual audit-client and audit-review using the fixed shared audit closure, without server runtime imports. Preserve server parser/projector/error identities.
+- Execute the compiled coordinator against signed-SSO JSON/CSV over real loopback HTTP and migrated local SQL: bounded descending pages, previous/next, explicit export, empty search, durable access events and fresh Deny clearing remain effective.
+- Preserve exact bigint IDs and allowlisted metadata; reject invalid queries before transport and malformed pages without partial data. Retain loading/ready/empty/unavailable/denied states.
+- Reject direct shared entries, arbitrary shared/server dependencies and allowlisted symlink escapes through direct and linked checkout roots.
+- This does not certify native-browser login, company IdP, installed PostgreSQL or live provider behavior. See [contract](../contracts/shared-audit-browser-contracts.md) and [plan](plans/642-shared-audit-browser-contracts.md).
+
+## Shared history identity boundary (#642)
+
+One opt-in history workspace composes the canonical usage/audit review clients for a caller-owned authorized request port. Fresh 401/403 in either JSON or explicit CSV operation clears both histories, aborts sibling work and terminally blocks port reuse. Independent filters/cursors and ordinary local failures remain separate. Caller disposal on known identity teardown is mandatory. See [contract](../contracts/management-history-workspace.md) and [plan](plans/642-history-workspace.md). Canonical artifact execution against the owned loopback HTTP/migrated fixture runtime does not complete DOM navigation, browser login, approved sessions or installed acceptance.
+
+## Explicit history CSV file saves (#642)
+
+- Explicit usage/audit save dispatches one fixed page filename and preserves exact UTF-8 server bytes, formula hardening and missing values. Never fetch/merge more pages or infer completion.
+- Invalid kind/non-string/UTF-8 overflow allocates no object URL. Browser-port failures expose safe states, remove anchors/revoke pending URLs best-effort, never raw CSV/errors or automatic retries.
+- Dispose on identity invalidation, including reentrant creation/append, cancels cleanup, revokes pending URLs and terminally blocks retained save methods. Previously downloaded external files cannot be erased.
+- Canonical module over actual loopback SSO/current IAM/migrated PGlite exports must preserve bytes through real Blob URLs; native browser download/installed acceptance remains a separate gate. See [contract](../contracts/management-csv-download.md).
+
+## Management mutation body cleanup (#640)
+
+- Issuance and revocation return no-store 400 invalid_request for oversized bodies even when producer cancellation never settles; authentication runs first and no mutation is dispatched. Verify abort, rejecting cleanup and unchanged valid/denied/failed-audit paths. This is stream-boundary evidence, not browser or installed deployment acceptance.
+
+## Management socket rejection acceptance (#640)
+
+On real loopback Node sockets, oversized and invalid UTF-8 issue/revoke uploads left open receive 400/no-store with the existing safe error/request ID, Connection: close, and no mutation. Normal authenticated issue/revoke still succeed exactly once. Peer disconnect before body completion must not mutate. These socket tests do not certify browser sessions, real SSO, installed PostgreSQL or provider acceptance.
+
+## Rejected response producer disposal (#640)
+
+The Node HTTP adapter initiates best-effort cancellation of discarded normal/custom fallback bodies before emitting its safe fallback. Invalid metadata cannot leave an untouched private response producer running. Cancellation rejection, synchronous failure, or an unsettled promise cannot delay or replace the fallback. Valid streams remain unchanged. Locked/consumed streams may refuse cleanup; this is not forced resource reclamation, a total request deadline, or mutation rollback. See [plan](plans/640-node-response-disposal.md).
+
+## Scoped history screen integration (#642)
+
+The opt-in history DOM mount now connects trusted SSO usage/audit request ports to native tab/filter, paging, retry and one-page CSV controls. It distinguishes exact estimated/reported/unknown costs and possible duplicates, projects only audit metadata, and clears both histories/download leases on fresh denial or caller teardown. Public session acquisition and entry activation remain unresolved and disabled. See [plan](plans/642-history-dom.md) and [contract](../contracts/history-dom.md); structural DOM and synthetic browser evidence do not certify installed SSO/PostgreSQL or real providers.
+
+## History CSV delivery failures (#642)
+The history DOM mount preserves the CsvDownloadResult port contract: only `started` means browser delivery initiation, not completed file persistence. Returned `unavailable`, `invalid`, `disposed`, and thrown adapter errors show a generic retryable CSV alert in the originating tab. Explicit retry clears that delivery alert; other tabs do not inherit it. Raw diagnostics are never rendered, and synchronous disposal during save cannot restore DOM or errors. This adds no session acquisition, authority, retention, deployment or provider behavior.
+
+## Operations navigation (#637)
+
+- History loads via the existing scoped client; Proxy tokens navigation alone issues no mutation. Confirmation uses the existing token client.
+- Navigation disposes downloads, clears retained one-time bearer display nodes and aborts pending local work. The UI warns that a mutation may still complete and clearing is not revocation.
+- Current history or token 401/403 removes all controls; retained handlers cannot restart work. Late aborted denial cannot erase the new visit.
+- Download factory failures remain generic and allow token navigation; reentrant disposal cannot revive DOM or expose cleanup diagnostics.
+- Canonical browser build succeeds. Synthetic browser navigation is not installed SSO or persistence acceptance.
+
+### Trusted-session operations lifecycle (#637)
+- With no grant or an invalid/expired grant: locked generic UI and no request. Valid trusted authority starts the existing history GET, never automatic token mutation.
+- Expiry removes retained issued-token text; missed timers cannot permit mutations or publish late responses. Logout/replacement abort pending work, release downloads and isolate old responses/timers.
+- 401/403 terminates the current non-aborted grant; aborted previous-screen denial cannot erase a current visit. Scheduling/clock failure and throwing cleanup remain generic and fail closed. Early timers re-arm; long waits are capped; dispose is terminal.
+- Evidence: test/management-operations-session.test.ts plus canonical browser bundle. Synthetic evidence is not deployed SSO, persistence, actual token revocation or provider acceptance.
+
+### Streamed operations response expiry regression (#637)
+- Receive issuance status 201 before the grant deadline; deliver bytes or EOF after expiry without firing the timer. Require expired boundary, no issued-secret publication and cancellation of an open source.
+- Require successful streamed issuance before expiry; logout, identity replacement and screen navigation cancel a pending body without stale publication. Source failures show only generic uncertain-outcome guidance, never source diagnostics.
+
+## Review DOM canonical integration (#637)
+
+Legacy audit/usage extraction exports must preserve canonical shared function and error-constructor identity. Existing review DOM and browser build tests continue to pass with the canonical exact shared source closure. No authenticated deployment acceptance is implied. See [plan](plans/637-review-dom-main-integration.md).

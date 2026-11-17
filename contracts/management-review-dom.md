@@ -14,3 +14,7 @@ The canonical builder permits these exact shared runtime sources, applying the s
 All paths above are relative to src/. No entire shared directory is allowed. Shared symlink aliases, external packages, Node builtins, usage/history.ts (Buffer cursor helpers), and PostgreSQL adapters remain excluded. Stored-record validation and audit projection are extracted unchanged; old server import paths re-export the same symbols/classes for compatibility.
 
 This is a DOM/library integration, not deployment activation. A reviewed runtime URL and trusted browser session/request supplier are still required for real login-to-API browser acceptance. Unit tests and signed-SSO/PGlite regression tests do not establish that deployed browser acceptance.
+
+## Canonical main integration (#637)
+
+The legacy extraction modules forward the canonical shared validators and audit exception constructor; no duplicate runtime parser is retained. The builder retains the exact canonical shared allowlist; legacy server compatibility paths are not browser imports. See [integration plan](../docs/plans/637-review-dom-main-integration.md).

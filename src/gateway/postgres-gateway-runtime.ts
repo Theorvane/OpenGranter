@@ -10,6 +10,7 @@ import { createNodePostgresDirectChatServer } from './node-postgres-chat-server.
 import { createNodePostgresDualRouteChatServer } from './node-postgres-dual-chat-server.ts';
 import { createNodeRequestServer } from './node-request-server.ts';
 import type { PostgresDualRouteChatHandlerPorts } from './postgres-dual-chat-handler.ts';
+import { createPostgresSsoAuditHistoryHandler } from './postgres-sso-audit-history-http.ts';
 import {
   createPostgresSsoCanonicalReviewServer,
   type PostgresSsoCanonicalReviewPorts,
@@ -19,6 +20,7 @@ import {
   type createPostgresRfc9068SsoManagementServer,
 } from './postgres-sso-management-http.ts';
 import { createPostgresSsoModelCatalogHandler } from './postgres-sso-model-catalog-http.ts';
+import { createPostgresSsoUsageHistoryHandler } from './postgres-sso-usage-history-http.ts';
 
 interface GatewayRuntimeInfrastructure {
   readonly host: string;
@@ -196,8 +198,14 @@ export async function startPostgresSsoManagementGateway(ports: PostgresSsoManage
   return startOwnedPostgresGateway(ports, async (client) => {
     const tokens = createPostgresRfc9068SsoManagementHandler({ ...managementPorts, client });
     const catalog = createPostgresSsoModelCatalogHandler({ ...managementPorts, client });
+    const { now, issuer, audience, jwks, newRequestId } = managementPorts;
+    const historyPorts = { client, now, issuer, audience, jwks, newRequestId };
+    const usage = createPostgresSsoUsageHistoryHandler(historyPorts);
+    const audit = createPostgresSsoAuditHistoryHandler(historyPorts);
     const application = (request: Request) => {
       const path = new URL(request.url).pathname;
+      if (path === '/management/v1/usage') return usage(request);
+      if (path === '/management/v1/audit') return audit(request);
       return path === '/management/v1/models' || path.startsWith('/management/v1/models/')
         ? catalog(request)
         : tokens(request);

@@ -1,6 +1,9 @@
-import { projectGatewayAuditEvent } from './gateway-event.ts';
+import { projectGatewayAuditEvent } from '../shared/audit/event-projection.ts';
 
-export { InvalidGatewayAuditEvent, projectGatewayAuditEvent } from './gateway-event.ts';
+export {
+  InvalidGatewayAuditEvent,
+  projectGatewayAuditEvent,
+} from '../shared/audit/event-projection.ts';
 
 import type { GatewayAuditEvent } from '../gateway/chat-handler.ts';
 import type { ManagementAuthenticationAuditEvent } from '../gateway/sso-management-http.ts';

@@ -8,6 +8,14 @@ import {
 } from './client-errors.ts';
 import { isModelDiscoveryPath } from './model-discovery-path.ts';
 
+function discardResponse(response: Response | undefined): void {
+  try {
+    void response?.body?.cancel().catch(() => undefined);
+  } catch {
+    // Locked/consumed bodies and producer cleanup failures cannot replace a safe response.
+  }
+}
+
 /** Adapt an already-composed Fetch-style request boundary to a Node HTTP socket server. */
 export function createNodeRequestServer(
   handle: (request: Request) => Promise<Response>,
@@ -24,6 +32,7 @@ export function createNodeRequestServer(
     let errorFormat: ClientErrorFormat = 'opengranter';
     let discoveryRequest = false;
     let managementRequest = false;
+    let normalResponse: Response | undefined;
     try {
       const path = incoming.url?.startsWith('/') ? incoming.url : '/';
       const pathname = new URL(`http://localhost${path}`).pathname;
@@ -43,9 +52,20 @@ export function createNodeRequestServer(
         signal: cancellation.signal,
         ...(['GET', 'HEAD'].includes(method)
           ? {}
-          : { body: Readable.toWeb(incoming), duplex: 'half' as const }),
+          : {
+              body: Readable.toWeb(
+                managementRequest
+                  ? Readable.from(incoming.iterator({ destroyOnReturn: false }))
+                  : incoming,
+              ),
+              duplex: 'half' as const,
+            }),
       } as RequestInit & { duplex?: 'half' });
       const response = await handle(request);
+      normalResponse = response;
+      // A rejected management upload must not destroy its response socket.
+      // Do not drain unbounded input or reuse a connection with unread bytes.
+      if (managementRequest && !incoming.readableEnded) outgoing.shouldKeepAlive = false;
       if (cancellation.signal.aborted || outgoing.destroyed) {
         await response.body?.cancel().catch(() => undefined);
         return;
@@ -67,6 +87,8 @@ export function createNodeRequestServer(
         outgoing.end();
       }
     } catch {
+      discardResponse(normalResponse);
+      if (managementRequest && !incoming.readableEnded) outgoing.shouldKeepAlive = false;
       if (outgoing.destroyed) {
         return;
       }
@@ -76,7 +98,7 @@ export function createNodeRequestServer(
         // Stream adaptation can fail after headers were staged but before commitment.
         // None of that failed response (especially cookies/framing) belongs to the fallback.
         for (const name of outgoing.getHeaderNames()) outgoing.removeHeader(name);
-        let response: Response;
+        let response: Response | undefined;
         let body: string;
         try {
           response =
@@ -90,6 +112,7 @@ export function createNodeRequestServer(
           });
           body = await response.text();
         } catch {
+          discardResponse(response);
           response = createClientErrorResponse(500, 'internal_error', undefined, errorFormat);
           body = await response.text();
         }

@@ -181,4 +181,4 @@ export function parseUsageHistoryQuery(url: URL): UsageHistoryFilters & {
   };
 }
 
-export { parseStoredUsageRecord } from './stored-record.ts';
+export { parseStoredUsageRecord } from '../shared/usage/stored-row.ts';

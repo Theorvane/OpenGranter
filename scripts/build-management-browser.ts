@@ -14,29 +14,28 @@ export interface ManagementBrowserBuildOptions {
 export async function buildManagementBrowser(
   options: ManagementBrowserBuildOptions,
 ): Promise<string> {
-  const root = resolve(options.root);
+  const root = await realpath(resolve(options.root));
   const source = await realpath(resolve(root, 'src/management'));
-  const shared = new Set(
-    [
-      'src/usage/json.ts',
-      'src/usage/stored-record.ts',
-      'src/usage/record-usage.ts',
-      'src/usage/cost-comparison.ts',
-      'src/audit/attribution.ts',
-      'src/audit/history-http.ts',
-      'src/audit/history-filters.ts',
-      'src/audit/time-range.ts',
-      'src/audit/gateway-event.ts',
-    ].map((path) => resolve(root, path)),
-  );
-  async function local(path: string) {
+  // Fixed reviewed pure closure, not a general shared/server source allowlist.
+  const shared = new Set([
+    ...['attribution', 'record-usage', 'stored-row', 'cost-comparison', 'json'].map((name) =>
+      resolve(root, 'src/shared/usage', `${name}.ts`),
+    ),
+    ...['history-http', 'history-filters', 'time-range', 'event-projection', 'history-types'].map(
+      (name) => resolve(root, 'src/shared/audit', `${name}.ts`),
+    ),
+  ]);
+  async function local(path: string, transitive = false) {
     const canonical = await realpath(path);
     const child = relative(source, canonical);
     if (
-      ((!child || child === '..' || child.startsWith('..' + sep) || isAbsolute(child)) &&
-        !(shared.has(canonical) && canonical === resolve(path))) ||
+      !child ||
+      child === '..' ||
+      child.startsWith(`..${sep}`) ||
+      isAbsolute(child) ||
       !canonical.endsWith('.ts')
     ) {
+      if (transitive && shared.has(canonical)) return canonical;
       throw new Error('Management build requires local TypeScript sources');
     }
     return canonical;
@@ -64,7 +63,7 @@ export async function buildManagementBrowser(
             if (!args.path.startsWith('./') && !args.path.startsWith('../')) {
               throw new Error('Management build forbids external dependencies');
             }
-            return { path: await local(resolve(dirname(args.importer), args.path)) };
+            return { path: await local(resolve(dirname(args.importer), args.path), true) };
           });
         },
       },

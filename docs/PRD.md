@@ -1,3 +1,7 @@
+## Explicit history CSV file saves (#642)
+
+An opt-in caller-owned browser adapter starts a fixed-filename UTF-8 CSV download for one already-authorized usage/audit page, preserving server bytes. Dispose with the identity epoch; no automatic fetch, authority or public-entry activation. Download dispatch is not completion. See [plan](plans/642-csv-download.md) and [contract](../contracts/management-csv-download.md).
+
 # OpenGranter Product Requirements
 
 ## Reviewed model response source checkpoint (#543)
@@ -1333,3 +1337,56 @@ An opt-in DOM-free coordinator now joins existing authorized audit JSON and CSV 
 ## Usage review screen state (#642)
 
 An opt-in DOM-free coordinator joins authorized usage JSON and CSV clients for once-captured filters, opaque next/back cursors, retry, loading/empty/safe errors and explicit current-page export. It preserves exact estimated/reported cost comparisons, missing token usage and independent duplicate/billing markers without inventing totals or reconciliation. New searches and identity teardown cancel stale work; fresh 401/403 clears rows and blocks port reuse. Server scope and mandatory durable access audit remain unchanged. See [contract](../contracts/management-usage-review.md) and [plan](plans/642-usage-review-state.md). No DOM/entry/builder/session, provider or deployment activation; native browser acceptance remains separate.
+
+## Confirmed token revocation panel (#640)
+
+The additive [token revocation panel](../contracts/token-revocation-panel.md) requires an already-authorized request port, explicit credential-ID review and confirmation before the existing SSO revoke POST. It renders safe success/no-revocation/uncertain outcomes without secret input or automatic mutation replay. Fresh 401/403 terminally clears the mounted identity; dispose on all identity changes. This is a reusable native DOM component, not completed application navigation, session, live deployment or browser acceptance. See [plan](plans/640-token-revocation-panel.md).
+
+An independently mountable proxy-token issuance panel now reuses the existing authorized SSO issuance API with explicit review/confirmation and a one-time in-memory credential display. Clearing/disposal removes displayed credentials, not the issued token; uncertain outcomes never trigger automatic reissuance. Canonical navigation/session wiring and native-browser/installed acceptance remain separate.
+
+## Shared token-management lifecycle (#640)
+
+The additive shared token-management panel composes explicit issuance and revocation with a common terminal authentication/authorization boundary, clearing sibling one-time credentials and aborting pending work on fresh 401/403. Canonical navigation, approved session wiring and installed acceptance remain separate gates. See [contract](../contracts/token-management-panel.md) and [plan](plans/640-token-management-panel.md).
+
+### Management-process history integration (#642)
+
+The explicit owned SSO management listener composes reviewed usage/audit JSON/CSV APIs alongside catalog and token management with fresh SSO binding/IAM and mandatory durable access audit. This does not enable browser sessions or select a production deployment.
+
+## Canonical usage browser artifact (#642)
+
+The usage JSON client and JSON/CSV review coordinator can now be built by the canonical public-source browser builder using one shared pure validation and exact-cost projection closure. Server exports retain the same functions and error classes. Only five named shared modules are admitted transitively; arbitrary server/shared imports remain forbidden. This removes a usage artifact integration blocker, not session acquisition, navigation, audit artifact integration or installed acceptance. See [plan](plans/642-shared-usage-browser-contracts.md) and [contract](../contracts/shared-usage-browser-contracts.md).
+
+## Shared history identity boundary (#642)
+
+One opt-in history workspace composes the canonical usage/audit review clients for a caller-owned authorized request port. Fresh 401/403 in either JSON or explicit CSV operation clears both histories, aborts sibling work and terminally blocks port reuse. Independent filters/cursors and ordinary local failures remain separate. Caller disposal on known identity teardown is mandatory. See [contract](../contracts/management-history-workspace.md) and [plan](plans/642-history-workspace.md). Canonical artifact execution against the owned loopback HTTP/migrated fixture runtime does not complete DOM navigation, browser login, approved sessions or installed acceptance.
+
+Management token issuance/revocation body cleanup does not await untrusted producer cancellation before rejecting invalid input. This preserves the authentication-first bounded body contract, without adding request deadlines, session authority or automatic retries.
+
+## Management rejection delivery on Node sockets (#640)
+
+The Node management transport preserves bounded invalid-body responses while an upload remains open. Cancellation does not destroy the shared response socket; incomplete input disables connection reuse without draining unbounded bytes. Authentication, audit and mutation contracts remain unchanged. See [plan](plans/640-management-socket-cancellation.md).
+
+## Rejected response producer disposal (#640)
+
+The Node HTTP adapter initiates best-effort cancellation of discarded normal/custom fallback bodies before emitting its safe fallback. Invalid metadata cannot leave an untouched private response producer running. Cancellation rejection, synchronous failure, or an unsettled promise cannot delay or replace the fallback. Valid streams remain unchanged. Locked/consumed streams may refuse cleanup; this is not forced resource reclamation, a total request deadline, or mutation rollback. See [plan](plans/640-node-response-disposal.md).
+
+## Scoped history screen integration (#642)
+
+The opt-in history DOM mount now connects trusted SSO usage/audit request ports to native tab/filter, paging, retry and one-page CSV controls. It distinguishes exact estimated/reported/unknown costs and possible duplicates, projects only audit metadata, and clears both histories/download leases on fresh denial or caller teardown. Public session acquisition and entry activation remain unresolved and disabled. See [plan](plans/642-history-dom.md) and [contract](../contracts/history-dom.md); structural DOM and synthetic browser evidence do not certify installed SSO/PostgreSQL or real providers.
+
+## History CSV delivery failures (#642)
+The history DOM mount preserves the CsvDownloadResult port contract: only `started` means browser delivery initiation, not completed file persistence. Returned `unavailable`, `invalid`, `disposed`, and thrown adapter errors show a generic retryable CSV alert in the originating tab. Explicit retry clears that delivery alert; other tabs do not inherit it. Raw diagnostics are never rendered, and synchronous disposal during save cannot restore DOM or errors. This adds no session acquisition, authority, retention, deployment or provider behavior.
+
+## Caller-owned operations navigation (#637)
+
+An explicit approved caller can mount History and Proxy tokens together. Navigation disposes the previous screen, aborts local work and clears one-time token displays; a pending mutation may still complete and clearing never revokes tokens. Current-screen 401/403 terminates the whole mount. No session acquisition or public-entry activation is added. See [plan](plans/637-operations-navigation.md) and [contract](../contracts/management-operations.md).
+
+### Trusted-session operations lifecycle (#637)
+The opt-in history/token operations adapter consumes an existing trusted request and absolute expiry, automatically clears visible issued secrets and aborts pending local work on known expiry, logout, identity replacement or disposal. It does not acquire a session or activate the public browser entry; installed login/API acceptance remains outstanding. See contracts/management-operations.md.
+
+### Operations streamed-body deadline (#637)
+The trusted operations lifecycle must enforce known expiry through body consumption, not only at response headers. A late streamed issuance body must never reveal its bearer secret after the deadline even with missed timer delivery; existing server authorization and uncertain mutation-outcome guidance remain unchanged.
+
+## Canonical review DOM integration (#637)
+
+Integrate existing usage/audit review DOM with canonical shared validators, preserving exact browser build restrictions and server exception identity. No session source or public activation is introduced. See [plan](plans/637-review-dom-main-integration.md).
