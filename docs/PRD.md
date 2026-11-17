@@ -1534,3 +1534,7 @@ Trusted request ports that ignore abort still have unread late response bodies c
 ## Explicit SSO management bearer connector (#639)
 
 An opt-in in-memory transport now connects existing Account/catalog/history/token clients to canonical management HTTP using a caller-approved API-specific SSO access token. It restricts credential destinations, omits ambient cookies, prevents redirects and exposes disposal/abort without acquiring session authority. Host login/expiry ownership and server authentication/IAM/audit remain unchanged. See [plan](plans/639-sso-bearer-transport.md) and [contract](../contracts/sso-bearer-request.md).
+
+## Grant-owned operations transport cancellation (#639)
+
+Operations invalidation aborts its grant transport before child cleanup, including reentrant logout during mount. Forwarded requests combine caller and grant signals; replacement identity remains isolated from old abort callbacks. This is not credential revocation, helper disposal, mutation rollback or entry activation. See [plan](plans/639-operations-grant-abort.md) and [contract](../contracts/operations-response-cancellation.md#grant-owned-abort-639).
