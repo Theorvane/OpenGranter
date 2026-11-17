@@ -12,6 +12,7 @@
 - Canonical /me projection is exactly one principalId property; /principal remains two fields. No access token, issuer, subject, policy, secret or proxy credential is disclosed.
 - Local signed JWT + embedded SQL + HTTP is not browser/IdP login, installed PostgreSQL, TLS, deployment or live-provider acceptance.
 
+
 ## Main operations integration (2026-11-18)
 7. Merge reviewed main f138167 into this existing Account branch without duplicating the frontend or owned runtime stacks. Preserve both append-only checkpoint sets in planning documents. The existing operations handler delegates Account reads to the canonical review composition; no additional endpoint, authority, session, schema install or runtime activation is needed.
 8. Extend actual HTTP + signed JWT + migrated SQL regression to the operations composition: exact identity, mandatory awaited audit, fresh binding revocation and missing-table fail-closed behavior. Re-run existing operations/token/history/socket/browser regressions and full static checks, then request a new exact-head review and CI. Earlier approval is not reusable after integration.

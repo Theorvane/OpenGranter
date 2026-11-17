@@ -1991,6 +1991,10 @@ The canonical read composition now routes exact /management/v1/me and /managemen
 
 Bounded local acceptance: signed registered-key JWT + explicitly prepared embedded PostgreSQL + actual Node loopback HTTP verify exact Account payload, revocation, no model permission grant, mandatory pending audit, missing audit with no auto-install, malformed acknowledgement suppression, anonymous rejection, and zero-private-work malformed/unknown requests. These tests are not browser sign-in or installed/deployed acceptance.
 
+
+## Owned management Account API (#639)
+Local loopback HTTP with signed test JWT and migrated embedded PostgreSQL must cover exact Account projections, fresh binding revocation, no implicit model permission, mandatory audit completion, missing-table no-install suppression, malformed acknowledgements, anonymous authentication failure, exact route/method/query handling, public-shell no-authority and idempotent resource closure. Existing management runtime and browser artifact tests remain required. No live IdP, installed PostgreSQL, browser login or deployment certification is implied.
+
 ## Opt-in SSO operations HTTP checkpoint (#637)
 
 A new caller-owned HTTP composition connects existing human bearer-authenticated token issue/revoke to canonical models list/detail and usage/audit JSON/CSV. Existing read-only review remains read-only; existing fresh authentication, IAM and durable audits are reused. No browser session acquisition, new authority, runtime activation or deployment is introduced. Migrated embedded SQL and bound loopback HTTP are local integration evidence, not installed PostgreSQL, external IdP/browser login or provider acceptance. See [plan](plans/637-sso-operations-http.md) and [contract](../contracts/sso-operations-http.md). Original PRD, administrator login, CRUD and deployment/handoff goals remain open.

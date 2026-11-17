@@ -58,6 +58,9 @@ R0 exit requires independent review and agreed contract ownership. This document
 
 Existing PR769/771/775/777 behavior is ported onto canonical main rather than adding an alternate identity contract. Audit SQL is contract-only and excluded from migrations; identity is withheld when unavailable. No global goal or R1 completion is asserted.
 
+
+| #639 owned Account API | postgres-gateway-runtime.ts exact Account dispatch + canonical current-principal composition | current-principal-owned-runtime.test.ts real loopback HTTP/test JWT/embedded PG | Login/session contract and optional identity audit schema approval/install, installed IdP/database/TLS/browser acceptance still outstanding |
+
 ### 2026-11-16 opt-in SSO operations HTTP (#637)
 New src/gateway/postgres-sso-operations-http.ts joins existing token issue/revoke and canonical model/history readers without changing the read-only factory. test/sso-operations-http.test.ts verifies actual local SQL/HTTP paths, mandatory audits, fresh Deny/identity disable and token revocation. No session acquisition, cookie boundary, runtime deployment or installed/provider acceptance. Administrator login, remaining original PRD CRUD and release/handoff remain incomplete. See docs/plans/637-sso-operations-http.md and contracts/sso-operations-http.md.
 
