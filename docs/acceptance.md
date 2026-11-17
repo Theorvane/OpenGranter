@@ -2057,3 +2057,7 @@ Operations invalidation aborts its grant transport before child cleanup, includi
 - Preserve permitted valid pairs, literal replacement characters and distinct composed/decomposed model strings exactly; preserve existing Audit ASCII principal restrictions.
 - Synthetic signed-JWT loopback canonical HTTP/PGlite returns authorized valid-model pages/CSV, makes no request/audit for malformed input and enforces fresh Deny. Unit tests retain 401/403/unavailable outcomes. No installed/browser/company IdP/native PostgreSQL/live-provider claim.
 - See [contract](../contracts/history-exact-unicode.md) and [plan](plans/642-history-exact-unicode.md).
+
+## Token mutation response integrity (#640)
+
+Token issue/revoke clients require exact identity Content-Length bytes when declared, reject malformed/unsafe/oversized declarations before reading, and bound decoded UTF-8 JSON to existing operation caps. Fetch-decoded compressed bodies retain decoded-byte caps without comparing wire length to decoded size. An incomplete response is uncertain, never successful or automatically retried; a server mutation may already have committed. No session, IAM, endpoint, schema or activation changes. See [plan](plans/640-token-response-integrity.md) and [contract](../contracts/token-mutation-response.md).
