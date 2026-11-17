@@ -11,3 +11,7 @@ The owned audited catalog/token listener (#683) has no executable service entryp
 
 ## Acceptance and limits
 Start: OPENGRANTER_MANAGEMENT_BOOTSTRAP_MODULE=/absolute/trusted/module.ts npm run management:start. Optional OPENGRANTER_MANAGEMENT_HOST/PORT/SHUTDOWN_MS configure only this process. Module exports createManagementPorts. Missing/invalid config exits before import. No provider resolver, inference startup, cookie session, user binding provisioning, paid call or deployment activation. Local process tests do not prove installed PostgreSQL, company SSO, browser login or live provider E2E. Rollback by stopping this explicit process and reverting code; no schema changes.
+
+## 2026-11-17 main integration
+
+Keep the canonical runOwnedGatewayProcess lifecycle unchanged. Adapt the explicit management wrapper to OwnedGatewayProcessOptions and validatePorts instead of reintroducing the obsolete parallel runConfiguredGatewayService helper. Proxy, SSO browser and canonical-review wrappers retain their selected bootstrap contracts. Local lifecycle regressions: 23 pass, zero skip; full typecheck passed. This resolves source conflicts, not production activation or session approval.

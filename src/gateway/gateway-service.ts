@@ -60,41 +60,50 @@ function isBootstrapPorts(value: unknown): value is GatewayBootstrapPorts {
   );
 }
 
-interface BaseServiceOptions {
+interface ServiceOptions {
   readonly env: NodeJS.ProcessEnv;
   readonly signals: Pick<EventEmitter, 'on' | 'removeListener'>;
   readonly report: (message: string) => void;
   readonly exit: (code: number) => void;
   readonly loadModule?: (url: string) => Promise<unknown>;
+  readonly start?: (ports: PostgresDualRouteGatewayRuntimePorts) => Promise<{
+    readonly close: () => Promise<void>;
+  }>;
 }
 
-interface ServiceOptions extends BaseServiceOptions {
-  readonly start?: (
-    ports: PostgresDualRouteGatewayRuntimePorts,
+export interface OwnedGatewayProcessOptions<P extends object> {
+  readonly env: NodeJS.ProcessEnv;
+  readonly signals: Pick<EventEmitter, 'on' | 'removeListener'>;
+  readonly report: (message: string) => void;
+  readonly exit: (code: number) => void;
+  readonly loadModule?: (url: string) => Promise<unknown>;
+  readonly factoryName: string;
+  readonly validatePorts: (value: unknown) => value is P;
+  readonly start: (
+    ports: P & {
+      readonly host: string;
+      readonly port: number;
+      readonly now: () => number;
+      readonly newRequestId: () => string;
+    },
   ) => Promise<{ readonly close: () => Promise<void> }>;
 }
 
-/** Dedicated process boundary. exit must terminate the process in production. */
-export function runGatewayService(options: ServiceOptions): Promise<void> {
-  return runConfiguredGatewayService({
+/** Existing proxy executable retains its own bootstrap contract. */
+export async function runGatewayService(options: ServiceOptions): Promise<void> {
+  return runOwnedGatewayProcess({
     ...options,
     factoryName: 'createGatewayPorts',
-    isBootstrapPorts,
+    validatePorts: isBootstrapPorts,
     start: options.start ?? startPostgresDualRouteGateway,
   });
 }
 
-export interface ConfiguredGatewayServiceOptions<T> extends BaseServiceOptions {
-  readonly factoryName: string;
-  readonly isBootstrapPorts: (value: unknown) => value is T;
-  readonly start: (
-    ports: T & { host: string; port: number; now: () => number; newRequestId: () => string },
-  ) => Promise<{ readonly close: () => Promise<void> }>;
-}
-
-/** Shared lifecycle only; callers select an explicit trusted bootstrap contract. */
-export async function runConfiguredGatewayService<T>(
-  options: ConfiguredGatewayServiceOptions<T>,
+/** Shared process lifetime only; trusted wrappers select validation and runtime.
+ * exit must terminate the process in production. No HTTP authority is inferred.
+ */
+export async function runOwnedGatewayProcess<P extends object>(
+  options: OwnedGatewayProcessOptions<P>,
 ): Promise<void> {
   let config: ServiceConfig;
   try {
@@ -154,14 +163,13 @@ export async function runConfiguredGatewayService<T>(
         if (!isObject(module) || typeof module[options.factoryName] !== 'function') {
           throw new Error('Invalid bootstrap');
         }
-        const factory = module[options.factoryName] as () => unknown;
-        const ports: unknown = await factory();
+        const ports: unknown = await (module[options.factoryName] as () => unknown)();
         if (finished) return;
         if (stopping) {
           finish(0);
           return;
         }
-        if (!options.isBootstrapPorts(ports)) throw new Error('Invalid bootstrap');
+        if (!options.validatePorts(ports)) throw new Error('Invalid bootstrap');
         runtime = await options.start({
           ...ports,
           host: config.host,

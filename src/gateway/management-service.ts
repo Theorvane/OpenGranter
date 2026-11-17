@@ -1,7 +1,4 @@
-import {
-  type ConfiguredGatewayServiceOptions,
-  runConfiguredGatewayService,
-} from './gateway-service.ts';
+import { type OwnedGatewayProcessOptions, runOwnedGatewayProcess } from './gateway-service.ts';
 import {
   type PostgresSsoManagementRuntimePorts,
   startPostgresSsoManagementGateway,
@@ -12,10 +9,10 @@ export type ManagementBootstrapPorts = Omit<
   'host' | 'port' | 'now' | 'newRequestId'
 >;
 type ManagementServiceOptions = Omit<
-  ConfiguredGatewayServiceOptions<ManagementBootstrapPorts>,
-  'factoryName' | 'isBootstrapPorts' | 'start'
+  OwnedGatewayProcessOptions<ManagementBootstrapPorts>,
+  'factoryName' | 'validatePorts' | 'start'
 > & {
-  readonly start?: ConfiguredGatewayServiceOptions<ManagementBootstrapPorts>['start'];
+  readonly start?: OwnedGatewayProcessOptions<ManagementBootstrapPorts>['start'];
 };
 
 function isManagementBootstrap(value: unknown): value is ManagementBootstrapPorts {
@@ -36,7 +33,7 @@ function isManagementBootstrap(value: unknown): value is ManagementBootstrapPort
 /** Explicit separate management process; never auto-started by inference. */
 export function runManagementService(options: ManagementServiceOptions): Promise<void> {
   const env = options.env;
-  return runConfiguredGatewayService({
+  return runOwnedGatewayProcess({
     ...options,
     env: {
       OPENGRANTER_BOOTSTRAP_MODULE: env.OPENGRANTER_MANAGEMENT_BOOTSTRAP_MODULE,
@@ -45,7 +42,7 @@ export function runManagementService(options: ManagementServiceOptions): Promise
       OPENGRANTER_SHUTDOWN_MS: env.OPENGRANTER_MANAGEMENT_SHUTDOWN_MS,
     },
     factoryName: 'createManagementPorts',
-    isBootstrapPorts: isManagementBootstrap,
+    validatePorts: isManagementBootstrap,
     start: options.start ?? startPostgresSsoManagementGateway,
   });
 }
