@@ -1484,3 +1484,7 @@ Usage and Audit HTTP reads reject invalid server-generated correlation IDs befor
 ## Explicit canonical operations composition (#637, #640)
 
 An opt-in unbound HTTP composition now connects existing canonical Account/Models/Usage/Audit reads and the existing authorized proxy-token issue/revoke APIs on one application boundary. The previous canonical-review composition remains read-only. Human JWT, current IAM, lifetime limits and transactional audit are reused; no session, default activation or installation is implied. See [plan](plans/637-canonical-operations-composition.md) and [contract](../contracts/canonical-operations-composition.md).
+
+## Explicit owned operations bootstrap (#637/#640)
+
+Canonical reads and existing proxy-token issue/revoke can now be deliberately selected through a hash-verified public-artifact bootstrap sharing existing migration/listener/close ownership. Existing read-only services and CLI remain unchanged; deployment selection needs approval. Account audit DDL remains a separate caller prerequisite. See [contract](../contracts/canonical-operations-bootstrap.md) and [plan](plans/637-canonical-operations-bootstrap.md). Loopback PGlite evidence is not installed/browser-session/provider certification.

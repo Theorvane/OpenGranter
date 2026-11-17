@@ -12,6 +12,10 @@ import { createNodeRequestServer } from './node-request-server.ts';
 import type { PostgresDualRouteChatHandlerPorts } from './postgres-dual-chat-handler.ts';
 import { createPostgresSsoAuditHistoryHandler } from './postgres-sso-audit-history-http.ts';
 import {
+  createPostgresSsoCanonicalOperationsServer,
+  type PostgresSsoCanonicalOperationsPorts,
+} from './postgres-sso-canonical-operations-http.ts';
+import {
   createPostgresSsoCanonicalReviewServer,
   type PostgresSsoCanonicalReviewPorts,
 } from './postgres-sso-canonical-review-http.ts';
@@ -240,6 +244,30 @@ export async function startPostgresSsoCanonicalReviewGateway(
   const shell = Object.hasOwn(ports, 'javascript');
   return startOwnedPostgresGateway(ports, async (client) =>
     createPostgresSsoCanonicalReviewServer({
+      client,
+      now,
+      issuer,
+      audience,
+      jwks,
+      newRequestId,
+      ...(shell ? { javascript } : {}),
+    }),
+  );
+}
+
+/** Explicit operations listener; never selected by read-only/default runtimes. */
+export interface PostgresSsoCanonicalOperationsRuntimePorts
+  extends Omit<PostgresSsoCanonicalOperationsPorts, 'client'>,
+    GatewayRuntimeInfrastructure {}
+
+export async function startPostgresSsoCanonicalOperationsGateway(
+  ports: PostgresSsoCanonicalOperationsRuntimePorts,
+) {
+  // Deliberately enumerate trusted inputs; never pass extra caller reader/audit ports.
+  const { now, issuer, audience, jwks, newRequestId, javascript } = ports;
+  const shell = Object.hasOwn(ports, 'javascript');
+  return startOwnedPostgresGateway(ports, async (client) =>
+    createPostgresSsoCanonicalOperationsServer({
       client,
       now,
       issuer,
