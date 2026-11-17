@@ -55,6 +55,16 @@ export function mountHistoryWorkspace(
   function available() {
     return !disposed && workspace.snapshot().state === 'active';
   }
+  function select(kind: Kind) {
+    const previous = active;
+    // Cancel before selecting: cancellation notifications must not render a
+    // cached destination page before its fresh authorization request starts.
+    // Review revisions also suppress late headers/bodies and CSV delivery.
+    if (previous !== kind) workspace[previous].cancel();
+    if (!available()) return false;
+    active = kind;
+    return true;
+  }
   function element(tag: string, text?: string) {
     const node = root.ownerDocument.createElement(tag);
     if (text !== undefined) node.textContent = text;
@@ -109,7 +119,7 @@ export function mountHistoryWorkspace(
     for (const tab of ['usage', 'audit'] as const) {
       const node = button(tab === 'usage' ? 'Usage' : 'Audit', () => {
         if (active === tab) return;
-        active = tab;
+        if (!select(tab)) return;
         const state = workspace[tab].snapshot().state;
         // Read before rendering: never expose the old authorized page while
         // fresh IAM is being checked, even for one synchronous render.
@@ -238,7 +248,7 @@ export function mountHistoryWorkspace(
           button('View audit for this request', () => {
             // Usage visibility is not Audit authority. Preserve only the
             // destination applied scope; never copy the Usage principal.
-            active = 'audit';
+            if (!select('audit')) return;
             filters.audit = { ...filters.audit, requestId: row.requestId };
             drafts.audit.clear();
             void workspace.audit.load(filters.audit);
@@ -262,7 +272,7 @@ export function mountHistoryWorkspace(
           button('View usage for this request', () => {
             // Audit visibility is not Usage authority. Intersect only the
             // existing applied Usage scope; never copy the Audit target.
-            active = 'usage';
+            if (!select('usage')) return;
             filters.usage = { ...filters.usage, requestId: row.requestId };
             drafts.usage.clear();
             void workspace.usage.load(filters.usage);
