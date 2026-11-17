@@ -42,8 +42,8 @@ test('Account prepares exact principal with blank expiry; separate review and co
   const detached = click(f.root, 'Prepare token for this account');
   assert.equal(f.calls.length, before);
   assert.equal(input(f.root, 'Principal ID').value, 'human/exact+id');
-  assert.equal(input(f.root, 'Expiry (Unix milliseconds, integer)').value, '');
-  input(f.root, 'Expiry (Unix milliseconds, integer)').value = '2000';
+  assert.equal(input(f.root, 'Expiry (UTC ISO timestamp or integer Unix milliseconds)').value, '');
+  input(f.root, 'Expiry (UTC ISO timestamp or integer Unix milliseconds)').value = '2000';
   click(f.root, 'Review issuance');
   assert.equal(f.calls.length, before);
   assert.match(text(f.root), /human\/exact\+id/);
@@ -112,7 +112,7 @@ test('prefill is single use and manual token navigation never resurrects prior A
   click(f.root, 'Account');
   await tick();
   click(f.root, 'Prepare token for this account');
-  input(f.root, 'Expiry (Unix milliseconds, integer)').value = '2000';
+  input(f.root, 'Expiry (UTC ISO timestamp or integer Unix milliseconds)').value = '2000';
   click(f.root, 'Review issuance');
   click(f.root, 'Cancel');
   assert.equal(input(f.root, 'Principal ID').value, '');

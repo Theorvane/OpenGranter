@@ -56,7 +56,7 @@ function enter(root: Element, label: string, value: string) {
 }
 function reviewIssue(root: Element) {
   enter(root, 'Principal ID', 'person');
-  enter(root, 'Expiry (Unix milliseconds, integer)', '2000');
+  enter(root, 'Expiry (UTC ISO timestamp or integer Unix milliseconds)', '2000');
   click(root, 'Review issuance');
 }
 function reviewRevoke(root: Element) {
@@ -402,7 +402,10 @@ test('shared panel crosses a real loopback Node HTTP socket and clears issuance 
     }
   };
   try {
-    reviewIssue(root);
+    enter(root, 'Principal ID', 'person');
+    enter(root, 'Expiry (UTC ISO timestamp or integer Unix milliseconds)', '1970-01-01T00:00:02Z');
+    click(root, 'Review issuance');
+    assert.match(text(root), /UTC: 1970-01-01T00:00:02.000Z/u);
     assert.deepEqual(mutations, []);
     click(root, 'Confirm issuance');
     await waitFor(() => text(root).includes('synthetic-socket-secret'));

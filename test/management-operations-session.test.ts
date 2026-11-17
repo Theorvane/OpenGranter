@@ -118,7 +118,7 @@ test('known expiry erases a retained issued token node and disables detached con
   await tick();
   click(f.root, 'Proxy tokens');
   enter(f.root, 'Principal ID', 'person');
-  enter(f.root, 'Expiry (Unix milliseconds, integer)', '3000');
+  enter(f.root, 'Expiry (UTC ISO timestamp or integer Unix milliseconds)', '3000');
   click(f.root, 'Review issuance');
   click(f.root, 'Confirm issuance');
   await tick();
@@ -445,7 +445,7 @@ for (const late of ['bytes', 'eof'] as const) {
     await tick();
     click(f.root, 'Proxy tokens');
     enter(f.root, 'Principal ID', 'person');
-    enter(f.root, 'Expiry (Unix milliseconds, integer)', '3000');
+    enter(f.root, 'Expiry (UTC ISO timestamp or integer Unix milliseconds)', '3000');
     click(f.root, 'Review issuance');
     click(f.root, 'Confirm issuance');
     await tick();
@@ -493,7 +493,7 @@ for (const outcome of ['success', 'logout', 'replace', 'navigate', 'failure'] as
     await tick();
     click(f.root, 'Proxy tokens');
     enter(f.root, 'Principal ID', 'person');
-    enter(f.root, 'Expiry (Unix milliseconds, integer)', '3000');
+    enter(f.root, 'Expiry (UTC ISO timestamp or integer Unix milliseconds)', '3000');
     click(f.root, 'Review issuance');
     click(f.root, 'Confirm issuance');
     await tick();

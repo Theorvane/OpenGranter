@@ -131,9 +131,10 @@ for (const outcome of ['issued', 'denied', 'audit-failure'] as const) {
       const detached = click(root, 'Prepare token for this account');
       assert.equal(paths.length, before);
       assert.equal(input(root, 'Principal ID').value, 'account-human');
-      input(root, 'Expiry (Unix milliseconds, integer)').value = String(
-        jwt.config.now() + 86400000,
-      );
+      const expiresAt = jwt.config.now() + 86400000;
+      input(root, 'Expiry (UTC ISO timestamp or integer Unix milliseconds)').value = new Date(
+        expiresAt,
+      ).toISOString();
       click(root, 'Review issuance');
       assert.equal(paths.length, before);
       if (outcome === 'denied')
@@ -148,8 +149,13 @@ for (const outcome of ['issued', 'denied', 'audit-failure'] as const) {
         await f.db.query<{ count: number }>('SELECT COUNT(*)::int AS count FROM proxy_credentials')
       ).rows[0]?.count;
       assert.equal(count, outcome === 'issued' ? 1 : 0);
-      if (outcome === 'issued') assert.match(text(root), /Token issued/);
-      else assert.doesNotMatch(text(root), /Token issued|Bearer token \(secret\)/);
+      if (outcome === 'issued') {
+        assert.match(text(root), /Token issued/);
+        const stored = await f.db.query<{ expires_at_ms: string }>(
+          'SELECT expires_at_ms::text AS expires_at_ms FROM proxy_credentials',
+        );
+        assert.equal(Number(stored.rows[0]?.expires_at_ms), expiresAt);
+      } else assert.doesNotMatch(text(root), /Token issued|Bearer token \(secret\)/);
       detached.listeners.click?.();
       assert.equal(statuses.length, 1);
       ui.dispose();
