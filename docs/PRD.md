@@ -1479,3 +1479,8 @@ The existing SSO Usage JSON/CSV handler now rejects Transfer-Encoding and nonzer
 ## History server request ID boundary (#642)
 
 Usage and Audit HTTP reads reject invalid server-generated correlation IDs before identity/history access, audit or response reflection. Fixed private errors contain no invalid ID; valid JSON/CSV retain their authorization and durable audit gates. This is not a browser-session or deployment claim. See [plan](plans/642-history-request-id.md).
+
+
+## Explicit canonical operations composition (#637, #640)
+
+An opt-in unbound HTTP composition now connects existing canonical Account/Models/Usage/Audit reads and the existing authorized proxy-token issue/revoke APIs on one application boundary. The previous canonical-review composition remains read-only. Human JWT, current IAM, lifetime limits and transactional audit are reused; no session, default activation or installation is implied. See [plan](plans/637-canonical-operations-composition.md) and [contract](../contracts/canonical-operations-composition.md).
