@@ -1,5 +1,10 @@
 # Acceptance and Verification Scenarios
 
+## Usage JSON response framing (#642)
+
+Native loopback Fetch accepts Unicode gzip JSON and exactly 2 MiB decoded JSON whose level-zero gzip wire framing exceeds the cap. Decoded overflow and identity truncation return unavailable with no partial page or retry. Injected streams separately prove cancellation before EOF on identity overflow. This does not certify an installed browser/IdP/PostgreSQL/provider deployment. See [plan](plans/642-usage-json-framing.md).
+
+
 ## Reviewed model response marker removal (#543)
 
 - Independently verify v4 provenance, exactly seven complete optional type/format shapes without nullable:true, and the complete previous v3 digest after restoring those markers. Current structure matching v2 must not allow stale v2/v3 pins.
