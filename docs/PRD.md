@@ -1561,3 +1561,8 @@ Usage and audit CSV clients enforce the 2 MiB cap on Fetch-decoded bytes. Compre
 ## Active history filter reset (#642)
 
 The explicit Reset filters action starts one fresh authorized JSON read for the active Usage or Audit view. It clears applied/draft request, model, time, page-size and cursor state, restores the mount's optional initial principal target exactly, and leaves the sibling view unchanged. Pending reads/CSV preparation are cancelled by existing review ownership; late results and detached controls cannot revive data after reset, disposal or denial. Invalid filters can be reset without sending an invalid query. This action does not grant scope, bypass server authorization, enable retention or certify complete history. See [implementation plan](plans/642-history-filter-reset.md).
+
+
+## Leaving a history view (#642)
+
+Changing Usage/Audit views, including request-investigation links, cancels outgoing local JSON/CSV waiting. Late responses cannot start a download. Returning refreshes the retained applied scope through existing fresh authorization. Cancellation cannot undo server processing or durable export audit, and does not revoke authority. See [plan](plans/642-history-tab-cancel.md).
