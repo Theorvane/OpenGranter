@@ -1515,3 +1515,8 @@ Usage and Audit expose the existing API page limit (1..100), independently per v
 ## Authorized publication inspection (#641)
 
 The existing Models list can intersect exact published input/output modalities and supported parameters with text search, using only already-authorized rows. Unknown metadata is not a match for an active capability choice; these labels do not grant execution or certify provider capability. No API, session or routing change. See [plan](plans/641-catalog-publication-filters.md) and [contract](../contracts/catalog-publication-filters.md).
+
+
+## Confirmed proxy-token revocation rejection (#640)
+
+The management client distinguishes established HTTP 400 input rejection from uncertain mutation outcomes. The panel permits a fresh blank-input review and explicit confirmation without automatic retry or diagnostic disclosure; denial stays locked. See [plan](plans/640-revocation-validation.md) and [contract](../contracts/revocation-validation.md). Loopback tests use synthetic service/authentication ports, not installed SSO/provider acceptance.

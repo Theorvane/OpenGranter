@@ -1,0 +1,7 @@
+# Confirmed revocation validation rejection (#640)
+
+1. Problem: the established SSO revocation API returns 400 for InvalidTokenManagementInput, but the management client reports uncertain and the panel lacks its existing invalid_input branch. Operators cannot distinguish a rejected input from a possibly completed mutation.
+2. Scope: map confirmed HTTP 400 to invalid_input and render a fixed correction message with a blank editable Credential ID. Never display response bodies, retry automatically, retain a stale confirmation or claim a revocation succeeded. Keep 401/403 locked, 503/malformed/network outcomes uncertain and existing successful true/false semantics.
+3. Contract: no URL, payload, IAM, authentication, audit, storage, session, deployment or mutation semantics change. Server errors remain private. The trusted request owner continues to own session/CSRF and disposal.
+4. TDD: first reproduce the client and panel error through the existing SSO HTTP handler and actual loopback listener. Verify one explicit confirmed request, no stale-button replay, fresh review/confirmation before a corrected request, success/denial/unavailable regressions and no diagnostics in the DOM.
+5. Delivery: add bounded regression tests, run native TypeScript and Biome, planning checks, focused tests and full check; disclose resource failures separately. Require exact-head CI and independent formal approval before merge. Stacked dependencies remain explicit; no installed browser/IdP/provider acceptance claim.

@@ -53,6 +53,7 @@ async function revokeToken(
     if (signal?.aborted) return { state: 'cancelled' };
     if (response.status === 401) return { state: 'unauthenticated' };
     if (response.status === 403) return { state: 'denied' };
+    if (response.status === 400) return { state: 'invalid_input' };
     if (
       response.status !== 200 ||
       response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() !==

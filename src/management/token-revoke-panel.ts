@@ -83,6 +83,8 @@ export function mountTokenRevocationPanel(root: CatalogElement, request: Catalog
               ? 'Sign in again before managing tokens.'
               : 'Token management access denied.',
           );
+        } else if (result.state === 'invalid_input') {
+          render('Revocation request rejected. Check the credential ID before reviewing again.');
         } else if (result.state === 'ready') {
           render(result.revoked ? 'Token revocation confirmed.' : 'No token revocation reported.');
         } else {
