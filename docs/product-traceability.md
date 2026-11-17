@@ -50,6 +50,14 @@ Developer/service-account gateway paths do not replace platform/team administrat
 R0 exit requires independent review and agreed contract ownership. This document alone does not close #638 or authorize unresolved security policy. See [plan](plans/638-product-traceability.md).
 
 
+## Canonical Account API checkpoint (#639)
+
+| Requirement | Source/API | Bounded verification | Remaining |
+| --- | --- | --- | --- |
+| Current authenticated human / Account | src/gateway/postgres-sso-current-principal-http.ts; canonical read composition; GET /management/v1/me and /principal | test/canonical-current-principal.test.ts, test/sso-current-principal-http.test.ts, test/current-principal-audit-store.test.ts | Approved browser session and frontend Account adoption, explicit schema approval/install, installed/browser acceptance |
+
+Existing PR769/771/775/777 behavior is ported onto canonical main rather than adding an alternate identity contract. Audit SQL is contract-only and excluded from migrations; identity is withheld when unavailable. No global goal or R1 completion is asserted.
+
 ### 2026-11-16 opt-in SSO operations HTTP (#637)
 New src/gateway/postgres-sso-operations-http.ts joins existing token issue/revoke and canonical model/history readers without changing the read-only factory. test/sso-operations-http.test.ts verifies actual local SQL/HTTP paths, mandatory audits, fresh Deny/identity disable and token revocation. No session acquisition, cookie boundary, runtime deployment or installed/provider acceptance. Administrator login, remaining original PRD CRUD and release/handoff remain incomplete. See docs/plans/637-sso-operations-http.md and contracts/sso-operations-http.md.
 
