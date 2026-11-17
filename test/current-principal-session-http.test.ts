@@ -178,7 +178,7 @@ test('trusted Account lifecycle consumes real owned HTTP, expires, reauthorizes 
     assert.doesNotMatch(text(root), /account-human/);
     app.clear();
     assert.doesNotMatch(text(root), /replacement-human/);
-    const audits = await f.db.query(
+    const audits = await f.db.query<{ outcome: string }>(
       'SELECT outcome FROM sso_current_principal_audit_events ORDER BY event_id',
     );
     assert.deepEqual(
