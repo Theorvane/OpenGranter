@@ -5,3 +5,5 @@
 - 401/403 lock and clear the panel; 400 is rejected input; all other HTTP/transport/decoding failures are uncertain (issuance may already have committed). Never automatically repeat issuance. Abort is not rollback.
 - Result appears only in the current mounted authorized panel. Clear removes result; old callbacks cannot reveal it again. No storage, logs, links or clipboard. Display clearing does not revoke the token. Caller MUST dispose on logout, identity change or expiry and owns approved navigation/session integration.
 - Component coverage does not certify native-browser, installed PostgreSQL/IdP or live deployment acceptance.
+
+Optional caller-owned reviewRevocation(credentialId): boolean adds an explicit result action; no secret is passed. Success clears owned credential/secret nodes and the issued-result controls. False retains the display and shows a generic busy status for explicit retry; it must not mutate. Disposal/clear invalidates retained actions. The composed canonical panel supplies this port.

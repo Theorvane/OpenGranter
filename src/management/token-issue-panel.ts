@@ -3,7 +3,11 @@ import type { CatalogElement } from './catalog-view.ts';
 import { issueManagementToken, validIssuance } from './token-issue-client.ts';
 
 /** Caller MUST dispose on logout, expiry, or identity change. Clearing is not revocation. */
-export function mountTokenIssuancePanel(root: CatalogElement, request: CatalogRequest) {
+export function mountTokenIssuancePanel(
+  root: CatalogElement,
+  request: CatalogRequest,
+  options: { readonly reviewRevocation?: (credentialId: string) => boolean } = {},
+) {
   let generation = 0;
   let stopped = false;
   let locked = false;
@@ -96,6 +100,24 @@ export function mountTokenIssuancePanel(root: CatalogElement, request: CatalogRe
                     secret,
                     clear,
                   );
+                  if (options.reviewRevocation) {
+                    const notice = element('p');
+                    notice.setAttribute('role', 'status');
+                    root.append(
+                      button('Review revocation of issued token', () => {
+                        if (stopped || generation !== resultTurn) return;
+                        if (!options.reviewRevocation?.(result.credentialId)) {
+                          notice.textContent =
+                            'Revocation already in progress. Wait before reviewing this issued token.';
+                          return;
+                        }
+                        render(
+                          'Display cleared. Review and separately confirm revocation; clearing does not revoke the token.',
+                        );
+                      }),
+                      notice,
+                    );
+                  }
                   clear.focus();
                 } else if (result.state === 'unauthenticated' || result.state === 'denied') {
                   locked = true;
