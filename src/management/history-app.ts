@@ -302,6 +302,13 @@ export function mountHistoryWorkspace(
         view.state === 'ready' || view.state === 'empty',
       ),
     );
+    if (view.state === 'loading')
+      main.append(button('Cancel history request', () => review.cancel()));
+    if (view.exportState === 'loading')
+      main.append(button('Cancel CSV preparation', () => review.cancel()));
+    main.append(
+      element('p', 'Cancel stops local waiting only; server work and audit may still complete.'),
+    );
     if (view.state === 'unavailable' || view.state === 'cancelled')
       main.append(
         button('Retry', () => {
@@ -323,7 +330,11 @@ export function mountHistoryWorkspace(
     if (view.exportState !== 'idle' || deliveryFailed[kind]) {
       const message = element(
         'p',
-        view.exportState === 'loading' ? 'Preparing CSV…' : 'CSV unavailable. Try again.',
+        view.exportState === 'loading'
+          ? 'Preparing CSV…'
+          : view.exportState === 'cancelled'
+            ? 'CSV preparation cancelled. Download again to retry.'
+            : 'CSV unavailable. Try again.',
       );
       message.setAttribute('role', view.exportState === 'loading' ? 'status' : 'alert');
       main.append(message);
