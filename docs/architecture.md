@@ -1571,3 +1571,7 @@ Operations invalidation aborts its grant transport before child cleanup, includi
 ## Exact history-filter serialization (#642)
 
 A browser-safe scalar-string check precedes URLSearchParams in Usage JSON/CSV and Audit JSON/CSV. Lone surrogates fail locally; no Unicode normalization or replacement is allowed. Existing Audit ASCII principal restrictions and server authorization/audit gates remain unchanged. See [contract](../contracts/history-exact-unicode.md).
+
+## Token mutation response integrity (#640)
+
+Token issue/revoke clients require exact identity Content-Length bytes when declared, reject malformed/unsafe/oversized declarations before reading, and bound decoded UTF-8 JSON to existing operation caps. Fetch-decoded compressed bodies retain decoded-byte caps without comparing wire length to decoded size. An incomplete response is uncertain, never successful or automatically retried; a server mutation may already have committed. No session, IAM, endpoint, schema or activation changes. See [plan](plans/640-token-response-integrity.md) and [contract](../contracts/token-mutation-response.md).

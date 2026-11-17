@@ -18,6 +18,7 @@ export async function buildManagementBrowser(
   const source = await realpath(resolve(root, 'src/management'));
   // Fixed reviewed pure closure, not a general shared/server source allowlist.
   const shared = new Set([
+    resolve(root, 'src/shared/text/well-formed-unicode.ts'),
     ...['attribution', 'record-usage', 'stored-row', 'cost-comparison', 'json'].map((name) =>
       resolve(root, 'src/shared/usage', `${name}.ts`),
     ),

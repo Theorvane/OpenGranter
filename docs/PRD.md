@@ -1542,3 +1542,7 @@ Operations invalidation aborts its grant transport before child cleanup, includi
 ## Exact Unicode history filters (#642)
 
 Usage/Audit JSON and CSV clients reject malformed UTF-16 before URL serialization instead of silently replacing characters in exact principal/model filters. Existing valid strings and format restrictions remain unchanged; no IAM, session or deployment change. See [contract](../contracts/history-exact-unicode.md) and [plan](plans/642-history-exact-unicode.md).
+
+## Token mutation response integrity (#640)
+
+Token issue/revoke clients require exact identity Content-Length bytes when declared, reject malformed/unsafe/oversized declarations before reading, and bound decoded UTF-8 JSON to existing operation caps. Fetch-decoded compressed bodies retain decoded-byte caps without comparing wire length to decoded size. An incomplete response is uncertain, never successful or automatically retried; a server mutation may already have committed. No session, IAM, endpoint, schema or activation changes. See [plan](plans/640-token-response-integrity.md) and [contract](../contracts/token-mutation-response.md).

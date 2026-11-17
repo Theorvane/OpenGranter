@@ -1,5 +1,6 @@
 import type { CatalogRequest } from './catalog-client.ts';
 import { withTokenMutationLifetime } from './token-mutation-lifetime.ts';
+import { readTokenMutationResponse } from './token-mutation-response.ts';
 import { validCredentialId } from './token-revoke-client.ts';
 
 export type TokenIssueResult =
@@ -40,10 +41,9 @@ async function issueToken(
   signal: AbortSignal,
 ): Promise<TokenIssueResult> {
   let response: Response | undefined;
-  let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
   const cancel = () => {
     try {
-      void (reader ? reader.cancel() : response?.body?.cancel())?.catch(() => {});
+      void response?.body?.cancel().catch(() => {});
     } catch {
       /* locked or closed */
     }
@@ -68,20 +68,7 @@ async function issueToken(
       !response.body
     )
       return { state: 'uncertain' };
-    reader = response.body.getReader();
-    signal?.addEventListener('abort', cancel, { once: true });
-    const decoder = new TextDecoder('utf-8', { fatal: true });
-    let bytes = 0;
-    let text = '';
-    while (!signal?.aborted) {
-      const chunk = await reader.read();
-      if (chunk.done) break;
-      bytes += chunk.value.byteLength;
-      if (bytes > 131072) return { state: 'uncertain' };
-      text += decoder.decode(chunk.value, { stream: true });
-    }
-    if (signal?.aborted) return { state: 'cancelled' };
-    const value: unknown = JSON.parse(text + decoder.decode());
+    const value = await readTokenMutationResponse(response, signal, 131072);
     if (
       !value ||
       typeof value !== 'object' ||
@@ -97,8 +84,6 @@ async function issueToken(
   } catch {
     return { state: signal?.aborted ? 'cancelled' : 'uncertain' };
   } finally {
-    signal?.removeEventListener('abort', cancel);
     cancel();
-    reader?.releaseLock();
   }
 }

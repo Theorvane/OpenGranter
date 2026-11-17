@@ -15,3 +15,5 @@
 `test/management-history-workspace.test.ts` covers JSON/CSV denial in both directions, shared cancellation, stale-port blocking, stale denial, local failures, observers and disposal. `test/management-history-workspace-integration.test.ts` builds the real canonical artifact and executes it against the owned management listener over actual loopback HTTP, with signed fixture JWTs, current IAM, migrated PGlite and durable access audit. It also verifies the served public artifact bytes.
 
 This is application integration API evidence, not native browser rendering/login, company IdP, installed PostgreSQL, provider calls, deployment approval or completed navigation. Existing frontend entry/navigation and backend session ownership remain unchanged. No retention/content-audit setting or IAM authority is introduced.
+
+Canonical browser builds include only the reviewed pure Unicode validator as an additional transitive shared dependency. It cannot be a browser entry; no directory-wide shared/server allowance is introduced. See [plan](../docs/plans/642-history-browser-unicode-closure.md).
