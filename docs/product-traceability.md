@@ -48,3 +48,7 @@ Developer/service-account gateway paths do not replace platform/team administrat
 5. **R5/R6:** reconcile compatibility backlog, then installed browser/gateway/security/usage/restart acceptance using approved credentials/client/model and maximum paid budget. No automatic paid fallback.
 
 R0 exit requires independent review and agreed contract ownership. This document alone does not close #638 or authorize unresolved security policy. See [plan](plans/638-product-traceability.md).
+
+
+## CSP-compatible model descriptions (#637)
+The public management shell serves a fixed no-store stylesheet and links it explicitly. Published multiline descriptions use a fixed class and literal text, never inline styles or HTML. CSP remains unchanged; static method/framing/query checks and exact API delegation remain in force. See [plan](plans/637-model-description-csp.md) and [contract](../contracts/model-description-csp.md). Local native-browser rendering is not company SSO, installed PostgreSQL, deployment or provider acceptance.
