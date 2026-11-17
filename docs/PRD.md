@@ -1511,3 +1511,7 @@ Usage rows can open the corresponding request in Audit using a fresh authorized 
 ## Explicit management history page sizes (#642)
 
 Usage and Audit expose the existing API page limit (1..100), independently per view. Blank keeps the existing server default; invalid text/ranges fail locally, never clamp or broaden. Applying a size resets the opaque cursor; pagination, refresh and current-page CSV retain the applied limit, not an unsubmitted draft. Authority, session and retention policies are unchanged. See [plan](plans/642-history-page-size.md).
+
+## Authorized publication inspection (#641)
+
+The existing Models list can intersect exact published input/output modalities and supported parameters with text search, using only already-authorized rows. Unknown metadata is not a match for an active capability choice; these labels do not grant execution or certify provider capability. No API, session or routing change. See [plan](plans/641-catalog-publication-filters.md) and [contract](../contracts/catalog-publication-filters.md).

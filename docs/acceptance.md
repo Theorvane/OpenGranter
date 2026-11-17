@@ -2019,3 +2019,9 @@ Usage now accepts an exact Request ID filter and a row action that reloads autho
 - Search alias, publisher, name and description case-insensitively without network; preserve server order. No match removes rows, and empty query restores the authorized list.
 - Loading, empty, denied and disposed views clear list metadata. SSO HTTP uses existing fresh IAM and required durable audit; no publication text enters audit metadata.
 - This does not satisfy admin login, IdP, installed PostgreSQL or deployment acceptance.
+
+## Published catalog selectors (#641)
+
+- Authorized list options derive only from current published metadata, preserve exact future labels, and intersect input/output modality, parameter and text search without a fetch. Unknown/empty metadata never satisfies an active choice.
+- Empty selection restores only authorized rows; no-match is distinct from an empty server catalog. Text-only rendering, exact detail navigation and teardown of detached controls/buttons are required.
+- Loopback detail/refresh after a new provider Deny must not reuse list visibility as authority. Synthetic loopback is not company SSO, installed browser or live provider acceptance. See [contract](../contracts/catalog-publication-filters.md).
