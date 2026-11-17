@@ -1506,3 +1506,8 @@ Authenticated token issue/revoke uploads now have a non-renewable 30-second body
 ### Usage-to-Audit request investigation (#642)
 
 Usage rows can open the corresponding request in Audit using a fresh authorized read. The action intersects only the destination Audit applied filters, resets pagination and discards its drafts; Usage identity or visibility never supplies Audit authority. Loading clears previous records, and empty results are not complete audit history or proof of no execution. Canonical loopback signed-bearer/PGlite acceptance covers scoped success, fresh Deny and mandatory audit failure; native browser login, installed PostgreSQL and company IdP acceptance remain separate. See [plan](plans/642-usage-audit-investigation.md) and [contract](../contracts/usage-audit-investigation.md).
+
+
+## Explicit management history page sizes (#642)
+
+Usage and Audit expose the existing API page limit (1..100), independently per view. Blank keeps the existing server default; invalid text/ranges fail locally, never clamp or broaden. Applying a size resets the opaque cursor; pagination, refresh and current-page CSV retain the applied limit, not an unsubmitted draft. Authority, session and retention policies are unchanged. See [plan](plans/642-history-page-size.md).
