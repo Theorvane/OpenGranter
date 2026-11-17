@@ -40,8 +40,8 @@ export function renderPublishedModelDetails(root: CatalogElement, model: Catalog
   const details = element('dl');
   for (const [label, text] of rows) {
     const value = element('dd', text);
-    // Preserve multiline published descriptions without interpreting markup.
-    if (label === 'Description') value.setAttribute('style', 'white-space: pre-wrap');
+    // Use the fixed shell stylesheet; inline styles are blocked by its CSP.
+    if (label === 'Description') value.setAttribute('class', 'management-model-description');
     details.append(element('dt', label), value);
   }
   return [

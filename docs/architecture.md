@@ -1531,3 +1531,7 @@ The trusted operations adapter wraps response bodies with zero-prefetch streamin
 ## Review DOM integration compatibility (#637)
 
 Legacy extraction paths forward canonical shared projections rather than duplicating validation or exception constructors. The browser build admits only the existing reviewed canonical shared closure, not legacy server paths. See [plan](plans/637-review-dom-main-integration.md).
+
+
+## CSP-compatible model descriptions (#637)
+The public management shell serves a fixed no-store stylesheet and links it explicitly. Published multiline descriptions use a fixed class and literal text, never inline styles or HTML. CSP remains unchanged; static method/framing/query checks and exact API delegation remain in force. See [plan](plans/637-model-description-csp.md) and [contract](../contracts/model-description-csp.md). Local native-browser rendering is not company SSO, installed PostgreSQL, deployment or provider acceptance.
