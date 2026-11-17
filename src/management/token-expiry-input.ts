@@ -1,5 +1,6 @@
 /** Display/input conversion only. Server time and lifetime policy remain authoritative. */
 export function parseTokenExpiry(value: string): number | undefined {
+  if (value.trim() !== value) return;
   if (/^(?:0|[1-9][0-9]*)$/u.test(value)) {
     const milliseconds = Number(value);
     return Number.isSafeInteger(milliseconds) ? milliseconds : undefined;
