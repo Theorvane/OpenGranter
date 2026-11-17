@@ -1418,3 +1418,8 @@ The public management shell serves a fixed no-store stylesheet and links it expl
 ### Account identity panel integration (#639)
 
 mountCurrentPrincipalPanel(root, request) consumes the canonical current-principal client via a caller-authorized port. It renders loading, exact identity details, refresh and sanitized retryable errors; 401/403 remove identity and end the mount. Refresh/dispose clear identity synchronously and invalidate pending work. The trusted host must dispose on logout, expiry or identity changes. This display-only module does not activate the frontend shell, establish sessions or grant permissions. Local synthetic JWT/embedded PostgreSQL tests do not establish installed SSO/browser login or deployment acceptance.
+
+
+### Account trusted-session lifetime (#639)
+
+The opt-in Account host consumes an existing caller-owned request and absolute expiry, clears identity on expiry/logout/replacement and prevents late headers or streamed bodies from restoring it. This is lifetime enforcement, not a login/session source or public-entry activation. See [contract](../contracts/current-principal-session.md), [plan](plans/639-account-session-lifecycle.md) and [local evidence](plans/639-account-session-evidence.md).
