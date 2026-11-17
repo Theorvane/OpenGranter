@@ -2025,3 +2025,8 @@ Usage now accepts an exact Request ID filter and a row action that reloads autho
 - Authorized list options derive only from current published metadata, preserve exact future labels, and intersect input/output modality, parameter and text search without a fetch. Unknown/empty metadata never satisfies an active choice.
 - Empty selection restores only authorized rows; no-match is distinct from an empty server catalog. Text-only rendering, exact detail navigation and teardown of detached controls/buttons are required.
 - Loopback detail/refresh after a new provider Deny must not reuse list visibility as authority. Synthetic loopback is not company SSO, installed browser or live provider acceptance. See [contract](../contracts/catalog-publication-filters.md).
+
+
+## Confirmed proxy-token revocation rejection (#640)
+
+The management client distinguishes established HTTP 400 input rejection from uncertain mutation outcomes. The panel permits a fresh blank-input review and explicit confirmation without automatic retry or diagnostic disclosure; denial stays locked. See [plan](plans/640-revocation-validation.md) and [contract](../contracts/revocation-validation.md). Loopback tests use synthetic service/authentication ports, not installed SSO/provider acceptance.
