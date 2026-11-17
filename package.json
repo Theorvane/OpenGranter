@@ -16,7 +16,8 @@
     "compatibility:drift": "node --experimental-strip-types scripts/check-openrouter-schema.ts --live",
     "compatibility:opencode": "node --experimental-strip-types scripts/conformance-opencode.ts",
     "start": "node --experimental-strip-types scripts/start-gateway.ts",
-    "codex:auth": "node --experimental-strip-types scripts/codex-auth.ts"
+    "codex:auth": "node --experimental-strip-types scripts/codex-auth.ts",
+    "management:build": "node --experimental-strip-types scripts/build-management-browser.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",
@@ -26,6 +27,7 @@
     "@types/node": "^22.20.4",
     "@types/pg": "^8.23.1",
     "ai": "7.0.153",
+    "esbuild": "0.25.12",
     "openai": "7.23.0",
     "typescript": "^7.0.2",
     "zod": "4.6.6"

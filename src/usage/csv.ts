@@ -1,4 +1,5 @@
 import { encodeCsv } from '../export/csv.ts';
+import { compareUsageCosts } from './cost-comparison.ts';
 import { parseStoredUsageRecord } from './history.ts';
 
 const COLUMNS = [
@@ -27,13 +28,16 @@ const COLUMNS = [
   'billed_amount',
   'billed_currency',
   'billed_source',
+  'cost_comparison',
+  'reported_minus_estimated',
+  'comparison_currency',
 ] as const;
 
 /** Export allowlisted metadata; formula-looking text is transformed for initial spreadsheet import. */
 export function serializeUsageCsv(records: readonly unknown[]): string {
-  const rows = records
-    .map(parseStoredUsageRecord)
-    .map((record) => [
+  const rows = records.map(parseStoredUsageRecord).map((record) => {
+    const comparison = compareUsageCosts(record);
+    return [
       record.requestId,
       record.attemptId,
       record.principalId,
@@ -59,6 +63,10 @@ export function serializeUsageCsv(records: readonly unknown[]): string {
       record.upstreamBilledCost?.amountDecimal,
       record.upstreamBilledCost?.currency,
       record.upstreamBilledCost?.source,
-    ]);
+      comparison.status,
+      comparison.reportedMinusEstimated,
+      comparison.currency,
+    ];
+  });
   return encodeCsv(COLUMNS, rows);
 }

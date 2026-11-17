@@ -1,13 +1,26 @@
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { createManagementBrowserHandler } from '../management/browser-http.ts';
 import type { PostgresConnection } from '../storage/postgres-connection.ts';
 import { loadPostgresMigrationSources } from '../storage/postgres-migration-sources.ts';
 import { applyPostgresMigrations } from '../storage/postgres-migrations.ts';
 import type { BundledPostgresServerPorts } from './bundled-postgres-server.ts';
+import { createClientErrorResponse } from './client-errors.ts';
 import { createNodePostgresDirectChatServer } from './node-postgres-chat-server.ts';
 import { createNodePostgresDualRouteChatServer } from './node-postgres-dual-chat-server.ts';
+import { createNodeRequestServer } from './node-request-server.ts';
 import type { PostgresDualRouteChatHandlerPorts } from './postgres-dual-chat-handler.ts';
-import { createPostgresRfc9068SsoManagementServer } from './postgres-sso-management-http.ts';
+import { createPostgresSsoAuditHistoryHandler } from './postgres-sso-audit-history-http.ts';
+import {
+  createPostgresSsoCanonicalReviewServer,
+  type PostgresSsoCanonicalReviewPorts,
+} from './postgres-sso-canonical-review-http.ts';
+import {
+  createPostgresRfc9068SsoManagementHandler,
+  type createPostgresRfc9068SsoManagementServer,
+} from './postgres-sso-management-http.ts';
+import { createPostgresSsoModelCatalogHandler } from './postgres-sso-model-catalog-http.ts';
+import { createPostgresSsoUsageHistoryHandler } from './postgres-sso-usage-history-http.ts';
 
 interface GatewayRuntimeInfrastructure {
   readonly host: string;
@@ -27,7 +40,10 @@ export interface PostgresDualRouteGatewayRuntimePorts
 
 export interface PostgresSsoManagementRuntimePorts
   extends Omit<Parameters<typeof createPostgresRfc9068SsoManagementServer>[0], 'client'>,
-    GatewayRuntimeInfrastructure {}
+    GatewayRuntimeInfrastructure {
+  /** Explicit trusted PUBLIC bundle; absent means no browser routes. Never a session grant. */
+  readonly browserJavascript?: string;
+}
 
 export class InvalidGatewayRuntimeInput extends Error {
   constructor() {
@@ -164,14 +180,69 @@ export async function startPostgresDualRouteGateway(ports: PostgresDualRouteGate
 
 /** Explicitly own a migrated, separate SSO proxy-token management listener. */
 export async function startPostgresSsoManagementGateway(ports: PostgresSsoManagementRuntimePorts) {
+  const { browserJavascript } = ports;
+  if (
+    browserJavascript !== undefined &&
+    (typeof browserJavascript !== 'string' || browserJavascript.length === 0)
+  ) {
+    throw new InvalidGatewayRuntimeInput();
+  }
   const {
     openConnection: _open,
     host: _host,
     port: _port,
     migrationDirectory: _directory,
+    browserJavascript: _browser,
     ...managementPorts
   } = ports;
+  return startOwnedPostgresGateway(ports, async (client) => {
+    const tokens = createPostgresRfc9068SsoManagementHandler({ ...managementPorts, client });
+    const catalog = createPostgresSsoModelCatalogHandler({ ...managementPorts, client });
+    const { now, issuer, audience, jwks, newRequestId } = managementPorts;
+    const historyPorts = { client, now, issuer, audience, jwks, newRequestId };
+    const usage = createPostgresSsoUsageHistoryHandler(historyPorts);
+    const audit = createPostgresSsoAuditHistoryHandler(historyPorts);
+    const application = (request: Request) => {
+      const path = new URL(request.url).pathname;
+      if (path === '/management/v1/usage') return usage(request);
+      if (path === '/management/v1/audit') return audit(request);
+      return path === '/management/v1/models' || path.startsWith('/management/v1/models/')
+        ? catalog(request)
+        : tokens(request);
+    };
+    const handler =
+      browserJavascript === undefined
+        ? application
+        : createManagementBrowserHandler({ javascript: browserJavascript, application });
+    // Preserve the SSO management adapter contract even when Fetch construction fails.
+    return createNodeRequestServer(handler, () => {
+      const response = createClientErrorResponse(503, 'internal_error');
+      response.headers.set('cache-control', 'no-store');
+      return response;
+    });
+  });
+}
+
+/** Explicit read-only listener; no token runtime, session or default activation change. */
+export interface PostgresSsoCanonicalReviewRuntimePorts
+  extends Omit<PostgresSsoCanonicalReviewPorts, 'client'>,
+    GatewayRuntimeInfrastructure {}
+
+export async function startPostgresSsoCanonicalReviewGateway(
+  ports: PostgresSsoCanonicalReviewRuntimePorts,
+) {
+  // Deliberately enumerate trusted inputs; never pass extra caller reader/audit ports.
+  const { now, issuer, audience, jwks, newRequestId, javascript } = ports;
+  const shell = Object.hasOwn(ports, 'javascript');
   return startOwnedPostgresGateway(ports, async (client) =>
-    createPostgresRfc9068SsoManagementServer({ ...managementPorts, client }),
+    createPostgresSsoCanonicalReviewServer({
+      client,
+      now,
+      issuer,
+      audience,
+      jwks,
+      newRequestId,
+      ...(shell ? { javascript } : {}),
+    }),
   );
 }

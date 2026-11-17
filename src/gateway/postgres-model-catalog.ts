@@ -148,6 +148,7 @@ function parseRow(value: unknown): {
 /** Supply the gateway's trusted publication and route ports from PostgreSQL. */
 export function createPostgresModelCatalogReader(client: ModelCatalogSqlClient): {
   readonly listPublishedModels: () => Promise<readonly PublishedModel[]>;
+  readonly findPublishedModel: (alias: string) => Promise<PublishedModel | undefined>;
   readonly resolveRoute: (
     alias: string,
   ) => Promise<ManagedChatRoute | DelegatedChatRoute | undefined>;
@@ -164,6 +165,19 @@ export function createPostgresModelCatalogReader(client: ModelCatalogSqlClient):
           aliases.add(parsed.model.alias);
           return parsed.model;
         });
+      } catch {
+        throw new ModelCatalogUnavailable();
+      }
+    },
+    async findPublishedModel(alias) {
+      identifier(alias);
+      try {
+        const result = await client.query(`${SELECT} WHERE m.alias = $1 LIMIT 2`, [alias]);
+        if (result.rows.length === 0) return undefined;
+        if (result.rows.length !== 1) throw new ModelCatalogUnavailable();
+        const parsed = parseRow(result.rows[0]);
+        if (parsed.model.alias !== alias) throw new ModelCatalogUnavailable();
+        return parsed.model;
       } catch {
         throw new ModelCatalogUnavailable();
       }

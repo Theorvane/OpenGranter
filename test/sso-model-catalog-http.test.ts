@@ -1,0 +1,553 @@
+import assert from 'node:assert/strict';
+import { once } from 'node:events';
+import test from 'node:test';
+import { PGlite } from '@electric-sql/pglite';
+import { createPostgresSsoCatalogAuditStore } from '../src/audit/postgres-sso-catalog.ts';
+import {
+  createPostgresSsoModelCatalog,
+  type SsoCatalogAuditEvent,
+  type SsoCatalogModel,
+  type SsoCatalogResult,
+} from '../src/gateway/postgres-sso-model-catalog.ts';
+import {
+  createSsoModelCatalogHandler,
+  createSsoModelCatalogServer,
+  type SsoModelCatalogHttpPorts,
+} from '../src/gateway/sso-model-catalog-http.ts';
+import { loadPostgresMigrationSources } from '../src/storage/postgres-migration-sources.ts';
+import { createSsoAccessTokenFixture } from './sso-access-token-fixture.ts';
+
+const path = '/management/v1/models';
+const model: SsoCatalogModel = {
+  id: 'team/chat',
+  object: 'model',
+  created: 42,
+  owned_by: 'opengranter',
+};
+const request = (suffix = '', bearer: string | null = 'Bearer signed-access-token') =>
+  new Request(`http://localhost${path}${suffix}`, {
+    headers: {
+      ...(bearer === null ? {} : { authorization: bearer }),
+      'x-request-id': 'client-forged',
+    },
+  });
+function fixture() {
+  const calls: unknown[][] = [];
+  let listResult: SsoCatalogResult<readonly SsoCatalogModel[]> = { state: 'ready', data: [model] };
+  let detailResult: SsoCatalogResult<SsoCatalogModel> = { state: 'ready', data: model };
+  const ports: SsoModelCatalogHttpPorts = {
+    newRequestId: () => 'server-1',
+    catalog: {
+      list: async (...args) => {
+        calls.push(['list', ...args]);
+        return listResult;
+      },
+      detail: async (...args) => {
+        calls.push(['detail', ...args]);
+        return detailResult;
+      },
+    },
+  };
+  return {
+    ports,
+    calls,
+    handle: createSsoModelCatalogHandler(ports),
+    setList: (result: typeof listResult) => {
+      listResult = result;
+    },
+    setDetail: (result: typeof detailResult) => {
+      detailResult = result;
+    },
+  };
+}
+async function safe(response: Response, status: number) {
+  assert.equal(response.status, status);
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+  assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+  assert.equal(response.headers.get('access-control-allow-origin'), null);
+  const text = await response.text();
+  assert.doesNotMatch(
+    text,
+    /signed-access-token|client-forged|private-secret|private-error|credentialRef/u,
+  );
+  return JSON.parse(text);
+}
+
+test('list/empty/detail use exact safe envelopes and server-owned request ID', async () => {
+  const f = fixture();
+  assert.deepEqual(await safe(await f.handle(request()), 200), { object: 'list', data: [model] });
+  assert.deepEqual(f.calls, [['list', 'signed-access-token', 'server-1']]);
+  f.setList({ state: 'ready', data: [] });
+  assert.deepEqual(await safe(await f.handle(request()), 200), { object: 'list', data: [] });
+  assert.deepEqual(await safe(await f.handle(request('/team%2Fchat')), 200), model);
+  assert.deepEqual(f.calls[2], ['detail', 'signed-access-token', 'server-1', 'team/chat']);
+});
+
+test('only frozen known fields are serialized, never trusted service extra fields', async () => {
+  const f = fixture();
+  const extra = { ...model, credentialRef: 'private-secret' };
+  f.setList({ state: 'ready', data: [extra] });
+  f.setDetail({ state: 'ready', data: extra });
+  assert.deepEqual(await safe(await f.handle(request()), 200), { object: 'list', data: [model] });
+  assert.deepEqual(await safe(await f.handle(request('/team%2Fchat')), 200), model);
+});
+
+test('hidden/disabled/absent detail all use service missing; list missing is an internal failure', async () => {
+  const f = fixture();
+  f.setDetail({ state: 'missing' });
+  for (const alias of ['hidden', 'disabled', 'absent']) {
+    const body = await safe(await f.handle(request(`/${alias}`)), 404);
+    assert.equal(body.error.code, 'unknown_model');
+  }
+  f.setList({ state: 'missing' });
+  await safe(await f.handle(request()), 503);
+});
+
+test('service failures map to fixed no-store errors without private data', async () => {
+  const f = fixture();
+  for (const [state, status, code] of [
+    ['unauthenticated', 401, 'unauthorized'],
+    ['unavailable', 503, 'catalog_unavailable'],
+    ['audit_unavailable', 503, 'audit_unavailable'],
+  ] as const) {
+    f.setList({ state });
+    f.setDetail({ state });
+    for (const suffix of ['', '/team%2Fchat']) {
+      const response = await f.handle(request(suffix));
+      if (status === 401) assert.equal(response.headers.get('www-authenticate'), 'Bearer');
+      assert.equal((await safe(response, status)).error.code, code);
+    }
+  }
+});
+
+test('missing/malformed Bearer is delegated as empty input for audited denial; cookie is not authentication', async () => {
+  const f = fixture();
+  f.setList({ state: 'unauthenticated' });
+  for (const header of [null, 'Basic secret', 'Bearer two tokens', 'Bearer a,Bearer b', 'Bearer']) {
+    await safe(await f.handle(request('', header)), 401);
+    assert.deepEqual(f.calls.at(-1), ['list', '', 'server-1']);
+  }
+  const cookie = new Request(`http://localhost${path}`, {
+    headers: { cookie: 'session=private-secret' },
+  });
+  await safe(await f.handle(cookie), 401);
+  assert.deepEqual(f.calls.at(-1), ['list', '', 'server-1']);
+});
+
+test('an invalid service cannot return data for missing bearer', async () => {
+  const f = fixture();
+  await safe(await f.handle(request('', null)), 503);
+  await safe(await f.handle(request('/team%2Fchat', null)), 503);
+});
+
+test('query, malformed encoding, literal slash, empty/unsafe/overlong aliases fail before service work', async () => {
+  const f = fixture();
+  for (const suffix of [
+    '?actor=admin',
+    '/',
+    '/team/chat',
+    '/%ZZ',
+    '/%252F',
+    '/%00',
+    '/%20',
+    '/%5C',
+    '/team%2F..',
+    `/${'x'.repeat(513)}`,
+  ])
+    await safe(await f.handle(request(suffix)), 400);
+  assert.deepEqual(f.calls, []);
+});
+
+test('unmounted paths and non-GET never perform service work', async () => {
+  const f = fixture();
+  for (const method of ['POST', 'HEAD', 'OPTIONS', 'DELETE'])
+    await safe(await f.handle(new Request(`http://localhost${path}`, { method })), 404);
+  for (const uri of [
+    '/v1/models',
+    '/api/v1/models',
+    '/management/v1/models-other',
+    '/management/v1/proxy-tokens',
+  ])
+    await safe(await f.handle(new Request(`http://localhost${uri}`)), 404);
+  assert.deepEqual(f.calls, []);
+});
+
+test('invalid/throwing request-ID generator fails safely before service, never trusts client ID', async () => {
+  for (const newRequestId of [
+    () => '',
+    () => 'bad id',
+    () => 'x'.repeat(257),
+    () => {
+      throw Error('private-error');
+    },
+  ]) {
+    const f = fixture();
+    const handle = createSsoModelCatalogHandler({ ...f.ports, newRequestId });
+    const response = await handle(request());
+    assert.equal(response.headers.get('x-request-id'), null);
+    await safe(response, 503);
+    assert.deepEqual(f.calls, []);
+  }
+});
+
+test('service exceptions and invalid/mismatched projections never leak data', async () => {
+  const f = fixture();
+  for (const value of [
+    { ...model, created: -1 },
+    { ...model, object: 'private-secret' },
+    { ...model, id: 'bad%' },
+  ]) {
+    f.setList({ state: 'ready', data: [value as SsoCatalogModel] });
+    await safe(await f.handle(request()), 503);
+  }
+  f.setDetail({ state: 'ready', data: { ...model, id: 'other' } });
+  await safe(await f.handle(request('/team%2Fchat')), 503);
+  const handle = createSsoModelCatalogHandler({
+    ...f.ports,
+    catalog: {
+      ...f.ports.catalog,
+      list: async () => {
+        throw Error('private-error');
+      },
+    },
+  });
+  await safe(await handle(request()), 503);
+});
+
+test('awaits service completion; abort after service starts suppresses late data', async () => {
+  let release: ((value: SsoCatalogResult<readonly SsoCatalogModel[]>) => void) | undefined;
+  const f = fixture();
+  const handle = createSsoModelCatalogHandler({
+    ...f.ports,
+    catalog: {
+      ...f.ports.catalog,
+      list: () =>
+        new Promise((resolve) => {
+          release = resolve;
+        }),
+    },
+  });
+  const controller = new AbortController();
+  let settled = false;
+  const pending = handle(
+    new Request(`http://localhost${path}`, {
+      headers: { authorization: 'Bearer signed-access-token' },
+      signal: controller.signal,
+    }),
+  ).then((response) => {
+    settled = true;
+    return response;
+  });
+  await Promise.resolve();
+  assert.equal(settled, false);
+  controller.abort();
+  assert.ok(release);
+  release({ state: 'ready', data: [model] });
+  await safe(await pending, 400);
+  await safe(
+    await handle(new Request(`http://localhost${path}`, { signal: controller.signal })),
+    400,
+  );
+});
+
+test('real loopback Node + signed JWT + migrated PGlite: role IAM, live deny/revoke, required audit', async () => {
+  const jwt = await createSsoAccessTokenFixture();
+  const token = await jwt.token();
+  const db = new PGlite();
+  const events: SsoCatalogAuditEvent[] = [];
+  let auditFailure = false;
+  let server: ReturnType<typeof createSsoModelCatalogServer> | undefined;
+  try {
+    for (const source of await loadPostgresMigrationSources()) await db.exec(source.sql);
+    await db.exec(`
+      INSERT INTO iam_principals VALUES ('human', 'human', true);
+      INSERT INTO iam_policies VALUES ('allow', 'v1',
+        '[{"effect":"Allow","actions":["llm:InvokeModel","llm:UseProvider"],"resources":["model:*","provider:openai"]}]');
+      INSERT INTO iam_roles VALUES ('reader');
+      INSERT INTO iam_principal_roles VALUES ('human', 'reader');
+      INSERT INTO iam_role_policies VALUES ('reader', 'allow');
+      INSERT INTO catalog_models (alias, created_at_seconds, enabled) VALUES ('team/chat', 42, true);
+      INSERT INTO catalog_routes (route_id, alias, kind, version, credential_ref, candidates) VALUES
+        ('direct', 'team/chat', 'managed', 'v1', NULL,
+         '[{"id":"one","kind":"managed","providerId":"openai","upstreamModelId":"private-secret"}]');
+      UPDATE catalog_models SET active_route_id = 'direct' WHERE alias = 'team/chat';
+    `);
+    await db.query('INSERT INTO iam_sso_identity_bindings VALUES ($1, $2, $3)', [
+      jwt.issuer,
+      jwt.subject,
+      'human',
+    ]);
+    const audit = createPostgresSsoCatalogAuditStore(
+      { query: (sql, params) => db.query(sql, [...params]) },
+      () => 1000,
+    );
+    const catalog = createPostgresSsoModelCatalog({
+      ...jwt.config,
+      client: { query: (sql, params) => db.query(sql, [...params]) },
+      writeAudit: async (event) => {
+        if (auditFailure) throw Error('private-error');
+        await audit.append(event);
+        events.push(event);
+      },
+    });
+    let requestId = 0;
+    server = createSsoModelCatalogServer({ newRequestId: () => `http-${++requestId}`, catalog });
+    assert.equal(server.listening, false);
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    const origin = `http://127.0.0.1:${address.port}`;
+    const get = (suffix = '', authenticated = true) =>
+      fetch(`${origin}${path}${suffix}`, {
+        headers: {
+          ...(authenticated ? { authorization: `Bearer ${token}` } : {}),
+          'x-request-id': 'client-forged',
+        },
+        redirect: 'error',
+      });
+    assert.deepEqual(await safe(await get(), 200), { object: 'list', data: [model] });
+    assert.deepEqual(await safe(await get('/team%2Fchat'), 200), model);
+    assert.equal(events[0]?.principalId, 'human');
+    assert.equal(events[0]?.requestId, 'http-1');
+    assert.deepEqual(events[0]?.policyVersions, [{ id: 'allow', version: 'v1' }]);
+    assert.doesNotMatch(JSON.stringify(events), /credential|token|private-secret|team\/chat/u);
+    await db.exec(`UPDATE iam_policies SET version = 'v2', statements =
+      '[{"effect":"Deny","actions":["llm:InvokeModel"],"resources":["model:*"]}]' WHERE policy_id = 'allow'`);
+    assert.deepEqual(await safe(await get(), 200), { object: 'list', data: [] });
+    await safe(await get('/team%2Fchat'), 404);
+    assert.deepEqual(events.at(-1)?.policyVersions, [{ id: 'allow', version: 'v2' }]);
+    await db.exec("UPDATE iam_principals SET active = false WHERE principal_id = 'human'");
+    await safe(await get(), 401);
+    assert.equal(events.at(-1)?.principalId, null);
+    await safe(await get('', false), 401);
+    assert.equal(events.at(-1)?.outcome, 'unauthenticated');
+    const persisted = await db.query<Record<string, unknown>>(
+      'SELECT principal_id, policy_versions, outcome FROM sso_catalog_audit_events ORDER BY event_id',
+    );
+    assert.equal(persisted.rows.length, 6);
+    assert.equal(persisted.rows[0]?.principal_id, 'human');
+    assert.deepEqual(persisted.rows[3]?.policy_versions, [{ id: 'allow', version: 'v2' }]);
+    assert.equal(persisted.rows[5]?.outcome, 'unauthenticated');
+    await db.exec("UPDATE iam_principals SET active = true WHERE principal_id = 'human'");
+    await db.exec('DROP TABLE sso_catalog_audit_events');
+    await safe(await get(), 503);
+    auditFailure = true;
+    await safe(await get('', false), 503);
+  } finally {
+    if (server?.listening)
+      await new Promise<void>((resolve, reject) =>
+        server?.close((error) => (error ? reject(error) : resolve())),
+      );
+    await db.close();
+  }
+});
+
+test('descriptive SSO publication is bounded and never implies rich proxy publication', async () => {
+  const f = fixture();
+  const display = {
+    ...model,
+    name: 'Public <b>text</b>',
+    description: '',
+    context_length: null,
+    architecture: { input_modalities: ['text'], output_modalities: ['text'] },
+    supported_parameters: ['tools'],
+  };
+  const extra = {
+    ...display,
+    canonical_slug: 'private-secret',
+    credentialRef: 'private-secret',
+  };
+  f.setList({ state: 'ready', data: [extra] });
+  f.setDetail({ state: 'ready', data: extra });
+  assert.deepEqual(await safe(await f.handle(request()), 200), { object: 'list', data: [display] });
+  assert.deepEqual(await safe(await f.handle(request('/team%2Fchat')), 200), display);
+  for (const patch of [
+    { name: undefined },
+    { name: null },
+    { name: '' },
+    { name: '  ' },
+    { name: 'x'.repeat(257) },
+    { description: undefined },
+    { description: null },
+    { description: 3 },
+    { description: 'x'.repeat(8193) },
+    { context_length: undefined },
+    { context_length: -1 },
+    { context_length: 0.1 },
+    { context_length: Number.MAX_SAFE_INTEGER + 1 },
+    { context_length: '8192' },
+  ]) {
+    const invalid = { ...display, ...patch } as unknown as SsoCatalogModel;
+    f.setList({ state: 'ready', data: [model, invalid] });
+    f.setDetail({ state: 'ready', data: invalid });
+    await safe(await f.handle(request()), 503);
+    await safe(await f.handle(request('/team%2Fchat')), 503);
+  }
+  const boundary = {
+    ...model,
+    name: 'x'.repeat(256),
+    description: 'x'.repeat(8192),
+    context_length: 0,
+  };
+  f.setDetail({ state: 'ready', data: boundary });
+  assert.deepEqual(await safe(await f.handle(request('/team%2Fchat')), 200), boundary);
+});
+
+test('published base prices preserve exact decimals, strip extras and reject malformed output', async () => {
+  const f = fixture();
+  const pricing = { prompt: '0.0000001234567890123456789', completion: '0e-9' };
+  const priced = {
+    ...model,
+    pricing: { ...pricing, credentialRef: 'private-secret', request: '99' },
+  };
+  f.setList({ state: 'ready', data: [priced] });
+  f.setDetail({ state: 'ready', data: priced });
+  assert.deepEqual(await safe(await f.handle(request()), 200), {
+    object: 'list',
+    data: [{ ...model, pricing }],
+  });
+  assert.deepEqual(await safe(await f.handle(request('/team%2Fchat')), 200), { ...model, pricing });
+  for (const bad of [
+    undefined,
+    null,
+    [],
+    {},
+    { prompt: '0' },
+    { prompt: 0, completion: '0' },
+    { prompt: '-1', completion: '0' },
+    { prompt: '1e999', completion: '0' },
+    { prompt: '01', completion: '0' },
+    { prompt: '1'.repeat(129), completion: '0' },
+  ]) {
+    const invalid = { ...model, pricing: bad } as unknown as SsoCatalogModel;
+    f.setList({ state: 'ready', data: [model, invalid] });
+    f.setDetail({ state: 'ready', data: invalid });
+    await safe(await f.handle(request()), 503);
+    await safe(await f.handle(request('/team%2Fchat')), 503);
+  }
+});
+
+test('published modality and parameter labels survive HTTP without private nested metadata', async () => {
+  const f = fixture();
+  const architecture = { input_modalities: ['text', 'image'], output_modalities: ['text'] };
+  const supported_parameters = ['tools', 'temperature'];
+  const row = {
+    ...model,
+    architecture: { ...architecture, modality: 'private-secret' },
+    supported_parameters,
+  };
+  f.setList({ state: 'ready', data: [row] });
+  f.setDetail({ state: 'ready', data: row });
+  assert.deepEqual(await safe(await f.handle(request()), 200), {
+    object: 'list',
+    data: [{ ...model, architecture, supported_parameters }],
+  });
+  assert.deepEqual(await safe(await f.handle(request('/team%2Fchat')), 200), {
+    ...model,
+    architecture,
+    supported_parameters,
+  });
+  const empty = {
+    ...model,
+    architecture: { input_modalities: [], output_modalities: [] },
+    supported_parameters: [],
+  };
+  f.setDetail({ state: 'ready', data: empty });
+  assert.deepEqual(await safe(await f.handle(request('/team%2Fchat')), 200), empty);
+});
+
+test('malformed present modality or parameter labels suppress the entire list and detail', async () => {
+  const f = fixture();
+  const invalidArrays = [
+    undefined,
+    null,
+    {},
+    'text',
+    [1],
+    [''],
+    [' '],
+    ['text', 'text'],
+    ['x'.repeat(129)],
+    Array(65).fill('text'),
+    Array(1),
+  ];
+  const invalidArchitectures = [
+    undefined,
+    null,
+    [],
+    {},
+    { input_modalities: [] },
+    ...invalidArrays.map((input_modalities) => ({ input_modalities, output_modalities: [] })),
+    ...invalidArrays.map((output_modalities) => ({ input_modalities: [], output_modalities })),
+  ];
+  for (const fields of [
+    ...invalidArchitectures.map((architecture) => ({ architecture })),
+    ...invalidArrays.map((supported_parameters) => ({ supported_parameters })),
+  ]) {
+    const row = { ...model, ...fields } as unknown as SsoCatalogModel;
+    f.setList({ state: 'ready', data: [model, row] });
+    f.setDetail({ state: 'ready', data: row });
+    await safe(await f.handle(request()), 503);
+    await safe(await f.handle(request('/team%2Fchat')), 503);
+  }
+});
+
+test('published label bounds preserve order and do not invent text or known capabilities', async () => {
+  const f = fixture();
+  const labels = Array.from({ length: 64 }, (_, i) => `${i}${'x'.repeat(125)}`);
+  const row = {
+    ...model,
+    architecture: { input_modalities: labels, output_modalities: ['future-modality'] },
+    supported_parameters: labels,
+  };
+  f.setDetail({ state: 'ready', data: row });
+  assert.deepEqual(await safe(await f.handle(request('/team%2Fchat')), 200), row);
+});
+
+test('published provider token bounds retain null, zero and integers without private fields', async () => {
+  const f = fixture();
+  for (const top_provider of [
+    {},
+    { context_length: null },
+    { max_completion_tokens: null },
+    { context_length: 0, max_completion_tokens: 0 },
+    { context_length: Number.MAX_SAFE_INTEGER, max_completion_tokens: 8192 },
+  ]) {
+    const row = {
+      ...model,
+      top_provider: { ...top_provider, credentialRef: 'private-secret', is_moderated: true },
+    };
+    f.setList({ state: 'ready', data: [row] });
+    f.setDetail({ state: 'ready', data: row });
+    assert.deepEqual(await safe(await f.handle(request()), 200), {
+      object: 'list',
+      data: [{ ...model, top_provider }],
+    });
+    assert.deepEqual(await safe(await f.handle(request('/team%2Fchat')), 200), {
+      ...model,
+      top_provider,
+    });
+  }
+});
+
+test('invalid present provider token bounds fail the entire HTTP projection', async () => {
+  const f = fixture();
+  const invalid = [
+    undefined,
+    null,
+    [],
+    false,
+    '8192',
+    ...[undefined, -1, 0.5, Number.MAX_SAFE_INTEGER + 1, Infinity, '8192', false].flatMap(
+      (value) => [{ context_length: value }, { max_completion_tokens: value }],
+    ),
+  ];
+  for (const top_provider of invalid) {
+    const row = { ...model, top_provider } as unknown as SsoCatalogModel;
+    f.setList({ state: 'ready', data: [model, row] });
+    f.setDetail({ state: 'ready', data: row });
+    await safe(await f.handle(request()), 503);
+    await safe(await f.handle(request('/team%2Fchat')), 503);
+  }
+});
