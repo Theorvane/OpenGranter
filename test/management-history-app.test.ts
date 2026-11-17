@@ -680,3 +680,175 @@ test('manual usage request filter has empty, invalid and unavailable states with
   assert.doesNotMatch(text(root), /PRIVATE|Possibly billed/);
   app.dispose();
 });
+
+for (const kind of ['usage', 'audit'] as const) {
+  test(`${kind} reset restores initial target and clears applied/draft filters`, async () => {
+    const root = new Element();
+    const paths: string[] = [];
+    const app = mountHistoryWorkspace(
+      root,
+      async (path) => {
+        paths.push(path);
+        return Response.json({ object: 'list', data: [], has_more: false, next_cursor: null });
+      },
+      downloads(),
+      'human',
+    );
+    await tick();
+    if (kind === 'audit') {
+      click(root, 'Audit');
+      await tick();
+    }
+    input(root, 'Principal', 'other');
+    input(root, 'Request ID', 'req-filter');
+    input(root, 'Model', 'chat');
+    input(root, 'From (Unix ms, inclusive)', '10');
+    input(root, 'To (Unix ms, exclusive)', '20');
+    input(root, 'Page size (1–100, blank for default)', '2');
+    click(root, 'Apply filters');
+    await tick();
+    input(root, 'Request ID', 'UNAPPLIED-DRAFT');
+    const before = paths.length;
+    click(root, 'Reset filters');
+    await tick();
+    assert.equal(paths.length, before + 1);
+    const url = new URL(paths.at(-1) ?? '', 'https://local.invalid');
+    assert.equal(url.pathname, `/management/v1/${kind}`);
+    assert.deepEqual(
+      [...url.searchParams],
+      [
+        ['format', 'json'],
+        ['principal_id', 'human'],
+      ],
+    );
+    for (const label of ['Model', 'Request ID', 'Page size (1–100, blank for default)'])
+      assert.equal(nodes(root).find((n) => n.attributes['aria-label'] === label)?.value, '');
+    const stale = nodes(root).find((n) => n.textContent === 'Reset filters');
+    app.dispose();
+    stale?.listeners.click?.();
+    await tick();
+    assert.equal(paths.length, before + 1);
+  });
+}
+
+test('reset preserves sibling filters and cannot revive a denied workspace', async () => {
+  const root = new Element();
+  const paths: string[] = [];
+  let denied = false;
+  const app = mountHistoryWorkspace(
+    root,
+    async (path) => {
+      paths.push(path);
+      return denied
+        ? new Response(null, { status: 403 })
+        : Response.json({ object: 'list', data: [], has_more: false, next_cursor: null });
+    },
+    downloads(),
+  );
+  await tick();
+  input(root, 'Request ID', 'usage-scope');
+  click(root, 'Apply filters');
+  await tick();
+  click(root, 'Audit');
+  await tick();
+  click(root, 'Reset filters');
+  await tick();
+  assert.deepEqual(
+    [...new URL(paths.at(-1) ?? '', 'https://local.invalid').searchParams],
+    [['format', 'json']],
+  );
+  click(root, 'Usage');
+  await tick();
+  assert.equal(
+    nodes(root).find((n) => n.attributes['aria-label'] === 'Request ID')?.value,
+    'usage-scope',
+  );
+  const stale = nodes(root).find((n) => n.textContent === 'Reset filters');
+  assert.ok(stale);
+  denied = true;
+  click(root, 'Reset filters');
+  await tick();
+  assert.match(text(root), /Access denied/u);
+  const before = paths.length;
+  stale.listeners.click?.();
+  await tick();
+  assert.equal(paths.length, before);
+  app.dispose();
+});
+
+test('reset cancels a pending cursor page and suppresses its late completion', async () => {
+  const root = new Element();
+  const paths: string[] = [];
+  let pendingSignal: AbortSignal | null | undefined;
+  let complete: ((response: Response) => void) | undefined;
+  const app = mountHistoryWorkspace(
+    root,
+    async (path, options) => {
+      paths.push(path);
+      const url = new URL(path, 'https://local.invalid');
+      if (url.searchParams.has('cursor')) {
+        pendingSignal = options.signal;
+        return new Promise<Response>((resolve) => {
+          complete = resolve;
+        });
+      }
+      return paths.length === 1
+        ? page(false, true)
+        : Response.json({ object: 'list', data: [], has_more: false, next_cursor: null });
+    },
+    downloads(),
+  );
+  await tick();
+  click(root, 'Next page');
+  await tick();
+  assert.ok(pendingSignal);
+  assert.equal(pendingSignal.aborted, false);
+  click(root, 'Reset filters');
+  await tick();
+  assert.equal(pendingSignal.aborted, true);
+  assert.equal(paths.length, 3);
+  assert.deepEqual(
+    [...new URL(paths[2] ?? '', 'https://local.invalid').searchParams],
+    [['format', 'json']],
+  );
+  assert.match(text(root), /No history matches/u);
+  complete?.(page());
+  await tick();
+  assert.match(text(root), /No history matches/u);
+  assert.doesNotMatch(text(root), /9007199254740993/u);
+  const previous = nodes(root).find((n) => n.textContent === 'Previous page');
+  assert.equal(previous?.attributes.disabled, '');
+  app.dispose();
+});
+
+test('reset recovers from invalid input without sending the invalid query', async () => {
+  const root = new Element();
+  const paths: string[] = [];
+  const app = mountHistoryWorkspace(
+    root,
+    async (path) => {
+      paths.push(path);
+      return Response.json({ object: 'list', data: [], has_more: false, next_cursor: null });
+    },
+    downloads(),
+    'human',
+  );
+  await tick();
+  input(root, 'From (Unix ms, inclusive)', 'invalid');
+  click(root, 'Apply filters');
+  await tick();
+  assert.equal(paths.length, 1);
+  assert.match(text(root), /Invalid filters/u);
+  click(root, 'Reset filters');
+  await tick();
+  assert.equal(paths.length, 2);
+  assert.match(text(root), /No history matches/u);
+  assert.deepEqual(
+    [...new URL(paths[1] ?? '', 'https://local.invalid').searchParams],
+    [
+      ['format', 'json'],
+      ['principal_id', 'human'],
+    ],
+  );
+  app.dispose();
+});
