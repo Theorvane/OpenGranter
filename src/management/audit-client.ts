@@ -57,10 +57,20 @@ function discard(response: Response) {
   void response.body?.cancel().catch(() => undefined);
 }
 async function boundedText(response: Response, signal: AbortSignal): Promise<string> {
+  // Fetch exposes decoded bytes; compressed lengths describe the wire body.
+  const encoding = response.headers.get('content-encoding')?.trim().toLowerCase();
   const length = response.headers.get('content-length');
-  if (length !== null && (!/^(0|[1-9][0-9]*)$/u.test(length) || Number(length) > MAX_BYTES)) {
-    discard(response);
-    throw new Error('Invalid export length');
+  let expected: number | undefined;
+  if (length !== null && (!encoding || encoding === 'identity')) {
+    expected = Number(length);
+    if (
+      !/^(0|[1-9][0-9]*)$/u.test(length) ||
+      !Number.isSafeInteger(expected) ||
+      expected > MAX_BYTES
+    ) {
+      discard(response);
+      throw new Error('Invalid export length');
+    }
   }
   if (!response.body) throw new Error('Missing export body');
   const reader = response.body.getReader();
@@ -78,12 +88,11 @@ async function boundedText(response: Response, signal: AbortSignal): Promise<str
       if (signal.aborted) throw new Error('Interrupted');
       if (done) break;
       size += value.byteLength;
-      if (size > MAX_BYTES) throw new Error('Export exceeds limit');
+      if (size > MAX_BYTES || (expected !== undefined && size > expected))
+        throw new Error('Export exceeds limit');
       text.push(decoder.decode(value, { stream: true }));
     }
-    // Fetch exposes decoded bytes, not the compressed wire length.
-    const encoding = response.headers.get('content-encoding')?.trim().toLowerCase();
-    if (length !== null && (!encoding || encoding === 'identity') && size !== Number(length)) {
+    if (expected !== undefined && size !== expected) {
       throw new Error('Incomplete response body');
     }
     text.push(decoder.decode());
