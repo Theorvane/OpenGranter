@@ -1414,3 +1414,7 @@ The shared Node adapter discards a response returned after client disconnect wit
 
 ## CSP-compatible model descriptions (#637)
 The public management shell serves a fixed no-store stylesheet and links it explicitly. Published multiline descriptions use a fixed class and literal text, never inline styles or HTML. CSP remains unchanged; static method/framing/query checks and exact API delegation remain in force. See [plan](plans/637-model-description-csp.md) and [contract](../contracts/model-description-csp.md). Local native-browser rendering is not company SSO, installed PostgreSQL, deployment or provider acceptance.
+
+### Account identity panel integration (#639)
+
+mountCurrentPrincipalPanel(root, request) consumes the canonical current-principal client via a caller-authorized port. It renders loading, exact identity details, refresh and sanitized retryable errors; 401/403 remove identity and end the mount. Refresh/dispose clear identity synchronously and invalidate pending work. The trusted host must dispose on logout, expiry or identity changes. This display-only module does not activate the frontend shell, establish sessions or grant permissions. Local synthetic JWT/embedded PostgreSQL tests do not establish installed SSO/browser login or deployment acceptance.
