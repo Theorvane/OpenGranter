@@ -1538,3 +1538,7 @@ An opt-in in-memory transport now connects existing Account/catalog/history/toke
 ## Grant-owned operations transport cancellation (#639)
 
 Operations invalidation aborts its grant transport before child cleanup, including reentrant logout during mount. Forwarded requests combine caller and grant signals; replacement identity remains isolated from old abort callbacks. This is not credential revocation, helper disposal, mutation rollback or entry activation. See [plan](plans/639-operations-grant-abort.md) and [contract](../contracts/operations-response-cancellation.md#grant-owned-abort-639).
+
+## Exact Unicode history filters (#642)
+
+Usage/Audit JSON and CSV clients reject malformed UTF-16 before URL serialization instead of silently replacing characters in exact principal/model filters. Existing valid strings and format restrictions remain unchanged; no IAM, session or deployment change. See [contract](../contracts/history-exact-unicode.md) and [plan](plans/642-history-exact-unicode.md).

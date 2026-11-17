@@ -1567,3 +1567,7 @@ The opt-in browser transport consumes an already-approved API-specific SSO acces
 ## Grant-owned operations transport cancellation (#639)
 
 Operations invalidation aborts its grant transport before child cleanup, including reentrant logout during mount. Forwarded requests combine caller and grant signals; replacement identity remains isolated from old abort callbacks. This is not credential revocation, helper disposal, mutation rollback or entry activation. See [plan](plans/639-operations-grant-abort.md) and [contract](../contracts/operations-response-cancellation.md#grant-owned-abort-639).
+
+## Exact history-filter serialization (#642)
+
+A browser-safe scalar-string check precedes URLSearchParams in Usage JSON/CSV and Audit JSON/CSV. Lone surrogates fail locally; no Unicode normalization or replacement is allowed. Existing Audit ASCII principal restrictions and server authorization/audit gates remain unchanged. See [contract](../contracts/history-exact-unicode.md).

@@ -1,5 +1,6 @@
 import { parseAuditHistoryQuery, projectAuditHistoryPage } from '../shared/audit/history-http.ts';
 import type { AuditHistoryEvent } from '../shared/audit/history-types.ts';
+import { isWellFormedUnicode } from '../shared/text/well-formed-unicode.ts';
 import type { CatalogRequest } from './catalog-client.ts';
 
 export interface AuditFilters {
@@ -32,7 +33,7 @@ function query(filters: AuditFilters, format: 'json' | 'csv' = 'json'): string |
   ] as const) {
     const value = filters[field];
     if (value !== undefined) {
-      if (typeof value !== 'string') return undefined;
+      if (typeof value !== 'string' || !isWellFormedUnicode(value)) return undefined;
       params.set(parameter, value);
     }
   }
