@@ -1558,3 +1558,8 @@ Usage now accepts an exact Request ID filter and a row action that reloads autho
 ## Published model list discovery (#641)
 
 The catalog view consumes only the existing validated authorized list and filters its alias, publisher, name and description locally. It emits the unchanged exact alias for fresh detail reads and retains no search state across renders. Session acquisition and deployment activation remain separate approved-caller gates. See [contract](../contracts/model-list-publication.md).
+
+
+## Explicit SSO bearer request connector (#639)
+
+The opt-in browser transport consumes an already-approved API-specific SSO access token and trusted expiry. It forwards the bearer only to canonical relative management read and token-mutation paths, forces same-origin/omit/no-store/error Fetch controls, rejects alternate authentication headers and disables retained handles on disposal. It does not acquire/verify grants, refresh tokens, implement cookies or activate an entry. Trusted hosts still own known expiry/logout/identity-change disposal; canonical server RFC 9068 authentication, fresh IAM and durable audit remain authoritative. See [contract](../contracts/sso-bearer-request.md) and [plan](plans/639-sso-bearer-transport.md).

@@ -2041,3 +2041,8 @@ Native pagehide clears live and detached token/input nodes, aborts pending waits
 - After logout, expiry, disposal, navigation or identity replacement, a late abort-ignoring request response is cancelled unread. Late success/denial cannot replace the current boundary.
 - Rejecting/hanging cancellation hooks, null and already locked bodies cannot expose producer diagnostics or block new identity work. Existing active-stream disposal and fresh-denial behavior remain covered.
 - Pure local stream tests do not certify installed login, PostgreSQL or provider acceptance.
+
+
+## Explicit SSO management bearer connector (#639)
+
+Canonical reads and explicit token mutations can use a trusted in-memory bearer adapter. Verify exact credential destinations, no ambient cookies/redirects, invalid/expired/disposed rejection, caller cancellation, late response cleanup and unchanged fresh Deny/failure outcomes. Real loopback signed-bearer Account/issue/revoke with PGlite must enforce fresh IAM and failed-audit no-write. This is not company SSO or installed acceptance. See [contract](../contracts/sso-bearer-request.md).

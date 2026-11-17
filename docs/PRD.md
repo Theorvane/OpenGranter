@@ -1529,3 +1529,8 @@ The shared token surface terminally clears one-time credentials and pending UI w
 ### Operations late response cleanup (#639)
 
 Trusted request ports that ignore abort still have unread late response bodies cancelled after grant invalidation or caller cancellation. This best-effort resource cleanup never consumes private bytes or changes replacement authority, and is not mutation rollback or revocation. See [contract](../contracts/operations-response-cancellation.md) and [plan](plans/639-operations-response-cancellation.md).
+
+
+## Explicit SSO management bearer connector (#639)
+
+An opt-in in-memory transport now connects existing Account/catalog/history/token clients to canonical management HTTP using a caller-approved API-specific SSO access token. It restricts credential destinations, omits ambient cookies, prevents redirects and exposes disposal/abort without acquiring session authority. Host login/expiry ownership and server authentication/IAM/audit remain unchanged. See [plan](plans/639-sso-bearer-transport.md) and [contract](../contracts/sso-bearer-request.md).
