@@ -19,3 +19,7 @@ Pending-request scope: capture the six allowlisted scalar filters once before bu
 Ready rows are additive `UsageJsonRecord` values, including `costComparison` recomputed with the same exact decimal algorithm as the authorized JSON API and CSV. Do not trust a supplied comparison, even when plausible. Older responses without that field remain supported. Same-currency comparable amounts expose a canonical signed decimal string and currency; unknown, one-source and mismatched-currency states have null delta/currency. Preserve original source/version/amounts, unknown token usage and independent duplicate/possibly-billed flags. Equal amounts are not invoice reconciliation. No floating point conversion or CSV apostrophe is applied to JSON. This transport projection does not render a screen or create a session.
 
 Plan: [browser comparison](../docs/plans/642-browser-cost-comparison.md).
+
+### Decoded response framing (#642)
+
+Apply the 2 MiB cap to decoded bytes, even when compressed wire Content-Length exceeds it. Validate identity lengths as bounded safe integers, cancel immediately upon excess bytes and require equality at EOF. No partial page, retry or changed authorization. See [plan](../docs/plans/642-usage-json-framing.md) and test/usage-json-framing.test.ts.

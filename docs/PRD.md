@@ -1,5 +1,10 @@
 ## Explicit history CSV file saves (#642)
 
+## Usage list decoded response integrity (#642)
+
+The usage JSON list applies its 2 MiB limit to Fetch-decoded UTF-8 bytes, not compressed wire framing. Identity bodies exceeding declared length fail immediately without partial data. Existing authorization, filters and 15-second deadline remain unchanged. See [plan](plans/642-usage-json-framing.md).
+
+
 An opt-in caller-owned browser adapter starts a fixed-filename UTF-8 CSV download for one already-authorized usage/audit page, preserving server bytes. Dispose with the identity epoch; no automatic fetch, authority or public-entry activation. Download dispatch is not completion. See [plan](plans/642-csv-download.md) and [contract](../contracts/management-csv-download.md).
 
 # OpenGranter Product Requirements

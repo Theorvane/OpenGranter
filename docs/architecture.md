@@ -1,5 +1,10 @@
 # Architecture Draft
 
+## Usage JSON transport framing (#642)
+
+The usage list reader validates identity Content-Length as a bounded safe integer, stops on first overflow and requires exact EOF. Compressed wire length does not constrain decoded JSON; the streamed decoded cap still applies. No session, server, IAM or storage changes. See [plan](plans/642-usage-json-framing.md).
+
+
 ## Model-response v4 provenance review (#543)
 
 Use the existing structural projector/fixed-source transport without widening traversal or ignoring nullable keys. Pair the response pin v4 with its validator gate; remove only the seven reviewed markers and refresh its canonical source/projection digests. Restore markers in independent tests to reconstruct the complete previous digest. Other five pin bytes, all runtime source and operational schemas remain unchanged. See [plan](plans/543-model-response-drift.md) and [contract](../contracts/model-response-schema.md#reviewed-version4-checkpoint-543).
