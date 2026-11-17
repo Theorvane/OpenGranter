@@ -1527,3 +1527,10 @@ operations-session.ts composes the existing operations mount with the existing C
 
 ### Operations body deadline enforcement (#637)
 The trusted operations adapter wraps response bodies with zero-prefetch streaming reads. Each read checks the current grant and clock before and after awaiting source data, including EOF; rejection cancels the reader without waiting for source cancellation before showing the safe boundary. Existing clients retain their bounded JSON/CSV parsers. This fixes the headers-before-expiry/body-after-expiry gap without buffering whole responses or changing authentication contracts.
+
+
+## Usage attempt inspection (#642)
+
+Each validated scoped usage row offers a native Inspect usage attempt disclosure. It shows attempt ID, route kind, recorded upstream target, selected candidate, reported inference provider, outcome, latency in milliseconds, usage availability and input/output/total token counts. Null counts/provider/candidate remain Unknown and zero stays zero. The upstream target is not proof of the actual model served; rows represent attempts, not request aggregates. Existing exact estimated/reported cost and duplicate/possibly-billed markers remain unchanged.
+
+The disclosure uses only existing authorized response data and text nodes; it adds no network calls, credential/policy display, authentication, public entry activation, retention or schema. Reload/filter/denial/navigation/identity disposal remove the prior disclosure with the row. See [plan](plans/642-usage-attempt-details.md) and contracts/management-history-workspace.md. Local signed-fixture SSO HTTP plus migrated embedded PostgreSQL is not installed IdP/PostgreSQL/provider acceptance.

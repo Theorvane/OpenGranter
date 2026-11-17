@@ -15,3 +15,10 @@
 `test/management-history-workspace.test.ts` covers JSON/CSV denial in both directions, shared cancellation, stale-port blocking, stale denial, local failures, observers and disposal. `test/management-history-workspace-integration.test.ts` builds the real canonical artifact and executes it against the owned management listener over actual loopback HTTP, with signed fixture JWTs, current IAM, migrated PGlite and durable access audit. It also verifies the served public artifact bytes.
 
 This is application integration API evidence, not native browser rendering/login, company IdP, installed PostgreSQL, provider calls, deployment approval or completed navigation. Existing frontend entry/navigation and backend session ownership remain unchanged. No retention/content-audit setting or IAM authority is introduced.
+
+
+## Usage attempt inspection (#642)
+
+Each validated scoped usage row offers a native Inspect usage attempt disclosure. It shows attempt ID, route kind, recorded upstream target, selected candidate, reported inference provider, outcome, latency in milliseconds, usage availability and input/output/total token counts. Null counts/provider/candidate remain Unknown and zero stays zero. The upstream target is not proof of the actual model served; rows represent attempts, not request aggregates. Existing exact estimated/reported cost and duplicate/possibly-billed markers remain unchanged.
+
+The disclosure uses only existing authorized response data and text nodes; it adds no network calls, credential/policy display, authentication, public entry activation, retention or schema. Reload/filter/denial/navigation/identity disposal remove the prior disclosure with the row. See [plan](../docs/plans/642-usage-attempt-details.md) and contracts/management-history-workspace.md. Local signed-fixture SSO HTTP plus migrated embedded PostgreSQL is not installed IdP/PostgreSQL/provider acceptance.

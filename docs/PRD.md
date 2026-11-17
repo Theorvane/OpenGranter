@@ -1386,3 +1386,10 @@ The opt-in history/token operations adapter consumes an existing trusted request
 
 ### Operations streamed-body deadline (#637)
 The trusted operations lifecycle must enforce known expiry through body consumption, not only at response headers. A late streamed issuance body must never reveal its bearer secret after the deadline even with missed timer delivery; existing server authorization and uncertain mutation-outcome guidance remain unchanged.
+
+
+## Usage attempt inspection (#642)
+
+Each validated scoped usage row offers a native Inspect usage attempt disclosure. It shows attempt ID, route kind, recorded upstream target, selected candidate, reported inference provider, outcome, latency in milliseconds, usage availability and input/output/total token counts. Null counts/provider/candidate remain Unknown and zero stays zero. The upstream target is not proof of the actual model served; rows represent attempts, not request aggregates. Existing exact estimated/reported cost and duplicate/possibly-billed markers remain unchanged.
+
+The disclosure uses only existing authorized response data and text nodes; it adds no network calls, credential/policy display, authentication, public entry activation, retention or schema. Reload/filter/denial/navigation/identity disposal remove the prior disclosure with the row. See [plan](plans/642-usage-attempt-details.md) and contracts/management-history-workspace.md. Local signed-fixture SSO HTTP plus migrated embedded PostgreSQL is not installed IdP/PostgreSQL/provider acceptance.
