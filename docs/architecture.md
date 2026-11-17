@@ -1527,3 +1527,7 @@ operations-session.ts composes the existing operations mount with the existing C
 
 ### Operations body deadline enforcement (#637)
 The trusted operations adapter wraps response bodies with zero-prefetch streaming reads. Each read checks the current grant and clock before and after awaiting source data, including EOF; rejection cancels the reader without waiting for source cancellation before showing the safe boundary. Existing clients retain their bounded JSON/CSV parsers. This fixes the headers-before-expiry/body-after-expiry gap without buffering whole responses or changing authentication contracts.
+
+## Review DOM integration compatibility (#637)
+
+Legacy extraction paths forward canonical shared projections rather than duplicating validation or exception constructors. The browser build admits only the existing reviewed canonical shared closure, not legacy server paths. See [plan](plans/637-review-dom-main-integration.md).

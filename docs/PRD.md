@@ -1386,3 +1386,7 @@ The opt-in history/token operations adapter consumes an existing trusted request
 
 ### Operations streamed-body deadline (#637)
 The trusted operations lifecycle must enforce known expiry through body consumption, not only at response headers. A late streamed issuance body must never reveal its bearer secret after the deadline even with missed timer delivery; existing server authorization and uncertain mutation-outcome guidance remain unchanged.
+
+## Canonical review DOM integration (#637)
+
+Integrate existing usage/audit review DOM with canonical shared validators, preserving exact browser build restrictions and server exception identity. No session source or public activation is introduced. See [plan](plans/637-review-dom-main-integration.md).

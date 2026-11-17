@@ -1983,3 +1983,7 @@ The history DOM mount preserves the CsvDownloadResult port contract: only `start
 ### Streamed operations response expiry regression (#637)
 - Receive issuance status 201 before the grant deadline; deliver bytes or EOF after expiry without firing the timer. Require expired boundary, no issued-secret publication and cancellation of an open source.
 - Require successful streamed issuance before expiry; logout, identity replacement and screen navigation cancel a pending body without stale publication. Source failures show only generic uncertain-outcome guidance, never source diagnostics.
+
+## Review DOM canonical integration (#637)
+
+Legacy audit/usage extraction exports must preserve canonical shared function and error-constructor identity. Existing review DOM and browser build tests continue to pass with the canonical exact shared source closure. No authenticated deployment acceptance is implied. See [plan](plans/637-review-dom-main-integration.md).
