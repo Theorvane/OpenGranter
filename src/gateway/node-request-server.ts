@@ -81,7 +81,12 @@ export function createNodeRequestServer(
       });
       if (discoveryRequest || managementRequest) outgoing.setHeader('cache-control', 'no-store');
       if (managementRequest) outgoing.setHeader('x-content-type-options', 'nosniff');
-      if (response.body) {
+      if (method === 'HEAD') {
+        // HEAD preserves representation metadata but never consumes its producer.
+        // Cleanup is best-effort: a stalled cancel must not hold the socket open.
+        discardResponse(response);
+        outgoing.end();
+      } else if (response.body) {
         await pipeline(Readable.fromWeb(response.body), outgoing);
       } else {
         outgoing.end();
@@ -110,7 +115,12 @@ export function createNodeRequestServer(
           response.headers.forEach((value, name) => {
             validateHeaderValue(name, value);
           });
-          body = await response.text();
+          if (incoming.method === 'HEAD') {
+            discardResponse(response);
+            body = '';
+          } else {
+            body = await response.text();
+          }
         } catch {
           discardResponse(response);
           response = createClientErrorResponse(500, 'internal_error', undefined, errorFormat);

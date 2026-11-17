@@ -1492,3 +1492,8 @@ Canonical reads and existing proxy-token issue/revoke can now be deliberately se
 ## Explicit canonical operations process (#637, #640, #643)
 
 A separately invoked operations executable accepts only the trusted createCanonicalOperationsPorts factory and reviewed SHA-256-pinned public artifact. It composes canonical private reads and existing audited token issue/revoke with owned startup/shutdown. Existing read-only/default/deployed selection is unchanged; no cookie session or inference activation. See [plan](plans/637-canonical-operations-service.md) and [contract](../contracts/canonical-operations-service.md).
+
+
+## HTTP HEAD response lifetime (#643)
+
+The shared HTTP adapter now ends HEAD responses without consuming normal or fallback body producers, cancelling unused producers without blocking on cleanup. Validated representation headers and existing authorization stay authoritative; GET streaming is unchanged. See [contract](../contracts/http-head-response-lifetime.md) and [plan](plans/643-head-response-lifetime.md). This is local socket evidence, not installed acceptance.
