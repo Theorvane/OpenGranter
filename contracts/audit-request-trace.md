@@ -1,0 +1,5 @@
+# Exact audit request trace (#642)
+
+Existing GET /v1/audit and /management/v1/audit accept optional request_id for JSON and CSV. It is an exact, case-sensitive identifier matching ^[A-Za-z0-9][A-Za-z0-9._+:/@-]*$ with length 1..256; URL-encode plus signs. Duplicate or invalid input is invalid_query after authentication. It never grants access or replaces principal/model/time/cursor filters. audit:Read is mandatory even for self and known foreign request IDs do not grant cross-principal access.
+
+SQL binds the identifier; complete row validation including hidden lookahead enforces the same filter. Reader inputs are owned before await. Empty matches remain normal empty pages/header-only CSV. Retain opaque event-ID continuation and repeat filters for continuation; no snapshot across pages is promised. Mandatory access-audit append failure withholds success/error data, and access logs never retain query/filter text. No mounts, session decisions, DDL, UI ownership or deployment permissions change.

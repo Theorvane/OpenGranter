@@ -87,6 +87,152 @@ test('SSO list exposes only aliases navigable by the detail contract', async () 
     const sso = createSsoManagementCatalogClient(async () => Response.json({ data: [row] }));
     assert.deepEqual(await sso.list(), { state: 'unavailable' }, JSON.stringify(id));
     const proxy = createManagementCatalogClient(async () => Response.json({ data: [row] }));
-    assert.deepEqual(await proxy.list(), { state: 'ready', data: [row] });
+    assert.deepEqual(await proxy.list(), { state: 'unavailable' }, JSON.stringify(id));
+  }
+});
+
+test('SSO integrates the approved publication without retaining private metadata', async () => {
+  const base = { id: 'team/chat', object: 'model', created: 0, owned_by: 'opengranter' };
+  const display = {
+    ...base,
+    name: 'Published model',
+    description: 'Information',
+    context_length: null,
+    supported_parameters: ['tools'],
+    architecture: { input_modalities: ['text'], output_modalities: ['text'] },
+    pricing: { prompt: '0.01', completion: '0.02' },
+  };
+  const request = async (path: string) =>
+    Response.json(path.endsWith('/models') ? { data: [display] } : display);
+  const sso = createSsoManagementCatalogClient(request);
+  assert.deepEqual(await sso.list(), {
+    state: 'ready',
+    data: [display],
+  });
+  assert.deepEqual(await sso.detail(base.id), {
+    state: 'ready',
+    data: display,
+  });
+  const proxy = createManagementCatalogClient(request);
+  assert.deepEqual(await proxy.list(), { state: 'ready', data: [display] });
+  assert.deepEqual(await proxy.detail(base.id), { state: 'ready', data: display });
+});
+
+test('SSO provider publication preserves omission/null/zero and strips private nested fields', async () => {
+  const base = { id: 'team/chat', object: 'model', created: 0, owned_by: 'opengranter' };
+  for (const bounds of [
+    {},
+    { context_length: null },
+    { max_completion_tokens: 0 },
+    { context_length: 128000, max_completion_tokens: 8192 },
+    { context_length: 0, max_completion_tokens: null },
+  ]) {
+    const row = {
+      ...base,
+      top_provider: { ...bounds, is_moderated: true, secret: 'private' },
+      secret: 'private',
+    };
+    const client = createSsoManagementCatalogClient(async (path) =>
+      Response.json(path.endsWith('/models') ? { data: [row] } : row),
+    );
+    const list = await client.list();
+    assert.deepEqual(list, { state: 'ready', data: [{ ...base, top_provider: bounds }] });
+    assert.deepEqual(await client.detail(base.id), {
+      state: 'ready',
+      data: { ...base, top_provider: bounds },
+    });
+    assert.doesNotMatch(JSON.stringify(list), /private|is_moderated|secret/u);
+    if (list.state === 'ready') {
+      assert.ok(list.data[0]);
+      assert.equal(Object.isFrozen(Reflect.get(list.data[0], 'top_provider')), true);
+    }
+  }
+  const legacy = createSsoManagementCatalogClient(async () => Response.json(base));
+  assert.deepEqual(await legacy.detail(base.id), { state: 'ready', data: base });
+});
+
+test('SSO malformed provider bounds fail complete lists and detail without changing proxy projection', async () => {
+  const base = { id: 'team/chat', object: 'model', created: 0, owned_by: 'opengranter' };
+  for (const top_provider of [
+    null,
+    [],
+    'private',
+    0,
+    { context_length: -1 },
+    { context_length: 0.1 },
+    { context_length: Number.MAX_SAFE_INTEGER + 1 },
+    { max_completion_tokens: '12' },
+    { max_completion_tokens: true },
+    { max_completion_tokens: -1 },
+    { max_completion_tokens: [] },
+  ]) {
+    const row = { ...base, top_provider };
+    const client = createSsoManagementCatalogClient(async (path) =>
+      Response.json(
+        path.endsWith('/models') ? { data: [{ ...base, id: 'other/model' }, row] } : row,
+      ),
+    );
+    assert.deepEqual(await client.list(), { state: 'unavailable' }, JSON.stringify(top_provider));
+    assert.deepEqual(await client.detail(base.id), { state: 'unavailable' });
+    const proxy = createManagementCatalogClient(async () => Response.json(row));
+    assert.deepEqual(await proxy.detail(base.id), { state: 'ready', data: base });
+  }
+});
+
+test('SSO rejects non-JSON publications before consuming list or detail bodies', async () => {
+  const row = { id: 'chat', object: 'model', created: 0, owned_by: 'opengranter' };
+  for (const contentType of [
+    null,
+    'text/plain',
+    'text/html',
+    'application/jsonp',
+    'application/json; charset=iso-8859-1',
+  ]) {
+    for (const operation of ['list', 'detail'] as const) {
+      let cancelled = 0;
+      let response!: Response;
+      const client = createSsoManagementCatalogClient(async () => {
+        response = new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              controller.enqueue(
+                new TextEncoder().encode(
+                  JSON.stringify(operation === 'list' ? { data: [row] } : row),
+                ),
+              );
+              controller.close();
+            },
+            cancel() {
+              cancelled++;
+              return new Promise<void>(() => {});
+            },
+          }),
+          { headers: contentType === null ? {} : { 'content-type': contentType } },
+        );
+        return response;
+      });
+      const result = operation === 'list' ? await client.list() : await client.detail('chat');
+      assert.deepEqual(result, { state: 'unavailable' }, String(contentType));
+      assert.equal(cancelled, 1);
+      assert.equal(response.body?.locked, false);
+    }
+  }
+});
+
+test('SSO JSON and UTF-8 media types remain compatible for list and detail', async () => {
+  const row = { id: 'chat', object: 'model', created: 0, owned_by: 'opengranter' };
+  for (const contentType of [
+    'application/json',
+    'application/json; charset=utf-8',
+    'Application/JSON; Charset=UTF-8',
+  ]) {
+    const client = createSsoManagementCatalogClient(
+      async (path) =>
+        new Response(JSON.stringify(path.endsWith('/models') ? { data: [row] } : row), {
+          headers: { 'content-type': contentType },
+        }),
+    );
+    assert.deepEqual(await client.list(), { state: 'ready', data: [row] });
+    assert.deepEqual(await client.detail('chat'), { state: 'ready', data: row });
   }
 });

@@ -38,3 +38,7 @@ Alias validation RED: list rendered a space-containing alias as ready although d
 3. Run the integrated real-HTTP suite, both client namespaces and encoding regressions, typecheck and planning checks. Require new exact-head formal approval and all required CI before merge. This is synthetic-identity local API integration, not company IdP/browser login or installed acceptance.
 
 Integrated GREEN: 43/43 focused transport/encoding/lifecycle/real-HTTP tests, zero skips; typecheck, changed-file Biome, planning and whitespace checks pass. Actual client received list/detail, fresh-policy hidden detail and empty list, revoked-binding unauthenticated and audit-failure unavailable through Node HTTP. No historical RED claim for this integration-only regression.
+
+## 2026-11-17 main integration
+
+Preserve the canonical main client, session, publication projections and expanded tests rather than resurrecting the earlier parser. Source features are already present on main; the remaining delta is this plan and real HTTP signed-JWT/PGlite client integration in sso-model-catalog-http.test.ts, retaining fresh Deny, binding deactivation and mandatory audit failure cases. Focused client/session/HTTP/SQL tests: 39 pass, zero skip; full typecheck passed. No new authentication meaning, endpoint or browser activation.
