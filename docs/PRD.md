@@ -1397,6 +1397,10 @@ The canonical read composition now routes exact /management/v1/me and /managemen
 
 The explicitly started management listener now dispatches exact /management/v1/me and /management/v1/principal to the canonical fresh-SSO identity and mandatory audit boundary on its owned connection. This also applies to its existing optional public-artifact bootstrap. No login/session, migration, default process selection, or deployment activation changes. Missing optional identity audit schema still fails closed; approval and installation remain prerequisites. See [plan](plans/639-current-principal-owned-runtime.md) and [contract](../contracts/current-principal-owned-runtime.md).
 
+
+## Canonical Account client (#639)
+
+An opt-in caller-authorized transport reads the exact canonical human identity at /management/v1/principal with bounded JSON, cancellation and a whole-operation deadline. It never authenticates a session or grants model access, and does not activate the public entry. See [contract](../contracts/current-principal-client.md) and [plan](plans/639-current-principal-client.md).
 ## Opt-in SSO operations HTTP checkpoint (#637)
 
 A new caller-owned HTTP composition connects existing human bearer-authenticated token issue/revoke to canonical models list/detail and usage/audit JSON/CSV. Existing read-only review remains read-only; existing fresh authentication, IAM and durable audits are reused. No browser session acquisition, new authority, runtime activation or deployment is introduced. Migrated embedded SQL and bound loopback HTTP are local integration evidence, not installed PostgreSQL, external IdP/browser login or provider acceptance. See [plan](plans/637-sso-operations-http.md) and [contract](../contracts/sso-operations-http.md). Original PRD, administrator login, CRUD and deployment/handoff goals remain open.
