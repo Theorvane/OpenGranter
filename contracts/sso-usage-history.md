@@ -28,3 +28,8 @@ Acceptance: signed SSO JSON/CSV and empty pages persist attribution; malformed q
 ## GET framing parity (#642)
 
 The Fetch adapter rejects any Transfer-Encoding header and any Content-Length other than the exact normalized string `0`, before invoking history.read. An absent Content-Length or exact `0` remains accepted. This preserves the bodyless GET contract when Node adaptation omits the actual request body, matching Audit and Models. Malformed framing returns the existing fixed no-store/nosniff 400 invalid_request response, with no identity/usage SQL or service audit, as for existing method/body rejection. Successful JSON/CSV retains fresh identity/IAM and mandatory awaited audit. This is not a substitute for Node/proxy parser defenses or ingress approval. See [plan](../docs/plans/642-usage-get-framing.md).
+
+
+## Server-generated request ID validation (#642)
+
+Usage and Audit HTTP adapters validate the trusted newRequestId result before service access or reflection. The existing Models/Account grammar applies: 1–256 ASCII characters, initial alphanumeric and remaining alphanumeric or ._+:/@-. Invalid values return fixed no-store/nosniff 503 internal_error with no request_id or x-request-id, no identity/history SQL and no service audit. A broken server ID generator is not an authentication denial or a successful audited read. Valid IDs preserve existing JSON/CSV, fresh IAM and mandatory durable audit. No session, runtime mount, DDL or deployment activation. See [plan](../docs/plans/642-history-request-id.md).
