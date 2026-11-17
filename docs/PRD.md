@@ -1488,3 +1488,7 @@ An opt-in unbound HTTP composition now connects existing canonical Account/Model
 ## Explicit owned operations bootstrap (#637/#640)
 
 Canonical reads and existing proxy-token issue/revoke can now be deliberately selected through a hash-verified public-artifact bootstrap sharing existing migration/listener/close ownership. Existing read-only services and CLI remain unchanged; deployment selection needs approval. Account audit DDL remains a separate caller prerequisite. See [contract](../contracts/canonical-operations-bootstrap.md) and [plan](plans/637-canonical-operations-bootstrap.md). Loopback PGlite evidence is not installed/browser-session/provider certification.
+
+## Explicit canonical operations process (#637, #640, #643)
+
+A separately invoked operations executable accepts only the trusted createCanonicalOperationsPorts factory and reviewed SHA-256-pinned public artifact. It composes canonical private reads and existing audited token issue/revoke with owned startup/shutdown. Existing read-only/default/deployed selection is unchanged; no cookie session or inference activation. See [plan](plans/637-canonical-operations-service.md) and [contract](../contracts/canonical-operations-service.md).
