@@ -50,6 +50,9 @@ Developer/service-account gateway paths do not replace platform/team administrat
 R0 exit requires independent review and agreed contract ownership. This document alone does not close #638 or authorize unresolved security policy. See [plan](plans/638-product-traceability.md).
 
 
+### 2026-11-16 opt-in SSO operations HTTP (#637)
+New src/gateway/postgres-sso-operations-http.ts joins existing token issue/revoke and canonical model/history readers without changing the read-only factory. test/sso-operations-http.test.ts verifies actual local SQL/HTTP paths, mandatory audits, fresh Deny/identity disable and token revocation. No session acquisition, cookie boundary, runtime deployment or installed/provider acceptance. Administrator login, remaining original PRD CRUD and release/handoff remain incomplete. See docs/plans/637-sso-operations-http.md and contracts/sso-operations-http.md.
+
 ## Disconnected management response cleanup (#637)
 
 The shared Node adapter discards a response returned after client disconnect without awaiting its producer cancellation. This lets request listeners settle even when cleanup stalls; cleanup remains best-effort, not forced producer reclamation or mutation rollback. See [plan](plans/637-disconnected-response-cleanup.md) and [contract](../contracts/disconnected-management-response.md). Actual local socket tests cover cancellation and continued service, not administrator login, installed deployment or provider acceptance.

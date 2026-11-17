@@ -1529,6 +1529,9 @@ operations-session.ts composes the existing operations mount with the existing C
 The trusted operations adapter wraps response bodies with zero-prefetch streaming reads. Each read checks the current grant and clock before and after awaiting source data, including EOF; rejection cancels the reader without waiting for source cancellation before showing the safe boundary. Existing clients retain their bounded JSON/CSV parsers. This fixes the headers-before-expiry/body-after-expiry gap without buffering whole responses or changing authentication contracts.
 
 
+## Opt-in SSO operations HTTP checkpoint (#637)
+
+A new caller-owned HTTP composition connects existing human bearer-authenticated token issue/revoke to canonical models list/detail and usage/audit JSON/CSV. Existing read-only review remains read-only; existing fresh authentication, IAM and durable audits are reused. No browser session acquisition, new authority, runtime activation or deployment is introduced. Migrated embedded SQL and bound loopback HTTP are local integration evidence, not installed PostgreSQL, external IdP/browser login or provider acceptance. See [plan](plans/637-sso-operations-http.md) and [contract](../contracts/sso-operations-http.md). Original PRD, administrator login, CRUD and deployment/handoff goals remain open.
 ## Review DOM integration compatibility (#637)
 
 Legacy extraction paths forward canonical shared projections rather than duplicating validation or exception constructors. The browser build admits only the existing reviewed canonical shared closure, not legacy server paths. See [plan](plans/637-review-dom-main-integration.md).
