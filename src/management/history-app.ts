@@ -223,6 +223,16 @@ export function mountHistoryWorkspace(
           item.append(element('p', 'Possibly billed; not an invoice reconciliation'));
         item.append(renderUsageRecordDetails(root, row));
         item.append(
+          button('View audit for this request', () => {
+            // Usage visibility is not Audit authority. Preserve only the
+            // destination applied scope; never copy the Usage principal.
+            active = 'audit';
+            filters.audit = { ...filters.audit, requestId: row.requestId };
+            drafts.audit.clear();
+            void workspace.audit.load(filters.audit);
+          }),
+        );
+        item.append(
           button('View attempts for this request', () => {
             // Exact intersection, not an organization-wide lookup. Clear the
             // opaque cursor by loading afresh; retain applied time/model bounds.
@@ -254,6 +264,13 @@ export function mountHistoryWorkspace(
         element(
           'p',
           'Request investigation uses the applied Usage scope only. No visible usage is not proof of no provider call or bill; this is not complete history or invoice reconciliation.',
+        ),
+      );
+    if (kind === 'audit' && filters.audit.requestId !== undefined)
+      main.append(
+        element(
+          'p',
+          'Request investigation uses the applied Audit scope only. No visible records is not complete audit history or proof that a request was never executed.',
         ),
       );
     main.append(
