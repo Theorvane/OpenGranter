@@ -202,6 +202,21 @@ export function mountHistoryWorkspace(
         if (row.possibleDuplicate) item.append(element('p', 'Possible duplicate'));
         if (row.possiblyBilled)
           item.append(element('p', 'Possibly billed; not an invoice reconciliation'));
+        item.append(
+          button('Audit for this request', () => {
+            // Displayed identifiers constrain a query; the API still decides authority.
+            // Reset unrelated filters/cursors so adjacent attempt events are not hidden.
+            const query: AuditFilters = {
+              principalId: row.principalId,
+              requestId: row.requestId,
+            };
+            filters.audit = query;
+            drafts.audit.clear();
+            deliveryFailed.audit = false;
+            active = 'audit';
+            void workspace.audit.load(query);
+          }),
+        );
         rows.append(item);
       }
     else
