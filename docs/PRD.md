@@ -1546,3 +1546,8 @@ Usage/Audit JSON and CSV clients reject malformed UTF-16 before URL serializatio
 ## Token mutation response integrity (#640)
 
 Token issue/revoke clients require exact identity Content-Length bytes when declared, reject malformed/unsafe/oversized declarations before reading, and bound decoded UTF-8 JSON to existing operation caps. Fetch-decoded compressed bodies retain decoded-byte caps without comparing wire length to decoded size. An incomplete response is uncertain, never successful or automatically retried; a server mutation may already have committed. No session, IAM, endpoint, schema or activation changes. See [plan](plans/640-token-response-integrity.md) and [contract](../contracts/token-mutation-response.md).
+
+
+## Compressed download framing (#642)
+
+Usage and audit CSV clients enforce the 2 MiB cap on Fetch-decoded bytes. Compressed wire Content-Length is not a decoded size limit; an uncompressed page exactly at the cap remains downloadable even when gzip framing makes its wire body larger. Identity responses reject overflow on the first excess chunk, cancel the producer and return unavailable without waiting for EOF or exposing partial data. Exact EOF length, strict UTF-8, deadlines, pagination and authorization remain unchanged. See [plan](plans/642-history-compressed-download.md).
