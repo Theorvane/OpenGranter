@@ -14,7 +14,10 @@ export function mountTokenManagementPanel(
 ) {
   let stopped = false;
   const children: { dispose(): void }[] = [];
+  let releasePage = () => {};
   const clear = () => {
+    releasePage();
+    releasePage = () => {};
     for (const child of children) child.dispose();
     children.length = 0;
     root.replaceChildren();
@@ -45,10 +48,23 @@ export function mountTokenManagementPanel(
       initialPrincipalId,
     ),
   );
-  return {
-    dispose() {
-      stopped = true;
-      clear();
-    },
+  const dispose = () => {
+    stopped = true;
+    clear();
   };
+  // Native navigation may retain this document in the back/forward cache.
+  // Restoration is not authority: the host must mount a fresh authorized panel.
+  const page = (
+    root.ownerDocument as typeof root.ownerDocument & {
+      readonly defaultView?: {
+        addEventListener(type: string, listener: () => void): void;
+        removeEventListener(type: string, listener: () => void): void;
+      } | null;
+    }
+  ).defaultView;
+  if (page) {
+    page.addEventListener('pagehide', dispose);
+    releasePage = () => page.removeEventListener('pagehide', dispose);
+  }
+  return { dispose };
 }

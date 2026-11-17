@@ -2030,3 +2030,8 @@ Usage now accepts an exact Request ID filter and a row action that reloads autho
 ## Confirmed proxy-token revocation rejection (#640)
 
 The management client distinguishes established HTTP 400 input rejection from uncertain mutation outcomes. The panel permits a fresh blank-input review and explicit confirmation without automatic retry or diagnostic disclosure; denial stays locked. See [plan](plans/640-revocation-validation.md) and [contract](../contracts/revocation-validation.md). Loopback tests use synthetic service/authentication ports, not installed SSO/provider acceptance.
+
+
+## Token page-exit cleanup (#640)
+
+Native pagehide clears live and detached token/input nodes, aborts pending waits, disables retained controls and releases observers. Restored pages do not reauthorize or retry. Fresh 401/403 and explicit disposal also release observers; independent documents remain independent and non-browser documents still support explicit disposal. Unknown server outcomes remain unknown. See [contract](../contracts/token-management-pagehide.md).
