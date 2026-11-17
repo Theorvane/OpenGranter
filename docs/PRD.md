@@ -1534,3 +1534,8 @@ Trusted request ports that ignore abort still have unread late response bodies c
 ## Explicit SSO management bearer connector (#639)
 
 An opt-in in-memory transport now connects existing Account/catalog/history/token clients to canonical management HTTP using a caller-approved API-specific SSO access token. It restricts credential destinations, omits ambient cookies, prevents redirects and exposes disposal/abort without acquiring session authority. Host login/expiry ownership and server authentication/IAM/audit remain unchanged. See [plan](plans/639-sso-bearer-transport.md) and [contract](../contracts/sso-bearer-request.md).
+
+
+## Approved SSO operations host (#639)
+
+An explicit host composition connects already-approved in-memory SSO credentials to existing Account, History and Token management operations, coordinating bearer abort and private UI removal on logout, identity replacement, known expiry and fresh server Deny. The host supplies trusted token/expiry/fetch and asynchronous scheduling; it does not authenticate a login or activate the public entry. Account rendering and active-principal revocation are verified separately with canonical loopback HTTP, synthetic signing and PGlite, not installed/company-IdP acceptance. See [plan](plans/639-sso-operations-host.md) and [contract](../contracts/sso-bearer-request.md#explicit-operations-host-composition-639). Exact-head CI, formal approval, frontend entry integration, installed browser acceptance and operator handoff remain open gates.

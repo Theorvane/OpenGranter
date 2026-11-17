@@ -1563,3 +1563,8 @@ The catalog view consumes only the existing validated authorized list and filter
 ## Explicit SSO bearer request connector (#639)
 
 The opt-in browser transport consumes an already-approved API-specific SSO access token and trusted expiry. It forwards the bearer only to canonical relative management read and token-mutation paths, forces same-origin/omit/no-store/error Fetch controls, rejects alternate authentication headers and disables retained handles on disposal. It does not acquire/verify grants, refresh tokens, implement cookies or activate an entry. Trusted hosts still own known expiry/logout/identity-change disposal; canonical server RFC 9068 authentication, fresh IAM and durable audit remain authoritative. See [contract](../contracts/sso-bearer-request.md) and [plan](plans/639-sso-bearer-transport.md).
+
+
+## Approved SSO operations host (#639)
+
+An explicit host composition connects already-approved in-memory SSO credentials to existing Account, History and Token management operations, coordinating bearer abort and private UI removal on logout, identity replacement, known expiry and fresh server Deny. The host supplies trusted token/expiry/fetch and asynchronous scheduling; it does not authenticate a login or activate the public entry. Account rendering and active-principal revocation are verified separately with canonical loopback HTTP, synthetic signing and PGlite, not installed/company-IdP acceptance. See [plan](plans/639-sso-operations-host.md) and [contract](../contracts/sso-bearer-request.md#explicit-operations-host-composition-639). Exact-head CI, formal approval, frontend entry integration, installed browser acceptance and operator handoff remain open gates.
