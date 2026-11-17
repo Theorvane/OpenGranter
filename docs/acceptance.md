@@ -2046,3 +2046,7 @@ Native pagehide clears live and detached token/input nodes, aborts pending waits
 ## Explicit SSO management bearer connector (#639)
 
 Canonical reads and explicit token mutations can use a trusted in-memory bearer adapter. Verify exact credential destinations, no ambient cookies/redirects, invalid/expired/disposed rejection, caller cancellation, late response cleanup and unchanged fresh Deny/failure outcomes. Real loopback signed-bearer Account/issue/revoke with PGlite must enforce fresh IAM and failed-audit no-write. This is not company SSO or installed acceptance. See [contract](../contracts/sso-bearer-request.md).
+
+## Grant-owned operations transport cancellation (#639)
+
+Operations invalidation aborts its grant transport before child cleanup, including reentrant logout during mount. Forwarded requests combine caller and grant signals; replacement identity remains isolated from old abort callbacks. This is not credential revocation, helper disposal, mutation rollback or entry activation. See [plan](plans/639-operations-grant-abort.md) and [contract](../contracts/operations-response-cancellation.md#grant-owned-abort-639).

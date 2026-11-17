@@ -28,14 +28,19 @@ export function mountSessionManagementOperations(
   let expiresAt: number | undefined;
   let cancel: (() => void) | undefined;
   let child: { dispose(): void } | undefined;
+  let lifetime: AbortController | undefined;
 
   function invalidate() {
     const current = ++revision;
     expiresAt = undefined;
+    const transport = lifetime;
+    lifetime = undefined;
     const previous = child;
     const cleanup = cancel;
     child = undefined;
     cancel = undefined;
+    // End transport authority before reentrant child cleanup or a new grant.
+    transport?.abort();
     try {
       previous?.dispose();
     } catch {
@@ -105,18 +110,23 @@ export function mountSessionManagementOperations(
         mountManagementBoundaryView(root, 'expired');
         return;
       }
+      const grantLifetime = new AbortController();
+      lifetime = grantLifetime;
       expiresAt = grant.expiresAt;
       if (!arm(current)) return;
       const guarded: CatalogRequest = async (path, init) => {
         if (!valid(current) || init.signal?.aborted) throw new Error('Management session stopped');
+        const signal = init.signal
+          ? AbortSignal.any([grantLifetime.signal, init.signal])
+          : grantLifetime.signal;
         let response: Response;
         try {
-          response = await grant.request(path, init);
+          response = await grant.request(path, { ...init, signal });
         } catch {
           valid(current);
           throw new Error('Management request unavailable');
         }
-        if (!valid(current) || init.signal?.aborted) {
+        if (!valid(current) || signal.aborted) {
           // A caller may ignore abort and return headers after its grant ended.
           // No consumer owns this body, so release it without waiting for an
           // untrusted producer cancellation hook or reading private bytes.
@@ -139,7 +149,7 @@ export function mountSessionManagementOperations(
             /* Source diagnostics must remain private. */
           }
         };
-        const active = () => valid(current) && !init.signal?.aborted;
+        const active = () => valid(current) && !signal.aborted;
         // Do not prefetch: every delivery, including EOF, must check authority
         // after the source read completes, not just when headers arrive.
         const body = new ReadableStream<Uint8Array>(

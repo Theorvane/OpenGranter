@@ -1,3 +1,7 @@
 # Operations late response cleanup
 
 Refs #639 / #637. A trusted operations request port may finish after abort or authority invalidation. The session adapter must cancel an unread late body before rejecting it, never consume bytes or await the producer cancellation hook. Late 200, 401 or 403 cannot change a replacement identity. Caller abort from navigation, logout, expiry and disposal all apply. Cancellation rejection, hanging hooks, absent or already locked bodies do not expose diagnostics or revive authority. Cancellation cannot roll back server mutations, revoke credentials or authenticate a session. Existing per-chunk validity checks and child request cancellation remain unchanged.
+
+## Grant-owned abort (#639)
+
+The operations session owns a transport AbortController for each accepted grant. Invalidation aborts it synchronously before child disposal; this includes reentrant logout during initial mount, when no child has yet been installed. Each forwarded request receives the union of this signal and its consumer signal. Completed request signals also end with the grant; an abort callback may reenter with a replacement without the old cleanup erasing or aborting it. Native fetch adapters must honor this signal. This does not dispose an independently owned bearer helper, erase its credential, force non-cooperative ports to settle, revoke a token or undo an accepted mutation. Hosts still dispose their credential adapters on logout. See [plan](../docs/plans/639-operations-grant-abort.md).
