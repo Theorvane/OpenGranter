@@ -13,3 +13,8 @@
 3. Re-run TypeScript, lint, repository checks and pinned schemas. Push the existing PR branch without force; request fresh exact-head formal review and required CI before merge.
 
 Integration evidence: 56/56 actual loopback transport and canonical review/build regression cases passed with zero skips. Full TypeScript, full lint (42 existing warnings/175 information), repository script checks and all six pinned schemas passed. Separate resource-failed gateway disk-recovery case from PR932 full-run passed in isolation (1/1); its earlier aggregate SIGKILL remains recorded, not converted into a full-suite success. Native browser/IdP/installed PostgreSQL/provider results remain unverified.
+
+## Strict-CSP main integration checkpoint (2026-11-18 03:00 KST)
+Merge main feea149, preserving the reviewed fixed stylesheet, linked HTML and class-only model descriptions as well as this branch functionality. Resolve append-only planning conflicts by retaining both checkpoints. No new session/runtime/DDL or authority contract. Re-run actual HTTP/SQL or disconnect tests and strict-CSP/browser regressions, then request new exact-head CI and independent formal review. Earlier approvals do not approve the new merge commit. Local installed-PostgreSQL and IdP acceptance remain absent.
+
+Combined-tree regression: 60/60 real disconnected-socket, transport, strict-CSP/catalog and browser-build cases passed, zero skips. Full TypeScript, lint, repository scripts and six pinned schemas passed. Full standard npm check is run separately with CPU affinity limiting runner parallelism; results are not assumed from focused success. No new native-browser or installed-deployment claim.
