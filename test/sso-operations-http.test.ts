@@ -10,6 +10,9 @@ import {
   createPostgresSsoOperationsServer,
 } from '../src/gateway/postgres-sso-operations-http.ts';
 import { createProxyTokenService } from '../src/gateway/proxy-tokens.ts';
+import { createAuditReview } from '../src/management/audit-review.ts';
+import type { CatalogRequest } from '../src/management/catalog-client.ts';
+import { createUsageReview } from '../src/management/usage-review.ts';
 import { loadPostgresMigrationSources } from '../src/storage/postgres-migration-sources.ts';
 import { createPostgresUsageLedger } from '../src/usage/postgres-ledger.ts';
 import { buildUsageRecord } from '../src/usage/record-usage.ts';
@@ -348,6 +351,40 @@ test('operations revoked-token audit failure preserves existing atomic outcome',
     );
     assert.equal(await f.tokens.verifyCredential(issued.token), undefined);
   } finally {
+    await f.close();
+  }
+});
+
+test('canonical browser review controllers consume actual operations HTTP and clear revoked identity', async () => {
+  const f = await fixture();
+  const request: CatalogRequest = (path, init) => f.get(path, true, init);
+  const usage = createUsageReview(request);
+  const audit = createAuditReview(request);
+  try {
+    await usage.load({ model: 'chat', fromMs: 0, toMs: 101, limit: 1 });
+    await audit.load({ requestId: 'Trace:/A+1', fromMs: 0, toMs: 101, limit: 1 });
+    for (const review of [usage, audit]) {
+      assert.equal(review.snapshot().state, 'ready');
+      assert.equal(review.snapshot().data.length, 1);
+      assert.equal(review.snapshot().data[0]?.principalId, 'human');
+      const exported = await review.exportCsv();
+      assert.equal(exported.state, 'ready');
+      if (exported.state === 'ready') {
+        assert.match(exported.csv, /human/u);
+        assert.doesNotMatch(exported.csv, /foreign/u);
+        assert.ok(!exported.csv.includes(token));
+      }
+    }
+    await f.db.exec("UPDATE iam_principals SET active=false WHERE principal_id='human'");
+    for (const review of [usage, audit]) {
+      await review.retry();
+      assert.equal(review.snapshot().state, 'unauthenticated');
+      assert.deepEqual(review.snapshot().data, []);
+      assert.equal((await review.exportCsv()).state, 'cancelled');
+    }
+  } finally {
+    usage.dispose();
+    audit.dispose();
     await f.close();
   }
 });

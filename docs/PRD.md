@@ -1391,3 +1391,6 @@ The trusted operations lifecycle must enforce known expiry through body consumpt
 ## Opt-in SSO operations HTTP checkpoint (#637)
 
 A new caller-owned HTTP composition connects existing human bearer-authenticated token issue/revoke to canonical models list/detail and usage/audit JSON/CSV. Existing read-only review remains read-only; existing fresh authentication, IAM and durable audits are reused. No browser session acquisition, new authority, runtime activation or deployment is introduced. Migrated embedded SQL and bound loopback HTTP are local integration evidence, not installed PostgreSQL, external IdP/browser login or provider acceptance. See [plan](plans/637-sso-operations-http.md) and [contract](../contracts/sso-operations-http.md). Original PRD, administrator login, CRUD and deployment/handoff goals remain open.
+## Canonical review DOM integration (#637)
+
+Integrate existing usage/audit review DOM with canonical shared validators, preserving exact browser build restrictions and server exception identity. No session source or public activation is introduced. See [plan](plans/637-review-dom-main-integration.md).

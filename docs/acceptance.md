@@ -1988,3 +1988,6 @@ The history DOM mount preserves the CsvDownloadResult port contract: only `start
 ## Opt-in SSO operations HTTP checkpoint (#637)
 
 A new caller-owned HTTP composition connects existing human bearer-authenticated token issue/revoke to canonical models list/detail and usage/audit JSON/CSV. Existing read-only review remains read-only; existing fresh authentication, IAM and durable audits are reused. No browser session acquisition, new authority, runtime activation or deployment is introduced. Migrated embedded SQL and bound loopback HTTP are local integration evidence, not installed PostgreSQL, external IdP/browser login or provider acceptance. See [plan](plans/637-sso-operations-http.md) and [contract](../contracts/sso-operations-http.md). Original PRD, administrator login, CRUD and deployment/handoff goals remain open.
+## Review DOM canonical integration (#637)
+
+Legacy audit/usage extraction exports must preserve canonical shared function and error-constructor identity. Existing review DOM and browser build tests continue to pass with the canonical exact shared source closure. No authenticated deployment acceptance is implied. See [plan](plans/637-review-dom-main-integration.md).

@@ -1532,3 +1532,6 @@ The trusted operations adapter wraps response bodies with zero-prefetch streamin
 ## Opt-in SSO operations HTTP checkpoint (#637)
 
 A new caller-owned HTTP composition connects existing human bearer-authenticated token issue/revoke to canonical models list/detail and usage/audit JSON/CSV. Existing read-only review remains read-only; existing fresh authentication, IAM and durable audits are reused. No browser session acquisition, new authority, runtime activation or deployment is introduced. Migrated embedded SQL and bound loopback HTTP are local integration evidence, not installed PostgreSQL, external IdP/browser login or provider acceptance. See [plan](plans/637-sso-operations-http.md) and [contract](../contracts/sso-operations-http.md). Original PRD, administrator login, CRUD and deployment/handoff goals remain open.
+## Review DOM integration compatibility (#637)
+
+Legacy extraction paths forward canonical shared projections rather than duplicating validation or exception constructors. The browser build admits only the existing reviewed canonical shared closure, not legacy server paths. See [plan](plans/637-review-dom-main-integration.md).

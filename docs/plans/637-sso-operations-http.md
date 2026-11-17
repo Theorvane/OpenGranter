@@ -14,3 +14,11 @@ Contract: contracts/sso-operations-http.md.
 - Final bounded serial seven-file regression: 271 passed, zero failed/skipped. Initial unbounded-heap serial run had four SIGKILL process failures under resource pressure; bounded 256 MB heap completed all cases. This does not claim the aggregate npm check or full suite passed.
 - Full TypeScript, changed-file Biome, planning/contracts/secret scan, pinned compatibility and diff checks passed.
 - Locally signed JWT, migrated PGlite and bound loopback Node HTTP only; no fixture HTTP responses, no browser/IdP/installed PostgreSQL/provider/deployment success claim.
+
+## Main integration checkpoint (2026-11-18)
+1. Merge canonical main 60e9ba66 while retaining both SSO operations and review DOM documentation; do not replace either capability.
+2. Preserve the existing bearer-only operations factory and canonical shared projections. No runtime/session/DDL/authority changes.
+3. Verify actual loopback HTTP with signed JWT and migrated embedded SQL plus review DOM, canonical identity and browser-closure regressions. Run full typecheck, lint and repository contracts before pushing the original PR branch.
+4. Request a fresh independent formal review on the new exact head; old approvals and embedded SQL evidence do not certify installed browser/IdP/PostgreSQL/provider operation.
+
+Integration result: 48/48 related tests passed, zero skips, including new real HTTP browser-review-controller/CSV isolation and fresh disabled-identity invalidation. Full TypeScript, full lint (existing warnings/information), repository scripts and six pinned schemas passed. This is Node loopback/PGlite/signed local JWT evidence, not native browser or installed deployment acceptance.
