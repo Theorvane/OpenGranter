@@ -1,0 +1,3 @@
+# Operations late response cleanup
+
+Refs #639 / #637. A trusted operations request port may finish after abort or authority invalidation. The session adapter must cancel an unread late body before rejecting it, never consume bytes or await the producer cancellation hook. Late 200, 401 or 403 cannot change a replacement identity. Caller abort from navigation, logout, expiry and disposal all apply. Cancellation rejection, hanging hooks, absent or already locked bodies do not expose diagnostics or revive authority. Cancellation cannot roll back server mutations, revoke credentials or authenticate a session. Existing per-chunk validity checks and child request cancellation remain unchanged.
