@@ -1501,3 +1501,8 @@ The shared HTTP adapter now ends HEAD responses without consuming normal or fall
 ## Bounded token administration uploads (#640)
 
 Authenticated token issue/revoke uploads now have a non-renewable 30-second body deadline as well as the existing 16 KiB bound. Incomplete uploads cannot hold the mutation request indefinitely or execute from late input. This is not a mutation execution deadline or browser login activation. See [plan](plans/640-token-upload-deadline.md) and [contract](../contracts/token-upload-deadline.md).
+
+
+### Usage-to-Audit request investigation (#642)
+
+Usage rows can open the corresponding request in Audit using a fresh authorized read. The action intersects only the destination Audit applied filters, resets pagination and discards its drafts; Usage identity or visibility never supplies Audit authority. Loading clears previous records, and empty results are not complete audit history or proof of no execution. Canonical loopback signed-bearer/PGlite acceptance covers scoped success, fresh Deny and mandatory audit failure; native browser login, installed PostgreSQL and company IdP acceptance remain separate. See [plan](plans/642-usage-audit-investigation.md) and [contract](../contracts/usage-audit-investigation.md).
