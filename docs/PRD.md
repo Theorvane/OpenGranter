@@ -1470,3 +1470,7 @@ The authorized catalog detail displays published description, context bounds, mo
 ## Published model list discovery (#641)
 
 The already-authorized Models list displays published names and descriptions beside exact alias detail buttons. Local literal search includes these fields without new requests or authority; legacy entries remain available. See [plan](plans/641-model-list-publication.md) and [contract](../contracts/model-list-publication.md).
+
+## Usage history bodyless GET enforcement (#642)
+
+The existing SSO Usage JSON/CSV handler now rejects Transfer-Encoding and nonzero/noncanonical Content-Length before identity/usage SQL or service audit, matching Audit and Models even when Node omits a GET body. Normal absent/zero-length requests retain fresh IAM and awaited audit. Signed-token PGlite plus loopback HTTP tests are not real IdP, browser login or installed PostgreSQL/provider acceptance. No runtime/session activation. See [plan](plans/642-usage-get-framing.md) and [contract](../contracts/sso-usage-history.md).
