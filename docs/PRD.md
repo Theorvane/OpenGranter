@@ -1388,6 +1388,6 @@ The opt-in history/token operations adapter consumes an existing trusted request
 The trusted operations lifecycle must enforce known expiry through body consumption, not only at response headers. A late streamed issuance body must never reveal its bearer secret after the deadline even with missed timer delivery; existing server authorization and uncertain mutation-outcome guidance remain unchanged.
 
 
-## Disconnected management response cleanup (#637)
+## Canonical review DOM integration (#637)
 
-The shared Node adapter discards a response returned after client disconnect without awaiting its producer cancellation. This lets request listeners settle even when cleanup stalls; cleanup remains best-effort, not forced producer reclamation or mutation rollback. See [plan](plans/637-disconnected-response-cleanup.md) and [contract](../contracts/disconnected-management-response.md). Actual local socket tests cover cancellation and continued service, not administrator login, installed deployment or provider acceptance.
+Integrate existing usage/audit review DOM with canonical shared validators, preserving exact browser build restrictions and server exception identity. No session source or public activation is introduced. See [plan](plans/637-review-dom-main-integration.md).

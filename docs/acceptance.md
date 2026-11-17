@@ -1985,6 +1985,6 @@ The history DOM mount preserves the CsvDownloadResult port contract: only `start
 - Require successful streamed issuance before expiry; logout, identity replacement and screen navigation cancel a pending body without stale publication. Source failures show only generic uncertain-outcome guidance, never source diagnostics.
 
 
-## Disconnected management response cleanup (#637)
+## Review DOM canonical integration (#637)
 
-The shared Node adapter discards a response returned after client disconnect without awaiting its producer cancellation. This lets request listeners settle even when cleanup stalls; cleanup remains best-effort, not forced producer reclamation or mutation rollback. See [plan](plans/637-disconnected-response-cleanup.md) and [contract](../contracts/disconnected-management-response.md). Actual local socket tests cover cancellation and continued service, not administrator login, installed deployment or provider acceptance.
+Legacy audit/usage extraction exports must preserve canonical shared function and error-constructor identity. Existing review DOM and browser build tests continue to pass with the canonical exact shared source closure. No authenticated deployment acceptance is implied. See [plan](plans/637-review-dom-main-integration.md).
