@@ -38,3 +38,7 @@ The Node Fetch adapter drops GET bodies. Add real node:http GET cases before the
 - Composed JWT + PGlite management HTTP suite: 37/37 pass.
 - Full npm run check launched; final result remains pending at PR preparation. Exact-head CI and independent approval remain required.
 - No environment variables, migration, runtime activation, deployment, session or catalog permissions added.
+
+## 2026-11-17 main integration
+
+Resolved the acceptance-document append conflict by preserving both requirement sets. The audit validator now lives in shared/audit/event-projection.ts: add current-principal there instead of restoring the obsolete inline PostgreSQL validator. Preserve all current main projections, identity revalidation, anonymous failure auditing and no-store responses. Relevant HTTP, PostgreSQL audit and shared browser-contract regressions: 64 pass, zero skip; full strict typecheck, repository lint and document/contract checks pass. Full CI and independent approval remain required; no installed acceptance is claimed.

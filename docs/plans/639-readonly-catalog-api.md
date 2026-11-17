@@ -1,0 +1,18 @@
+# Read-only PostgreSQL catalog HTTP (#639)
+
+1. Scope: provide a standalone real catalog HTTP boundary for existing proxy-authenticated list/detail/count/user discovery. Reuse current persisted credential verification, fresh IAM attachments, candidate authorization, query parsing, projection and mandatory audit. Do not implement a browser session, SSO-to-proxy exchange, catalog writes or new authorization policy.
+2. Contract: accept only SQL client, trusted clock and request-id generator; caller owns migrations, connection, listener and TLS. No provider registration, secret resolver, limit decision or inference function is configurable. Only GET on existing recognized discovery paths reaches the shared engine; chat, usage, audit, token administration and all other methods are hidden with no-store 404 before database access. Existing discovery errors retain no-store and existing compatible schemas.
+3. RED: add real local HTTP tests backed by migrated PGlite, issue fixture-only proxy credentials through the existing trusted token primitive, seed managed/delegated catalog entries and current policy. Run against missing module to demonstrate failure.
+4. GREEN: implement the restricted factory and server using existing PostgreSQL composition. Fail-closed unreachable inference ports are internal only. No proxy credentials are minted by the handler; no synthetic SSO credential attribution is added.
+5. Acceptance: actual list/detail, count and search, Deny freshness, disabled principal, revoked/expired credential, missing token, malformed query, failed required audit, unknown/mutating routes performing zero SQL, no private route/credential references in output. Run targeted tests, typecheck, lint and planning checks.
+6. Delivery: exact-head CI plus independent formal approval before merge. Local embedded SQL/HTTP evidence is not installed PostgreSQL, browser login, SSO/provider or production certification. The unresolved trusted browser session adapter remains a separate R1 gate.
+
+## Implemented API and evidence
+
+- createPostgresCatalogHandler accepts client/now/newRequestId; createPostgresCatalogServer supplies an unbound Node server. Both require the existing migrated PostgreSQL schema. No automatic listener, environment configuration or npm start change.
+- Existing proxy credentials remain mandatory for recognized discovery paths. Shared query parsing owns pagination and projection. Search uses q; count/user default to text output, while output_modalities=all requests the existing broader view.
+- Do not expose a proxy token to the browser as a workaround for the unresolved R1 session contract. This module is not login/logout or a trusted browser grant.
+- RED Node22.23.4: missing implementation produced one failed test file, zero passes (/tmp/og-1330-red-node22.log). Initial system Node lacked type stripping; that invocation is not product RED evidence.
+- GREEN Node22.23.4 ARM64: 9 loopback HTTP/embedded PostgreSQL tests, no skips (/tmp/og-1330-api-final.log). Initial expectations incorrectly assumed text metadata for metadata-free rows and used search rather than q; tests were corrected to existing behavior without changing query semantics. Earlier dependent suite 30/30 (/tmp/og-1330-suite.log).
+- Full typecheck and lint run; lint retains 42 existing warnings and 148 infos. Planning/link/fixture-secret and whitespace checks passed. PGlite is not installed PostgreSQL or live provider/browser acceptance. CI/review/merge remain separate gates.
+- Final dependent suite after outage cases: 32/32 passed, zero skips (/tmp/og-1330-suite-final.log). Final full typecheck passed (/tmp/og-1330-tsc-delivery.log).
