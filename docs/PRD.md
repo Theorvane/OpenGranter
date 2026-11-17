@@ -1556,3 +1556,8 @@ Token issue/revoke clients require exact identity Content-Length bytes when decl
 ## Compressed download framing (#642)
 
 Usage and audit CSV clients enforce the 2 MiB cap on Fetch-decoded bytes. Compressed wire Content-Length is not a decoded size limit; an uncompressed page exactly at the cap remains downloadable even when gzip framing makes its wire body larger. Identity responses reject overflow on the first excess chunk, cancel the producer and return unavailable without waiting for EOF or exposing partial data. Exact EOF length, strict UTF-8, deadlines, pagination and authorization remain unchanged. See [plan](plans/642-history-compressed-download.md).
+
+
+## Active history filter reset (#642)
+
+The explicit Reset filters action starts one fresh authorized JSON read for the active Usage or Audit view. It clears applied/draft request, model, time, page-size and cursor state, restores the mount's optional initial principal target exactly, and leaves the sibling view unchanged. Pending reads/CSV preparation are cancelled by existing review ownership; late results and detached controls cannot revive data after reset, disposal or denial. Invalid filters can be reset without sending an invalid query. This action does not grant scope, bypass server authorization, enable retention or certify complete history. See [implementation plan](plans/642-history-filter-reset.md).

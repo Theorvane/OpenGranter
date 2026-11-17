@@ -17,3 +17,8 @@
 This is application integration API evidence, not native browser rendering/login, company IdP, installed PostgreSQL, provider calls, deployment approval or completed navigation. Existing frontend entry/navigation and backend session ownership remain unchanged. No retention/content-audit setting or IAM authority is introduced.
 
 Canonical browser builds include only the reviewed pure Unicode validator as an additional transitive shared dependency. It cannot be a browser entry; no directory-wide shared/server allowance is introduced. See [plan](../docs/plans/642-history-browser-unicode-closure.md).
+
+
+## Active history filter reset (#642)
+
+The explicit Reset filters action starts one fresh authorized JSON read for the active Usage or Audit view. It clears applied/draft request, model, time, page-size and cursor state, restores the mount's optional initial principal target exactly, and leaves the sibling view unchanged. Pending reads/CSV preparation are cancelled by existing review ownership; late results and detached controls cannot revive data after reset, disposal or denial. Invalid filters can be reset without sending an invalid query. This action does not grant scope, bypass server authorization, enable retention or certify complete history. See [implementation plan](../docs/plans/642-history-filter-reset.md).

@@ -167,6 +167,16 @@ export function mountHistoryWorkspace(
         void review.load(input);
       }),
     );
+    controls.append(
+      button('Reset filters', () => {
+        // Restore the mount target rather than broadening an account deep link.
+        // load() owns stale JSON/CSV cancellation and resets the cursor path.
+        filters[kind] = { ...initial };
+        drafts[kind].clear();
+        deliveryFailed[kind] = false;
+        void review.load(filters[kind]);
+      }),
+    );
     main.append(controls);
     const status = element('p');
     status.setAttribute('role', 'status');
