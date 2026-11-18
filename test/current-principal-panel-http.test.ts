@@ -204,3 +204,66 @@ test('Account DOM hides identity on required audit outage and recovers after exp
     await f.close();
   }
 });
+
+test('Account binding removal ends the mount; trusted remount reads only the rebound identity', async () => {
+  const f = await fixture();
+  const root = new Element();
+  const mount = () =>
+    mountCurrentPrincipalPanel(root, (path, init) =>
+      f.request(path, 'Bearer ' + token, {
+        ...init,
+        headers: {
+          ...Object.fromEntries(new Headers(init.headers)),
+          authorization: 'Bearer ' + token,
+        },
+      }),
+    );
+  let panel = mount();
+  try {
+    await waitFor(() => text(root).includes('account-human'));
+    const oldRefresh = nodes(root).find((node) => node.tag === 'button');
+    assert.ok(oldRefresh);
+    await f.db.exec('DELETE FROM iam_sso_identity_bindings');
+    refresh(root);
+    assert.doesNotMatch(text(root), /account-human/);
+    await waitFor(() => text(root).includes('Sign in required'));
+    assert.equal(nodes(root).filter((node) => node.tag === 'button').length, 0);
+    await f.db.query('INSERT INTO iam_principals VALUES ($1,$2,true)', [
+      'replacement-human',
+      'human',
+    ]);
+    await f.db.query('INSERT INTO iam_sso_identity_bindings VALUES ($1,$2,$3)', [
+      jwt.issuer,
+      jwt.subject,
+      'replacement-human',
+    ]);
+    const before = f.calls;
+    oldRefresh.listeners.click?.();
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(f.calls, before);
+    assert.match(text(root), /Sign in required/);
+    panel.dispose();
+    panel = mount();
+    assert.match(text(root), /Loading account/);
+    assert.doesNotMatch(text(root), /account-human|replacement-human/);
+    await waitFor(() => text(root).includes('replacement-human'));
+    assert.doesNotMatch(text(root), /account-human/);
+    oldRefresh.listeners.click?.();
+    assert.match(text(root), /replacement-human/);
+    assert.deepEqual(
+      (
+        await f.db.query(
+          'SELECT outcome, principal_id FROM sso_current_principal_audit_events ORDER BY event_id',
+        )
+      ).rows,
+      [
+        { outcome: 'ready', principal_id: 'account-human' },
+        { outcome: 'unauthenticated', principal_id: null },
+        { outcome: 'ready', principal_id: 'replacement-human' },
+      ],
+    );
+  } finally {
+    panel.dispose();
+    await f.close();
+  }
+});

@@ -237,6 +237,7 @@ test('owned management Account suppresses identity on malformed SQL acknowledgem
 test('owned management public shell does not acquire Account authority', async () => {
   const f = await fixture(true, true);
   try {
+    const before = f.calls;
     const page = await f.request('/management', '');
     assert.equal(page.status, 200);
     const html = await page.text();
@@ -245,6 +246,23 @@ test('owned management public shell does not acquire Account authority', async (
     const script = await f.request('/management/app.js', '');
     assert.equal(script.status, 200);
     assert.equal(await script.text(), '// public Account shell');
+    assert.match(html, /<link rel="stylesheet" href="\/management\/app.css">/);
+    const stylesheet = await f.request('/management/app.css', '');
+    assert.equal(stylesheet.status, 200);
+    assert.equal(stylesheet.headers.get('content-type'), 'text/css; charset=utf-8');
+    assert.equal(stylesheet.headers.get('cache-control'), 'no-store');
+    assert.equal(stylesheet.headers.get('set-cookie'), null);
+    assert.equal(
+      stylesheet.headers.get('content-security-policy'),
+      page.headers.get('content-security-policy'),
+    );
+    assert.match(await stylesheet.text(), /white-space: pre-wrap/);
+    const head = await f.request('/management/app.css', '', { method: 'HEAD' });
+    assert.equal(head.status, 200);
+    assert.equal(await head.text(), '');
+    assert.equal((await f.request('/management/app.css?identity=account-human', '')).status, 400);
+    assert.equal((await f.request('/management/app.css', '', { method: 'POST' })).status, 405);
+    assert.equal(f.calls, before);
     const anonymous = await f.request('/management/v1/me', '');
     assert.equal(anonymous.status, 401);
     assert.ok(!(await anonymous.text()).includes('account-human'));
