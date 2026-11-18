@@ -1436,3 +1436,8 @@ The explicit history screen lets users expand already-authorized audit metadata 
 ## History initialization recovery (#642)
 
 The approved-caller operations screen now exposes explicit Retry history when its CSV adapter cannot initialize. Only successful initialization starts the existing history read. Epoch guards prevent detached retry controls from reopening disposed, denied or replaced screens. No session acquisition, public entry, deployment or provider activation is added. See [plan](plans/642-history-adapter-retry.md) and [contract](../contracts/management-operations.md).
+
+
+## Fresh history page re-entry (#642)
+
+Re-entering a loaded Usage/Audit tab now clears its prior rendered records before freshly reading the applied filters and exact current page cursor. An explicit Refresh current page does the same without applying unsubmitted filter edits. Existing shared fresh-401/403 handling clears both histories; this is not continuous IAM polling or browser session acquisition. See [plan](plans/642-history-fresh-return.md) and [contract](../contracts/history-fresh-return.md).

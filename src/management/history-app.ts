@@ -97,9 +97,15 @@ export function mountHistoryWorkspace(
     nav.setAttribute('aria-label', 'History views');
     for (const tab of ['usage', 'audit'] as const) {
       const node = button(tab === 'usage' ? 'Usage' : 'Audit', () => {
+        if (active === tab) return;
         active = tab;
-        render();
-        if (workspace[tab].snapshot().state === 'idle') void workspace[tab].load(filters[tab]);
+        const state = workspace[tab].snapshot().state;
+        // Read before rendering: never expose the old authorized page while
+        // fresh IAM is being checked, even for one synchronous render.
+        if (state === 'idle') void workspace[tab].load(filters[tab]);
+        else if (['ready', 'empty', 'unavailable', 'cancelled'].includes(state))
+          void workspace[tab].retry();
+        else render();
       });
       node.setAttribute('aria-pressed', String(kind === tab));
       nav.append(node);
@@ -226,6 +232,15 @@ export function mountHistoryWorkspace(
           void review.next();
         },
         view.canNext,
+      ),
+    );
+    main.append(
+      button(
+        'Refresh current page',
+        () => {
+          void review.retry();
+        },
+        view.state === 'ready' || view.state === 'empty',
       ),
     );
     if (view.state === 'unavailable' || view.state === 'cancelled')
