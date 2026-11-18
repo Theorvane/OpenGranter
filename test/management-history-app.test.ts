@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { CatalogElement } from '../src/management/catalog-view.ts';
 import { mountHistoryWorkspace } from '../src/management/history-app.ts';
+import type { AuditHistoryEvent } from '../src/shared/audit/history-types.ts';
 import { buildUsageRecord } from '../src/usage/record-usage.ts';
 
 class Element implements CatalogElement {
@@ -138,6 +139,10 @@ test('history mount connects actual clients to filters, tabs and exact usage met
   click(root, 'Audit');
   await tick();
   assert.match(text(root), /models-listed/);
+  assert.equal(nodes(root).filter((n) => n.tag === 'details').length, 1);
+  assert.match(text(root), /Event ID/);
+  assert.match(text(root), /Credential ID/);
+  assert.match(text(root), /count/);
   assert.doesNotMatch(text(root), /PRIVATE/);
   input(root, 'Request ID', 'req');
   click(root, 'Apply filters');
@@ -417,4 +422,93 @@ test('reentrant download disposal cannot restore private DOM or error', async ()
   click(root, 'Download current page CSV');
   await tick();
   assert.equal(root.children.length, 0);
+});
+
+test('audit details expose projected metadata only, with policy versions and no second fetch', async () => {
+  const root = new Element();
+  let calls = 0;
+  const app = mountHistoryWorkspace(
+    root,
+    async (path) => {
+      calls++;
+      if (!path.includes('/audit?')) return page();
+      const response = (await page(true).json()) as {
+        data: {
+          policyVersions: { id: string; version: string }[];
+          details: Record<string, unknown>;
+        }[];
+      };
+      const row = response.data[0] as {
+        policyVersions: { id: string; version: string }[];
+        details: Record<string, unknown>;
+      };
+      row.policyVersions = [{ id: 'policy-a', version: 'v3' }];
+      row.details.authorization = 'PRIVATE-BEARER';
+      return Response.json(response);
+    },
+    downloads(),
+  );
+  await tick();
+  click(root, 'Audit');
+  await tick();
+  const detail = nodes(root).find((n) => n.tag === 'details');
+  assert.ok(detail);
+  assert.equal(detail.attributes.open, undefined);
+  assert.match(text(detail), /Event ID.*1/);
+  assert.match(text(detail), /policy-a.*v3/);
+  assert.match(text(detail), /"count": 1/);
+  assert.doesNotMatch(text(detail), /PRIVATE|prompt|authorization/);
+  assert.equal(calls, 2);
+  click(root, 'Usage');
+  assert.equal(nodes(root).filter((n) => n.tag === 'details').length, 0);
+  click(root, 'Audit');
+  assert.match(text(root), /policy-a/);
+  app.dispose();
+  assert.equal(root.children.length, 0);
+});
+
+for (const status of [401, 403, 503])
+  test(`audit details clear immediately on filter reload and remain absent after ${status}`, async () => {
+    const root = new Element();
+    let fail = false;
+    const app = mountHistoryWorkspace(
+      root,
+      async (path) => (fail ? new Response(null, { status }) : page(path.includes('/audit?'))),
+      downloads(),
+    );
+    await tick();
+    click(root, 'Audit');
+    await tick();
+    assert.equal(nodes(root).filter((n) => n.tag === 'details').length, 1);
+    assert.match(text(root), /No policy versions recorded/);
+    const old = nodes(root).find((n) => n.textContent === 'Apply filters')?.listeners.click;
+    fail = true;
+    click(root, 'Apply filters');
+    assert.equal(nodes(root).filter((n) => n.tag === 'details').length, 0);
+    await tick();
+    assert.doesNotMatch(text(root), /Event ID|Credential ID|models-listed/);
+    app.dispose();
+    old?.();
+    await tick();
+    assert.equal(root.children.length, 0);
+  });
+
+test('standalone audit renderer never stringifies raw or unsupported metadata', async () => {
+  const { renderAuditRecord } = await import('../src/management/audit-record-view.ts');
+  const root = new Element();
+  const valid = ((await page(true).json()) as { data: AuditHistoryEvent[] }).data[0];
+  assert.ok(valid);
+  for (const row of [
+    { ...valid, eventId: '<script>PRIVATE</script>' },
+    { ...valid, kind: 'unknown', details: { token: 'PRIVATE' } },
+    { ...valid, details: { count: -1, prompt: 'PRIVATE' } },
+  ]) {
+    const item = renderAuditRecord(root, row) as Element;
+    assert.match(text(item), /Audit record unavailable/);
+    assert.doesNotMatch(text(item), /PRIVATE|script|token/);
+    assert.equal(
+      nodes(item).some((n) => n.tag === 'script'),
+      false,
+    );
+  }
 });
