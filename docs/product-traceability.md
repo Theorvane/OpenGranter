@@ -60,3 +60,12 @@ Existing PR769/771/775/777 behavior is ported onto canonical main rather than ad
 
 
 | #639 owned Account API | postgres-gateway-runtime.ts exact Account dispatch + canonical current-principal composition | current-principal-owned-runtime.test.ts real loopback HTTP/test JWT/embedded PG | Login/session contract and optional identity audit schema approval/install, installed IdP/database/TLS/browser acceptance still outstanding |
+
+### 2026-11-16 opt-in SSO operations HTTP (#637)
+New src/gateway/postgres-sso-operations-http.ts joins existing token issue/revoke and canonical model/history readers without changing the read-only factory. test/sso-operations-http.test.ts verifies actual local SQL/HTTP paths, mandatory audits, fresh Deny/identity disable and token revocation. No session acquisition, cookie boundary, runtime deployment or installed/provider acceptance. Administrator login, remaining original PRD CRUD and release/handoff remain incomplete. See docs/plans/637-sso-operations-http.md and contracts/sso-operations-http.md.
+
+## Disconnected management response cleanup (#637)
+
+The shared Node adapter discards a response returned after client disconnect without awaiting its producer cancellation. This lets request listeners settle even when cleanup stalls; cleanup remains best-effort, not forced producer reclamation or mutation rollback. See [plan](plans/637-disconnected-response-cleanup.md) and [contract](../contracts/disconnected-management-response.md). Actual local socket tests cover cancellation and continued service, not administrator login, installed deployment or provider acceptance.
+## CSP-compatible model descriptions (#637)
+The public management shell serves a fixed no-store stylesheet and links it explicitly. Published multiline descriptions use a fixed class and literal text, never inline styles or HTML. CSP remains unchanged; static method/framing/query checks and exact API delegation remain in force. See [plan](plans/637-model-description-csp.md) and [contract](../contracts/model-description-csp.md). Local native-browser rendering is not company SSO, installed PostgreSQL, deployment or provider acceptance.
