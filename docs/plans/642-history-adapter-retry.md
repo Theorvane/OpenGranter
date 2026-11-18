@@ -11,3 +11,7 @@
 - RED: 9 existing tests passed, all 7 new recovery cases failed without the retry control.
 - GREEN: 16/16 operations tests; operations/session/history regression 53/53, no skips.
 - Native Chromium with canonical browser artifact and synthetic loopback HTTP: failure displayed generic alert and Retry history with zero reads; explicit retry mounted empty usage history with exactly one GET. Preview entry removed after build. This is not a user deployment URL, real SSO, PostgreSQL or provider acceptance.
+
+## Main integration — 2026-11-19 05:30 KST
+
+Merged main f78c174fabfb231ffdf6cf07130f513e0db047c7 into existing PR918; preserved canonical Account navigation and existing retry instead of creating duplicate recovery code. Operations/session/Account/history tests 67/67 pass, zero skipped, Node22.23.0. Full typecheck, lint (42 warnings, 181 infos), planning scan and diff checks pass. Browser recheck blocked: page tool timed out and visible Chromium showed Aw Snap error9; no new browser success claimed. Earlier native-browser evidence remains separate. Exact-head CI and new independent formal approval required. No installed URL, real SSO or paid provider acceptance.

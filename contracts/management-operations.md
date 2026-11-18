@@ -20,6 +20,10 @@ Valid authorization schedules expiry before mounting existing history/token oper
 
 Current non-aborted 401/403 terminates the grant; aborted prior-screen responses and stale grants/timers cannot terminate a replacement. Isolated per-grant DOM prevents reentrant teardown from clearing a replacement mount. Local teardown does not revoke credentials, prove mutation rollback or replace server authentication/IAM. Tests: test/management-operations-session.test.ts; synthetic boundaries only, not installed SSO acceptance.
 
+## Canonical Account navigation (#639)
+
+Account is a third inner operations screen, using the existing caller-authorized request port for GET /management/v1/principal. History remains the initial screen. Navigation disposes its predecessor and cancels local reads; 401/403 locks the complete operations mount. Use the existing trusted operations-session wrapper for expiry/logout/replacement. No session acquisition, IAM grant, credential bridge, downloads or writes are added. The public entry and outer Models owner remain unchanged.
+
 ## History initialization recovery (#642)
 
 A download-adapter construction failure shows a generic alert and Retry history. Explicit retry constructs once and only then starts the existing history GET. It never issues a token mutation or exports CSV automatically. Old retry controls cannot act after a new retry, navigation, current denial or disposal. Private adapter diagnostics remain hidden; reentrant teardown cannot revive the screen.

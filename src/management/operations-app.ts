@@ -1,6 +1,7 @@
 import { mountManagementBoundaryView } from './boundary-view.ts';
 import type { CatalogRequest } from './catalog-client.ts';
 import type { CatalogElement } from './catalog-view.ts';
+import { mountCurrentPrincipalPanel } from './current-principal-panel.ts';
 import { type HistoryDownload, mountHistoryWorkspace } from './history-app.ts';
 import { mountTokenManagementPanel } from './token-management-panel.ts';
 
@@ -27,7 +28,7 @@ export function mountManagementOperations(
     previous?.dispose();
     root.replaceChildren();
   }
-  function navigate(kind: 'history' | 'tokens') {
+  function navigate(kind: 'history' | 'tokens' | 'account') {
     if (stopped) return;
     const current = ++epoch;
     clear();
@@ -55,6 +56,7 @@ export function mountManagementOperations(
     for (const [target, label] of [
       ['history', 'History'],
       ['tokens', 'Proxy tokens'],
+      ['account', 'Account'],
     ] as const) {
       const button = element('button', label);
       button.setAttribute('type', 'button');
@@ -101,6 +103,8 @@ export function mountManagementOperations(
         return;
       }
       mounted = mountHistoryWorkspace(content, guarded, download);
+    } else if (kind === 'account') {
+      mounted = mountCurrentPrincipalPanel(content, guarded);
     } else {
       mounted = mountTokenManagementPanel(content, guarded);
     }

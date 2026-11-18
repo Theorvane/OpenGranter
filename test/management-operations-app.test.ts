@@ -241,6 +241,40 @@ test('reentrant disposal during download construction cannot revive DOM or leak 
   assert.equal(cleanup, 1);
 });
 
+test('Account navigation clears issued bearer text without issuing or revoking again', async () => {
+  const root = new Element();
+  const methods: string[] = [];
+  const app = mountManagementOperations(
+    root,
+    async (path, init) => {
+      methods.push(init.method ?? 'GET');
+      if (init.method === 'POST')
+        return Response.json(
+          { credentialId: 'credential', token: 'synthetic-secret' },
+          { status: 201 },
+        );
+      if (path === '/management/v1/principal')
+        return Response.json({ id: 'account-person', kind: 'human' });
+      return empty();
+    },
+    adapter,
+  );
+  await tick();
+  click(root, 'Proxy tokens');
+  reviewIssue(root);
+  click(root, 'Confirm issuance');
+  await tick();
+  const secret = nodes(root).find((n) => n.textContent === 'synthetic-secret');
+  assert.ok(secret);
+  click(root, 'Account');
+  assert.equal(secret.textContent, '');
+  assert.doesNotMatch(text(root), /synthetic-secret/);
+  await tick();
+  assert.match(text(root), /account-person/);
+  assert.deepEqual(methods, ['GET', 'POST', 'GET']);
+  app.dispose();
+});
+
 test('history adapter initialization retries explicitly and starts only one read after recovery', async () => {
   const root = new Element();
   let attempts = 0;
@@ -350,3 +384,41 @@ test('disposal inside a retry factory cannot restore failed history UI', () => {
   assert.equal(attempts, 2);
   assert.equal(root.children.length, 0);
 });
+
+for (const status of [200, 401, 403]) {
+  test('failed History retry cannot replace Account response ' + status, async () => {
+    const root = new Element();
+    let factories = 0;
+    const paths: string[] = [];
+    const app = mountManagementOperations(
+      root,
+      async (path) => {
+        paths.push(path);
+        return Response.json({ id: 'account-person', kind: 'human' }, { status });
+      },
+      () => {
+        factories++;
+        throw new Error('PRIVATE initialization diagnostic');
+      },
+    );
+    const retry = nodes(root).find((n) => n.textContent === 'Retry history');
+    assert.ok(retry);
+    click(root, 'Account');
+    await tick();
+    retry.listeners.click?.();
+    assert.equal(factories, 1);
+    assert.deepEqual(paths, ['/management/v1/principal']);
+    assert.doesNotMatch(text(root), /PRIVATE|Retry history/);
+    if (status === 200) {
+      assert.match(text(root), /account-person/);
+      click(root, 'History');
+      assert.equal(factories, 2);
+      assert.doesNotMatch(text(root), /account-person/);
+      assert.match(text(root), /Retry history/);
+    } else {
+      assert.doesNotMatch(text(root), /account-person/);
+      assert.match(text(root), status === 401 ? /Sign in/ : /Access denied/);
+    }
+    app.dispose();
+  });
+}
