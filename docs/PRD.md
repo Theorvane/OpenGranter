@@ -1432,3 +1432,7 @@ The approved-caller management operations workspace now connects Account alongsi
 ## Scoped audit record details (#642)
 
 The explicit history screen lets users expand already-authorized audit metadata records to inspect exact event/credential references, recorded policy versions and allowlisted metadata. Native details are collapsed initially and require no second fetch. Loading and identity teardown remove displayed details; no content retention or new permission is introduced. See [contract](../contracts/management-audit-record-details.md) and [plan](plans/642-audit-record-detail.md).
+
+## History initialization recovery (#642)
+
+The approved-caller operations screen now exposes explicit Retry history when its CSV adapter cannot initialize. Only successful initialization starts the existing history read. Epoch guards prevent detached retry controls from reopening disposed, denied or replaced screens. No session acquisition, public entry, deployment or provider activation is added. See [plan](plans/642-history-adapter-retry.md) and [contract](../contracts/management-operations.md).
