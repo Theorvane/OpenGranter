@@ -85,7 +85,12 @@ export function mountManagementOperations(
         if (active()) {
           const status = element('p', 'History unavailable. Try again.');
           status.setAttribute('role', 'alert');
-          content.replaceChildren(status);
+          const retry = element('button', 'Retry history');
+          retry.setAttribute('type', 'button');
+          retry.addEventListener('click', () => {
+            if (active()) navigate('history');
+          });
+          content.replaceChildren(status, retry);
         }
         return;
       }

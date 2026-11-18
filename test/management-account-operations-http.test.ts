@@ -149,9 +149,9 @@ test('operations navigates actual HTTP history to audited Account, retries audit
     save: () => 'started',
     dispose() {},
   }));
-  app.authorize({
+  const grant = {
     expiresAt: Date.now() + 60_000,
-    request: (path, init) => {
+    request: (path: string, init: RequestInit) => {
       calls.push(path);
       return f.request(path, `Bearer ${token}`, {
         ...init,
@@ -161,7 +161,8 @@ test('operations navigates actual HTTP history to audited Account, retries audit
         },
       });
     },
-  });
+  };
+  app.authorize(grant);
   try {
     await waitFor(() => text(root).includes('No history matches'));
     click(root, 'Account');
@@ -195,10 +196,21 @@ test('operations navigates actual HTTP history to audited Account, retries audit
     const count = calls.length;
     refresh.listeners.click?.();
     assert.equal(calls.length, count);
-    assert.equal(calls.filter((path) => path === '/management/v1/principal').length, 5);
+    // IAM recovery does not silently revive a denied caller-owned grant.
+    await f.db.exec('UPDATE iam_principals SET active=true');
+    refresh.listeners.click?.();
+    assert.equal(calls.length, count);
+    assert.doesNotMatch(text(root), /account-human|Management operations/);
+    // Only explicit trusted caller authorization mounts a fresh workspace.
+    app.authorize(grant);
+    await waitFor(() => text(root).includes('No history matches'));
+    assert.doesNotMatch(text(root), /account-human/);
+    click(root, 'Account');
+    await waitFor(() => text(root).includes('account-human'));
+    assert.equal(calls.filter((path) => path === '/management/v1/principal').length, 6);
     assert.equal(
       (await f.db.query('SELECT * FROM sso_current_principal_audit_events')).rows.length,
-      4,
+      5,
     );
   } finally {
     app.dispose();
