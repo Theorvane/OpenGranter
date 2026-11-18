@@ -133,7 +133,7 @@ function click(root: Element, label: string) {
 }
 
 test('audit record details use owned HTTP, fresh IAM and mandatory durable access audit', async () => {
-  const f = await fixture(false);
+  const f = await fixture();
   await f.db.query('INSERT INTO iam_policies VALUES ($1,$2,$3)', [
     'reader',
     'v1',
@@ -163,9 +163,9 @@ test('audit record details use owned HTTP, fresh IAM and mandatory durable acces
     save: () => 'started',
     dispose() {},
   }));
-  app.authorize({
+  const grant = {
     expiresAt: Date.now() + 60_000,
-    request: (path, init) => {
+    request: (path: string, init: RequestInit) => {
       paths.push(path);
       return f.request(path, `Bearer ${token}`, {
         ...init,
@@ -175,7 +175,8 @@ test('audit record details use owned HTTP, fresh IAM and mandatory durable acces
         },
       });
     },
-  });
+  };
+  app.authorize(grant);
   try {
     await waitFor(() => text(root).includes('No history matches'));
     click(root, 'Audit');
@@ -211,6 +212,46 @@ test('audit record details use owned HTTP, fresh IAM and mandatory durable acces
         )
       ).rows.map((r) => r.outcome),
       ['ready', 'ready', 'unauthenticated'],
+    );
+    // A recovered IAM row cannot revive controls retained from the denied audit page.
+    await f.db.exec('UPDATE iam_principals SET active=true');
+    stale.listeners.click?.();
+    assert.equal(paths.length, count);
+    assert.doesNotMatch(text(root), /historical-request|historical-credential|old-policy/);
+    app.authorize(grant);
+    await waitFor(() => text(root).includes('No history matches'));
+    click(root, 'Audit');
+    await waitFor(() => text(root).includes('historical-request'));
+    const auditReload = nodes(root).find(
+      (n) => n.tag === 'button' && n.textContent === 'Apply filters',
+    );
+    assert.ok(auditReload);
+    click(root, 'Account');
+    assert.doesNotMatch(text(root), /historical-request|historical-credential|old-policy/);
+    await waitFor(() => text(root).includes('account-human'));
+    await f.db.exec('UPDATE iam_principals SET active=false');
+    const accountRefresh = click(root, 'Refresh account');
+    await waitFor(() => text(root).includes('Sign-in required'));
+    const deniedCount = paths.length;
+    const deniedSql = f.calls;
+    await f.db.exec('UPDATE iam_principals SET active=true');
+    auditReload.listeners.click?.();
+    accountRefresh.listeners.click?.();
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    assert.equal(paths.length, deniedCount);
+    assert.equal(f.calls, deniedSql);
+    assert.doesNotMatch(
+      text(root),
+      /account-human|historical-request|historical-credential|old-policy|Management operations/,
+    );
+    assert.equal(nodes(root).filter((n) => n.tag === 'details').length, 0);
+    assert.deepEqual(
+      (
+        await f.db.query<{ outcome: string }>(
+          'SELECT outcome FROM sso_current_principal_audit_events ORDER BY event_id',
+        )
+      ).rows.map((r) => r.outcome),
+      ['ready', 'unauthenticated'],
     );
   } finally {
     app.dispose();
