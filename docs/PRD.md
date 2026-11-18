@@ -1441,3 +1441,7 @@ The approved-caller operations screen now exposes explicit Retry history when it
 ## Fresh history page re-entry (#642)
 
 Re-entering a loaded Usage/Audit tab now clears its prior rendered records before freshly reading the applied filters and exact current page cursor. An explicit Refresh current page does the same without applying unsubmitted filter edits. Existing shared fresh-401/403 handling clears both histories; this is not continuous IAM polling or browser session acquisition. See [plan](plans/642-history-fresh-return.md) and [contract](../contracts/history-fresh-return.md).
+
+## Scoped usage record inspection (#642)
+
+The existing authorized usage list now provides collapsed [content-free record details](../contracts/management-usage-record-details.md): attempt/credential/policy/route/provider provenance, partial counters, historical price version, separate estimated/reported costs and exact comparison. Details reuse the current page without additional requests or authority; loading, failure, denial and disposal remove them. Unknown values are not zero, and recorded billing metadata is not invoice reconciliation. Original login, installed deployment and live-provider release gates remain open.
