@@ -240,3 +240,37 @@ test('reentrant disposal during download construction cannot revive DOM or leak 
   assert.equal(root.children.length, 0);
   assert.equal(cleanup, 1);
 });
+
+test('Account navigation clears issued bearer text without issuing or revoking again', async () => {
+  const root = new Element();
+  const methods: string[] = [];
+  const app = mountManagementOperations(
+    root,
+    async (path, init) => {
+      methods.push(init.method ?? 'GET');
+      if (init.method === 'POST')
+        return Response.json(
+          { credentialId: 'credential', token: 'synthetic-secret' },
+          { status: 201 },
+        );
+      if (path === '/management/v1/principal')
+        return Response.json({ id: 'account-person', kind: 'human' });
+      return empty();
+    },
+    adapter,
+  );
+  await tick();
+  click(root, 'Proxy tokens');
+  reviewIssue(root);
+  click(root, 'Confirm issuance');
+  await tick();
+  const secret = nodes(root).find((n) => n.textContent === 'synthetic-secret');
+  assert.ok(secret);
+  click(root, 'Account');
+  assert.equal(secret.textContent, '');
+  assert.doesNotMatch(text(root), /synthetic-secret/);
+  await tick();
+  assert.match(text(root), /account-person/);
+  assert.deepEqual(methods, ['GET', 'POST', 'GET']);
+  app.dispose();
+});
