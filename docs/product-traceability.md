@@ -49,6 +49,9 @@ Developer/service-account gateway paths do not replace platform/team administrat
 
 R0 exit requires independent review and agreed contract ownership. This document alone does not close #638 or authorize unresolved security policy. See [plan](plans/638-product-traceability.md).
 
+## Internal versioned estimate handoff checkpoint (#642)
+
+[Calculator](../src/usage/estimate-cost.ts) and the existing [attempt capture](../src/usage/capture-attempt.ts) now support an explicitly caller-selected applicable flat-token version without floating-point money. [Tests](../test/versioned-attempt-estimates.test.ts) cover unknown/partial usage, true zero, tiny rates, fixed malformed-price errors, awaited handoff and migrated PGlite ledger-to-JSON/CSV version linkage. This narrows the pricing-calculation gap above; it does not close it. No active gateway caller supplies a price snapshot yet. Catalog price CRUD, effective-version/model/route selection at attempt start, non-flat pricing, reported-bill collection, reconciliation and installed/browser/provider evidence remain missing. No budget authority or currency conversion is inferred.
 
 ## Request-scoped usage API (#642)
 
