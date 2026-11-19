@@ -13,3 +13,7 @@ Successful catalog bodies must be well-formed UTF-8. Decode the complete bounded
 ## List navigation integrity (#639)
 
 Every list row must pass the same alias validation as detail navigation. Proxy collection aliases count/user remain reserved; SSO does not inherit those proxy exclusions. Duplicate exact IDs reject the entire list as unavailable, without silent deduplication or partial display. Unicode and exact-case-distinct IDs remain unchanged. A malformed refresh replaces any previous detail with loading then unavailable; it does not retain stale private content. This is a client navigation invariant, not new server authority or a publication permission.
+
+## Response length integrity (#637/#639)
+
+Before publishing list or detail rows, compare received UTF-8 bytes with a decimal Content-Length for absent or identity Content-Encoding. Shorter and longer complete-looking JSON is unavailable, never partial ready data. Absent lengths remain supported within the byte/deadline bounds. Compressed Fetch bodies expose decoded bytes, so their wire length is not compared. This transport check does not activate browser authentication or establish installed acceptance.
