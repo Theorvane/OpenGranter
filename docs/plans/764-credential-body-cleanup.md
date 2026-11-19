@@ -16,3 +16,7 @@ For both issue and revoke, inject oversized and invalid UTF-8 streaming bodies w
 
 ## Delivery
 New issue-numbered main-based branch and PR; exact-head required CI and independent formal approval before merge. Rollback is the cleanup change; no migration or provider calls. Local source/HTTP/PGlite results are not browser/company-IdP/installed-runtime or paid-provider acceptance.
+
+## Current main integration
+
+Main already implements non-awaited cancellation plus protected best-effort reader lock release. Preserve that stronger cleanup implementation and all original four issue/revoke oversized/invalid UTF-8 regressions without weakening assertions.
