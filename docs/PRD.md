@@ -1234,3 +1234,7 @@ The shared HTTP bridge contains broken custom fallback factories/bodies before s
 ## Management response isolation (#639)
 
 Pre-commit Node response failures discard staged response metadata before fixed errors are sent. Successful headers and streaming remain unchanged. No session, authentication, policy or deployment decision is introduced. See [plan](plans/639-node-response-headers.md).
+
+## Audit current-page recovery (#642)
+
+The authorized audit mount now offers explicit current-page refresh/retry, preserving submitted filters/cursor and prior-page navigation while clearing stale details and CSV. Every retry uses the existing server IAM and mandatory audit boundary; no session or deployment activation. See [contract](../contracts/sso-audit-workspace.md) and [plan](plans/642-audit-refresh-retry.md).

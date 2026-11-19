@@ -217,6 +217,10 @@ export function createManagementSsoAuditWorkspace(options: SsoAuditWorkspaceOpti
   async function load(next: SsoAuditFilters = {}) {
     await read({ ...next }, []);
   }
+  async function refresh() {
+    if (!valid() || busy() || state === 'invalid_query') return;
+    await read({ ...filters }, [...history]);
+  }
   async function next() {
     if (!valid() || busy() || !page?.hasMore || !page.nextCursor) return;
     await read({ ...filters, cursor: page.nextCursor }, [...history, { ...filters }]);
@@ -254,5 +258,5 @@ export function createManagementSsoAuditWorkspace(options: SsoAuditWorkspaceOpti
     // Prevent reentrant observers from renewing a dying workspace.
     clear('disposed');
   }
-  return { snapshot, authorize, load, next, previous, exportCsv, clear, dispose };
+  return { snapshot, authorize, load, refresh, next, previous, exportCsv, clear, dispose };
 }
