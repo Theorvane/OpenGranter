@@ -24,3 +24,11 @@ Current non-aborted 401/403 terminates the grant; aborted prior-screen responses
 ## Models navigation in trusted operations (#637)
 
 The opt-in operations mount provides Models alongside History and Proxy tokens. Models uses the existing SSO /management/v1/models list/detail contract, bounded decoder and text-only renderer; it never falls back to proxy discovery. Loading, empty, missing and unavailable states permit the existing safe retry actions. Navigation aborts and disposes the prior screen; returning reloads the current scoped catalog. Retained controls cannot request or republish old data. A current 401/403 terminates all operations navigation; a stale denial cannot terminate its replacement. The existing trusted-session wrapper still owns expiry/logout. No authentication source or public entry is enabled, and this does not certify installed SSO or provider access. See docs/plans/637-operations-catalog.md (repository-root relative).
+
+## Canonical Account navigation (#639)
+
+Account is a third inner operations screen, using the existing caller-authorized request port for GET /management/v1/principal. History remains the initial screen. Navigation disposes its predecessor and cancels local reads; 401/403 locks the complete operations mount. Use the existing trusted operations-session wrapper for expiry/logout/replacement. No session acquisition, IAM grant, credential bridge, downloads or writes are added. The public entry and outer Models owner remain unchanged.
+
+## History initialization recovery (#642)
+
+A download-adapter construction failure shows a generic alert and Retry history. Explicit retry constructs once and only then starts the existing history GET. It never issues a token mutation or exports CSV automatically. Old retry controls cannot act after a new retry, navigation, current denial or disposal. Private adapter diagnostics remain hidden; reentrant teardown cannot revive the screen.

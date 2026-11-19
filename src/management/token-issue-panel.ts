@@ -3,12 +3,23 @@ import type { CatalogElement } from './catalog-view.ts';
 import { issueManagementToken, validIssuance } from './token-issue-client.ts';
 
 /** Caller MUST dispose on logout, expiry, or identity change. Clearing is not revocation. */
-export function mountTokenIssuancePanel(root: CatalogElement, request: CatalogRequest) {
+export function mountTokenIssuancePanel(
+  root: CatalogElement,
+  request: CatalogRequest,
+  reviewRevocation?: (credentialId: string) => boolean,
+  initialPrincipalId?: string,
+) {
   let generation = 0;
   let stopped = false;
   let locked = false;
   let pending: AbortController | undefined;
   let clearSecrets = () => {};
+  // Initial navigation data is not authority; consume once, never retain a default.
+  let prefill =
+    initialPrincipalId !== undefined && validIssuance(initialPrincipalId, 0)
+      ? initialPrincipalId
+      : '';
+  initialPrincipalId = undefined;
   const element = (tag: string, text?: string) => {
     const node = root.ownerDocument.createElement(tag);
     if (text !== undefined) node.textContent = text;
@@ -37,6 +48,12 @@ export function mountTokenIssuancePanel(root: CatalogElement, request: CatalogRe
       principal.setAttribute('type', 'text');
       principal.setAttribute('autocomplete', 'off');
       principal.setAttribute('maxlength', '256');
+      principal.value = prefill;
+      prefill = '';
+      clearSecrets = () => {
+        principal.value = '';
+        expiry.value = '';
+      };
       principalLabel.append(principal);
       const expiryLabel = element('label', 'Expiry (Unix milliseconds, integer)');
       const expiry = element('input');
@@ -85,7 +102,31 @@ export function mountTokenIssuancePanel(root: CatalogElement, request: CatalogRe
                     if (!stopped && generation === resultTurn)
                       render('Display cleared. This does not revoke the issued token.');
                   });
+                  const handoff = reviewRevocation
+                    ? button('Review issued token revocation', () => {
+                        if (stopped || generation !== resultTurn) return;
+                        // Clear both live and retained secret nodes BEFORE handing off.
+                        render('Display cleared. This does not revoke the issued token.');
+                        const handoffTurn = generation;
+                        let accepted = false;
+                        try {
+                          accepted = reviewRevocation(result.credentialId) === true;
+                        } catch {
+                          // Host diagnostics must not expose private state.
+                        }
+                        if (!accepted && !stopped && generation === handoffTurn)
+                          render(
+                            'Display cleared. Revocation review unavailable. No revocation was submitted. Verify any pending mutation before trying again.',
+                          );
+                      })
+                    : undefined;
                   root.replaceChildren(
+                    element(
+                      'p',
+                      handoff
+                        ? 'Reviewing revocation clears this displayed token and opens a separate confirmation. It does not revoke the token.'
+                        : '',
+                    ),
                     element(
                       'p',
                       'Token issued. Save securely now; this panel cannot reveal it again after clearing.',
@@ -95,6 +136,7 @@ export function mountTokenIssuancePanel(root: CatalogElement, request: CatalogRe
                     element('h3', 'Bearer token (secret)'),
                     secret,
                     clear,
+                    ...(handoff ? [handoff] : []),
                   );
                   clear.focus();
                 } else if (result.state === 'unauthenticated' || result.state === 'denied') {
