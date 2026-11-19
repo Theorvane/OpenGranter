@@ -12,3 +12,7 @@ Observed using browser_navigate/browser_snapshot/browser_act at http://127.0.0.1
 4. The next snapshot showed Sign in required. No Account retry/refresh control or identity remained. The deactivation/disposal controls belonged only to the local harness.
 
 Unit and actual HTTP tests additionally cover sanitized errors, 403, audit outage/recovery, ignored cancellation, disposal and stale controls. They are separate from this real browser observation. Tests and browser evidence do NOT certify company IdP login/logout, TLS, installed PostgreSQL, external user access or real provider calls.
+
+## Reviewed-main integration browser checkpoint — 2026-11-18 05:30 KST
+
+Rebuilt the same local harness from the integrated main canonical transport and panel. Native browser at http://127.0.0.1:18835 displayed exact account-human/human and Refresh account. Refresh returned the same identity; this run did not separately capture the transient loading frame. Harness-only deactivation followed by Refresh removed all Account identity/actions and showed Sign in required. Dispose removed the entire Account section. The two remaining buttons belonged only to the synthetic harness. Binding-removal/rebinding to replacement-human and exact ordered durable audit outcomes were additionally verified in the actual HTTP DOM test, not this browser sequence. This URL is loopback-only and is not a user deployment URL. Existing non-acceptance limits still apply.

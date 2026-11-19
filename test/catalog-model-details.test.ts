@@ -39,16 +39,16 @@ test('detail shows published metadata exactly as text with honest units and scop
   assert.equal(pairs.Name, model.name);
   assert.equal(pairs.Description, model.description);
   assert.equal(pairs['Context length (tokens)'], '0');
-  assert.equal(pairs['Published provider context (tokens)'], 'Unknown');
-  assert.equal(pairs['Published maximum completion (tokens)'], '0');
+  assert.equal(pairs['Provider context length (tokens)'], 'Unknown');
+  assert.equal(pairs['Provider maximum output (tokens)'], '0');
   assert.equal(pairs['Input modalities'], 'text, image');
   assert.equal(pairs['Output modalities'], 'text');
   assert.equal(pairs['Supported parameters'], 'tools, temperature');
-  assert.equal(pairs['Prompt base price (USD per token)'], model.pricing?.prompt);
-  assert.equal(pairs['Completion base price (USD per token)'], model.pricing?.completion);
-  assert.match(text(root), /not billed costs/);
-  assert.match(text(root), /not enforced quotas/);
-  assert.match(text(root), /not a capability guarantee/);
+  assert.equal(pairs['Prompt base price (USD/token)'], model.pricing?.prompt);
+  assert.equal(pairs['Completion base price (USD/token)'], model.pricing?.completion);
+  assert.match(text(root), /not estimated or billed request costs/);
+  assert.match(text(root), /not effective routing limits/);
+  assert.match(text(root), /guaranteed capabilities/);
   assert.ok(!nodes(root).some((node) => ['img', 'script', 'a'].includes(node.tag)));
 });
 
@@ -60,8 +60,8 @@ test('legacy missing, explicit null, empty collections and zero stay distinct', 
     'Context length (tokens)',
     'Input modalities',
     'Supported parameters',
-    'Prompt base price (USD per token)',
-    'Published maximum completion (tokens)',
+    'Prompt base price (USD/token)',
+    'Provider maximum output (tokens)',
   ])
     assert.equal(legacy[label], 'Not published', label);
   const { pairs } = fields({
@@ -74,11 +74,11 @@ test('legacy missing, explicit null, empty collections and zero stay distinct', 
     pricing: { prompt: '0', completion: '0.000' },
   });
   assert.equal(pairs['Context length (tokens)'], 'Unknown');
-  assert.equal(pairs.Description, 'Empty description');
+  assert.equal(pairs.Description, 'Empty');
   assert.equal(pairs['Input modalities'], 'None published');
   assert.equal(pairs['Supported parameters'], 'None published');
-  assert.equal(pairs['Prompt base price (USD per token)'], '0');
-  assert.equal(pairs['Completion base price (USD per token)'], '0.000');
+  assert.equal(pairs['Prompt base price (USD/token)'], '0');
+  assert.equal(pairs['Completion base price (USD/token)'], '0.000');
 });
 
 test('all non-detail snapshots remove the entire publication without transport or new controls', () => {
@@ -99,7 +99,7 @@ test('all non-detail snapshots remove the entire publication without transport o
     );
     assert.match(text(root), /published-private-detail/);
     renderCatalogView(root, state === 'loading' ? { state, view: 'detail' } : { state }, actions);
-    assert.doesNotMatch(text(root), /published-private-detail|USD per token|Supported parameters/);
+    assert.doesNotMatch(text(root), /published-private-detail|USD\/token|Supported parameters/);
   }
 });
 

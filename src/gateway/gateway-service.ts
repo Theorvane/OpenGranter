@@ -79,6 +79,8 @@ export interface OwnedGatewayProcessOptions<P extends object> {
   readonly loadModule?: (url: string) => Promise<unknown>;
   readonly factoryName: string;
   readonly validatePorts: (value: unknown) => value is P;
+  /** Optional trusted input projection, before spreading factory-owned properties. */
+  readonly selectPorts?: (ports: P) => P;
   readonly start: (
     ports: P & {
       readonly host: string;
@@ -171,7 +173,7 @@ export async function runOwnedGatewayProcess<P extends object>(
         }
         if (!options.validatePorts(ports)) throw new Error('Invalid bootstrap');
         runtime = await options.start({
-          ...ports,
+          ...(options.selectPorts ? options.selectPorts(ports) : ports),
           host: config.host,
           port: config.port,
           now: Date.now,

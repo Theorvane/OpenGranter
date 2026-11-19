@@ -1,6 +1,6 @@
 # Owned canonical operations integration
 
-Opt in through `startPostgresSsoCanonicalOperationsBrowserGateway` in `src/gateway/postgres-sso-browser-bootstrap.ts`. It requires an absolute public JavaScript artifact path and reviewed lowercase SHA-256, plus trusted issuer/audience/JWKS/time/request-ID/connection/host/port inputs. Artifact validation occurs before database acquisition. The byte snapshot is immutable for the listener lifetime.
+Opt in through `startPostgresSsoCanonicalOperationsBrowserGateway` in `src/gateway/postgres-sso-browser-bootstrap.ts`. It requires an absolute public JavaScript artifact path and reviewed lowercase SHA-256, plus trusted issuer/audience/JWKS/time/request-ID/connection/host/port inputs. The required digest is captured once before asynchronous file I/O, so changing accessors cannot downgrade verification to the optional unverified path. The same guarantee applies to the canonical read-only bootstrap. Artifact validation occurs before database acquisition. The byte snapshot is immutable for the listener lifetime.
 
 `startPostgresSsoCanonicalOperationsGateway` is the corresponding explicit runtime for an optional trusted in-memory public artifact. Neither factory is selected by existing read-only factories, CLI, environment defaults or installed services. Caller approval of this write-enabled selection is required before deployment. Cookie/BFF sessions, CORS and inference routes remain absent.
 

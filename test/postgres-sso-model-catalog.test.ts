@@ -5,6 +5,7 @@ import {
   createPostgresSsoModelCatalog,
   type SsoCatalogAuditEvent,
 } from '../src/gateway/postgres-sso-model-catalog.ts';
+import { createSsoModelCatalogHandler } from '../src/gateway/sso-model-catalog-http.ts';
 import { loadPostgresMigrationSources } from '../src/storage/postgres-migration-sources.ts';
 import { createSsoAccessTokenFixture } from './sso-access-token-fixture.ts';
 
@@ -267,6 +268,64 @@ test('detail reads only its publication beyond the collection bound and unrelate
     f.failAudit();
     assert.deepEqual(await f.service.detail(token, 'audit-failure', 'team/chat'), {
       state: 'audit_unavailable',
+    });
+  } finally {
+    await f.db.close();
+  }
+});
+
+test('incomplete SQL publication fails HTTP closed with attributed unavailable audit', async () => {
+  const f = await fixture();
+  try {
+    const events: SsoCatalogAuditEvent[] = [];
+    let failAudit = false;
+    const catalog = createPostgresSsoModelCatalog({
+      ...jwt.config,
+      client: {
+        query: async (sql, params) => {
+          const result = await f.db.query(sql, [...params]);
+          if (!sql.includes('FROM catalog_models m')) return result;
+          const rows: unknown[] = [...result.rows];
+          rows.length += 1;
+          return { rows };
+        },
+      },
+      writeAudit: async (event) => {
+        if (failAudit) throw new Error('private audit failure');
+        events.push(event);
+      },
+    });
+    const handler = createSsoModelCatalogHandler({ catalog, newRequestId: () => 'incomplete' });
+    const request = () =>
+      new Request('http://localhost/management/v1/models', {
+        headers: { authorization: `Bearer ${token}` },
+      });
+    const response = await handler(request());
+    assert.equal(response.status, 503);
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    assert.deepEqual(await response.json(), {
+      error: { code: 'catalog_unavailable', message: 'Model catalog is temporarily unavailable.' },
+      request_id: 'incomplete',
+    });
+    assert.deepEqual(events, [
+      {
+        operation: 'list',
+        outcome: 'unavailable',
+        requestId: 'incomplete',
+        principalId: 'human',
+        policyVersions: [{ id: 'allow', version: 'v1' }],
+        count: 0,
+      },
+    ]);
+    failAudit = true;
+    const unavailableAudit = await handler(request());
+    assert.equal(unavailableAudit.status, 503);
+    assert.deepEqual(await unavailableAudit.json(), {
+      error: {
+        code: 'audit_unavailable',
+        message: 'Required audit recording is temporarily unavailable.',
+      },
+      request_id: 'incomplete',
     });
   } finally {
     await f.db.close();
