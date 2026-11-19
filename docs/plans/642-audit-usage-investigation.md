@@ -26,3 +26,7 @@
 Integrated evidence: unchanged nine original DOM cases fail on exact canonical parent ccd1976 because the public Audit investigation control is absent (9 FAIL, no import failure); integrated seven-file suite passes 85/85 with zero FAIL/SKIP, including owned actual HTTP/signed synthetic JWT/migrated PGlite. Full strict TypeScript, full Biome and planning/link/fixture checks pass.
 
 Fresh visible Chromium via browser tools: bundled production Operations -> Account human/exact+id -> scoped History -> Audit row -> exact request req:A+1/@x Usage, preserving encoded principal and request intersection. Empty Usage shows the no-provider/no-bill inference warning; applying synthetic denied filter returns403 and clears the entire workspace to Access denied. HTTP call capture confirms exact encoded query values. Preview http://127.0.0.1:38751 is synthetic loopback only, NOT external deployment, real login/IdP, installed PostgreSQL/TLS or paid/provider acceptance. First harness returned an Audit principal outside its requested scope; client correctly rejected it. Fixed only harness attribution and reran.
+
+## Merged ancestry reconciliation — 2026-11-19 17:00 KST
+
+Integrate parent949 c20e6b0 after approved948 squash0295d465; preserve the exact Audit request/principal intersection and no borrowed authority. Re-run actual owned HTTP and DOM tests with zero skip. No new runtime/session activation; fresh exact CI and independent formal approval remain mandatory.
