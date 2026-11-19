@@ -2068,3 +2068,8 @@ Usage now accepts an exact Request ID filter and a row action that reloads autho
 - Request-scoped Usage JSON/CSV rejects framed GETs before any identity/usage SQL or service audit; absent/zero-length reads preserve exact principal/request intersection, keyset/lookahead and awaited audit. Audit failure withholds both formats. Preserve both original request-filter and framing regressions during main integration. Synthetic signed-token/PGlite and loopback results are not installed acceptance. See [plan](plans/642-usage-get-framing.md).
 
 Model list descriptions containing newlines, tabs and literal markup preserve exact text with the fixed shell stylesheet; empty descriptions remain explicit and absent descriptions do not add a paragraph.
+
+
+## History cancellation parent reconciliation (#642, 2026-11-20)
+
+Existing #962 now includes current #961 and its canonical HTTP/Account/Models foundation. Cancellation does not widen applied history bounds: signed-JWT/PGlite loopback HTTP cases for both Usage and Audit hold a completed authorized response, cancel local waiting, release late data, retry the exact request filter with limit 1 despite an unsubmitted limit 100 draft, and suppress late CSV delivery. A new explicit CSV action preserves the one-row authorized scope; awaited audit rows are checked. Focused suite: 78 PASS, zero FAIL/SKIP. Strict TypeScript, full lint (existing warnings/infos), document/fixture scan and explicit history bundle pass. Initial uncapped HTTP process received SIGKILL; bounded rerun passed after correcting a test button label. This is not new original-source RED, company SSO, native PostgreSQL, a fresh Chromium run or installed/provider acceptance. Full standard check and independent approval remain separate gates.

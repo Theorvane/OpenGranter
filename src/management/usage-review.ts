@@ -150,6 +150,24 @@ export function createUsageReview(
     async previous() {
       if (!blocked && view.canPrevious) await read(path.slice(0, -1));
     },
+    cancel() {
+      if (blocked) return;
+      if (view.state === 'loading') {
+        stop();
+        nextCursor = null;
+        publish({
+          state: 'cancelled',
+          data: [],
+          canPrevious: false,
+          canNext: false,
+          exportState: 'idle',
+        });
+      } else if (view.exportState === 'loading') {
+        ++exportRevision;
+        csv.invalidate();
+        publish({ ...view, exportState: 'cancelled' });
+      }
+    },
     async retry() {
       if (!blocked && attempt.length > 0 && view.state !== 'loading') await read(attempt);
     },
