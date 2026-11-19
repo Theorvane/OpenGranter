@@ -26,3 +26,7 @@ Issue854 branch from main6757eee. No session/runtime deployed activation, produc
 ## Main integration (2026-11-12 03:30 KST)
 
 Merged main b22e3f3 into the existing PR855 branch in an isolated worktree; preserved both PRD additions rather than overwriting either. Production remains the same three-line owned usage dispatch. Fresh real-loopback runtime regression: 13/13 passed, zero skips (usage, catalog, browser and token-management variants), including current migrations. Full TypeScript, planning/link/contract checks and diff checks passed. Log: /tmp/og-20261112-0330-integration.log. This is generated test-JWT plus migrated embedded SQL, not browser login, installed PostgreSQL or provider certification. Fresh exact-head review and hosted CI are still required.
+
+## Current main integration
+
+Main already mounts usage and additionally mounts audit and current-principal reads through enumerated trusted configuration on the owned connection. Preserve all those routes and lifecycle ownership; retain every original usage-runtime integration test.

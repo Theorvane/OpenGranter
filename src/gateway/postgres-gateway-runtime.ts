@@ -10,6 +10,12 @@ import { createNodePostgresDirectChatServer } from './node-postgres-chat-server.
 import { createNodePostgresDualRouteChatServer } from './node-postgres-dual-chat-server.ts';
 import { createNodeRequestServer } from './node-request-server.ts';
 import type { PostgresDualRouteChatHandlerPorts } from './postgres-dual-chat-handler.ts';
+import { createPostgresSsoAuditHistoryHandler } from './postgres-sso-audit-history-http.ts';
+import {
+  createPostgresSsoCanonicalReviewServer,
+  type PostgresSsoCanonicalReviewPorts,
+} from './postgres-sso-canonical-review-http.ts';
+import { createPostgresRfc9068SsoCurrentPrincipalHandler } from './postgres-sso-current-principal-http.ts';
 import {
   createPostgresRfc9068SsoManagementHandler,
   type createPostgresRfc9068SsoManagementServer,
@@ -193,10 +199,17 @@ export async function startPostgresSsoManagementGateway(ports: PostgresSsoManage
   return startOwnedPostgresGateway(ports, async (client) => {
     const tokens = createPostgresRfc9068SsoManagementHandler({ ...managementPorts, client });
     const catalog = createPostgresSsoModelCatalogHandler({ ...managementPorts, client });
-    const usage = createPostgresSsoUsageHistoryHandler({ ...managementPorts, client });
+    const { now, issuer, audience, jwks, newRequestId } = managementPorts;
+    const historyPorts = { client, now, issuer, audience, jwks, newRequestId };
+    const principal = createPostgresRfc9068SsoCurrentPrincipalHandler(historyPorts);
+    const usage = createPostgresSsoUsageHistoryHandler(historyPorts);
+    const audit = createPostgresSsoAuditHistoryHandler(historyPorts);
     const application = (request: Request) => {
       const path = new URL(request.url).pathname;
+      if (path === '/management/v1/me' || path === '/management/v1/principal')
+        return principal(request);
       if (path === '/management/v1/usage') return usage(request);
+      if (path === '/management/v1/audit') return audit(request);
       return path === '/management/v1/models' || path.startsWith('/management/v1/models/')
         ? catalog(request)
         : tokens(request);
@@ -212,4 +225,28 @@ export async function startPostgresSsoManagementGateway(ports: PostgresSsoManage
       return response;
     });
   });
+}
+
+/** Explicit read-only listener; no token runtime, session or default activation change. */
+export interface PostgresSsoCanonicalReviewRuntimePorts
+  extends Omit<PostgresSsoCanonicalReviewPorts, 'client'>,
+    GatewayRuntimeInfrastructure {}
+
+export async function startPostgresSsoCanonicalReviewGateway(
+  ports: PostgresSsoCanonicalReviewRuntimePorts,
+) {
+  // Deliberately enumerate trusted inputs; never pass extra caller reader/audit ports.
+  const { now, issuer, audience, jwks, newRequestId, javascript } = ports;
+  const shell = Object.hasOwn(ports, 'javascript');
+  return startOwnedPostgresGateway(ports, async (client) =>
+    createPostgresSsoCanonicalReviewServer({
+      client,
+      now,
+      issuer,
+      audience,
+      jwks,
+      newRequestId,
+      ...(shell ? { javascript } : {}),
+    }),
+  );
 }
