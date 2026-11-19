@@ -291,13 +291,23 @@ test('compiled Audit UI reads actual administration SQL route and clears on fres
     });
     assert.match(root.text(), /Audit events loaded/);
     assert.match(root.text(), /event-human/);
-    assert.doesNotMatch(root.text(), /event-other|proxy-private/);
+    // The authorized detail contract includes a credential lookup reference, never a token.
+    const disclosures = root.all().filter((node) => node.tag === 'details');
+    assert.equal(disclosures.length, 2);
+    for (const node of disclosures) {
+      assert.match(node.text(), /Credential reference/);
+      assert.match(node.text(), /proxy-private/);
+      assert.match(node.text(), /No policy versions recorded/);
+    }
+    assert.doesNotMatch(root.text(), /event-other/);
+    assert.equal(root.text().includes(token), false);
     await f.db.exec('DELETE FROM iam_principal_policies');
     root.named('audit-filters').submit();
     for (let i = 0; i < 200 && !root.text().includes('Access denied.'); i++)
       await new Promise((r) => setTimeout(r, 10));
     assert.match(root.text(), /Access denied/);
-    assert.doesNotMatch(root.text(), /event-human/);
+    assert.doesNotMatch(root.text(), /event-human|proxy-private/);
+    assert.equal(root.all().filter((node) => node.tag === 'details').length, 0);
     assert.deepEqual(
       (await f.db.query('SELECT outcome FROM sso_audit_history_access_events ORDER BY event_id'))
         .rows,
