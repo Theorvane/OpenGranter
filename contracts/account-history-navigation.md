@@ -14,3 +14,6 @@ No new endpoint, policy grant, DDL, session/CSRF contract, entry activation, dep
 - `test/account-history-navigation-http.test.ts`: actual owned Node HTTP listener, signed synthetic RFC9068 JWT and migrated PGlite; explicit-target usage and audit succeed, policy Deny changed after Account read returns 403, missing required usage audit table returns 503. Listener/DB close verified.
 
 This is not browser login, installed PostgreSQL/TLS, an external execution URL, live provider E2E or original-PRD completion.
+
+## Adapter initialization recovery
+If creating the History download adapter fails before any history request, the explicit Retry history action retains the exact Account target captured by that visit. Unsupported targets stay invalid locally; denial terminates the epoch and unavailable remains scoped/retryable. This does not fall back to unfiltered/self history. Explicit manual History navigation still clears the Account default. Detached retry controls cannot restart a retired visit.

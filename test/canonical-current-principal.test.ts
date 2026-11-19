@@ -4,12 +4,13 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
 import { createPostgresSsoCanonicalReviewServer } from '../src/gateway/postgres-sso-canonical-review-http.ts';
+import { createPostgresSsoOperationsServer } from '../src/gateway/postgres-sso-operations-http.ts';
 import { loadPostgresMigrationSources } from '../src/storage/postgres-migration-sources.ts';
 import { createSsoAccessTokenFixture } from './sso-access-token-fixture.ts';
 
 const jwt = await createSsoAccessTokenFixture();
 const token = await jwt.token();
-async function fixture(installAudit = true) {
+async function fixture(installAudit = true, operations = false) {
   const db = new PGlite();
   for (const source of await loadPostgresMigrationSources()) await db.exec(source.sql);
   if (installAudit)
@@ -38,7 +39,10 @@ async function fixture(installAudit = true) {
       return db.query(sql, [...params]);
     },
   };
-  const server = createPostgresSsoCanonicalReviewServer({
+  const createServer = operations
+    ? createPostgresSsoOperationsServer
+    : createPostgresSsoCanonicalReviewServer;
+  const server = createServer({
     ...jwt.config,
     client,
     newRequestId: () => 'account-read',
@@ -234,4 +238,69 @@ test('principal audit contract is not installed by default migration loading', a
     ),
     false,
   );
+});
+
+test('integrated operations Account requires durable audit and fresh active binding over HTTP', async () => {
+  const f = await fixture(true, true);
+  try {
+    assert.deepEqual(await (await f.request()).json(), { principalId: 'account-human' });
+    let release!: () => void;
+    let started!: () => void;
+    const entered = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    f.hook(async () => {
+      started();
+      await pending;
+    });
+    let settled = false;
+    const read = f.request('/management/v1/principal').then((response) => {
+      settled = true;
+      return response;
+    });
+    await entered;
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      assert.equal(settled, false);
+    } finally {
+      release();
+    }
+    assert.deepEqual(await (await read).json(), { id: 'account-human', kind: 'human' });
+    f.hook(async () => {});
+    await f.db.exec('UPDATE iam_principals SET active=false');
+    const denied = await f.request();
+    assert.equal(denied.status, 401);
+    assert.ok(!(await denied.text()).includes('account-human'));
+    assert.deepEqual(
+      (
+        await f.db.query(
+          'SELECT outcome,principal_id FROM sso_current_principal_audit_events ORDER BY event_id DESC LIMIT 1',
+        )
+      ).rows,
+      [{ outcome: 'unauthenticated', principal_id: null }],
+    );
+  } finally {
+    await f.close();
+  }
+  const missing = await fixture(false, true);
+  try {
+    const response = await missing.request();
+    assert.equal(response.status, 503);
+    const body = await response.text();
+    assert.match(body, /audit_unavailable/);
+    assert.ok(!body.includes('account-human'));
+    assert.deepEqual(
+      (
+        await missing.db.query(
+          "SELECT tablename FROM pg_tables WHERE tablename='sso_current_principal_audit_events'",
+        )
+      ).rows,
+      [],
+    );
+  } finally {
+    await missing.close();
+  }
 });

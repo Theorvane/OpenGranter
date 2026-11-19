@@ -274,3 +274,151 @@ test('Account navigation clears issued bearer text without issuing or revoking a
   assert.deepEqual(methods, ['GET', 'POST', 'GET']);
   app.dispose();
 });
+
+test('history adapter initialization retries explicitly and starts only one read after recovery', async () => {
+  const root = new Element();
+  let attempts = 0;
+  const calls: string[] = [];
+  const download = adapter();
+  const app = mountManagementOperations(
+    root,
+    async (path, init) => {
+      assert.equal(init.method, 'GET');
+      calls.push(path);
+      return empty();
+    },
+    () => {
+      if (++attempts === 1) throw new Error('PRIVATE INITIALIZATION');
+      return download;
+    },
+  );
+  assert.equal(calls.length, 0);
+  assert.equal(attempts, 1);
+  assert.doesNotMatch(text(root), /PRIVATE/);
+  const retry = click(root, 'Retry history');
+  await tick();
+  assert.equal(attempts, 2);
+  assert.equal(calls.length, 1);
+  assert.match(text(root), /No history matches/);
+  retry.listeners.click?.();
+  assert.equal(attempts, 2);
+  assert.equal(calls.length, 1);
+  app.dispose();
+  assert.equal(download.disposed, 1);
+});
+
+for (const action of ['retry', 'navigate', 'dispose'] as const) {
+  test('failed initialization retry is epoch-bound after ' + action, () => {
+    const root = new Element();
+    let attempts = 0;
+    let calls = 0;
+    const app = mountManagementOperations(
+      root,
+      async () => {
+        calls++;
+        return empty();
+      },
+      () => {
+        attempts++;
+        throw new Error('PRIVATE');
+      },
+    );
+    const retry = nodes(root).find((n) => n.textContent === 'Retry history');
+    assert.ok(retry);
+    if (action === 'retry') click(root, 'Retry history');
+    else if (action === 'navigate') click(root, 'Proxy tokens');
+    else app.dispose();
+    const expected = action === 'retry' ? 2 : 1;
+    retry.listeners.click?.();
+    assert.equal(attempts, expected);
+    assert.equal(calls, 0);
+    assert.doesNotMatch(text(root), /PRIVATE/);
+    if (action === 'retry') assert.match(text(root), /History unavailable/);
+    if (action === 'navigate') assert.match(text(root), /Issue proxy token/);
+    if (action === 'dispose') assert.equal(root.children.length, 0);
+    app.dispose();
+  });
+}
+
+for (const status of [401, 403]) {
+  test('recovered history initialization still terminates on ' + status, async () => {
+    const root = new Element();
+    let attempts = 0;
+    let calls = 0;
+    const download = adapter();
+    const app = mountManagementOperations(
+      root,
+      async () => {
+        calls++;
+        return new Response(null, { status });
+      },
+      () => {
+        if (++attempts === 1) throw new Error('PRIVATE');
+        return download;
+      },
+    );
+    const retry = click(root, 'Retry history');
+    await tick();
+    assert.equal(calls, 1);
+    assert.equal(download.disposed, 1);
+    assert.doesNotMatch(text(root), /Retry history|Proxy tokens|PRIVATE/);
+    assert.match(text(root), status === 401 ? /Sign in/ : /Access denied/);
+    retry.listeners.click?.();
+    assert.equal(attempts, 2);
+    app.dispose();
+  });
+}
+
+test('disposal inside a retry factory cannot restore failed history UI', () => {
+  const root = new Element();
+  let attempts = 0;
+  const app = mountManagementOperations(
+    root,
+    async () => empty(),
+    () => {
+      if (++attempts > 1) app.dispose();
+      throw new Error('PRIVATE');
+    },
+  );
+  click(root, 'Retry history');
+  assert.equal(attempts, 2);
+  assert.equal(root.children.length, 0);
+});
+
+for (const status of [200, 401, 403]) {
+  test('failed History retry cannot replace Account response ' + status, async () => {
+    const root = new Element();
+    let factories = 0;
+    const paths: string[] = [];
+    const app = mountManagementOperations(
+      root,
+      async (path) => {
+        paths.push(path);
+        return Response.json({ id: 'account-person', kind: 'human' }, { status });
+      },
+      () => {
+        factories++;
+        throw new Error('PRIVATE initialization diagnostic');
+      },
+    );
+    const retry = nodes(root).find((n) => n.textContent === 'Retry history');
+    assert.ok(retry);
+    click(root, 'Account');
+    await tick();
+    retry.listeners.click?.();
+    assert.equal(factories, 1);
+    assert.deepEqual(paths, ['/management/v1/principal']);
+    assert.doesNotMatch(text(root), /PRIVATE|Retry history/);
+    if (status === 200) {
+      assert.match(text(root), /account-person/);
+      click(root, 'History');
+      assert.equal(factories, 2);
+      assert.doesNotMatch(text(root), /account-person/);
+      assert.match(text(root), /Retry history/);
+    } else {
+      assert.doesNotMatch(text(root), /account-person/);
+      assert.match(text(root), status === 401 ? /Sign in/ : /Access denied/);
+    }
+    app.dispose();
+  });
+}
