@@ -39,3 +39,5 @@
 ## Parent reconciliation 2026-11-19 16:30 KST
 - Parent #948 advanced to integrate main 292e106 usage-review sessions, cursor progress and Operations stream disposal. Carry the canonical changes into the existing token deadline PR without changing the deadline/uncertainty contract. Re-run all deadline client/panel/owned HTTP and stale-body regression cases, strict types, lint and document checks.
 - Parent must merge first; old approvals and CI do not certify this integration. No session/runtime activation, API, DDL or deployment expansion.
+
+Parent-refresh evidence: 86 focused deadline, panel, Account handoff, owned HTTP/synthetic JWT/PGlite and Operations response-disposal regressions PASS, zero FAIL/SKIP; strict full TypeScript, full Biome and planning/link/fixture checks PASS. No fresh installed browser/live acceptance claimed.

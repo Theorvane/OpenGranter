@@ -29,3 +29,10 @@ Repair evidence: forcing Date.now to 1795068350256 reproduced five failures (13 
 ## Main reconciliation 2026-11-19 16:00 KST
 - Exact previous HEAD passed all seven CI checks and received independent formal approval, but the protected branch requires an up-to-date base. Merge canonical main before eligibility; preserve Account/history scope and all newer main safeguards.
 - Re-run focused navigation/HTTP/client regressions, strict TypeScript and planning checks. The merge commit requires fresh CI and exact-head independent approval; prior approval is not transferred. No session activation or deployment.
+
+## Main reconciliation 2026-11-19 16:30 KST
+- Protected main advanced to 292e106 after the prior exact-head approval. The non-admin merge was correctly rejected; no bypass or automatic activation.
+- Integrate canonical usage-review coordination, CSV cursor progress and Operations stale-body disposal into the existing Account/history feature. Preserve all original principal/permission rechecks. Run navigation, owned HTTP and newly integrated session/export regressions before fresh exact-head review/CI.
+- No new domain decision, API shape, session authority, runtime activation or deployment change.
+
+Integration evidence: 73 focused Account/history DOM + owned HTTP/signed JWT/PGlite, usage-review session, Operations stale-body and CSV cursor-progress tests PASS, zero FAIL/SKIP. Full strict TypeScript, full Biome and planning/link/fixture checks PASS. Fresh exact-head CI and independent approval still required; no installed browser/deployment acceptance asserted.
