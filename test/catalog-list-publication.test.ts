@@ -87,3 +87,29 @@ test('state replacement removes previously published list text and search state'
     assert.ok(!nodes(view.root).some((node) => node.tag === 'input'));
   }
 });
+
+test('published list descriptions preserve multiline whitespace under the shell CSP', () => {
+  const root = new Element();
+  const description = 'First line\n  한국어\t<img src=x>\nLast line';
+  renderCatalogView(
+    root,
+    {
+      state: 'list',
+      models: [
+        legacy,
+        { ...published, description },
+        { ...legacy, id: 'empty/chat', description: '' },
+      ],
+    },
+    { list() {}, detail() {} },
+  );
+  const descriptions = nodes(root).filter(
+    (node) => node.attributes.class === 'management-model-description',
+  );
+  assert.deepEqual(
+    descriptions.map((node) => node.textContent),
+    [description, 'Empty description'],
+  );
+  assert.ok(descriptions.every((node) => node.tag === 'p' && node.attributes.style === undefined));
+  assert.ok(!nodes(root).some((node) => node.tag === 'img'));
+});

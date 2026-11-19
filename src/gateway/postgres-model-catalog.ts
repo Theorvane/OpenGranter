@@ -159,12 +159,15 @@ export function createPostgresModelCatalogReader(client: ModelCatalogSqlClient):
         const result = await client.query(`${SELECT} ORDER BY m.alias LIMIT 1001`, []);
         if (result.rows.length > 1000) throw new ModelCatalogUnavailable();
         const aliases = new Set<string>();
-        return result.rows.map((row) => {
+        const models: PublishedModel[] = [];
+        // Validate every position: map skips holes and hides incomplete snapshots.
+        for (const row of result.rows) {
           const parsed = parseRow(row);
           if (aliases.has(parsed.model.alias)) throw new ModelCatalogUnavailable();
           aliases.add(parsed.model.alias);
-          return parsed.model;
-        });
+          models.push(parsed.model);
+        }
+        return models;
       } catch {
         throw new ModelCatalogUnavailable();
       }
