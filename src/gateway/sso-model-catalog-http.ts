@@ -200,7 +200,10 @@ export function createSsoModelCatalogHandler(
           let body: unknown;
           if (isList) {
             if (!Array.isArray(result.data)) return failure(503, 'internal_error', requestId);
-            body = { object: 'list', data: result.data.map(project) };
+            const models: SsoCatalogModel[] = [];
+            // Iteration validates holes too; map would publish them as null.
+            for (const model of result.data) models.push(project(model));
+            body = { object: 'list', data: models };
           } else {
             if (Array.isArray(result.data)) return failure(503, 'internal_error', requestId);
             const model = project(result.data as SsoCatalogModel);
