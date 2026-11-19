@@ -16,3 +16,12 @@
 - Full repository typecheck PASS (GOMAXPROCS1/GOGC20/GOMEMLIMIT192MiB, Node cap128); changed-file Biome, planning checker, six offline pins and diff check PASS.
 - Actual Chromium temporary loopback18881: review issuance, confirm, show clearly public nonfunctional bearer replacement, handoff clears display and copies exact credential to separate confirmation, confirm revocation reports success through owned HTTP. Harness replaces real bearer response server-side with a PUBLIC NONFUNCTIONAL fixture label to prevent secret capture; full real-token behavior is covered by HTTP tests. Preview stopped after inspection to bound resource usage. Not persistent/external URL or company IdP acceptance.
 - Exact-head CI and valid independent formal approval still required; no merge or deployment.
+
+## Main integration, 2026-11-19 07:30 KST
+
+- Parent PR943 is verified merged as bae3ed1596b3b5666e36a572e4ef559214a70c9a. Preserve reviewed main content when resolving stale stack conflicts; the net change remains the scoped issued-token handoff (three production modules). No authority/session/schema expansion.
+- Fresh meaningful RED: remove the optional issuance handoff callback; the focused scenario fails because Review issued token revocation is absent (0 pass / 1 fail). Restore the production callback: six DOM/token/operations/session/history/Account files pass 96/96 with zero skips (/tmp/og-190730-red.log and /tmp/og-190730-ui.log).
+- Fresh owned HTTP embedded PostgreSQL run was SIGKILL despite Node80/Go192MiB caps; fresh full-repository typecheck was Killed with Node128/Go192MiB caps. Neither is passing evidence, and aggregate npm run check was not completed locally. Do not overwrite the distinctly historical prior passing HTTP/typecheck evidence above. No unchanged resource retries.
+- Full lint passes with 42 warnings and 181 informational diagnostics; planning/link/secret scan, six offline compatibility pins and whitespace checks pass. Logs /tmp/og-190730-{http,typecheck,lint,compat}.log.
+- Page tools time out; desktop inspection finds Chromium renderer Aw, Snap! error code9 on an existing local evidence tab. No browser/display restart or kill; no fresh browser flow, installed database, company IdP, persistent URL or live-provider acceptance claimed.
+- Exact updated-head required CI and a new independent formal review remain prerequisites to merging this integration.

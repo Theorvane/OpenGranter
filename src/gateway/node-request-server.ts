@@ -16,6 +16,34 @@ function discardResponse(response: Response | undefined): void {
   }
 }
 
+/** Buffer a fallback without retaining a disconnected request on an idle producer. */
+async function readFallbackText(response: Response, signal: AbortSignal): Promise<string> {
+  if (signal.aborted) {
+    discardResponse(response);
+    throw new Error('Disconnected request');
+  }
+  if (response.bodyUsed) throw new Error('Consumed fallback');
+  if (!response.body) return '';
+  const reader = response.body.getReader();
+  const cancel = () => {
+    void reader.cancel().catch(() => undefined);
+  };
+  signal.addEventListener('abort', cancel, { once: true });
+  try {
+    const decoder = new TextDecoder();
+    let text = '';
+    while (true) {
+      const chunk = await reader.read();
+      if (signal.aborted) throw new Error('Disconnected request');
+      if (chunk.done) return text + decoder.decode();
+      text += decoder.decode(chunk.value, { stream: true });
+    }
+  } finally {
+    signal.removeEventListener('abort', cancel);
+    reader.releaseLock();
+  }
+}
+
 /** Adapt an already-composed Fetch-style request boundary to a Node HTTP socket server. */
 export function createNodeRequestServer(
   handle: (request: Request) => Promise<Response>,
@@ -67,7 +95,9 @@ export function createNodeRequestServer(
       // Do not drain unbounded input or reuse a connection with unread bytes.
       if (managementRequest && !incoming.readableEnded) outgoing.shouldKeepAlive = false;
       if (cancellation.signal.aborted || outgoing.destroyed) {
-        await response.body?.cancel().catch(() => undefined);
+        // A disconnected client cannot consume this response. Producer cleanup
+        // may never settle; do not retain this request listener while waiting.
+        discardResponse(response);
         return;
       }
       // Validate the complete metadata before staging any part of a normal response.
@@ -119,7 +149,7 @@ export function createNodeRequestServer(
             discardResponse(response);
             body = '';
           } else {
-            body = await response.text();
+            body = await readFallbackText(response, cancellation.signal);
           }
         } catch {
           discardResponse(response);

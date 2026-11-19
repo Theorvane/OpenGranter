@@ -165,3 +165,62 @@ test('SSO runtime errors and failed shutdown expose fixed diagnostics only', asy
   assert.deepEqual(h.messages, ['Gateway listening', 'Gateway shutdown unavailable']);
   assert.deepEqual(h.exits, [1]);
 });
+
+test('canonical process ignores unrelated factory accessors and does not forward authority overrides', async () => {
+  let reads = 0;
+  const supplied = {
+    ...ports,
+    javascript: 'unreviewed shell',
+    reader: () => {
+      throw new Error('unused reader');
+    },
+    audit: () => {
+      throw new Error('unused audit');
+    },
+    get unrelated() {
+      reads++;
+      throw new Error('private deployment metadata');
+    },
+  };
+  const h = harness({ createCanonicalOperationsPorts: () => supplied });
+  const done = runCanonicalOperationsService(h.options);
+  await tick();
+  h.signals.emit('SIGTERM');
+  await done;
+  assert.equal(reads, 0);
+  assert.equal(h.starts.length, 1);
+  const input = h.starts[0] as Record<string, unknown>;
+  for (const field of ['javascript', 'reader', 'audit', 'unrelated'])
+    assert.equal(Object.hasOwn(input, field), false);
+  assert.equal(input.browserArtifactPath, ports.browserArtifactPath);
+  assert.deepEqual(h.messages, ['Gateway listening']);
+  assert.deepEqual(h.exits, [0]);
+  assert.equal(h.closes(), 1);
+});
+
+test('canonical process preserves approved migration directory and sanitizes documented accessor failure', async () => {
+  const h = harness({
+    createCanonicalOperationsPorts: () => ({
+      ...ports,
+      migrationDirectory: '/approved/migrations',
+    }),
+  });
+  const done = runCanonicalOperationsService(h.options);
+  await tick();
+  h.signals.emit('SIGTERM');
+  await done;
+  assert.equal((h.starts[0] as Record<string, unknown>).migrationDirectory, '/approved/migrations');
+  const failed = harness({
+    createCanonicalOperationsPorts: () => ({
+      ...ports,
+      get migrationDirectory() {
+        throw new Error('private migration path');
+      },
+    }),
+  });
+  await runCanonicalOperationsService(failed.options);
+  assert.equal(failed.starts.length, 0);
+  assert.deepEqual(failed.messages, ['Gateway startup unavailable']);
+  assert.deepEqual(failed.exits, [1]);
+  assert.equal(failed.signals.listenerCount('SIGTERM'), 0);
+});
