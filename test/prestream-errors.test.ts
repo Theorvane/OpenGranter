@@ -91,7 +91,7 @@ for (const base of ['/v1', '/api/v1'] as const)
             const response = await f.handler(f.request(base, fields));
             assert.equal(
               response.status,
-              base === '/api/v1' && (status === 429 || status === 503) ? status : 502,
+              base === '/api/v1' && [408, 429, 503, 504].includes(status) ? status : 502,
             );
             assert.equal(response.headers.get('retry-after'), null);
             assert.doesNotMatch(await response.text(), /private|retryAfter|upstreamStatus/u);

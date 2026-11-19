@@ -15,6 +15,7 @@ import {
   createPostgresSsoCanonicalReviewServer,
   type PostgresSsoCanonicalReviewPorts,
 } from './postgres-sso-canonical-review-http.ts';
+import { createPostgresRfc9068SsoCurrentPrincipalHandler } from './postgres-sso-current-principal-http.ts';
 import {
   createPostgresRfc9068SsoManagementHandler,
   type createPostgresRfc9068SsoManagementServer,
@@ -200,10 +201,13 @@ export async function startPostgresSsoManagementGateway(ports: PostgresSsoManage
     const catalog = createPostgresSsoModelCatalogHandler({ ...managementPorts, client });
     const { now, issuer, audience, jwks, newRequestId } = managementPorts;
     const historyPorts = { client, now, issuer, audience, jwks, newRequestId };
+    const principal = createPostgresRfc9068SsoCurrentPrincipalHandler(historyPorts);
     const usage = createPostgresSsoUsageHistoryHandler(historyPorts);
     const audit = createPostgresSsoAuditHistoryHandler(historyPorts);
     const application = (request: Request) => {
       const path = new URL(request.url).pathname;
+      if (path === '/management/v1/me' || path === '/management/v1/principal')
+        return principal(request);
       if (path === '/management/v1/usage') return usage(request);
       if (path === '/management/v1/audit') return audit(request);
       return path === '/management/v1/models' || path.startsWith('/management/v1/models/')
