@@ -12,7 +12,7 @@ export type CanonicalOperationsBootstrapPorts = Omit<
 >;
 export type CanonicalOperationsServiceOptions = Omit<
   OwnedGatewayProcessOptions<CanonicalOperationsBootstrapPorts>,
-  'factoryName' | 'validatePorts' | 'start'
+  'factoryName' | 'validatePorts' | 'selectPorts' | 'start'
 > & {
   readonly start?: (
     ports: PostgresSsoCanonicalOperationsBrowserBootstrapPorts,
@@ -54,6 +54,26 @@ export async function runCanonicalOperationsService(
     ...options,
     factoryName: 'createCanonicalOperationsPorts',
     validatePorts: isCanonicalOperationsPorts,
+    selectPorts: (ports) => {
+      const {
+        openConnection,
+        issuer,
+        audience,
+        jwks,
+        browserArtifactPath,
+        browserArtifactSha256,
+        migrationDirectory,
+      } = ports;
+      return {
+        openConnection,
+        issuer,
+        audience,
+        jwks,
+        browserArtifactPath,
+        browserArtifactSha256,
+        ...(migrationDirectory === undefined ? {} : { migrationDirectory }),
+      };
+    },
     start: options.start ?? startPostgresSsoCanonicalOperationsBrowserGateway,
   });
 }

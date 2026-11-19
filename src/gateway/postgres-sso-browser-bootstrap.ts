@@ -91,9 +91,11 @@ export interface PostgresSsoCanonicalReviewBrowserBootstrapPorts
 export async function startPostgresSsoCanonicalReviewBrowserGateway(
   ports: PostgresSsoCanonicalReviewBrowserBootstrapPorts,
 ) {
-  if (!validBrowserArtifactSha256(ports.browserArtifactSha256))
+  // Capture once: a changing accessor must not make required integrity optional.
+  const { browserArtifactSha256, browserArtifactPath } = ports;
+  if (!validBrowserArtifactSha256(browserArtifactSha256))
     throw new ManagementBrowserArtifactUnavailable();
-  const javascript = await readArtifact(ports.browserArtifactPath, ports.browserArtifactSha256);
+  const javascript = await readArtifact(browserArtifactPath, browserArtifactSha256);
   // Enumerate trusted runtime inputs: no caller shell, reader or audit overrides.
   const {
     openConnection,
@@ -131,9 +133,11 @@ export interface PostgresSsoCanonicalOperationsBrowserBootstrapPorts
 export async function startPostgresSsoCanonicalOperationsBrowserGateway(
   ports: PostgresSsoCanonicalOperationsBrowserBootstrapPorts,
 ) {
-  if (!validBrowserArtifactSha256(ports.browserArtifactSha256))
+  // Capture once: a changing accessor must not make required integrity optional.
+  const { browserArtifactSha256, browserArtifactPath } = ports;
+  if (!validBrowserArtifactSha256(browserArtifactSha256))
     throw new ManagementBrowserArtifactUnavailable();
-  const javascript = await readArtifact(ports.browserArtifactPath, ports.browserArtifactSha256);
+  const javascript = await readArtifact(browserArtifactPath, browserArtifactSha256);
   // Enumerate trusted runtime inputs: no caller shell, reader or audit overrides.
   const {
     openConnection,
