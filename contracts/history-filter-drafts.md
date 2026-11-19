@@ -6,3 +6,6 @@
 - Apply validates exact identifiers and numeric bounds through the existing clients. Reset restores the initial target; neither typing nor switching tabs broadens an account deep link. An explicit request investigation discards unapplied destination edits and displays the applied request intersection.
 - Rerender clears detached input values and retires their input listeners. Denial, sign-out and disposal clear in-memory draft/applied state. A stale event cannot restore or send private edits.
 - No new API/session/schema/retention/activation. Browser memory does not prove company SSO, installed deployment, database or provider acceptance.
+
+### Focus continuity during history responses (#642)
+When an asynchronous history notification replaces the current focused filter on the same tab, preserve its unapplied draft, keyboard focus and text selection (including backward selections). Do not steal focus from external controls or restore filters across tab changes, denial or disposal. Detached private inputs still clear. This is local presentation continuity, not saved-search persistence or authority. See [draft preservation plan](../docs/plans/642-history-draft-preservation.md).

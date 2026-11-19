@@ -1622,3 +1622,6 @@ History input listeners record only per-tab draft strings, guarded by the curren
 
 ## Account history retry context (#637)
 The epoch-bound download-adapter recovery callback retains the captured principalId instead of navigating to unfiltered history. Existing history-client validation, current IAM and durable audit remain authoritative; explicit manual navigation resets context. See [contract](../contracts/account-history-navigation.md#adapter-initialization-recovery).
+
+### Focus continuity during history responses (#642)
+When an asynchronous history notification replaces the current focused filter on the same tab, preserve its unapplied draft, keyboard focus and text selection (including backward selections). Do not steal focus from external controls or restore filters across tab changes, denial or disposal. Detached private inputs still clear. This is local presentation continuity, not saved-search persistence or authority. See [draft preservation plan](plans/642-history-draft-preservation.md).

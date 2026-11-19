@@ -1598,3 +1598,6 @@ Usage/Audit preserve per-view unapplied filter edits during refresh and tab chan
 
 ## Scoped Account history recovery (#637, #642)
 Retrying failed History adapter initialization preserves the exact Account target, including local invalid-input and fresh server Deny behavior. Explicit manual History navigation still starts without that default. See [plan](plans/637-ui-main-account-integration.md) and [contract](../contracts/account-history-navigation.md#adapter-initialization-recovery). No new authority, session or activation.
+
+### Focus continuity during history responses (#642)
+When an asynchronous history notification replaces the current focused filter on the same tab, preserve its unapplied draft, keyboard focus and text selection (including backward selections). Do not steal focus from external controls or restore filters across tab changes, denial or disposal. Detached private inputs still clear. This is local presentation continuity, not saved-search persistence or authority. See [draft preservation plan](plans/642-history-draft-preservation.md).

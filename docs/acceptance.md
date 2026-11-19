@@ -2111,3 +2111,6 @@ For Usage and Audit, type exact private filters without applying: no request occ
 - Unsupported identifiers never produce an unfiltered fallback request; fresh 403 terminates navigation and 503 retains scoped retryable state.
 - Manual History clears the default; retired retry controls cannot issue requests.
 - Regression: test/account-history-navigation.test.ts; synthetic native browser checks are not installed SSO/provider acceptance. See [plan](plans/637-ui-main-account-integration.md).
+
+### Focus continuity during history responses (#642)
+When an asynchronous history notification replaces the current focused filter on the same tab, preserve its unapplied draft, keyboard focus and text selection (including backward selections). Do not steal focus from external controls or restore filters across tab changes, denial or disposal. Detached private inputs still clear. This is local presentation continuity, not saved-search persistence or authority. See [draft preservation plan](plans/642-history-draft-preservation.md).
