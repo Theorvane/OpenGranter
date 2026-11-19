@@ -32,3 +32,8 @@ createPostgresSsoAuditHistoryHandler selects the dedicated createPostgresSsoAudi
 Persist only server occurrence time/request ID, actor, policy versions, target, outcome and returned row count. Validate metadata before SQL and project away extra fields. Anonymous attribution is null; failure counts are zero. Require an acknowledged single inserted event ID. Failed SQL/clock/acknowledgement withholds data and service errors with audit_unavailable; pending inserts block publication. This is access metadata, not model content, a usage event, or a synthetic proxy-credential event.
 
 Local signed JWT + migrated PGlite + Fetch composition tests cover success JSON/CSV/empty pages, fresh Deny, malformed query, invalid credentials, SQL failures, delayed and failed append, and attempted callback override. Store tests cover metadata privacy/validation, clock/acknowledgement failures and additive migration-runner preservation/idempotence. These are not installed database, native-browser, session or provider acceptance.
+
+
+## Server-generated request ID validation (#642)
+
+Usage and Audit HTTP adapters validate the trusted newRequestId result before service access or reflection. The existing Models/Account grammar applies: 1–256 ASCII characters, initial alphanumeric and remaining alphanumeric or ._+:/@-. Invalid values return fixed no-store/nosniff 503 internal_error with no request_id or x-request-id, no identity/history SQL and no service audit. A broken server ID generator is not an authentication denial or a successful audited read. Valid IDs preserve existing JSON/CSV, fresh IAM and mandatory durable audit. No session, runtime mount, DDL or deployment activation. See [plan](../docs/plans/642-history-request-id.md).

@@ -22,7 +22,15 @@ export function createSsoAuditHistoryHandler(ports: SsoAuditHistoryHttpPorts) {
   return async (request: Request): Promise<Response> => {
     let requestId: string | undefined;
     try {
-      requestId = newRequestId();
+      // Validate before service audit or reflection in success/error responses.
+      const generatedId = newRequestId();
+      if (
+        typeof generatedId !== 'string' ||
+        generatedId.length > 256 ||
+        !/^[A-Za-z0-9][A-Za-z0-9._+:/@-]*$/u.test(generatedId)
+      )
+        return failure(503, 'internal_error');
+      requestId = generatedId;
       const url = new URL(request.url);
       if (url.pathname !== '/management/v1/audit') return failure(404, 'not_found', requestId);
       if (
