@@ -6,7 +6,10 @@ import {
   createPostgresSsoModelCatalogHandler,
   createPostgresSsoModelCatalogServer,
 } from '../src/gateway/postgres-sso-model-catalog-http.ts';
+import { createSsoManagementCatalogAuthority } from '../src/management/catalog-authority.ts';
+import { createSsoManagementCatalogClient } from '../src/management/catalog-client.ts';
 import { loadPostgresMigrationSources } from '../src/storage/postgres-migration-sources.ts';
+import { discoveryModel } from './model-discovery-filters-fixture.ts';
 import { createSsoAccessTokenFixture } from './sso-access-token-fixture.ts';
 
 async function fixture() {
@@ -198,6 +201,398 @@ test('loopback detail remains authorized and durably audited beyond the collecti
     );
     await f.db.exec('DROP TABLE sso_catalog_audit_events');
     await safe(await get('/team%2Fchat'), 503);
+  } finally {
+    if (server.listening)
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    await f.db.close();
+  }
+});
+
+test('SSO UI transport consumes real signed-JWT HTTP with fresh IAM and durable audit', async () => {
+  const f = await fixture();
+  const server = createPostgresSsoModelCatalogServer(f.ports);
+  try {
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    const paths: string[] = [];
+    // Test-only trusted request port, not a browser credential/session adapter.
+    const client = createSsoManagementCatalogClient(async (path, init) => {
+      paths.push(path);
+      const headers = new Headers(init.headers);
+      headers.set('authorization', `Bearer ${f.token}`);
+      return fetch(`http://127.0.0.1:${address.port}${path}`, { ...init, headers });
+    });
+    const row = { id: 'team/chat', object: 'model', created: 42, owned_by: 'opengranter' };
+    assert.deepEqual(await client.list(), { state: 'ready', data: [row] });
+    assert.deepEqual(await client.detail('team/chat'), { state: 'ready', data: row });
+    const publication = discoveryModel('team/chat', {
+      name: 'SSO published model',
+      context: 128000,
+    }).openRouterMetadata;
+    assert.ok(publication);
+    const metadata = {
+      ...publication,
+      top_provider: { context_length: null, max_completion_tokens: 0, is_moderated: true },
+    };
+    await f.db.query('UPDATE catalog_models SET openrouter_metadata = $1 WHERE alias = $2', [
+      JSON.stringify(metadata),
+      'team/chat',
+    ]);
+    const published = {
+      ...row,
+      name: metadata.name,
+      context_length: metadata.context_length,
+      architecture: {
+        input_modalities: metadata.architecture.input_modalities,
+        output_modalities: metadata.architecture.output_modalities,
+      },
+      supported_parameters: metadata.supported_parameters,
+      pricing: { prompt: metadata.pricing.prompt, completion: metadata.pricing.completion },
+      top_provider: { context_length: null, max_completion_tokens: 0 },
+    };
+    assert.deepEqual(await client.list(), { state: 'ready', data: [published] });
+    assert.deepEqual(await client.detail('team/chat'), { state: 'ready', data: published });
+    await f.db.query('UPDATE catalog_models SET openrouter_metadata = $1 WHERE alias = $2', [
+      JSON.stringify({
+        ...metadata,
+        top_provider: { context_length: 128000, max_completion_tokens: 8192, is_moderated: true },
+      }),
+      'team/chat',
+    ]);
+    assert.deepEqual(await client.detail('team/chat'), {
+      state: 'ready',
+      data: {
+        ...published,
+        top_provider: { context_length: 128000, max_completion_tokens: 8192 },
+      },
+    });
+    await f.db.exec(`UPDATE iam_policies SET version = 'v2', statements =
+      '[{"effect":"Deny","actions":["llm:InvokeModel"],"resources":["model:*"]}]' WHERE policy_id = 'allow'`);
+    assert.deepEqual(await client.detail('team/chat'), { state: 'missing' });
+    assert.deepEqual(await client.list(), { state: 'ready', data: [] });
+    await f.db.exec('DELETE FROM iam_sso_identity_bindings');
+    assert.deepEqual(await client.list(), { state: 'unauthenticated' });
+    const events = (
+      await f.db.query<{ outcome: string }>(
+        'SELECT outcome FROM sso_catalog_audit_events ORDER BY event_id',
+      )
+    ).rows;
+    assert.deepEqual(
+      events.map((event) => event.outcome),
+      ['ready', 'ready', 'ready', 'ready', 'ready', 'missing', 'ready', 'unauthenticated'],
+    );
+    await f.db.exec('DROP TABLE sso_catalog_audit_events');
+    assert.deepEqual(await client.list(), { state: 'unavailable' });
+    assert.equal(paths.length, 9);
+    assert.ok(paths.every((path) => path.startsWith('/management/v1/models')));
+    assert.equal(paths[1], '/management/v1/models/team%2Fchat');
+    client.invalidate();
+  } finally {
+    if (server.listening)
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    await f.db.close();
+  }
+});
+
+test('SSO observer authority reflects fresh HTTP IAM, audit failure and revoked identity', async () => {
+  const f = await fixture();
+  const server = createPostgresSsoModelCatalogServer(f.ports);
+  const states: string[] = [];
+  let time = 1000;
+  let expire: (() => void) | undefined;
+  let calls = 0;
+  const authority = createSsoManagementCatalogAuthority({
+    now: () => time,
+    onChange: (snapshot) => states.push(snapshot.state),
+    schedule: (_delay, callback) => {
+      expire = callback;
+      return () => {
+        expire = undefined;
+      };
+    },
+  });
+  try {
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    // Test-only trusted port; not a browser session or credential adapter.
+    const grant = {
+      expiresAt: 2000,
+      request: async (path: string, init: RequestInit) => {
+        calls++;
+        assert.ok(path.startsWith('/management/v1/models'));
+        const headers = new Headers(init.headers);
+        headers.set('authorization', 'Bearer ' + f.token);
+        return fetch('http://127.0.0.1:' + address.port + path, { ...init, headers });
+      },
+    };
+    const row = { id: 'team/chat', object: 'model', created: 42, owned_by: 'opengranter' };
+    authority.authorize(grant);
+    await authority.list();
+    assert.deepEqual(authority.snapshot(), { state: 'list', models: [row] });
+    await authority.detail('team/chat');
+    assert.deepEqual(authority.snapshot(), { state: 'detail', model: row });
+    await f.db.query('UPDATE iam_policies SET version = $1, statements = $2 WHERE policy_id = $3', [
+      'v2',
+      JSON.stringify([{ effect: 'Deny', actions: ['llm:InvokeModel'], resources: ['model:*'] }]),
+      'allow',
+    ]);
+    await authority.detail('team/chat');
+    assert.deepEqual(authority.snapshot(), { state: 'missing' });
+    await authority.list();
+    assert.deepEqual(authority.snapshot(), { state: 'empty' });
+    time = 2000;
+    expire?.();
+    await authority.list();
+    assert.deepEqual(authority.snapshot(), { state: 'expired' });
+    assert.equal(calls, 4);
+    authority.authorize({ ...grant, expiresAt: 3000 });
+    await f.db.exec('DELETE FROM iam_sso_identity_bindings');
+    await authority.list();
+    assert.deepEqual(authority.snapshot(), { state: 'unauthenticated' });
+    await authority.detail('team/chat');
+    assert.equal(calls, 5);
+    const events = (
+      await f.db.query<{ outcome: string }>(
+        'SELECT outcome FROM sso_catalog_audit_events ORDER BY event_id',
+      )
+    ).rows;
+    assert.deepEqual(
+      events.map((event) => event.outcome),
+      ['ready', 'ready', 'missing', 'ready', 'unauthenticated'],
+    );
+    await f.db.exec('DROP TABLE sso_catalog_audit_events');
+    authority.authorize({ ...grant, expiresAt: 3000 });
+    await authority.list();
+    assert.deepEqual(authority.snapshot(), { state: 'unavailable' });
+    assert.deepEqual(states, [
+      'idle',
+      'loading',
+      'list',
+      'loading',
+      'detail',
+      'loading',
+      'missing',
+      'loading',
+      'empty',
+      'expired',
+      'idle',
+      'loading',
+      'unauthenticated',
+      'idle',
+      'loading',
+      'unavailable',
+    ]);
+    assert.doesNotMatch(JSON.stringify(authority.snapshot()), /private-secret|Bearer|SELECT/);
+  } finally {
+    authority.dispose();
+    if (server.listening)
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    await f.db.close();
+  }
+});
+
+test('signed HTTP catalog data clears on clock failure despite throwing timer cleanup', async () => {
+  const f = await fixture();
+  const server = createPostgresSsoModelCatalogServer(f.ports);
+  let broken = false;
+  let calls = 0;
+  const authority = createSsoManagementCatalogAuthority({
+    now: () => {
+      if (broken) throw new Error('private clock diagnostic');
+      return 1000;
+    },
+    onChange: () => {},
+    schedule: () => () => {
+      throw new Error('private timer diagnostic');
+    },
+  });
+  try {
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    // Test-only trusted server token, never a browser session adapter.
+    const grant = {
+      expiresAt: 2000,
+      request: async (path: string, init: RequestInit) => {
+        calls++;
+        const headers = new Headers(init.headers);
+        headers.set('authorization', 'Bearer ' + f.token);
+        return fetch('http://127.0.0.1:' + address.port + path, { ...init, headers });
+      },
+    };
+    authority.authorize(grant);
+    await authority.detail('team/chat');
+    assert.equal(authority.snapshot().state, 'detail');
+    broken = true;
+    assert.deepEqual(authority.snapshot(), { state: 'expired' });
+    await authority.list();
+    assert.equal(calls, 1);
+    broken = false;
+    authority.authorize(grant);
+    await authority.list();
+    assert.equal(authority.snapshot().state, 'list');
+    authority.clear('unauthenticated');
+    await authority.detail('team/chat');
+    assert.deepEqual(authority.snapshot(), { state: 'unauthenticated' });
+    assert.equal(calls, 2);
+    const events = (
+      await f.db.query<{ outcome: string }>(
+        'SELECT outcome FROM sso_catalog_audit_events ORDER BY event_id',
+      )
+    ).rows;
+    assert.deepEqual(
+      events.map((event) => event.outcome),
+      ['ready', 'ready'],
+    );
+    assert.doesNotThrow(() => authority.dispose());
+    assert.deepEqual(authority.snapshot(), { state: 'disposed' });
+  } finally {
+    authority.dispose();
+    if (server.listening)
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    await f.db.close();
+  }
+});
+
+test('published SSO display fields survive persisted catalog, HTTP and UI transport', async () => {
+  const f = await fixture();
+  const server = createPostgresSsoModelCatalogServer(f.ports);
+  try {
+    const metadata = {
+      ...discoveryModel('team/chat', {
+        inputs: ['text', 'image'],
+        outputs: ['text'],
+        parameters: ['tools', 'temperature'],
+      }).openRouterMetadata,
+      name: 'Published model <b>text</b>',
+      description: 'Published description\n模型',
+      context_length: null,
+      top_provider: { is_moderated: true, context_length: 32768, max_completion_tokens: null },
+      pricing: {
+        prompt: '0.0000001234567890123456789',
+        completion: '0e-9',
+      },
+    };
+    await f.db.query('UPDATE catalog_models SET openrouter_metadata = $1::jsonb WHERE alias = $2', [
+      JSON.stringify(metadata),
+      'team/chat',
+    ]);
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    const client = createSsoManagementCatalogClient(async (path, init) => {
+      const headers = new Headers(init.headers);
+      headers.set('authorization', `Bearer ${f.token}`);
+      return fetch(`http://127.0.0.1:${address.port}${path}`, { ...init, headers });
+    });
+    const row = {
+      id: 'team/chat',
+      object: 'model',
+      created: 42,
+      owned_by: 'opengranter',
+      name: metadata.name,
+      description: metadata.description,
+      context_length: null,
+    };
+    const raw = await fetch(`http://127.0.0.1:${address.port}/management/v1/models`, {
+      headers: { authorization: `Bearer ${f.token}` },
+    });
+    assert.deepEqual(await safe(raw, 200), {
+      object: 'list',
+      data: [
+        {
+          ...row,
+          pricing: { prompt: metadata.pricing.prompt, completion: metadata.pricing.completion },
+          architecture: { input_modalities: ['text', 'image'], output_modalities: ['text'] },
+          supported_parameters: ['tools', 'temperature'],
+          top_provider: { context_length: 32768, max_completion_tokens: null },
+        },
+      ],
+    });
+    const rawDetail = await fetch(
+      `http://127.0.0.1:${address.port}/management/v1/models/team%2Fchat`,
+      {
+        headers: { authorization: `Bearer ${f.token}` },
+      },
+    );
+    assert.deepEqual(await safe(rawDetail, 200), {
+      ...row,
+      pricing: { prompt: metadata.pricing.prompt, completion: metadata.pricing.completion },
+      architecture: { input_modalities: ['text', 'image'], output_modalities: ['text'] },
+      supported_parameters: ['tools', 'temperature'],
+      top_provider: { context_length: 32768, max_completion_tokens: null },
+    });
+    for (const max_completion_tokens of [undefined, 0, 8192]) {
+      const top_provider = {
+        context_length: 32768,
+        ...(max_completion_tokens === undefined ? {} : { max_completion_tokens }),
+      };
+      await f.db.query(
+        'UPDATE catalog_models SET openrouter_metadata = $1::jsonb WHERE alias = $2',
+        [
+          JSON.stringify({ ...metadata, top_provider: { ...top_provider, is_moderated: true } }),
+          'team/chat',
+        ],
+      );
+      const response = await fetch(
+        `http://127.0.0.1:${address.port}/management/v1/models/team%2Fchat`,
+        { headers: { authorization: `Bearer ${f.token}` } },
+      );
+      const data = await safe(response, 200);
+      assert.deepEqual(data.top_provider, top_provider);
+      assert.equal(Object.hasOwn(data.top_provider, 'is_moderated'), false);
+    }
+    // The explicit SSO client now retains only the reviewed published fields.
+    const published = {
+      ...row,
+      pricing: { prompt: metadata.pricing.prompt, completion: metadata.pricing.completion },
+      architecture: { input_modalities: ['text', 'image'], output_modalities: ['text'] },
+      supported_parameters: ['tools', 'temperature'],
+      top_provider: { context_length: 32768, max_completion_tokens: 8192 },
+    };
+    assert.deepEqual(await client.list(), { state: 'ready', data: [published] });
+    assert.deepEqual(await client.detail('team/chat'), { state: 'ready', data: published });
+    await f.db.query('UPDATE catalog_models SET openrouter_metadata = $1::jsonb WHERE alias = $2', [
+      JSON.stringify({ ...metadata, context_length: 8192 }),
+      'team/chat',
+    ]);
+    assert.deepEqual(await client.detail('team/chat'), {
+      state: 'ready',
+      data: {
+        ...published,
+        context_length: 8192,
+        top_provider: { context_length: 32768, max_completion_tokens: null },
+      },
+    });
+    const events = (await f.db.query('SELECT * FROM sso_catalog_audit_events')).rows;
+    assert.equal(events.length, 8);
+    assert.doesNotMatch(
+      JSON.stringify(events),
+      /Published|description|context_length|max_completion_tokens|top_provider|architecture|input_modalities|supported_parameters|temperature|pricing|0\.0000001234567890123456789|private\/canonical/u,
+    );
+    await f.db.exec(`UPDATE iam_policies SET version = 'v2', statements =
+      '[{"effect":"Deny","actions":["llm:InvokeModel"],"resources":["model:*"]}]' WHERE policy_id = 'allow'`);
+    assert.deepEqual(await client.list(), { state: 'ready', data: [] });
+    assert.deepEqual(await client.detail('team/chat'), { state: 'missing' });
+    await f.db.exec('DELETE FROM iam_sso_identity_bindings');
+    assert.deepEqual(await client.list(), { state: 'unauthenticated' });
+    await f.db.exec('DROP TABLE sso_catalog_audit_events');
+    assert.deepEqual(await client.list(), { state: 'unavailable' });
+    client.invalidate();
   } finally {
     if (server.listening)
       await new Promise<void>((resolve, reject) =>

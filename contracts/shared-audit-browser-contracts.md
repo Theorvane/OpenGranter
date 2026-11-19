@@ -1,0 +1,7 @@
+# Shared audit browser contracts
+
+The canonical management builder bundles the actual audit-client and audit-review through five explicitly enumerated pure shared audit modules: history-http, history-filters, time-range, event-projection and history-types. Only management TypeScript is a valid entry; shared modules are allowed transitively. Arbitrary shared/server modules, external packages, Node built-ins and symlink escapes remain forbidden. No environment injection, source map, SQL port or runtime import is emitted.
+
+The server reexports the same parser, projector and error classes. Exact positive PostgreSQL bigint event IDs, descending page validation, principal consistency, time/model/request filters and allowlisted metadata projection retain their existing contracts. A browser projection is not an IAM grant or identity source. Signed-SSO authentication, current binding/IAM and required durable audit remain server responsibilities.
+
+The existing review coordinator retains loading/ready/empty/error, bounded explicit CSV export, fresh-denial data clearing and stale-port blocking. No entry/navigation is activated; no browser session, IdP, retention or deployment decision is settled here. Tests exercise the compiled artifact over loopback HTTP with fixture-signed API JWT and migrated PGlite SQL. This is not native-browser login or installed PostgreSQL/company IdP/provider acceptance.

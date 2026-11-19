@@ -85,7 +85,7 @@ test('forged cursors and invalid page sizes fail before storage access', async (
   assert.equal(calls.length, 0);
   await reader({ principalId: 'service-1', limit: 2, cursor: '9' });
   assert.match(calls[0]?.sql ?? '', /WHERE principal_id = \$1/u);
-  assert.deepEqual(calls[0]?.params, ['service-1', '9', 3, null, null, null]);
+  assert.deepEqual(calls[0]?.params, ['service-1', '9', 3, null, null, null, null]);
 });
 
 test('mixed-principal and malformed stored rows fail as a whole', async () => {
