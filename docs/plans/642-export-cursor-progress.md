@@ -14,3 +14,7 @@ First public-client regression rejects repeated and backwards cursor headers (ex
 
 ## Delivery
 Update contract, PRD, architecture and acceptance. Main-based issue branch, PR with RED/GREEN and exact-head CI/formal approval before merge. Rollback removes client guard only; no migrations or deployment.
+
+## Current main integration
+
+Main implements the same strict descending UTF-8 continuation progression using its single validated cursor decoder, including captured serialized scope. Preserve that implementation and all BOM/length/request-filter behavior; retain the complete original PR test module separately as management-usage-export-client-pr848.test.ts, alongside the unchanged canonical main suite.

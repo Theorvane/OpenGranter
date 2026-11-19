@@ -14,3 +14,15 @@ Plan: [implementation](../docs/plans/642-browser-usage-export.md). Test: test/ma
 ## CSV continuation progress (#642)
 
 Browser CSV export rejects repeated or backwards next-cursor metadata before consuming the body. Continuations must advance in descending timestamp and UTF-8 attempt-ID order relative to the serialized request cursor, including when the caller mutates its filters while transport is pending. Invalid metadata yields a private unavailable state and cancels the unread body. This is a transport guard, not CSV-row revalidation, session activation or installed/browser acceptance. See [plan](../docs/plans/642-export-cursor-progress.md).
+
+## Verbatim CSV encoding (#642)
+
+Preserve an existing leading UTF-8 byte-order mark, including when it is split across stream chunks; never add a marker to an unmarked export. Strict UTF-8 decoding and existing byte/time bounds remain enforced. This transport-only correction does not activate UI/session/downloads. See [plan](../docs/plans/642-csv-byte-order-mark.md).
+
+## CSV response length integrity (#642)
+
+Reject identity-encoded CSV whose observed UTF-8 byte length disagrees with a supplied Content-Length; never return partial text as ready. Compare bytes rather than characters. For compressed Fetch responses, the browser exposes decoded bytes, so do not compare them to the compressed wire length. Existing decoded byte/deadline bounds, scope and cancellation remain unchanged. No UI, session, runtime or installed acceptance is implied. See [plan](../docs/plans/642-csv-length-integrity.md).
+
+## Browser continuation progress (#642)
+
+For a request carrying a cursor, any nonterminal CSV response must return a strictly older continuation tuple in descending occurredAt then UTF-8 attemptId byte order. Equal or newer keys fail as unavailable before exposing CSV, with unread body cancellation. Compare against the cursor actually serialized, unaffected by caller mutation during transport. A terminal page may omit continuation, and a first page may supply any valid continuation; neither implies CSV row validation. Return valid cursor strings unchanged. See [plan](../docs/plans/642-csv-client-progress.md).

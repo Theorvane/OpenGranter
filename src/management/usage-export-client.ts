@@ -2,6 +2,7 @@ import type { CatalogRequest } from './catalog-client.ts';
 
 export interface UsageExportFilters {
   readonly principalId?: string;
+  readonly requestId?: string;
   readonly model?: string;
   readonly fromMs?: number;
   readonly toMs?: number;
@@ -23,53 +24,57 @@ const MAX_BYTES = 2 * 1024 * 1024;
 function count(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
 }
-function validCursor(value: unknown): value is string {
-  if (typeof value !== 'string' || !/^[A-Za-z0-9_-]{1,2048}$/u.test(value)) return false;
+function cursorKey(value: unknown): readonly [number, string] | undefined {
+  if (typeof value !== 'string' || !/^[A-Za-z0-9_-]{1,2048}$/u.test(value)) return undefined;
   try {
     const bytes = atob(value.replace(/-/gu, '+').replace(/_/gu, '/'));
     if (btoa(bytes).replace(/=/gu, '').replace(/\+/gu, '-').replace(/\//gu, '_') !== value)
-      return false;
+      return undefined;
     const decoded: unknown = JSON.parse(
       new TextDecoder('utf-8', { fatal: true }).decode(
         Uint8Array.from(bytes, (c) => c.charCodeAt(0)),
       ),
     );
-    return (
+    if (
       Array.isArray(decoded) &&
       decoded.length === 2 &&
       count(decoded[0]) &&
       typeof decoded[1] === 'string' &&
       decoded[1].trim().length > 0 &&
       decoded[1].length <= 512
-    );
+    )
+      return [decoded[0], decoded[1]];
   } catch {
-    return false;
+    return undefined;
   }
+  return undefined;
 }
-/** Compare validated keyset metadata only; never use decoded values to build requests. */
-function advances(next: string, previous: string): boolean {
-  const decode = (value: string): readonly [number, string] => {
-    const bytes = atob(value.replace(/-/gu, '+').replace(/_/gu, '/'));
-    return JSON.parse(
-      new TextDecoder('utf-8', { fatal: true }).decode(
-        Uint8Array.from(bytes, (character) => character.charCodeAt(0)),
-      ),
-    ) as [number, string];
-  };
-  const [nextTime, nextId] = decode(next);
-  const [previousTime, previousId] = decode(previous);
-  if (nextTime !== previousTime) return nextTime < previousTime;
+function validCursor(value: unknown): value is string {
+  return cursorKey(value) !== undefined;
+}
+function progresses(next: string, previous: string | null): boolean {
+  if (previous === null) return true;
+  const before = cursorKey(previous);
+  const after = cursorKey(next);
+  if (!before || !after) return false;
+  if (after[0] !== before[0]) return after[0] < before[0];
   const encoder = new TextEncoder();
-  const left = encoder.encode(nextId);
-  const right = encoder.encode(previousId);
-  for (let index = 0; index < Math.min(left.length, right.length); index += 1) {
-    if (left[index] !== right[index]) return (left[index] ?? 0) < (right[index] ?? 0);
+  const left = encoder.encode(after[1]);
+  const right = encoder.encode(before[1]);
+  for (let i = 0; i < Math.min(left.length, right.length); i++) {
+    const a = left[i];
+    const b = right[i];
+    if (a !== undefined && b !== undefined && a !== b) return a < b;
   }
   return left.length < right.length;
 }
 function query(filters: UsageExportFilters): string | undefined {
-  const { principalId, model, fromMs, toMs, limit, cursor } = filters;
+  const { principalId, requestId, model, fromMs, toMs, limit, cursor } = filters;
   if (
+    (requestId !== undefined &&
+      (typeof requestId !== 'string' ||
+        requestId.length > 256 ||
+        !/^[A-Za-z0-9][A-Za-z0-9._+:/@-]*$/u.test(requestId))) ||
     (principalId !== undefined &&
       (typeof principalId !== 'string' ||
         !principalId.trim() ||
@@ -92,6 +97,7 @@ function query(filters: UsageExportFilters): string | undefined {
     return undefined;
   const params = new URLSearchParams({ format: 'csv' });
   if (principalId !== undefined) params.set('principal_id', principalId);
+  if (requestId !== undefined) params.set('request_id', requestId);
   if (model !== undefined) params.set('model', model);
   if (fromMs !== undefined) params.set('from_ms', String(fromMs));
   if (toMs !== undefined) params.set('to_ms', String(toMs));
@@ -115,7 +121,8 @@ async function boundedCsv(response: Response, signal: AbortSignal): Promise<stri
   };
   signal.addEventListener('abort', cancel, { once: true });
   let size = 0;
-  const decoder = new TextDecoder('utf-8', { fatal: true });
+  // CSV is verbatim: expose an existing BOM instead of consuming it.
+  const decoder = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
   const text: string[] = [];
   try {
     if (signal.aborted) throw new Error('Interrupted');
@@ -126,6 +133,11 @@ async function boundedCsv(response: Response, signal: AbortSignal): Promise<stri
       size += value.byteLength;
       if (size > MAX_BYTES) throw new Error('Export exceeds limit');
       text.push(decoder.decode(value, { stream: true }));
+    }
+    // Fetch exposes decoded bytes; compressed Content-Length describes the wire body.
+    const encoding = response.headers.get('content-encoding')?.trim().toLowerCase();
+    if (length !== null && (!encoding || encoding === 'identity') && size !== Number(length)) {
+      throw new Error('Incomplete export body');
     }
     text.push(decoder.decode());
     return text.join('');
@@ -159,7 +171,8 @@ export function createSsoUsageExportClient(request: CatalogRequest) {
         return { state: 'invalid_query' };
       }
       if (search === undefined) return { state: 'invalid_query' };
-      const submittedCursor = new URLSearchParams(search).get('cursor');
+      // Use the exact serialized value, never a mutable caller object after await.
+      const requestCursor = new URLSearchParams(search).get('cursor');
       const controller = new AbortController();
       pending = controller;
       let timedOut = false;
@@ -202,11 +215,9 @@ export function createSsoUsageExportClient(request: CatalogRequest) {
               response.headers.get('content-type') ?? '',
             ) ||
             (more !== 'true' && more !== 'false') ||
-            (more === 'true' ? !validCursor(next) : next !== null) ||
-            (more === 'true' &&
-              next !== null &&
-              submittedCursor !== null &&
-              !advances(next, submittedCursor))
+            (more === 'true'
+              ? !validCursor(next) || !progresses(next, requestCursor)
+              : next !== null)
           ) {
             discard(response);
             return { state: 'unavailable' };

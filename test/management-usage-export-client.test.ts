@@ -3,7 +3,7 @@ import test from 'node:test';
 import { createSsoUsageHistoryHandler } from '../src/gateway/sso-usage-history-http.ts';
 import { createSsoUsageExportClient } from '../src/management/usage-export-client.ts';
 
-const earlierCursor = btoa(JSON.stringify([11, 'attempt'])).replace(/=+$/u, '');
+const advancedCursor = Buffer.from(JSON.stringify([11, 'older'])).toString('base64url');
 const cursor = btoa(JSON.stringify([12, 'attempt'])).replace(/=+$/u, '');
 function csv(body = 'request_id\r\n', more = false, next: string | null = null) {
   return new Response(body, {
@@ -34,7 +34,7 @@ test('export uses real Fetch boundary and preserves CSV and continuation without
           format: 'csv',
           csv: 'usage_status,estimated_amount\r\nmissing,\r\n',
           hasMore: true,
-          nextCursor: earlierCursor,
+          nextCursor: advancedCursor,
         };
       },
     },
@@ -65,7 +65,7 @@ test('export uses real Fetch boundary and preserves CSV and continuation without
       state: 'ready',
       csv: 'usage_status,estimated_amount\r\nmissing,\r\n',
       hasMore: true,
-      nextCursor: earlierCursor,
+      nextCursor: advancedCursor,
     },
   );
 });
@@ -338,15 +338,112 @@ test('CSV transport reads signed-SSO SQL history and observes fresh Deny', async
   }
 });
 
-function continuation(time: number, id: string): string {
-  const bytes = new TextEncoder().encode(JSON.stringify([time, id]));
-  return btoa(Array.from(bytes, (byte) => String.fromCharCode(byte)).join(''))
-    .replace(/=/gu, '')
-    .replace(/\+/gu, '-')
-    .replace(/\//gu, '_');
-}
-test('CSV rejects stalled or backwards continuation before consuming private body', async () => {
-  for (const next of [continuation(12, 'attempt'), continuation(13, 'a'), continuation(12, 'z')]) {
+test('export preserves a supplied UTF-8 BOM across byte chunks without inserting one', async () => {
+  const text = '\uFEFFmodel,cost\r\n한국어,\uFEFFunknown\r\n';
+  const bytes = new TextEncoder().encode(text);
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      for (const byte of bytes) controller.enqueue(Uint8Array.of(byte));
+      controller.close();
+    },
+  });
+  const response = new Response(stream, {
+    headers: {
+      'content-type': 'text/csv; charset=utf-8',
+      'x-has-more': 'false',
+    },
+  });
+  const result = await createSsoUsageExportClient(async () => response).read();
+  assert.equal(result.state, 'ready');
+  if (result.state !== 'ready') throw new Error('Expected CSV');
+  assert.equal(result.csv, text);
+  assert.deepEqual(new TextEncoder().encode(result.csv), bytes);
+  const ordinary = 'model,cost\r\n한국어,unknown\r\n';
+  const plain = await createSsoUsageExportClient(async () => csv(ordinary)).read();
+  assert.deepEqual(plain, { state: 'ready', csv: ordinary, hasMore: false, nextCursor: null });
+});
+
+test('BOM preservation retains strict rejection of a truncated UTF-8 sequence', async () => {
+  const body = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(Uint8Array.of(0xef, 0xbb, 0xbf, 0xe2));
+      controller.close();
+    },
+  });
+  const result = await createSsoUsageExportClient(
+    async () =>
+      new Response(body, {
+        headers: { 'content-type': 'text/csv', 'x-has-more': 'false' },
+      }),
+  ).read();
+  assert.deepEqual(result, { state: 'unavailable' });
+  assert.equal(JSON.stringify(result).includes('\uFEFF'), false);
+});
+
+test('CSV rejects clean EOF with inconsistent unencoded byte length', async () => {
+  for (const encoding of [undefined, 'identity']) {
+    for (const length of ['0', '1', '99']) {
+      const response = csv('模型\r\n');
+      response.headers.set('content-length', length);
+      if (encoding) response.headers.set('content-encoding', encoding);
+      assert.deepEqual(await createSsoUsageExportClient(async () => response).read(), {
+        state: 'unavailable',
+      });
+    }
+  }
+});
+
+test('CSV length uses UTF8 bytes across chunks, not character counts', async () => {
+  const text = '模型\r\n';
+  const bytes = new TextEncoder().encode(text);
+  const response = new Response(
+    new ReadableStream({
+      start(controller) {
+        controller.enqueue(bytes.subarray(0, 1));
+        controller.enqueue(bytes.subarray(1));
+        controller.close();
+      },
+    }),
+    {
+      headers: {
+        'content-type': 'text/csv',
+        'x-has-more': 'false',
+        'content-length': String(bytes.length),
+      },
+    },
+  );
+  assert.deepEqual(await createSsoUsageExportClient(async () => response).read(), {
+    state: 'ready',
+    csv: text,
+    hasMore: false,
+    nextCursor: null,
+  });
+});
+
+test('decoded Fetch CSV does not compare compressed wire length to text bytes', async () => {
+  for (const encoding of ['gzip', 'br']) {
+    const response = csv('模型\r\n');
+    response.headers.set('content-length', '1');
+    response.headers.set('content-encoding', encoding);
+    assert.deepEqual(await createSsoUsageExportClient(async () => response).read(), {
+      state: 'ready',
+      csv: '模型\r\n',
+      hasMore: false,
+      nextCursor: null,
+    });
+  }
+});
+
+const key = (time: number, id: string) =>
+  Buffer.from(JSON.stringify([time, id])).toString('base64url');
+test('CSV continuation rejects stalled and regressing keys before reading body', async () => {
+  for (const [before, after] of [
+    [key(10, 'z'), key(10, 'z')],
+    [key(10, 'z'), key(11, 'a')],
+    [key(10, 'z'), key(10, 'é')],
+    [key(10, 'a'), key(10, 'aa')],
+    [key(10, '\uE000'), key(10, '😀')],
+  ] as const) {
     let cancelled = false;
     const response = new Response(
       new ReadableStream({
@@ -355,33 +452,58 @@ test('CSV rejects stalled or backwards continuation before consuming private bod
         },
       }),
       {
-        headers: { 'content-type': 'text/csv', 'x-has-more': 'true', 'x-next-cursor': next },
+        headers: {
+          'content-type': 'text/csv',
+          'x-has-more': 'true',
+          'x-next-cursor': after,
+        },
       },
     );
-    // A stalled stream also proves that rejection occurs before CSV consumption.
     const client = createSsoUsageExportClient(async () => response);
-    assert.deepEqual(await client.read({ cursor }), { state: 'unavailable' });
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const result = await Promise.race([
+      client.read({ cursor: before }),
+      new Promise((resolve) => {
+        timer = setTimeout(() => resolve('body-was-read'), 1000);
+      }),
+    ]);
+    clearTimeout(timer);
+    client.invalidate();
+    assert.deepEqual(result, { state: 'unavailable' });
     assert.equal(cancelled, true);
   }
 });
-test('CSV continuation advances in descending UTF-8 order, not UTF-16 order', async () => {
-  const from = continuation(12, '𐀀');
-  const next = continuation(12, '');
-  assert.equal(
-    (await createSsoUsageExportClient(async () => csv('safe', true, next)).read({ cursor: from }))
-      .state,
-    'ready',
-  );
-  assert.deepEqual(
-    await createSsoUsageExportClient(async () => csv('private', true, from)).read({ cursor: next }),
-    { state: 'unavailable' },
-  );
+test('CSV continuation uses descending time and UTF8 bytes, not locale or UTF16 order', async () => {
+  for (const [before, after] of [
+    [key(10, 'a'), key(9, 'z')],
+    [key(10, 'é'), key(10, 'z')],
+    [key(10, 'aa'), key(10, 'a')],
+    [key(10, '😀'), key(10, '\uE000')],
+  ] as const) {
+    const result = await createSsoUsageExportClient(async () => csv('verbatim', true, after)).read({
+      cursor: before,
+    });
+    assert.deepEqual(result, { state: 'ready', csv: 'verbatim', hasMore: true, nextCursor: after });
+  }
 });
-test('CSV snapshots request cursor before an asynchronous transport', async () => {
-  const filters = { cursor };
-  const client = createSsoUsageExportClient(async () => {
-    filters.cursor = continuation(0, 'changed');
-    return csv('safe', true, earlierCursor);
+test('CSV progress binds to serialized cursor despite caller mutation during request', async () => {
+  const filters = { cursor: key(10, 'z') };
+  const client = createSsoUsageExportClient(async (path) => {
+    assert.equal(new URL(path, 'https://local.invalid').searchParams.get('cursor'), key(10, 'z'));
+    filters.cursor = key(30, 'z');
+    await Promise.resolve();
+    return csv('private duplicate page', true, key(20, 'z'));
   });
-  assert.equal((await client.read(filters)).state, 'ready');
+  assert.deepEqual(await client.read(filters), { state: 'unavailable' });
+});
+test('CSV terminal response needs no progress key even with request cursor', async () => {
+  assert.deepEqual(
+    await createSsoUsageExportClient(async () => csv()).read({ cursor: key(10, 'z') }),
+    {
+      state: 'ready',
+      csv: 'request_id\r\n',
+      hasMore: false,
+      nextCursor: null,
+    },
+  );
 });
