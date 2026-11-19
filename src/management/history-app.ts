@@ -70,12 +70,13 @@ export function mountHistoryWorkspace(
     if (text !== undefined) node.textContent = text;
     return node;
   }
-  function button(text: string, action: () => void, enabled = true) {
+  function button(text: string, action: () => void, enabled = true, submit = false) {
     const node = element('button', text);
-    node.setAttribute('type', 'button');
+    node.setAttribute('type', submit ? 'submit' : 'button');
     if (!enabled) node.setAttribute('disabled', '');
     const current = generation;
-    node.addEventListener('click', () => {
+    node.addEventListener('click', (event) => {
+      if (submit) event?.preventDefault();
       if (enabled && current === generation && available()) action();
     });
     return node;
@@ -132,7 +133,8 @@ export function mountHistoryWorkspace(
       nav.append(node);
     }
     main.append(nav, element('h2', kind === 'usage' ? 'Usage' : 'Audit'));
-    const controls = element('section');
+    const controls = element('form');
+    controls.setAttribute('novalidate', '');
     controls.setAttribute('aria-label', 'History filters');
     const values = new Map<keyof AuditFilters, CatalogElement>();
     for (const [field, name] of [
@@ -153,30 +155,34 @@ export function mountHistoryWorkspace(
       controls.append(label);
       values.set(field, input);
     }
-    controls.append(
-      button('Apply filters', () => {
-        const input: {
-          principalId?: string;
-          model?: string;
-          requestId?: string;
-          fromMs?: number;
-          toMs?: number;
-          limit?: number;
-        } = {};
-        for (const [field, node] of values) drafts[kind].set(field, node.value ?? '');
-        for (const field of ['principalId', 'model', 'requestId'] as const) {
-          const value = values.get(field)?.value ?? '';
-          if (value !== '') input[field] = value;
-        }
-        for (const field of ['fromMs', 'toMs', 'limit'] as const) {
-          const value = values.get(field)?.value ?? '';
-          if (value !== '')
-            input[field] = /^(0|[1-9][0-9]*)$/u.test(value) ? Number(value) : Number.NaN;
-        }
-        filters[kind] = input;
-        void review.load(input);
-      }),
-    );
+    function applyFilters() {
+      const input: {
+        principalId?: string;
+        model?: string;
+        requestId?: string;
+        fromMs?: number;
+        toMs?: number;
+        limit?: number;
+      } = {};
+      for (const [field, node] of values) drafts[kind].set(field, node.value ?? '');
+      for (const field of ['principalId', 'model', 'requestId'] as const) {
+        const value = values.get(field)?.value ?? '';
+        if (value !== '') input[field] = value;
+      }
+      for (const field of ['fromMs', 'toMs', 'limit'] as const) {
+        const value = values.get(field)?.value ?? '';
+        if (value !== '')
+          input[field] = /^(0|[1-9][0-9]*)$/u.test(value) ? Number(value) : Number.NaN;
+      }
+      filters[kind] = input;
+      void review.load(input);
+    }
+    const formGeneration = generation;
+    controls.addEventListener('submit', (event) => {
+      event?.preventDefault();
+      if (formGeneration === generation && available()) applyFilters();
+    });
+    controls.append(button('Apply filters', applyFilters, true, true));
     controls.append(
       button('Reset filters', () => {
         // Restore the mount target rather than broadening an account deep link.
