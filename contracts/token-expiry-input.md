@@ -1,0 +1,5 @@
+# Proxy-token expiry input (#640)
+
+The caller-authorized issuance panel accepts canonical nonnegative safe-integer Unix milliseconds (unchanged), or explicit UTC `YYYY-MM-DDTHH:mm:ssZ` / `YYYY-MM-DDTHH:mm:ss.SSSZ`. UTC dates must round-trip exactly; invalid days, 24:00, leap seconds, offsets, missing zones and whitespace are rejected. No local timezone, relative lifetime, automatic clock or guessed expiry is used.
+
+Review displays exact milliseconds and UTC when within JavaScript Date range. All previously accepted Unix milliseconds remain accepted, including values outside that display range. Neither review nor Cancel sends a mutation. Confirm sends the existing `{ principalId, expiresAt }` payload once through the caller-owned authorized port; backend permission, current server time, lifetime caps and mandatory audit remain authoritative. A syntactically valid past date may be rejected by that boundary. This adds no grants, session acquisition, persistence, automatic retries or public entry activation.

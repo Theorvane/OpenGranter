@@ -1,5 +1,6 @@
 import type { CatalogRequest } from './catalog-client.ts';
 import type { CatalogElement } from './catalog-view.ts';
+import { parseTokenExpiry, tokenExpiryDescription } from './token-expiry-input.ts';
 import { issueManagementToken, validIssuance } from './token-issue-client.ts';
 
 /** Caller MUST dispose on logout, expiry, or identity change. Clearing is not revocation. */
@@ -55,12 +56,15 @@ export function mountTokenIssuancePanel(
         expiry.value = '';
       };
       principalLabel.append(principal);
-      const expiryLabel = element('label', 'Expiry (Unix milliseconds, integer)');
+      const expiryLabel = element(
+        'label',
+        'Expiry (UTC ISO timestamp or integer Unix milliseconds)',
+      );
       const expiry = element('input');
       expiry.setAttribute('type', 'text');
-      expiry.setAttribute('inputmode', 'numeric');
       expiry.setAttribute('autocomplete', 'off');
-      expiry.setAttribute('maxlength', '16');
+      expiry.setAttribute('maxlength', '24');
+      expiry.setAttribute('placeholder', '2028-01-01T00:00:00Z');
       expiryLabel.append(expiry);
       section.append(
         principalLabel,
@@ -69,9 +73,11 @@ export function mountTokenIssuancePanel(
           if (!current()) return;
           const principalId = principal.value ?? '';
           const rawExpiry = expiry.value ?? '';
-          const expiresAt = Number(rawExpiry);
-          if (!/^(?:0|[1-9][0-9]*)$/u.test(rawExpiry) || !validIssuance(principalId, expiresAt)) {
-            render('Enter a valid principal ID and integer expiry in Unix milliseconds.');
+          const expiresAt = parseTokenExpiry(rawExpiry);
+          if (expiresAt === undefined || !validIssuance(principalId, expiresAt)) {
+            render(
+              'Enter a valid principal ID and UTC expiry (YYYY-MM-DDTHH:mm:ssZ, optional .SSS) or integer Unix milliseconds.',
+            );
             return;
           }
           principal.value = '';
@@ -158,7 +164,7 @@ export function mountTokenIssuancePanel(
           });
           const warning = element(
             'p',
-            `Confirm issuance for principal ID: ${principalId}; expiry (Unix milliseconds): ${expiresAt}. The bearer secret will be displayed once.`,
+            `Confirm issuance for principal ID: ${principalId}; ${tokenExpiryDescription(expiresAt)}. The bearer secret will be displayed once.`,
           );
           warning.setAttribute('role', 'alert');
           root.replaceChildren(

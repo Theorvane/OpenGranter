@@ -113,7 +113,11 @@ for (const outcome of ['success', 'deny', 'audit-outage', 'inactive'] as const) 
     });
     try {
       enter(root, 'Principal ID', 'human-owner');
-      enter(root, 'Expiry (Unix milliseconds, integer)', String(jwt.config.now() + 86400000));
+      enter(
+        root,
+        'Expiry (UTC ISO timestamp or integer Unix milliseconds)',
+        String(jwt.config.now() + 86400000),
+      );
       click(root, 'Review issuance');
       click(root, 'Confirm issuance');
       await waitFor(() => text(root).includes('Token issued.'));

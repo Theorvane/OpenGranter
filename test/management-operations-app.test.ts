@@ -49,7 +49,7 @@ function enter(root: Element, label: string, value: string) {
 }
 function reviewIssue(root: Element) {
   enter(root, 'Principal ID', 'person');
-  enter(root, 'Expiry (Unix milliseconds, integer)', '2000');
+  enter(root, 'Expiry (UTC ISO timestamp or integer Unix milliseconds)', '2000');
   click(root, 'Review issuance');
 }
 function reviewRevoke(root: Element) {
