@@ -31,3 +31,7 @@
 ## Canonical integration 2026-11-19 16:00 KST
 - Reconcile the existing PR with current #948/main, preserving newer management, Account/history and transport safeguards. Do not duplicate the feature stack or change session/runtime activation.
 - Verify the bounded request/body lifetime, cancellation, secret disposal, and issue/revoke UI uncertainty against the integrated tree, including owned HTTP/SQL committed-outcome cases. Refresh exact-head CI and independent review after integration; parent #948 must merge first.
+
+## Integrated verification
+- Canonical #948/main integration: 72 focused public-client, panel, Account handoff and owned HTTP/synthetic JWT/PGlite tests passed with zero failures or skips; strict TypeScript, full Biome and planning/fixture checks passed.
+- Bundled production Operations in native Chromium with a synthetic abort-ignoring request port: issuance and revocation left pending state at the real ten-second deadline, displayed existing uncertainty warnings, made exactly one request, cancelled late response bodies, never displayed the late synthetic credential, and disposed cleanly. This is not actual IdP/login, installed PostgreSQL, TLS deployment or provider acceptance.
