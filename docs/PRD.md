@@ -1595,3 +1595,6 @@ Usage and Audit filters use a named native form. Enter and Apply filters each di
 ## Unapplied history filter drafts (#642)
 
 Usage/Audit preserve per-view unapplied filter edits during refresh and tab changes within an identity mount. A live notice distinguishes edits from the applied records/pagination/CSV scope. Apply uses existing exact validation; Reset restores the original target; terminal authentication boundaries discard drafts. No saved-search persistence or authority expansion. See [plan](plans/642-history-draft-preservation.md) and [contract](../contracts/history-filter-drafts.md).
+
+## Scoped Account history recovery (#637, #642)
+Retrying failed History adapter initialization preserves the exact Account target, including local invalid-input and fresh server Deny behavior. Explicit manual History navigation still starts without that default. See [plan](plans/637-ui-main-account-integration.md) and [contract](../contracts/account-history-navigation.md#adapter-initialization-recovery). No new authority, session or activation.

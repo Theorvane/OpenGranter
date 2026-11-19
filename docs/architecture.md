@@ -1619,3 +1619,6 @@ Usage and Audit filters use a named native form. Enter and Apply filters each di
 ## Unapplied history filter drafts (#642)
 
 History input listeners record only per-tab draft strings, guarded by the current render generation and active identity. Draft state never replaces the applied query until Apply; records/pagination/CSV remain bound to that query. Renders clear detached controls; terminal identity boundaries clear both maps. Explicit request drilldowns reset destination drafts to the applied intersection. No transport, session, runtime or schema change. See [plan](plans/642-history-draft-preservation.md) and [contract](../contracts/history-filter-drafts.md).
+
+## Account history retry context (#637)
+The epoch-bound download-adapter recovery callback retains the captured principalId instead of navigating to unfiltered history. Existing history-client validation, current IAM and durable audit remain authoritative; explicit manual navigation resets context. See [contract](../contracts/account-history-navigation.md#adapter-initialization-recovery).

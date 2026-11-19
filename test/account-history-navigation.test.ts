@@ -112,3 +112,73 @@ for (const status of [401, 403, 503])
     assert.equal(f.calls.length, count);
     f.ui.dispose();
   });
+
+for (const [id, status] of [
+  ['human/exact+id', 200],
+  ['human/exact+id', 403],
+  ['human/exact+id', 503],
+  ['human\ncontrol', 200],
+] as const) {
+  test(`Account history adapter recovery retains exact scope: ${JSON.stringify(id)} ${status}`, async () => {
+    const root = new Element();
+    const paths: string[] = [];
+    let failAdapter = false;
+    const ui = mountManagementOperations(
+      root,
+      async (path) => {
+        paths.push(path);
+        if (path === '/management/v1/principal') return Response.json({ id, kind: 'human' });
+        return new URL(path, 'https://local.invalid').searchParams.has('principal_id') &&
+          status !== 200
+          ? new Response(null, { status })
+          : empty();
+      },
+      () => {
+        if (failAdapter) throw new Error('PRIVATE adapter diagnostic');
+        return { save: () => 'started', dispose() {} };
+      },
+    );
+    await tick();
+    click(root, 'Account');
+    await tick();
+    failAdapter = true;
+    click(root, 'View history for this account');
+    assert.match(text(root), /History unavailable/);
+    assert.doesNotMatch(text(root), /PRIVATE/);
+    const before = paths.length;
+    failAdapter = false;
+    const retiredRetry = click(root, 'Retry history');
+    await tick();
+    if (id.includes('\n')) {
+      assert.equal(paths.length, before, 'invalid exact target must not fall back to self');
+      assert.match(text(root), /Invalid filters/);
+      assert.equal(principal(root).value, id);
+    } else {
+      assert.equal(paths.length, before + 1);
+      assert.equal(
+        new URL(paths.at(-1) ?? '', 'https://local.invalid').searchParams.get('principal_id'),
+        id,
+      );
+      assert.match(
+        text(root),
+        status === 403
+          ? /Access denied/
+          : status === 503
+            ? /History unavailable/
+            : /No history matches/,
+      );
+      if (status !== 403) {
+        assert.equal(principal(root).value, id);
+        click(root, 'History');
+        await tick();
+        assert.equal(principal(root).value, '', 'manual navigation still clears Account scope');
+        assert.equal(paths.at(-1), '/management/v1/usage?format=json');
+      }
+    }
+    const count = paths.length;
+    retiredRetry.listeners.click?.();
+    await tick();
+    assert.equal(paths.length, count, 'retired retry cannot restart a scoped read');
+    ui.dispose();
+  });
+}

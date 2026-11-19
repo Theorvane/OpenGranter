@@ -2105,3 +2105,9 @@ Usage and Audit filters use a named native form. Enter and Apply filters each di
 ## Unapplied history filter drafts (#642)
 
 For Usage and Audit, type exact private filters without applying: no request occurs, and a live status explains the applied records/CSV scope. Switch tabs and refresh: edits survive but the request retains the original principal/applied filters. Edit during loading: completion preserves it. Invalid Apply sends no request; Reset restores the initial target. Detached input, denial and disposal cannot restore or submit edits. Verify native input and tab behavior separately from installed SSO/E2E. See [plan](plans/642-history-draft-preservation.md) and [contract](../contracts/history-filter-drafts.md).
+
+## Account history adapter recovery (#637, #642)
+- Fail the download adapter after reading Account, then retry: the first Usage request retains exact principal_id and the input displays it.
+- Unsupported identifiers never produce an unfiltered fallback request; fresh 403 terminates navigation and 503 retains scoped retryable state.
+- Manual History clears the default; retired retry controls cannot issue requests.
+- Regression: test/account-history-navigation.test.ts; synthetic native browser checks are not installed SSO/provider acceptance. See [plan](plans/637-ui-main-account-integration.md).
