@@ -7,3 +7,7 @@ Actor snapshots retain ID, active state, statements (effect/actions/resources), 
 Owner lookup, policy evaluation, decision attribution, and credential mutation use the captured values. Updates to caller objects during callbacks cannot alter this operation's destination, expiry, identity, or evaluated policy versions. Initial default/explicit Deny and inactive state remain effective. Audit-port exceptions, including attempts to mutate frozen data, use the existing safe unavailable contract and block mutation.
 
 This is an in-process operation snapshot guarantee. The service still reloads persisted IAM state for each call; changes after a DB snapshot read are not revalidated, and no transaction spans all reads/audits/mutations. Existing success/denial/failure ordering and credential lifecycle behavior remain unchanged.
+
+## Complete actor arrays (#640)
+
+Every index in statements, each action/resource array, and policyVersions must be an own, present, valid entry. Sparse or inherited entries throw fixed InvalidTokenManagementInput before owner lookup, audit or mutation. Dense empty arrays remain valid and do not grant permission. This validates trusted in-process context, not browser authentication. See [plan](../docs/plans/640-complete-token-actor.md).
