@@ -55,7 +55,7 @@ function fail(response: Response, category: DirectProviderFailureCategory): neve
     true,
     true,
     rejected ? parseRetryAfterSeconds(response.headers.get('retry-after')) : undefined,
-    rejected ? response.status : undefined,
+    response.status,
   );
 }
 

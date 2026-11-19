@@ -439,3 +439,63 @@ test('usage GET framing: Node HTTP rejects framed JSON/CSV reads and still serve
     await f.db.close();
   }
 });
+
+test('request-id JSON/CSV framing integration preserves scope and mandatory audit', async () => {
+  const f = await fixture();
+  try {
+    for (const format of ['json', 'csv']) {
+      f.sql.length = 0;
+      const before = f.events.length;
+      const rejected = await f.handler(
+        new Request(
+          `https://management.test/management/v1/usage?request_id=inference&format=${format}&limit=1`,
+          {
+            headers: { authorization: `Bearer ${token}`, 'content-length': '1' },
+          },
+        ),
+      );
+      assert.equal(rejected.status, 400);
+      assert.equal(f.sql.length, 0, 'framed request-id reads never reach identity or usage SQL');
+      assert.equal(f.events.length, before);
+      const allowed = await f.handler(
+        new Request(
+          `https://management.test/management/v1/usage?request_id=inference&format=${format}&limit=1`,
+          {
+            headers: { authorization: `Bearer ${token}`, 'content-length': '0' },
+          },
+        ),
+      );
+      assert.equal(allowed.status, 200);
+      const body = await allowed.text();
+      assert.ok(body.includes('inference'));
+      assert.ok(!body.includes('foreign'));
+      assert.equal(f.events.length, before + 1);
+      if (format === 'json') {
+        const page = JSON.parse(body);
+        assert.deepEqual(
+          page.data.map((row: { attemptId: string }) => row.attemptId),
+          ['c'],
+        );
+        assert.equal(page.has_more, true);
+        const next = await json(
+          await f.request(`?request_id=inference&limit=1&cursor=${page.next_cursor}`),
+        );
+        assert.deepEqual(
+          next.data.map((row: { attemptId: string }) => row.attemptId),
+          ['b'],
+        );
+      } else {
+        assert.equal(allowed.headers.get('x-has-more'), 'true');
+        assert.ok(allowed.headers.get('x-next-cursor'));
+      }
+    }
+    f.failAudit();
+    for (const format of ['json', 'csv']) {
+      const blocked = await f.request(`?request_id=inference&format=${format}`);
+      assert.equal(blocked.status, 503);
+      assert.ok(!(await blocked.text()).includes('inference'));
+    }
+  } finally {
+    await f.db.close();
+  }
+});
