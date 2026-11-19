@@ -10,6 +10,7 @@ import { PGlite } from '@electric-sql/pglite';
 import {
   ManagementBrowserArtifactUnavailable,
   startPostgresSsoCanonicalOperationsBrowserGateway,
+  startPostgresSsoCanonicalReviewBrowserGateway,
 } from '../src/gateway/postgres-sso-browser-bootstrap.ts';
 import type { PostgresConnection } from '../src/storage/postgres-connection.ts';
 import { createSsoAccessTokenFixture } from './sso-access-token-fixture.ts';
@@ -241,3 +242,34 @@ test('bind failure releases database without taking over occupied listener', asy
     await f.cleanup();
   }
 });
+
+for (const start of [
+  startPostgresSsoCanonicalOperationsBrowserGateway,
+  startPostgresSsoCanonicalReviewBrowserGateway,
+]) {
+  test(`${start.name} snapshots required artifact digest once before async file I/O`, async () => {
+    const f = await fixture();
+    let runtime:
+      | Awaited<ReturnType<typeof startPostgresSsoCanonicalOperationsBrowserGateway>>
+      | undefined;
+    let reads = 0;
+    const approvedHash = f.ports.browserArtifactSha256;
+    const ports = { ...f.ports };
+    Object.defineProperty(ports, 'browserArtifactSha256', {
+      get() {
+        return ++reads === 1 ? approvedHash : undefined;
+      },
+    });
+    try {
+      await writeFile(f.artifact, 'console.log("unapproved replacement")');
+      await assert.rejects(async () => {
+        runtime = await start(ports);
+      }, ManagementBrowserArtifactUnavailable);
+      assert.equal(reads, 1);
+      assert.deepEqual(f.counts(), { opens: 0, closes: 0 });
+    } finally {
+      await runtime?.close();
+      await f.cleanup();
+    }
+  });
+}
