@@ -1555,3 +1555,7 @@ The public management shell serves a fixed no-store stylesheet and links it expl
 ## Issued-token revocation handoff (#640)
 
 The caller-owned token management composition passes only a validated credential ID from issuance to revocation review. The optional callback is presentation wiring, not authority; existing SSO/IAM and durable audit remain server-enforced. Review cannot replace in-flight mutations and never submits a POST. See [contract](../contracts/issued-token-revocation.md).
+
+
+## Account response byte integrity (#639)
+The caller-authorized Account client rejects malformed, oversized or mismatched identity/no-encoding Content-Length before publishing identity. It cancels declared overflow without waiting for EOF. Fetch-decoded compressed representations are not compared with their compressed wire length; all decoded bodies remain limited to 4096 bytes and fatal UTF-8. Rejection uses the existing unavailable/retry UI, never partial identity or raw diagnostics. No session, endpoint, authorization, storage or deployment change. See [plan](plans/639-account-response-integrity.md).
