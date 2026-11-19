@@ -100,3 +100,116 @@ for (const cleanup of ['complete', 'reject', 'throw', 'stall', 'locked'] as cons
     }
   });
 }
+
+for (const cleanup of ['complete', 'throw', 'reject', 'stall'] as const) {
+  test(`disconnect during fallback buffering releases listener with ${cleanup} cleanup`, async () => {
+    let cancellations = 0;
+    let started: (() => void) | undefined;
+    const reading = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    let settled: (() => void) | undefined;
+    const finished = new Promise<void>((resolve) => {
+      settled = resolve;
+    });
+    const server = createNodeRequestServer(
+      async (request) => {
+        if (new URL(request.url).pathname.endsWith('/healthy')) return new Response('healthy');
+        throw new Error('private-handler');
+      },
+      () =>
+        new Response(
+          new ReadableStream<Uint8Array>(
+            {
+              pull() {
+                started?.();
+                return new Promise<void>(() => {});
+              },
+              cancel() {
+                cancellations++;
+                if (cleanup === 'throw') throw new Error('private-cleanup');
+                if (cleanup === 'reject') return Promise.reject(new Error('private-cleanup'));
+                if (cleanup === 'stall') return new Promise<void>(() => {});
+              },
+            },
+            { highWaterMark: 0 },
+          ),
+        ),
+    );
+    const listener = server.listeners('request')[0] as (
+      incoming: IncomingMessage,
+      outgoing: ServerResponse,
+    ) => Promise<void>;
+    server.removeListener('request', listener);
+    server.on('request', (incoming, outgoing) => {
+      void listener(incoming, outgoing).then(() => {
+        if (!incoming.url?.endsWith('/healthy')) settled?.();
+      });
+    });
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    let client: ReturnType<typeof httpRequest> | undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const address = server.address();
+      assert.ok(address && typeof address !== 'string');
+      const url = `http://127.0.0.1:${address.port}/management/v1/models`;
+      client = httpRequest(url);
+      client.on('error', () => {});
+      client.end();
+      await reading;
+      client.destroy();
+      await Promise.race([
+        finished,
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(
+            () => reject(new Error('fallback reader retained disconnected request')),
+            750,
+          );
+        }),
+      ]);
+      assert.equal(cancellations, 1);
+      const healthy = await fetch(`${url}/healthy`, { signal: AbortSignal.timeout(1500) });
+      assert.equal(await healthy.text(), 'healthy');
+    } finally {
+      clearTimeout(timer);
+      client?.destroy();
+      server.closeAllConnections();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+}
+
+test('fallback buffering preserves split UTF-8 and removes only the initial BOM', async () => {
+  const text = '한글\uFEFFtail';
+  const bytes = new TextEncoder().encode(`\uFEFF${text}`);
+  const server = createNodeRequestServer(
+    async () => {
+      throw new Error('private-handler');
+    },
+    () =>
+      new Response(
+        new ReadableStream<Uint8Array>({
+          start(controller) {
+            for (const byte of bytes) controller.enqueue(Uint8Array.of(byte));
+            controller.close();
+          },
+        }),
+        { status: 503 },
+      ),
+  );
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  try {
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    const response = await fetch(`http://127.0.0.1:${address.port}/management/v1/models`, {
+      signal: AbortSignal.timeout(1500),
+    });
+    assert.equal(response.status, 503);
+    assert.equal(await response.text(), text);
+  } finally {
+    server.closeAllConnections();
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+});
