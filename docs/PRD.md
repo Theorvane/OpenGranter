@@ -1586,5 +1586,10 @@ The explicit Reset filters action starts one fresh authorized JSON read for the 
 
 Changing Usage/Audit views, including request-investigation links, cancels outgoing local JSON/CSV waiting. Late responses cannot start a download. Returning refreshes the retained applied scope through existing fresh authorization. Cancellation cannot undo server processing or durable export audit, and does not revoke authority. See [plan](plans/642-history-tab-cancel.md).
 
+
+## Keyboard history filter submission (#642)
+
+Usage and Audit filters use a named native form. Enter and Apply filters each dispatch one existing authorized JSON read with identical parsing, scope and cursor reset. Native form navigation is prevented, so private filter values do not enter the document URL. Invalid input remains locally rejected; detached forms cannot revive work after rerender, denial or disposal. Other actions remain non-submit buttons. This does not acquire session authority or change HTTP/IAM/audit contracts. See [plan](plans/642-history-filter-submit.md).
+
 ## Scoped Account history recovery (#637, #642)
 Retrying failed History adapter initialization preserves the exact Account target, including local invalid-input and fresh server Deny behavior. Explicit manual History navigation still starts without that default. See [plan](plans/637-ui-main-account-integration.md) and [contract](../contracts/account-history-navigation.md#adapter-initialization-recovery). No new authority, session or activation.
