@@ -8,6 +8,7 @@ export function mountTokenRevocationPanel(root: CatalogElement, request: Catalog
   let stopped = false;
   let locked = false;
   let pending: AbortController | undefined;
+  let clearInput = () => {};
   const element = (tag: string, text?: string) => {
     const node = root.ownerDocument.createElement(tag);
     if (text !== undefined) node.textContent = text;
@@ -31,6 +32,9 @@ export function mountTokenRevocationPanel(root: CatalogElement, request: Catalog
       input.setAttribute('autocomplete', 'off');
       input.setAttribute('maxlength', '256');
       label.append(input);
+      clearInput = () => {
+        input.value = '';
+      };
       const review = element('button', 'Review revocation');
       review.setAttribute('type', 'button');
       review.addEventListener('click', () => {
@@ -41,57 +45,63 @@ export function mountTokenRevocationPanel(root: CatalogElement, request: Catalog
           return;
         }
         input.value = '';
-        const confirmTurn = ++generation;
-        const active = () => !stopped && !locked && !pending && generation === confirmTurn;
-        const warning = element('p', `Confirm revocation for credential ID: ${id}`);
-        warning.setAttribute('role', 'alert');
-        const confirm = element('button', 'Confirm revocation');
-        confirm.setAttribute('type', 'button');
-        const cancel = element('button', 'Cancel');
-        cancel.setAttribute('type', 'button');
-        cancel.addEventListener('click', () => {
-          if (active()) render();
-        });
-        confirm.addEventListener('click', () => {
-          if (!active()) return;
-          const controller = new AbortController();
-          pending = controller;
-          ++generation;
-          const waiting = element('p', 'Revocation in progress.');
-          waiting.setAttribute('role', 'status');
-          root.replaceChildren(waiting);
-          void revokeManagementToken(request, id, controller.signal).then((result) => {
-            if (stopped || pending !== controller) return;
-            pending = undefined;
-            if (result.state === 'unauthenticated' || result.state === 'denied') {
-              locked = true;
-              render(
-                result.state === 'unauthenticated'
-                  ? 'Sign in again before managing tokens.'
-                  : 'Token management access denied.',
-              );
-            } else if (result.state === 'ready') {
-              render(
-                result.revoked ? 'Token revocation confirmed.' : 'No token revocation reported.',
-              );
-            } else {
-              render(
-                'Revocation outcome is unknown. It may have completed. Verify before submitting another request.',
-              );
-            }
-          });
-        });
-        root.replaceChildren(warning, confirm, cancel);
-        confirm.focus();
+        reviewCredential(id);
       });
       section.append(label, review);
     }
     root.replaceChildren(section);
   }
+  function reviewCredential(id: string): boolean {
+    if (stopped || locked || pending || !validCredentialId(id)) return false;
+    clearInput();
+    const confirmTurn = ++generation;
+    const active = () => !stopped && !locked && !pending && generation === confirmTurn;
+    const warning = element('p', `Confirm revocation for credential ID: ${id}`);
+    warning.setAttribute('role', 'alert');
+    const confirm = element('button', 'Confirm revocation');
+    confirm.setAttribute('type', 'button');
+    const cancel = element('button', 'Cancel');
+    cancel.setAttribute('type', 'button');
+    cancel.addEventListener('click', () => {
+      if (active()) render();
+    });
+    confirm.addEventListener('click', () => {
+      if (!active()) return;
+      const controller = new AbortController();
+      pending = controller;
+      ++generation;
+      const waiting = element('p', 'Revocation in progress.');
+      waiting.setAttribute('role', 'status');
+      root.replaceChildren(waiting);
+      void revokeManagementToken(request, id, controller.signal).then((result) => {
+        if (stopped || pending !== controller) return;
+        pending = undefined;
+        if (result.state === 'unauthenticated' || result.state === 'denied') {
+          locked = true;
+          render(
+            result.state === 'unauthenticated'
+              ? 'Sign in again before managing tokens.'
+              : 'Token management access denied.',
+          );
+        } else if (result.state === 'ready') {
+          render(result.revoked ? 'Token revocation confirmed.' : 'No token revocation reported.');
+        } else {
+          render(
+            'Revocation outcome is unknown. It may have completed. Verify before submitting another request.',
+          );
+        }
+      });
+    });
+    root.replaceChildren(warning, confirm, cancel);
+    confirm.focus();
+    return true;
+  }
   render();
   return {
+    review: reviewCredential,
     dispose() {
       stopped = true;
+      clearInput();
       ++generation;
       pending?.abort();
       pending = undefined;
