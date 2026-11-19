@@ -35,3 +35,7 @@
 ## Integrated verification
 - Canonical #948/main integration: 72 focused public-client, panel, Account handoff and owned HTTP/synthetic JWT/PGlite tests passed with zero failures or skips; strict TypeScript, full Biome and planning/fixture checks passed.
 - Bundled production Operations in native Chromium with a synthetic abort-ignoring request port: issuance and revocation left pending state at the real ten-second deadline, displayed existing uncertainty warnings, made exactly one request, cancelled late response bodies, never displayed the late synthetic credential, and disposed cleanly. This is not actual IdP/login, installed PostgreSQL, TLS deployment or provider acceptance.
+
+## Parent reconciliation 2026-11-19 16:30 KST
+- Parent #948 advanced to integrate main 292e106 usage-review sessions, cursor progress and Operations stream disposal. Carry the canonical changes into the existing token deadline PR without changing the deadline/uncertainty contract. Re-run all deadline client/panel/owned HTTP and stale-body regression cases, strict types, lint and document checks.
+- Parent must merge first; old approvals and CI do not certify this integration. No session/runtime activation, API, DDL or deployment expansion.
