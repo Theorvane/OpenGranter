@@ -162,7 +162,29 @@ test('trusted Account lifecycle consumes real owned HTTP, expires, reauthorizes 
       (await f.db.query('SELECT * FROM sso_current_principal_audit_events')).rows.length,
       3,
     );
+    // Denial terminates this grant, even if the same IdP subject is rebound.
+    // A retained old control must neither query SQL nor restore old identity.
     await f.db.exec('UPDATE iam_principals SET active=true');
+    await f.db.exec("INSERT INTO iam_principals VALUES ('replacement-human','human',true)");
+    await f.db.exec("UPDATE iam_sso_identity_bindings SET principal_id='replacement-human'");
+    const callsAfterDenial = f.calls;
+    refresh.listeners.click?.();
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    assert.equal(f.calls, callsAfterDenial);
+    assert.match(text(root), /sign in/i);
+    assert.doesNotMatch(text(root), /account-human|replacement-human/);
+    app.authorize({ expiresAt: 350, request });
+    await waitFor(() => text(root).includes('replacement-human'));
+    assert.doesNotMatch(text(root), /account-human/);
+    app.clear();
+    assert.doesNotMatch(text(root), /replacement-human/);
+    const audits = await f.db.query<{ outcome: string }>(
+      'SELECT outcome FROM sso_current_principal_audit_events ORDER BY event_id',
+    );
+    assert.deepEqual(
+      audits.rows.map((row) => row.outcome),
+      ['ready', 'ready', 'unauthenticated', 'ready'],
+    );
     let release!: () => void;
     let entered = false;
     f.hook(async () => {
@@ -185,7 +207,7 @@ test('trusted Account lifecycle consumes real owned HTTP, expires, reauthorizes 
       now = 400;
       release();
       await waitFor(() => delivered && /expired/i.test(text(root)));
-      assert.doesNotMatch(text(root), /account-human/);
+      assert.doesNotMatch(text(root), /account-human|replacement-human/);
       assert.equal(nodes(root).filter((node) => node.tag === 'button').length, 0);
     } finally {
       release?.();

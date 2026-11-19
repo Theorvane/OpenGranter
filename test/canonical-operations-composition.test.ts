@@ -219,3 +219,38 @@ test('no default write mount, proxy credential bridge, cookie session or endpoin
     await f.close();
   }
 });
+
+test('shared handler and socket contain unexpected request-ID failures before SQL', async () => {
+  let queries = 0;
+  const ports = {
+    ...jwt.config,
+    client: {
+      query: async () => {
+        queries++;
+        throw new Error('private SQL detail');
+      },
+    },
+    newRequestId: (): string => {
+      throw new Error('private SQL detail');
+    },
+  };
+  const handler = createPostgresSsoCanonicalOperationsHandler(ports);
+  for (const endpoint of [path, `${path}/revoke`]) {
+    const response = await handler(
+      new Request(`https://local.test${endpoint}`, { method: 'POST' }),
+    );
+    assert.equal((await body(response, 503)).error.code, 'internal_error');
+  }
+  const server = createPostgresSsoCanonicalOperationsServer(ports);
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  try {
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    const response = await fetch(`http://127.0.0.1:${address.port}${path}`, { method: 'POST' });
+    assert.equal((await body(response, 503)).error.code, 'internal_error');
+    assert.equal(queries, 0);
+  } finally {
+    await new Promise<void>((resolve, reject) => server.close((e) => (e ? reject(e) : resolve())));
+  }
+});

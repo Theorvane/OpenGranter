@@ -20,3 +20,9 @@ A temporary local harness built src/management/operations-session.ts through bui
 ## Remaining gates
 
 This does not establish company SSO login/logout, approved BFF/CSRF/IdP/TLS, installed PostgreSQL, migrations, external user access, provider or paid E2E. PR786 remains an unapproved proposal. Merge requires dependency-first exact-HEAD required CI and valid independent formal GitHub approval. Read-only bot review is not that approval. Whole PRD and operator handoff remain open.
+
+## Integration checkpoint — 2026-11-18 07:30 KST
+
+Integrated reviewed Account lifetime and main 7db2bfc without force or contract expansion. The eight-file net integration retains canonical Account alongside History and Proxy tokens. Expanded the actual owned HTTP scenario: reactivating IAM after denial cannot revive detached Refresh or reveal identity; only explicit trusted caller authorization mounts a fresh workspace and performs a newly audited Account read (five successful/denied durable rows, six principal requests including the audit outage). No token mutation is performed.
+
+Final six serial suites: 39 pass, 0 fail, 0 skip, Node22.23.0 heap192; /tmp/og-0730-940-focused.log. A wider seven-suite run has 41 passing subtests but the Account-panel HTTP file was SIGKILLed, so it is not a passing run (/tmp/og-0730-940-core.log). Standalone tsc heap384 was OS-Killed exit137 (/tmp/og-0730-940-tsc.log); this checkpoint does not certify a full local check. Changed four-file Biome, planning/link/fixture-secret checker and diff whitespace checks pass. Require new exact-head CI and independent formal approval. Existing browser evidence above is historical; a new browser attempt initially could not connect and does not count as acceptance. No installed SSO, external user URL, deployment or paid-provider acceptance is established.

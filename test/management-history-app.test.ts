@@ -680,3 +680,46 @@ test('manual usage request filter has empty, invalid and unavailable states with
   assert.doesNotMatch(text(root), /PRIVATE|Possibly billed/);
   app.dispose();
 });
+
+test('returning to a pending tab coalesces its read and active-tab clicks do not refresh', async () => {
+  const root = new Element();
+  const paths: string[] = [];
+  let finish!: (response: Response) => void;
+  const app = mountHistoryWorkspace(
+    root,
+    async (path) => {
+      paths.push(path);
+      if (path.includes('/audit?'))
+        return new Promise<Response>((resolve) => {
+          finish = resolve;
+        });
+      return page();
+    },
+    downloads(),
+  );
+  try {
+    await tick();
+    click(root, 'Usage');
+    assert.equal(paths.length, 1);
+    click(root, 'Audit');
+    assert.match(text(root), /Loading history/);
+    const refresh = nodes(root).find((node) => node.textContent === 'Refresh current page');
+    assert.ok(refresh);
+    assert.equal(refresh.attributes.disabled, '');
+    click(root, 'Usage');
+    await tick();
+    click(root, 'Audit');
+    assert.match(text(root), /Loading history/);
+    assert.equal(paths.filter((path) => path.includes('/audit?')).length, 1);
+    click(root, 'Audit');
+    assert.equal(paths.filter((path) => path.includes('/audit?')).length, 1);
+    finish(page(true));
+    await tick();
+    assert.match(text(root), /Event ID/);
+    const count = paths.length;
+    click(root, 'Audit');
+    assert.equal(paths.length, count);
+  } finally {
+    app.dispose();
+  }
+});
