@@ -7,3 +7,6 @@
 5. Run bounded regressions, typecheck, lint and planning validation; publish a draft PR. Merge only with exact-head required CI and valid independent formal approval.
 
 No session acquisition, IdP/CSRF contract, endpoint, IAM action, schema, bootstrap, deployment or paid calls change. Existing owner worktrees remain untouched.
+
+## Main and current parent integration (2026-11-19 14:00 KST)
+PR947 was based on the older PR946 ed2dc83, while its approved current parent is741cb8. Integrate that exact parent first, retaining history adapter retry and all canonical response/audit repairs. Then merge current main e9b0227 without widening session/runtime/DDL/activation. Resolve only real conflicts by retaining both the Account-to-token handoff and current-main canonical usage, attempt-price and transport invariants. Before each manual production resolution, exercise existing boundary regressions for the conflict. Run Account/token/history HTTP+DOM regression, strict TypeScript, lint, planning and compatibility checks, and attempt npm run check. Push only to existing PR947, no force push or duplicate PR. Updating the HEAD invalidates prior approval for this integration; require fresh exact-head CI and independent formal approval plus parent946 gates. Preserve all other worktrees.
