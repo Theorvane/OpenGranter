@@ -1275,6 +1275,10 @@ An explicit caller-authorized JSON page adapter preserves unknown usage, estimat
 
 JSON usage transport also withholds complete-looking pages when uncompressed Content-Length disagrees with observed UTF-8 bytes. Exact multibyte lengths, absent lengths and compressed Fetch decoded bodies remain accepted within the existing bounds. No UI/session/runtime activation.
 
+## Complete audit metadata pages (#856)
+
+Audit review and CSV export reject missing positions in untrusted SQL and injected event collections, including lookahead, instead of exposing partial evidence or null JSON entries. Preserve target audit:Read scope, redaction, mandatory audit and private errors. See [plan](plans/856-audit-page-completeness.md) and [contract](../contracts/audit-page-completeness.md).
+
 
 ## Scoped SSO audit metadata history (#642)
 

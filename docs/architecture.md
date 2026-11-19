@@ -1458,6 +1458,10 @@ An explicit caller-authorized JSON page adapter preserves unknown usage, estimat
 
 JSON usage transport also withholds complete-looking pages when uncompressed Content-Length disagrees with observed UTF-8 bytes. Exact multibyte lengths, absent lengths and compressed Fetch decoded bodies remain accepted within the existing bounds. No UI/session/runtime activation.
 
+## Audit collection traversal (#856)
+
+The SQL reader and shared HTTP projector visit every bounded collection position through existing validators, so missing slots cannot bypass projection. JSON and CSV reuse the same fail-closed page boundary and mandatory read-failure audit. No schema, session or runtime activation change. See [contract](../contracts/audit-page-completeness.md).
+
 ## CSV browser page progress (#642)
 
 The authorized usage CSV page transport rejects equal or regressing continuation keys against the exact serialized request cursor before exposing a page. This prevents stalled browser pagination without parsing CSV rows, granting authority, or activating sessions. See the [contract](../contracts/management-usage-export.md) and [plan](plans/642-csv-client-progress.md). Native browser and installed acceptance remain separate.
