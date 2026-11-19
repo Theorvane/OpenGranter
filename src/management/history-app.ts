@@ -21,13 +21,22 @@ export function mountHistoryWorkspace(
   root: CatalogElement,
   request: CatalogRequest,
   download: HistoryDownload,
+  initialPrincipalId?: string,
 ) {
   let disposed = false;
   let downloadDisposed = false;
   let active: Kind = 'usage';
   let generation = 0;
   const deliveryFailed: Record<Kind, boolean> = { usage: false, audit: false };
-  const filters: Record<Kind, AuditFilters> = { usage: {}, audit: {} };
+  // Preserve the exact target. Existing clients reject invalid history IDs
+  // locally; never silently fall back to a self/unfiltered request.
+  const initial = initialPrincipalId === undefined ? {} : { principalId: initialPrincipalId };
+  const filters: Record<Kind, AuditFilters> = { usage: { ...initial }, audit: { ...initial } };
+  const retainedInputs = new Set<CatalogElement>();
+  function clearInputs() {
+    for (const input of retainedInputs) input.value = '';
+    retainedInputs.clear();
+  }
   const drafts: Record<Kind, Map<keyof AuditFilters, string>> = {
     usage: new Map(),
     audit: new Map(),
@@ -78,6 +87,7 @@ export function mountHistoryWorkspace(
   }
   function render() {
     generation++;
+    clearInputs();
     if (disposed) {
       root.replaceChildren();
       return;
@@ -127,6 +137,7 @@ export function mountHistoryWorkspace(
       input.setAttribute('type', 'text');
       input.setAttribute('aria-label', name);
       input.value = drafts[kind].get(field) ?? String(filters[kind][field] ?? '');
+      retainedInputs.add(input);
       label.append(input);
       controls.append(label);
       values.set(field, input);
@@ -283,12 +294,17 @@ export function mountHistoryWorkspace(
     root.replaceChildren(main);
   }
   render();
-  void workspace.usage.load();
+  void workspace.usage.load(filters.usage);
   return Object.freeze({
     dispose() {
       if (disposed) return;
       disposed = true;
       generation++;
+      clearInputs();
+      drafts.usage.clear();
+      drafts.audit.clear();
+      filters.usage = {};
+      filters.audit = {};
       workspace.dispose();
       releaseDownload();
       root.replaceChildren();
