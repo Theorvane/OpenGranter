@@ -1462,6 +1462,19 @@ The combined Proxy tokens screen now connects successful issuance to explicit re
 ## Account response byte integrity (#639)
 The caller-authorized Account client rejects malformed, oversized or mismatched identity/no-encoding Content-Length before publishing identity. It cancels declared overflow without waiting for EOF. Fetch-decoded compressed representations are not compared with their compressed wire length; all decoded bodies remain limited to 4096 bytes and fatal UTF-8. Rejection uses the existing unavailable/retry UI, never partial identity or raw diagnostics. No session, endpoint, authorization, storage or deployment change. See [plan](plans/639-account-response-integrity.md).
 
+## Request-scoped usage API (#642)
+
+Existing principal-scoped management and proxy usage histories accept an optional exact request_id filter, intersected with model/time/keyset filters for JSON and CSV. Canonical parameterized SQL and full-page/lookahead validation preserve isolation; fresh IAM and mandatory audit remain required. No new authority, session acquisition, schema or deployment activation. Browser drilldown integration and installed/live acceptance remain separate. See [plan](plans/642-usage-request-filter.md) and [contract](../contracts/usage-request-filter.md).
+
+
+## Request-scoped usage review (#642)
+
+Usage now accepts an exact Request ID filter and a row action that reloads authorized attempts for that request while preserving the current principal mode and applied model/time bounds. Self mode does not gain an explicit principal_id (which would require usage:ReadAll); explicit target mode retains its existing authorization. Fresh loads reset cursors; paging and current-page CSV retain request_id. JSON rows are checked against the captured exact request ID, and invalid IDs never reach transport. No complete-history, invoice-total, session or deployment claim. See [plan](plans/642-request-usage-browser.md) and [contract](../contracts/usage-request-review.md).
+
+
+## Account to token issuance preparation (#640)
+
+The opt-in operations workspace now prepares the existing token form from the exact validated signed-in Account ID, without manual copying. Expiry remains blank and issuing still requires a separate review and confirmation. Account identity is not an IAM grant; fresh Deny and mandatory audit remain enforced by the actual API. No login/session or installed acceptance is claimed. See [contract](../contracts/account-token-handoff.md) and [plan](plans/640-account-token-handoff.md).
 ## Usage history bodyless GET enforcement (#642)
 
 The existing SSO Usage JSON/CSV handler now rejects Transfer-Encoding and nonzero/noncanonical Content-Length before identity/usage SQL or service audit, matching Audit and Models even when Node omits a GET body. Normal absent/zero-length requests retain fresh IAM and awaited audit. Signed-token PGlite plus loopback HTTP tests are not real IdP, browser login or installed PostgreSQL/provider acceptance. No runtime/session activation. See [plan](plans/642-usage-get-framing.md) and [contract](../contracts/sso-usage-history.md).

@@ -599,6 +599,88 @@ test('explicit refresh preserves the current page and applied filters, not draft
   app.dispose();
 });
 
+test('usage row request drilldown reloads exact principal intersection and retains bounds for CSV', async () => {
+  const root = new Element();
+  const paths: string[] = [];
+  const download = downloads();
+  const app = mountHistoryWorkspace(
+    root,
+    async (path) => {
+      paths.push(path);
+      if (path.includes('format=csv'))
+        return new Response('request_id\r\nreq\r\n', {
+          headers: { 'content-type': 'text/csv', 'x-has-more': 'false' },
+        });
+      return page();
+    },
+    download,
+  );
+  await tick();
+  input(root, 'Model', '<script>chat</script>');
+  input(root, 'From (Unix ms, inclusive)', '0');
+  input(root, 'To (Unix ms, exclusive)', '200');
+  click(root, 'Apply filters');
+  await tick();
+  const stale = nodes(root).find((n) => n.textContent === 'View attempts for this request');
+  click(root, 'View attempts for this request');
+  assert.match(text(root), /Loading history/);
+  assert.doesNotMatch(text(root), /Possibly billed/);
+  await tick();
+  const q = new URL(paths.at(-1) ?? '', 'https://local.invalid').searchParams;
+  assert.equal(q.get('principal_id'), null);
+  assert.equal(q.get('request_id'), 'req');
+  assert.equal(q.get('model'), '<script>chat</script>');
+  assert.equal(q.get('from_ms'), '0');
+  assert.equal(q.get('to_ms'), '200');
+  assert.equal(q.has('cursor'), false);
+  click(root, 'Download current page CSV');
+  await tick();
+  assert.equal(
+    new URL(paths.at(-1) ?? '', 'https://local.invalid').searchParams.get('request_id'),
+    'req',
+  );
+  assert.equal(download.saved.length, 1);
+  app.dispose();
+  const count = paths.length;
+  stale?.listeners.click?.();
+  await tick();
+  assert.equal(paths.length, count);
+  assert.equal(text(root), '');
+});
+test('manual usage request filter has empty, invalid and unavailable states without stale rows', async () => {
+  const root = new Element();
+  const paths: string[] = [];
+  const app = mountHistoryWorkspace(
+    root,
+    async (path) => {
+      paths.push(path);
+      const id = new URL(path, 'https://local.invalid').searchParams.get('request_id');
+      return id === 'absent'
+        ? Response.json({ object: 'list', data: [], has_more: false, next_cursor: null })
+        : id === 'failed'
+          ? new Response('PRIVATE', { status: 503 })
+          : page();
+    },
+    downloads(),
+  );
+  await tick();
+  input(root, 'Request ID', 'absent');
+  click(root, 'Apply filters');
+  await tick();
+  assert.match(text(root), /No history matches/);
+  input(root, 'Request ID', 'bad&value');
+  click(root, 'Apply filters');
+  await tick();
+  assert.match(text(root), /Invalid filters/);
+  assert.equal(paths.length, 2);
+  input(root, 'Request ID', 'failed');
+  click(root, 'Apply filters');
+  await tick();
+  assert.match(text(root), /History unavailable/);
+  assert.doesNotMatch(text(root), /PRIVATE|Possibly billed/);
+  app.dispose();
+});
+
 test('returning to a pending tab coalesces its read and active-tab clicks do not refresh', async () => {
   const root = new Element();
   const paths: string[] = [];

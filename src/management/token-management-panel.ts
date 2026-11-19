@@ -7,7 +7,11 @@ import { mountTokenRevocationPanel } from './token-revoke-panel.ts';
 /** Caller owns approved authority and MUST dispose on logout, expiry or identity change.
  * Cleanup/abort is not revocation and does not establish a mutation's outcome.
  */
-export function mountTokenManagementPanel(root: CatalogElement, request: CatalogRequest) {
+export function mountTokenManagementPanel(
+  root: CatalogElement,
+  request: CatalogRequest,
+  initialPrincipalId?: string,
+) {
   let stopped = false;
   const children: { dispose(): void }[] = [];
   const clear = () => {
@@ -38,6 +42,7 @@ export function mountTokenManagementPanel(root: CatalogElement, request: Catalog
       issuanceRoot,
       guardedRequest,
       (credentialId) => !stopped && revocation.review(credentialId),
+      initialPrincipalId,
     ),
   );
   return {

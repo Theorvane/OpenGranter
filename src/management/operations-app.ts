@@ -28,7 +28,7 @@ export function mountManagementOperations(
     previous?.dispose();
     root.replaceChildren();
   }
-  function navigate(kind: 'history' | 'tokens' | 'account') {
+  function navigate(kind: 'history' | 'tokens' | 'account', principalId?: string) {
     if (stopped) return;
     const current = ++epoch;
     clear();
@@ -104,9 +104,11 @@ export function mountManagementOperations(
       }
       mounted = mountHistoryWorkspace(content, guarded, download);
     } else if (kind === 'account') {
-      mounted = mountCurrentPrincipalPanel(content, guarded);
+      mounted = mountCurrentPrincipalPanel(content, guarded, (id) => {
+        if (active()) navigate('tokens', id);
+      });
     } else {
-      mounted = mountTokenManagementPanel(content, guarded);
+      mounted = mountTokenManagementPanel(content, guarded, principalId);
     }
     if (active()) child = mounted;
     else mounted.dispose();
