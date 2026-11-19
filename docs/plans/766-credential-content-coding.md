@@ -14,3 +14,7 @@ For both public Fetch operations, valid JSON labelled gzip/br/deflate/zstd, empt
 
 ## Delivery
 Independent main-based numbered branch, exact-head CI and independent formal approval before merge. Rollback removes this header validation. Local loopback and injected ports do not certify company SSO, browser sessions, installed PostgreSQL/runtime or paid-provider acceptance. Preserve existing unrelated worktrees and security gates.
+
+## Current main integration
+
+Preserve the approved authentication-first Content-Encoding validation and every original coding regression alongside current main body/transport cleanup.
