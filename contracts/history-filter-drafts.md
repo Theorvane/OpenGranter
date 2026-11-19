@@ -9,3 +9,6 @@
 
 ### Focus continuity during history responses (#642)
 When an asynchronous history notification replaces the current focused filter on the same tab, preserve its unapplied draft, keyboard focus and text selection (including backward selections). Do not steal focus from external controls or restore filters across tab changes, denial or disposal. Detached private inputs still clear. This is local presentation continuity, not saved-search persistence or authority. See [draft preservation plan](../docs/plans/642-history-draft-preservation.md).
+
+### Page-local CSV delivery feedback (#642)
+Browser-adapter failures remain generic and retryable, but expire when a new JSON page read starts (including tab re-entry) or a new CSV attempt begins. A successful adapter dispatch announces only: CSV download requested. Check your browser; file save is not confirmed. It must not claim file-save completion. Feedback belongs to the current render; synchronous navigation/disposal inside the adapter cannot publish it into a replacement view. Denial still removes private content. No API, authority or activation changes.

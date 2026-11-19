@@ -33,7 +33,7 @@ export function mountHistoryWorkspace(
   let downloadDisposed = false;
   let active: Kind = 'usage';
   let generation = 0;
-  const deliveryFailed: Record<Kind, boolean> = { usage: false, audit: false };
+  const delivery: Record<Kind, 'idle' | 'started' | 'failed'> = { usage: 'idle', audit: 'idle' };
   // Preserve the exact target. Existing clients reject invalid history IDs
   // locally; never silently fall back to a self/unfiltered request.
   const initial = initialPrincipalId === undefined ? {} : { principalId: initialPrincipalId };
@@ -90,18 +90,19 @@ export function mountHistoryWorkspace(
     return node;
   }
   async function exportCsv(kind: Kind) {
-    deliveryFailed[kind] = false;
+    delivery[kind] = 'idle';
     const result = await workspace[kind].exportCsv();
     if (!available() || result.state !== 'ready') return;
+    const deliveryGeneration = generation;
     let started = false;
     try {
       started = download.save(kind, result.csv) === 'started';
     } catch {
       /* Render only the same generic, retryable delivery failure. */
     }
-    // A browser adapter may synchronously dispose the identity epoch.
-    if (!available()) return;
-    deliveryFailed[kind] = !started;
+    // A browser adapter may synchronously navigate or dispose the identity epoch.
+    if (!available() || generation !== deliveryGeneration) return;
+    delivery[kind] = started ? 'started' : 'failed';
     render();
   }
   function render() {
@@ -133,6 +134,11 @@ export function mountHistoryWorkspace(
       if (snapshot.state === 'disposed') root.replaceChildren();
       else mountManagementBoundaryView(root, snapshot.state);
       return;
+    }
+    for (const tab of ['usage', 'audit'] as const) {
+      const page = snapshot[tab];
+      if ((page.state !== 'ready' && page.state !== 'empty') || page.exportState === 'loading')
+        delivery[tab] = 'idle';
     }
     const kind = active;
     const review = workspace[kind];
@@ -232,7 +238,7 @@ export function mountHistoryWorkspace(
         // load() owns stale JSON/CSV cancellation and resets the cursor path.
         filters[kind] = { ...initial };
         drafts[kind].clear();
-        deliveryFailed[kind] = false;
+        delivery[kind] = 'idle';
         void review.load(filters[kind]);
       }),
     );
@@ -396,16 +402,21 @@ export function mountHistoryWorkspace(
     main.append(
       element('p', 'CSV downloads only this page. Exported files cannot be erased on logout.'),
     );
-    if (view.exportState !== 'idle' || deliveryFailed[kind]) {
+    if (view.exportState !== 'idle' || delivery[kind] !== 'idle') {
       const message = element(
         'p',
         view.exportState === 'loading'
           ? 'Preparing CSV…'
           : view.exportState === 'cancelled'
             ? 'CSV preparation cancelled. Download again to retry.'
-            : 'CSV unavailable. Try again.',
+            : delivery[kind] === 'started'
+              ? 'CSV download requested. Check your browser; file save is not confirmed.'
+              : 'CSV unavailable. Try again.',
       );
-      message.setAttribute('role', view.exportState === 'loading' ? 'status' : 'alert');
+      message.setAttribute(
+        'role',
+        view.exportState === 'loading' || delivery[kind] === 'started' ? 'status' : 'alert',
+      );
       main.append(message);
     }
     renderedKind = kind;

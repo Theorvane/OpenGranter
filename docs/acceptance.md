@@ -2114,3 +2114,6 @@ For Usage and Audit, type exact private filters without applying: no request occ
 
 ### Focus continuity during history responses (#642)
 When an asynchronous history notification replaces the current focused filter on the same tab, preserve its unapplied draft, keyboard focus and text selection (including backward selections). Do not steal focus from external controls or restore filters across tab changes, denial or disposal. Detached private inputs still clear. This is local presentation continuity, not saved-search persistence or authority. See [draft preservation plan](plans/642-history-draft-preservation.md).
+
+## Page-local history CSV feedback (#642)
+On Usage and Audit, simulate browser-adapter failure and verify a generic retryable alert. Refresh or re-enter the tab: fresh authorization and page loading retire the old alert. A successful adapter result announces dispatch only, never a completed file save. A new CSV attempt, denial, identity disposal or fresh page cannot retain or resurrect that acknowledgement. JSON/CSV still use the existing applied principal/filter scope and required audits. See [plan](plans/642-history-draft-preservation.md).

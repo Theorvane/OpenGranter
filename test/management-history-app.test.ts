@@ -391,7 +391,8 @@ for (const failure of ['unavailable', 'invalid', 'disposed', 'throw'] as const)
     await tick();
     assert.doesNotMatch(text(root), /CSV unavailable/);
     click(root, 'Usage');
-    assert.match(text(root), /CSV unavailable/);
+    // Tab entry starts a freshly authorized page, retiring old delivery feedback.
+    assert.doesNotMatch(text(root), /CSV unavailable/);
     await tick();
     click(root, 'Download current page CSV');
     assert.doesNotMatch(text(root), /CSV unavailable/);
@@ -891,3 +892,66 @@ test('active pending tab coalesces repeated clicks without refreshing', async ()
     app.dispose();
   }
 });
+
+for (const kind of ['usage', 'audit'] as const) {
+  test(`${kind} CSV delivery feedback expires on fresh reads and acknowledges dispatch only`, async () => {
+    const root = new Element();
+    let fail = true;
+    let saves = 0;
+    let denied = false;
+    const app = mountHistoryWorkspace(
+      root,
+      async (path) =>
+        denied
+          ? new Response(null, { status: 403 })
+          : path.includes('format=csv')
+            ? new Response('header\nrow\n', {
+                headers: { 'content-type': 'text/csv', 'x-has-more': 'false' },
+              })
+            : page(path.includes('/audit?')),
+      {
+        save() {
+          saves++;
+          return fail ? 'unavailable' : 'started';
+        },
+        dispose() {},
+      },
+    );
+    await tick();
+    if (kind === 'audit') {
+      click(root, 'Audit');
+      await tick();
+    }
+    click(root, 'Download current page CSV');
+    await tick();
+    assert.match(text(root), /CSV unavailable/);
+    click(root, 'Refresh current page');
+    await tick();
+    assert.doesNotMatch(
+      text(root),
+      /CSV unavailable/,
+      'a new page must not retain the old delivery failure',
+    );
+    fail = false;
+    click(root, 'Download current page CSV');
+    await tick();
+    assert.equal(saves, 2);
+    assert.match(
+      text(root),
+      /CSV download requested\. Check your browser; file save is not confirmed\./,
+    );
+    const feedback = nodes(root).find((n) => n.textContent?.startsWith('CSV download requested.'));
+    assert.equal(feedback?.attributes.role, 'status');
+    click(root, 'Refresh current page');
+    await tick();
+    assert.doesNotMatch(text(root), /CSV download requested/);
+    denied = true;
+    click(root, 'Download current page CSV');
+    await tick();
+    assert.match(text(root), /Access denied/);
+    assert.doesNotMatch(text(root), /CSV download requested|CSV unavailable/);
+    assert.equal(nodes(root).filter((n) => n.tag === 'input').length, 0);
+    app.dispose();
+    assert.equal(root.children.length, 0);
+  });
+}

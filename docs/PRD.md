@@ -1601,3 +1601,6 @@ Retrying failed History adapter initialization preserves the exact Account targe
 
 ### Focus continuity during history responses (#642)
 When an asynchronous history notification replaces the current focused filter on the same tab, preserve its unapplied draft, keyboard focus and text selection (including backward selections). Do not steal focus from external controls or restore filters across tab changes, denial or disposal. Detached private inputs still clear. This is local presentation continuity, not saved-search persistence or authority. See [draft preservation plan](plans/642-history-draft-preservation.md).
+
+## History CSV dispatch feedback (#642)
+The history workspace clears prior delivery feedback on fresh page reads and reports successful browser dispatch without claiming a completed save. Generic failure remains retryable; no new request authority or activation. See [plan](plans/642-history-draft-preservation.md) and [contract](../contracts/history-filter-drafts.md).
