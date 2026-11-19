@@ -2066,3 +2066,5 @@ Usage now accepts an exact Request ID filter and a row action that reloads autho
 - This does not satisfy admin login, IdP, installed PostgreSQL or deployment acceptance.
 ### Request-filter and usage framing integration (#642)
 - Request-scoped Usage JSON/CSV rejects framed GETs before any identity/usage SQL or service audit; absent/zero-length reads preserve exact principal/request intersection, keyset/lookahead and awaited audit. Audit failure withholds both formats. Preserve both original request-filter and framing regressions during main integration. Synthetic signed-token/PGlite and loopback results are not installed acceptance. See [plan](plans/642-usage-get-framing.md).
+
+Model list descriptions containing newlines, tabs and literal markup preserve exact text with the fixed shell stylesheet; empty descriptions remain explicit and absent descriptions do not add a paragraph.

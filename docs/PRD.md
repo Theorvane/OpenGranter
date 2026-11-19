@@ -1518,3 +1518,5 @@ The authorized catalog detail displays published description, context bounds, mo
 ## Published model list discovery (#641)
 
 The already-authorized Models list displays published names and descriptions beside exact alias detail buttons. Local literal search includes these fields without new requests or authority; legacy entries remain available. See [plan](plans/641-model-list-publication.md) and [contract](../contracts/model-list-publication.md).
+
+Published model list descriptions preserve administrator whitespace through the fixed CSP-safe shell stylesheet, matching model details.

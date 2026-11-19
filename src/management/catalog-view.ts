@@ -95,10 +95,14 @@ export function renderCatalogView(
           const row = element('li');
           row.append(button(model.id, () => actions.detail(model.id)));
           if (model.name !== undefined) row.append(element('p', model.name));
-          if (model.description !== undefined)
-            row.append(
-              element('p', model.description === '' ? 'Empty description' : model.description),
+          if (model.description !== undefined) {
+            const description = element(
+              'p',
+              model.description === '' ? 'Empty description' : model.description,
             );
+            description.setAttribute('class', 'management-model-description');
+            row.append(description);
+          }
           list.append(row);
         }
         status.textContent = models.length

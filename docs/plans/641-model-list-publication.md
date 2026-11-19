@@ -26,3 +26,7 @@
 ## 2026-11-19 canonical integration
 
 9. Reconcile the existing PR with current parent #951 before publication. Preserve the canonical model-detail renderer, Account/session/history integrations and fresh exact-alias refresh. Remove no newer behavior and create no parallel catalog. Re-run source/compiled DOM and owned HTTP/JWT/durable audit tests; local browser discovery is synthetic, not deployed SSO acceptance. No session/runtime/DDL/activation expansion.
+
+## 2026-11-19 list description whitespace correction
+
+10. Preserve administrator-published multiline descriptions in list rows using the existing CSP-safe management-model-description stylesheet class, matching the canonical detail renderer. No inline styles or new stylesheet, runtime, transport or authority. Add a failing public DOM regression for exact newlines, tabs and literal markup before changing production; verify compiled DOM, shell stylesheet, owned HTTP and browser behavior before updating existing PR #952. Missing and empty descriptions remain distinct.

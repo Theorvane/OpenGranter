@@ -1594,3 +1594,5 @@ Usage now accepts an exact Request ID filter and a row action that reloads autho
 ## Published model list discovery (#641)
 
 The catalog view consumes only the existing validated authorized list and filters its alias, publisher, name and description locally. It emits the unchanged exact alias for fresh detail reads and retains no search state across renders. Session acquisition and deployment activation remain separate approved-caller gates. See [contract](../contracts/model-list-publication.md).
+
+List and detail descriptions share the existing management-model-description shell class; rendering adds no inline styles or stylesheet authority.
