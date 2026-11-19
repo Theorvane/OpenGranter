@@ -1,0 +1,3 @@
+# History current-page refresh
+
+An explicitly trusted caller's canonical history mount offers Refresh current page only for ready/empty Usage and Audit reads. It reuses the last attempted successful page query, preserving applied filters and opaque cursor; unapplied inputs do not alter authority or scope. Refresh is not background polling. Failures clear stale rows and retain Retry on that same query. Fresh 401/403 terminates the shared history epoch and clears both histories/download leases. Disposal suppresses late results. Previously saved CSV files cannot be erased. No session acquisition, new endpoint, permission, retention or public activation is introduced.
