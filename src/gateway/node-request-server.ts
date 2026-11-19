@@ -67,7 +67,9 @@ export function createNodeRequestServer(
       // Do not drain unbounded input or reuse a connection with unread bytes.
       if (managementRequest && !incoming.readableEnded) outgoing.shouldKeepAlive = false;
       if (cancellation.signal.aborted || outgoing.destroyed) {
-        await response.body?.cancel().catch(() => undefined);
+        // A disconnected client cannot consume this response. Producer cleanup
+        // may never settle; do not retain this request listener while waiting.
+        discardResponse(response);
         return;
       }
       // Validate the complete metadata before staging any part of a normal response.
