@@ -104,11 +104,9 @@ export function renderCatalogView(
     }
     main.append(button('Refresh models', actions.list));
   } else if (value.state === 'detail') {
-    const model = value.model;
-    main.append(
-      ...renderPublishedModelDetails(root, model),
-      button('Back to models', actions.list),
-    );
+    main.append(...renderPublishedModelDetails(root, value.model));
+    main.append(button('Refresh model', () => actions.detail(value.model.id)));
+    main.append(button('Back to models', actions.list));
   }
   root.replaceChildren(main);
   if (moveFocus && value.state !== 'loading' && value.state !== 'idle') title.focus();

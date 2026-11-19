@@ -6,9 +6,15 @@ import {
   createPostgresSsoModelCatalogHandler,
   createPostgresSsoModelCatalogServer,
 } from '../src/gateway/postgres-sso-model-catalog-http.ts';
+import { mountSsoManagementCatalog } from '../src/management/catalog-app.ts';
 import { createSsoManagementCatalogAuthority } from '../src/management/catalog-authority.ts';
 import { createSsoManagementCatalogClient } from '../src/management/catalog-client.ts';
 import { loadPostgresMigrationSources } from '../src/storage/postgres-migration-sources.ts';
+import {
+  Element as DetailElement,
+  nodes as detailNodes,
+  text as detailText,
+} from './catalog-detail-dom-fixture.ts';
 import { discoveryModel } from './model-discovery-filters-fixture.ts';
 import { createSsoAccessTokenFixture } from './sso-access-token-fixture.ts';
 
@@ -594,6 +600,118 @@ test('published SSO display fields survive persisted catalog, HTTP and UI transp
     assert.deepEqual(await client.list(), { state: 'unavailable' });
     client.invalidate();
   } finally {
+    if (server.listening)
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    await f.db.close();
+  }
+});
+
+test('published model detail DOM traverses signed JWT, current IAM and durable audit over HTTP', async () => {
+  const f = await fixture();
+  const server = createPostgresSsoModelCatalogServer(f.ports);
+  const root = new DetailElement();
+  const app = mountSsoManagementCatalog(root);
+  try {
+    const metadata = discoveryModel('team/chat').openRouterMetadata;
+    assert.ok(metadata);
+    await f.db.query('UPDATE catalog_models SET openrouter_metadata = $1::jsonb WHERE alias = $2', [
+      JSON.stringify({
+        ...metadata,
+        name: '<img src=x>',
+        description: 'Exact published description',
+        context_length: null,
+        pricing: { prompt: '0.000000000000000001', completion: '0' },
+        top_provider: { ...metadata.top_provider, context_length: 0, max_completion_tokens: null },
+      }),
+      'team/chat',
+    ]);
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    const paths: string[] = [];
+    await app.authorize({
+      expiresAt: Date.now() + 60000,
+      request: async (path, init) => {
+        paths.push(path);
+        return fetch(`http://127.0.0.1:${address.port}${path}`, {
+          ...init,
+          headers: {
+            ...Object.fromEntries(new Headers(init.headers)),
+            authorization: `Bearer ${f.token}`,
+          },
+        });
+      },
+    });
+    async function select() {
+      const button = detailNodes(root).find(
+        (node) => node.tag === 'button' && node.textContent === 'team/chat',
+      );
+      assert.ok(button);
+      button.listeners.click?.();
+      assert.match(detailText(root), /Loading models/);
+      assert.doesNotMatch(detailText(root), /USD\/token|Exact published description/);
+      const deadline = Date.now() + 5000;
+      while (/Loading models/.test(detailText(root)) && Date.now() < deadline)
+        await new Promise((resolve) => setTimeout(resolve, 5));
+    }
+    await select();
+    assert.match(detailText(root), /Exact published description/);
+    assert.match(detailText(root), /0\.000000000000000001/);
+    assert.match(detailText(root), /Unknown/);
+    assert.match(detailText(root), /not estimated or billed request costs/);
+    assert.ok(!detailNodes(root).some((node) => node.tag === 'img'));
+    assert.deepEqual(paths, ['/management/v1/models', '/management/v1/models/team%2Fchat']);
+    // Refresh must retrieve newly published metadata, not just repaint cached detail.
+    await f.db.query(
+      "UPDATE catalog_models SET openrouter_metadata = jsonb_set(openrouter_metadata, ARRAY['description'], to_jsonb($1::text)) WHERE alias = $2",
+      ['Updated published description', 'team/chat'],
+    );
+    const refresh = detailNodes(root).find((node) => node.textContent === 'Refresh model');
+    assert.ok(refresh);
+    refresh.listeners.click?.();
+    assert.match(detailText(root), /Loading models/);
+    assert.doesNotMatch(detailText(root), /Exact published description/);
+    const refreshDeadline = Date.now() + 5000;
+    while (/Loading models/.test(detailText(root)) && Date.now() < refreshDeadline)
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    assert.match(detailText(root), /Updated published description/);
+    assert.doesNotMatch(detailText(root), /Exact published description/);
+    // A fresh policy decision hides a formerly visible model; no stale detail remains.
+    await f.db.exec(`UPDATE iam_policies SET version = 'v2', statements =
+      '[{"effect":"Deny","actions":["llm:InvokeModel"],"resources":["model:*"]}]' WHERE policy_id = 'allow'`);
+    detailNodes(root)
+      .find((node) => node.textContent === 'Refresh model')
+      ?.listeners.click?.();
+    assert.match(detailText(root), /Loading models/);
+    assert.doesNotMatch(detailText(root), /Exact published description/);
+    const deadline = Date.now() + 5000;
+    while (/Loading models/.test(detailText(root)) && Date.now() < deadline)
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    assert.match(detailText(root), /Model not found/);
+    assert.deepEqual(paths, [
+      '/management/v1/models',
+      '/management/v1/models/team%2Fchat',
+      '/management/v1/models/team%2Fchat',
+      '/management/v1/models/team%2Fchat',
+    ]);
+    assert.doesNotMatch(
+      detailText(root),
+      /Exact published description|Updated published description|USD per token/,
+    );
+    const events = (await f.db.query('SELECT * FROM sso_catalog_audit_events')).rows;
+    assert.equal(events.length, 4);
+    assert.doesNotMatch(
+      JSON.stringify(events),
+      /Exact published description|<img|0\.000000000000000001/,
+    );
+    app.clear('denied');
+    assert.match(detailText(root), /Access denied/);
+    assert.doesNotMatch(detailText(root), /Exact published description/);
+  } finally {
+    app.dispose();
     if (server.listening)
       await new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),
