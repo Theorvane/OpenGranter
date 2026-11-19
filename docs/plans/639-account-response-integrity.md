@@ -31,3 +31,8 @@ Contract: contracts/current-principal-client.md. Update PRD, architecture and ac
 - Four embedded-PostgreSQL HTTP files were SIGKILL: 0 pass / 4 fail. Full repository TypeScript process also SIGKILL. No local full check, fresh owned-runtime acceptance or installed E2E success claimed.
 - Full Biome check passed with 42 warnings / 181 infos; planning/link/fixture-secret checker, six pinned offline compatibility checks and diff checks passed. Logs: /tmp/og-190800-{red,green,http,browser-build,typecheck,lint,compat,fullcheck}.log.
 - No browser/company IdP/installed PostgreSQL/external URL/deployment/provider/paid-call acceptance; previous acceptance is historical only.
+
+## Main squash ancestry integration (2026-11-19 09:00 KST)
+- #944 squash merged as aa5c4023ca4643951fdeccd6623a20fa47279875 after exact-head formal approval and all six CI checks succeeded. Retarget #945 main; merge this actual main to satisfy strict ancestry without dropping the Account integrity delta.
+- Three documentation-only end-of-file conflicts retain Account integrity sections. Production delta remains the previously reviewed reader, tests and eight-file contract/plan scope. No API/session/schema/activation change. Fresh exact-head CI and independent review required; old approval is not evidence for the new merge HEAD.
+- Fresh five reader/HTTP/panel/operations suites: 42 pass / 0 fail / 0 skip, including real loopback oversized producer cancellation and gzip retry; planning and diff checks pass. Production files unchanged by this ancestry merge. No fresh full TypeScript/full suite/installed acceptance claimed; independent review and CI pending. Log /tmp/og-190900-account.log.
