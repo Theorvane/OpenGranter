@@ -1,0 +1,3 @@
+# Token mutation upload lifetime
+
+POST /management/v1/proxy-tokens and /management/v1/proxy-tokens/revoke require the complete authenticated JSON body within 30 seconds after starting body access. Chunks do not renew the deadline. Expiry is 400 invalid_request with no-store and server request ID, never issuance or revocation. Best-effort cleanup never delays the response. Authentication remains before body reads. Successful EOF ends the deadline before policy/audit/mutation: this is not a mutation execution deadline or proof that abort reverses an operation. The socket boundary closes unread upload connections rather than reusing or draining them.
