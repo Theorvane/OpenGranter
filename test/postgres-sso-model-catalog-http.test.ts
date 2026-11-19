@@ -668,7 +668,7 @@ test('published model detail DOM traverses signed JWT, current IAM and durable a
       assert.ok(button);
       button.listeners.click?.();
       assert.match(detailText(root), /Loading models/);
-      assert.doesNotMatch(detailText(root), /USD per token|Exact published description/);
+      assert.doesNotMatch(detailText(root), /USD\/token|Exact published description/);
       const deadline = Date.now() + 5000;
       while (/Loading models/.test(detailText(root)) && Date.now() < deadline)
         await new Promise((resolve) => setTimeout(resolve, 5));
@@ -715,7 +715,7 @@ test('published model detail DOM traverses signed JWT, current IAM and durable a
     ]);
     assert.doesNotMatch(
       detailText(root),
-      /Exact published description|Updated published description|USD per token/,
+      /Exact published description|Updated published description|USD\/token/,
     );
     const events = (await f.db.query('SELECT * FROM sso_catalog_audit_events')).rows;
     assert.equal(events.length, 4);
