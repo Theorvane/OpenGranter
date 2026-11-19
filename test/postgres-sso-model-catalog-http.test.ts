@@ -668,7 +668,7 @@ test('published model detail DOM traverses signed JWT, current IAM and durable a
       assert.ok(button);
       button.listeners.click?.();
       assert.match(detailText(root), /Loading models/);
-      assert.doesNotMatch(detailText(root), /USD per token|Exact published description/);
+      assert.doesNotMatch(detailText(root), /USD\/token|Exact published description/);
       const deadline = Date.now() + 5000;
       while (/Loading models/.test(detailText(root)) && Date.now() < deadline)
         await new Promise((resolve) => setTimeout(resolve, 5));
@@ -677,7 +677,7 @@ test('published model detail DOM traverses signed JWT, current IAM and durable a
     assert.match(detailText(root), /Exact published description/);
     assert.match(detailText(root), /0\.000000000000000001/);
     assert.match(detailText(root), /Unknown/);
-    assert.match(detailText(root), /not billed costs/);
+    assert.match(detailText(root), /not estimated or billed request costs/);
     assert.ok(!detailNodes(root).some((node) => node.tag === 'img'));
     assert.deepEqual(paths, ['/management/v1/models', '/management/v1/models/team%2Fchat']);
     // Refresh must retrieve newly published metadata, not just repaint cached detail.

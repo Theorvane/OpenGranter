@@ -16,3 +16,6 @@ The caller must explicitly install existing migrations and the separately manage
 - Tests use synthetic signed JWTs and migrated PGlite over loopback. They are not real IdP/browser-login/native PostgreSQL/installed-provider E2E.
 
 Rollback: keep selecting the existing canonical-review factory. No new policy, session/CSRF/CORS contract, schema, retention, paid call or runtime activation is introduced.
+
+## Single implementation after parent reconciliation
+The canonical operations names are compatibility exports of createPostgresSsoOperationsHandler/Server in postgres-sso-operations-http.ts. No second router or authentication authority is maintained. The shared opt-in composition applies no-store/nosniff to token responses including authentication errors and private503 failures. Existing canonical-review remains read-only and the default installed management runtime is unchanged.

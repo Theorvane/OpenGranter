@@ -1,5 +1,6 @@
 import type { AuditAttribution } from '../audit/attribution.ts';
 import type { RouteKind } from '../routing/authorize-candidates.ts';
+import { estimateUsageCost, type FlatTokenPriceSnapshot } from './estimate-cost.ts';
 import { buildUsageRecord, type UsageRecord } from './record-usage.ts';
 
 export interface UsageHandoff {
@@ -21,6 +22,8 @@ export interface AttemptUsageInput extends AuditAttribution {
   readonly possiblyBilled: boolean;
   readonly possibleDuplicate: boolean;
   readonly response?: unknown;
+  /** Trusted applicable flat-token version selected by the caller at attempt start. */
+  readonly priceSnapshot?: FlatTokenPriceSnapshot | null;
 }
 
 function providerUsage(response: unknown): unknown {
@@ -56,5 +59,7 @@ export async function captureAttemptUsage(
     possibleDuplicate: input.possibleDuplicate,
     providerUsage: input.outcome === 'succeeded' ? providerUsage(input.response) : undefined,
   });
-  await ports.writeUsage(record);
+  const estimatedCost =
+    input.outcome === 'succeeded' ? estimateUsageCost(record.usage, input.priceSnapshot) : null;
+  await ports.writeUsage({ ...record, estimatedCost });
 }
