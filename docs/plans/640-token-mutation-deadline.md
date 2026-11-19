@@ -41,3 +41,7 @@
 - Parent must merge first; old approvals and CI do not certify this integration. No session/runtime activation, API, DDL or deployment expansion.
 
 Parent-refresh evidence: 86 focused deadline, panel, Account handoff, owned HTTP/synthetic JWT/PGlite and Operations response-disposal regressions PASS, zero FAIL/SKIP; strict full TypeScript, full Biome and planning/link/fixture checks PASS. No fresh installed browser/live acceptance claimed.
+
+## Parent merged — 2026-11-19 17:00 KST
+
+PR948 merged by squash at0295d465f6696fa56bb30bbaf4aa8ee7464ee7f4 after exact-head seven successful checks and independent formal approval. Integrate that canonical main tree into existing PR949 before retargeting main. Preserve all token deadlines, uncertain mutation/no retry, late-secret disposal and session bounds. This integration requires fresh focused token/Account/HTTP validation, exact-head CI and independent formal approval; no runtime/session expansion.
