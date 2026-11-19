@@ -1505,3 +1505,7 @@ Explicitly mounted Account can open usage and audit with its exact principal fil
 ## Bounded token confirmation waits (#640)
 
 Issuance and revocation leave pending state after ten seconds even when a transport or body ignores cancellation. Timeouts remain uncertain, never rollback or automatic retry; late secrets are discarded. No session or server authority changes. See [contract](../contracts/token-mutation-deadline.md) and [plan](plans/640-token-mutation-deadline.md).
+
+## Audit request usage investigation (#642)
+
+Open an authorized audit event in a fresh request-scoped Usage read, preserving only applied Usage scope and clearing pagination. No visible usage proves neither absence of provider calls nor absence of billing. See [plan](plans/642-audit-usage-investigation.md) and [contract](../contracts/audit-usage-investigation.md).
