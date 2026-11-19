@@ -287,3 +287,61 @@ test('real PostgreSQL equal-time pages follow UTF-8 order with punctuation and n
     await db.close();
   }
 });
+
+test('SQL request filter is exact, principal-scoped and composes with model/time/keyset filters', async () => {
+  const { db, writeUsage, readUsage } = await fixture();
+  try {
+    await writeUsage({ ...record('person-1', 'c', 300), requestId: 'target' });
+    await writeUsage({ ...record('person-1', 'b', 200), requestId: 'target' });
+    await writeUsage({ ...record('person-1', 'a', 100), requestId: 'different' });
+    await writeUsage({ ...record('person-2', 'foreign', 400), requestId: 'target' });
+    const query = {
+      principalId: 'person-1',
+      limit: 1,
+      cursor: null,
+      requestId: 'target',
+      modelAlias: 'chat',
+      fromMs: 100,
+      toMs: 400,
+    };
+    const first = await readUsage(query);
+    assert.deepEqual(
+      first.records.map((row) => row.attemptId),
+      ['c'],
+    );
+    assert.equal(first.hasMore, true);
+    const second = await readUsage({ ...query, cursor: { occurredAt: 300, attemptId: 'c' } });
+    assert.deepEqual(
+      second.records.map((row) => row.attemptId),
+      ['b'],
+    );
+    assert.equal(second.hasMore, false);
+    await assert.rejects(
+      readUsage({ ...query, requestId: "target' OR true --" }),
+      UsageLedgerUnavailable,
+    );
+  } finally {
+    await db.close();
+  }
+});
+
+test('SQL reader rejects a mismatching request in hidden lookahead', async () => {
+  const records = [
+    { ...record('person-1', 'c', 300), requestId: 'target' },
+    { ...record('person-1', 'b', 200), requestId: 'other' },
+  ];
+  const read = createPostgresUsageReader({
+    query: async () => ({
+      rows: records.map((record) => ({
+        record,
+        attempt_id: record.attemptId,
+        principal_id: record.principalId,
+        occurred_at_ms: String(record.occurredAt),
+      })),
+    }),
+  });
+  await assert.rejects(
+    read({ principalId: 'person-1', limit: 1, cursor: null, requestId: 'target' }),
+    UsageLedgerUnavailable,
+  );
+});

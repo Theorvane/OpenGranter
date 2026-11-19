@@ -3,6 +3,7 @@ import type { CatalogRequest } from './catalog-client.ts';
 
 export interface UsageFilters {
   readonly principalId?: string;
+  readonly requestId?: string;
   readonly model?: string;
   readonly fromMs?: number;
   readonly toMs?: number;
@@ -48,8 +49,12 @@ function validCursor(value: unknown): value is string {
   }
 }
 function query(filters: UsageFilters): string | undefined {
-  const { principalId, model, fromMs, toMs, limit, cursor } = filters;
+  const { principalId, requestId, model, fromMs, toMs, limit, cursor } = filters;
   if (
+    (requestId !== undefined &&
+      (typeof requestId !== 'string' ||
+        requestId.length > 256 ||
+        !/^[A-Za-z0-9][A-Za-z0-9._+:/@-]*$/u.test(requestId))) ||
     (principalId !== undefined &&
       (typeof principalId !== 'string' ||
         !principalId.trim() ||
@@ -72,6 +77,7 @@ function query(filters: UsageFilters): string | undefined {
     return undefined;
   const params = new URLSearchParams({ format: 'json' });
   if (principalId !== undefined) params.set('principal_id', principalId);
+  if (requestId !== undefined) params.set('request_id', requestId);
   if (model !== undefined) params.set('model', model);
   if (fromMs !== undefined) params.set('from_ms', String(fromMs));
   if (toMs !== undefined) params.set('to_ms', String(toMs));
@@ -164,6 +170,7 @@ function parsePage(value: unknown, filters: UsageFilters) {
         (row.occurredAt > previous[0] ||
           (row.occurredAt === previous[0] && compare(row.attemptId, previous[1]) >= 0))) ||
       (filters.principalId !== undefined && row.principalId !== filters.principalId) ||
+      (filters.requestId !== undefined && row.requestId !== filters.requestId) ||
       (filters.model !== undefined && row.modelAlias !== filters.model) ||
       (filters.fromMs !== undefined && row.occurredAt < filters.fromMs) ||
       (filters.toMs !== undefined && row.occurredAt >= filters.toMs)
@@ -202,9 +209,10 @@ export function createSsoUsageClient(request: CatalogRequest) {
       let snapshot: UsageFilters;
       try {
         // Bind response validation to the exact filters serialized for this request.
-        const { principalId, model, fromMs, toMs, limit, cursor } = filters;
+        const { principalId, requestId, model, fromMs, toMs, limit, cursor } = filters;
         snapshot = {
           ...(principalId === undefined ? {} : { principalId }),
+          ...(requestId === undefined ? {} : { requestId }),
           ...(model === undefined ? {} : { model }),
           ...(fromMs === undefined ? {} : { fromMs }),
           ...(toMs === undefined ? {} : { toMs }),

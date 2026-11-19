@@ -7,3 +7,6 @@ mountTokenManagementPanel(root, request) mounts issuance and revocation and retu
 - Explicit disposal is idempotent, clears all owned UI, aborts pending operations and suppresses stale callbacks/late completions. Separate mounted instances do not share state.
 - Network/server/malformed responses keep child uncertain-outcome semantics and never fabricate authorization results. Cancellation or clearing does not revoke tokens or imply rollback.
 - Boundary rendering is presentation, not server authorization. Every actual mutation remains authenticated/authorized/audited by the existing server. Canonical navigation/session integration and installed/live acceptance remain separate gates.
+
+
+See [issued-token revocation handoff](issued-token-revocation.md) for the optional nonsecret review callback, pending-work rejection and separate confirmation. This does not submit revocation automatically.
