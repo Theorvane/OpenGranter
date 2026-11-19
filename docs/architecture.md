@@ -1458,6 +1458,11 @@ An explicit caller-authorized JSON page adapter preserves unknown usage, estimat
 
 JSON usage transport also withholds complete-looking pages when uncompressed Content-Length disagrees with observed UTF-8 bytes. Exact multibyte lengths, absent lengths and compressed Fetch decoded bodies remain accepted within the existing bounds. No UI/session/runtime activation.
 
+
+## Explicit usage listener composition (#854)
+
+The optional SSO management runtime composes `createPostgresSsoUsageHistoryHandler` alongside catalog/token handlers on its single migrated connection, dispatching only exact `/management/v1/usage`. Static browser middleware forwards that Request unchanged. See [runtime contract](../contracts/management-sso-usage-runtime.md). No additional listener, migration, cookie/session/CSRF or provider path.
+
 ## CSV browser page progress (#642)
 
 The authorized usage CSV page transport rejects equal or regressing continuation keys against the exact serialized request cursor before exposing a page. This prevents stalled browser pagination without parsing CSV rows, granting authority, or activating sessions. See the [contract](../contracts/management-usage-export.md) and [plan](plans/642-csv-client-progress.md). Native browser and installed acceptance remain separate.
