@@ -27,3 +27,7 @@
 1. Preserve older uncommitted worktrees. Recover the bounded mutation implementation into the current #948 dependency base; preserve newer token validation and Account handoffs.
 2. Run original deadline cases as meaningful RED before adapting production clients.
 3. Verify client, UI and actual owned HTTP/SQL token regressions, then submit an exact-head draft PR and independent review request.
+
+## Canonical integration 2026-11-19 16:00 KST
+- Reconcile the existing PR with current #948/main, preserving newer management, Account/history and transport safeguards. Do not duplicate the feature stack or change session/runtime activation.
+- Verify the bounded request/body lifetime, cancellation, secret disposal, and issue/revoke UI uncertainty against the integrated tree, including owned HTTP/SQL committed-outcome cases. Refresh exact-head CI and independent review after integration; parent #948 must merge first.
