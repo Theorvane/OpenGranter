@@ -88,7 +88,7 @@ export function mountManagementOperations(
           const retry = element('button', 'Retry history');
           retry.setAttribute('type', 'button');
           retry.addEventListener('click', () => {
-            if (active()) navigate('history');
+            if (active()) navigate('history', principalId);
           });
           content.replaceChildren(status, retry);
         }

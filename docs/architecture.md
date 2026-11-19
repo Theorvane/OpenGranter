@@ -1614,3 +1614,6 @@ Changing Usage/Audit views, including request-investigation links, cancels outgo
 ## Keyboard history filter submission (#642)
 
 Usage and Audit filters use a named native form. Enter and Apply filters each dispatch one existing authorized JSON read with identical parsing, scope and cursor reset. Native form navigation is prevented, so private filter values do not enter the document URL. Invalid input remains locally rejected; detached forms cannot revive work after rerender, denial or disposal. Other actions remain non-submit buttons. This does not acquire session authority or change HTTP/IAM/audit contracts. See [plan](plans/642-history-filter-submit.md).
+
+## Account history retry context (#637)
+The epoch-bound download-adapter recovery callback retains the captured principalId instead of navigating to unfiltered history. Existing history-client validation, current IAM and durable audit remain authoritative; explicit manual navigation resets context. See [contract](../contracts/account-history-navigation.md#adapter-initialization-recovery).
