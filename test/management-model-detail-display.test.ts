@@ -42,7 +42,7 @@ const javascript = await buildManagementBrowser({
 const built = (await import(
   `data:text/javascript;base64,${Buffer.from(javascript).toString('base64')}`
 )) as { renderCatalogView: typeof renderCatalogView };
-const basic = { id: 'team/chat', object: 'model', created: 42, owned_by: 'opengranter' };
+const basic = { id: 'team/chat', object: 'model', created: 42, owned_by: 'opengranter' } as const;
 const actions = { list() {}, detail() {} };
 for (const [label, render] of [
   ['source', renderCatalogView],
@@ -135,5 +135,35 @@ for (const [label, render] of [
       'Completion base price (USD/token) 0.00',
     ])
       assert.ok(root.text().includes(text), text);
+  });
+  test(`${label}: list descriptions preserve CSP-safe whitespace without HTML`, () => {
+    const root = new Element();
+    const description = 'Line one\n  한국어\t<img src=x>\nLine three';
+    render(
+      root,
+      {
+        state: 'list',
+        models: [
+          basic,
+          { ...basic, id: 'published/chat', description },
+          { ...basic, id: 'empty/chat', description: '' },
+        ],
+      },
+      actions,
+    );
+    const paragraphs = root
+      .all()
+      .filter((node) => node.attributes.class === 'management-model-description');
+    assert.deepEqual(
+      paragraphs.map((node) => node.textContent),
+      [description, 'Empty description'],
+    );
+    assert.ok(paragraphs.every((node) => node.tag === 'p' && node.attributes.style === undefined));
+    assert.ok(!root.all().some((node) => node.tag === 'img'));
+    render(root, { state: 'denied' }, actions);
+    assert.equal(
+      root.all().filter((node) => node.attributes.class === 'management-model-description').length,
+      0,
+    );
   });
 }

@@ -645,6 +645,22 @@ test('published model detail DOM traverses signed JWT, current IAM and durable a
         });
       },
     });
+    assert.match(detailText(root), /Exact published description/);
+    assert.match(detailText(root), /<img src=x>/);
+    const search = detailNodes(root).find((node) => node.tag === 'input');
+    assert.ok(search);
+    search.value = 'PUBLISHED DESCRIPTION';
+    search.listeners.input?.();
+    assert.match(detailText(root), /1 models shown/);
+    assert.deepEqual(paths, ['/management/v1/models']);
+    search.value = 'does-not-exist';
+    search.listeners.input?.();
+    assert.match(detailText(root), /No matching models/);
+    assert.doesNotMatch(detailText(root), /Exact published description|<img/);
+    search.value = '<IMG';
+    search.listeners.input?.();
+    assert.match(detailText(root), /1 models shown/);
+    assert.deepEqual(paths, ['/management/v1/models']);
     async function select() {
       const button = detailNodes(root).find(
         (node) => node.tag === 'button' && node.textContent === 'team/chat',

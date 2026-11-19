@@ -2057,5 +2057,14 @@ Existing principal-scoped management and proxy usage histories accept an optiona
 ## Request-scoped usage review (#642)
 
 Usage now accepts an exact Request ID filter and a row action that reloads authorized attempts for that request while preserving the current principal mode and applied model/time bounds. Self mode does not gain an explicit principal_id (which would require usage:ReadAll); explicit target mode retains its existing authorization. Fresh loads reset cursors; paging and current-page CSV retain request_id. JSON rows are checked against the captured exact request ID, and invalid IDs never reach transport. No complete-history, invoice-total, session or deployment claim. See [plan](plans/642-request-usage-browser.md) and [contract](../contracts/usage-request-review.md).
+
+## Published model list discovery (#641)
+
+- Names/descriptions from the authorized list render as literal text; markup cannot create elements. Missing legacy fields do not prevent exact alias selection.
+- Search alias, publisher, name and description case-insensitively without network; preserve server order. No match removes rows, and empty query restores the authorized list.
+- Loading, empty, denied and disposed views clear list metadata. SSO HTTP uses existing fresh IAM and required durable audit; no publication text enters audit metadata.
+- This does not satisfy admin login, IdP, installed PostgreSQL or deployment acceptance.
 ### Request-filter and usage framing integration (#642)
 - Request-scoped Usage JSON/CSV rejects framed GETs before any identity/usage SQL or service audit; absent/zero-length reads preserve exact principal/request intersection, keyset/lookahead and awaited audit. Audit failure withholds both formats. Preserve both original request-filter and framing regressions during main integration. Synthetic signed-token/PGlite and loopback results are not installed acceptance. See [plan](plans/642-usage-get-framing.md).
+
+Model list descriptions containing newlines, tabs and literal markup preserve exact text with the fixed shell stylesheet; empty descriptions remain explicit and absent descriptions do not add a paragraph.

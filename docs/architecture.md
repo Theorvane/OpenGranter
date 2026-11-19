@@ -1590,3 +1590,9 @@ Existing principal-scoped management and proxy usage histories accept an optiona
 ## Request-scoped usage review (#642)
 
 Usage now accepts an exact Request ID filter and a row action that reloads authorized attempts for that request while preserving the current principal mode and applied model/time bounds. Self mode does not gain an explicit principal_id (which would require usage:ReadAll); explicit target mode retains its existing authorization. Fresh loads reset cursors; paging and current-page CSV retain request_id. JSON rows are checked against the captured exact request ID, and invalid IDs never reach transport. No complete-history, invoice-total, session or deployment claim. See [plan](plans/642-request-usage-browser.md) and [contract](../contracts/usage-request-review.md).
+
+## Published model list discovery (#641)
+
+The catalog view consumes only the existing validated authorized list and filters its alias, publisher, name and description locally. It emits the unchanged exact alias for fresh detail reads and retains no search state across renders. Session acquisition and deployment activation remain separate approved-caller gates. See [contract](../contracts/model-list-publication.md).
+
+List and detail descriptions share the existing management-model-description shell class; rendering adds no inline styles or stylesheet authority.
