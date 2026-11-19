@@ -123,3 +123,24 @@ test('search filters model IDs and publishers without replacing the input', () =
   input.listeners.input?.();
   assert.match(text(root), /demo\/beta/);
 });
+
+test('published description uses CSP-compatible class and literal multiline text', () => {
+  const root = new Element();
+  const description = 'First line\n<b>literal second line</b>\n' + 'x'.repeat(300);
+  renderCatalogView(
+    root,
+    {
+      state: 'detail',
+      model: { id: 'demo', object: 'model', created: 1, owned_by: 'opengranter', description },
+    },
+    actions,
+  );
+  const node = nodes(root).find((node) => node.textContent === description);
+  assert.ok(node);
+  assert.equal(node.attributes.class, 'management-model-description');
+  assert.equal(node.attributes.style, undefined);
+  assert.equal(
+    nodes(root).some((node) => node.tag === 'b'),
+    false,
+  );
+});

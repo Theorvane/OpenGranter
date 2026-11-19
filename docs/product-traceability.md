@@ -48,3 +48,40 @@ Developer/service-account gateway paths do not replace platform/team administrat
 5. **R5/R6:** reconcile compatibility backlog, then installed browser/gateway/security/usage/restart acceptance using approved credentials/client/model and maximum paid budget. No automatic paid fallback.
 
 R0 exit requires independent review and agreed contract ownership. This document alone does not close #638 or authorize unresolved security policy. See [plan](plans/638-product-traceability.md).
+
+## Internal versioned estimate handoff checkpoint (#642)
+
+[Calculator](../src/usage/estimate-cost.ts) and the existing [attempt capture](../src/usage/capture-attempt.ts) now support an explicitly caller-selected applicable flat-token version without floating-point money. [Tests](../test/versioned-attempt-estimates.test.ts) cover unknown/partial usage, true zero, tiny rates, fixed malformed-price errors, awaited handoff and migrated PGlite ledger-to-JSON/CSV version linkage. This narrows the pricing-calculation gap above; it does not close it. No active gateway caller supplies a price snapshot yet. Catalog price CRUD, effective-version/model/route selection at attempt start, non-flat pricing, reported-bill collection, reconciliation and installed/browser/provider evidence remain missing. No budget authority or currency conversion is inferred.
+
+## Request-scoped usage API (#642)
+
+Existing principal-scoped management and proxy usage histories accept an optional exact request_id filter, intersected with model/time/keyset filters for JSON and CSV. Canonical parameterized SQL and full-page/lookahead validation preserve isolation; fresh IAM and mandatory audit remain required. No new authority, session acquisition, schema or deployment activation. Browser drilldown integration and installed/live acceptance remain separate. See [plan](plans/642-usage-request-filter.md) and [contract](../contracts/usage-request-filter.md).
+
+## Canonical Account API checkpoint (#639)
+
+| Requirement | Source/API | Bounded verification | Remaining |
+| --- | --- | --- | --- |
+| Current authenticated human / Account | src/gateway/postgres-sso-current-principal-http.ts; canonical read composition; GET /management/v1/me and /principal | test/canonical-current-principal.test.ts, test/sso-current-principal-http.test.ts, test/current-principal-audit-store.test.ts | Approved browser session and frontend Account adoption, explicit schema approval/install, installed/browser acceptance |
+
+Existing PR769/771/775/777 behavior is ported onto canonical main rather than adding an alternate identity contract. Audit SQL is contract-only and excluded from migrations; identity is withheld when unavailable. No global goal or R1 completion is asserted.
+
+
+| #639 owned Account API | postgres-gateway-runtime.ts exact Account dispatch + canonical current-principal composition | current-principal-owned-runtime.test.ts real loopback HTTP/test JWT/embedded PG | Login/session contract and optional identity audit schema approval/install, installed IdP/database/TLS/browser acceptance still outstanding |
+
+## Request-scoped usage API (#642)
+
+Existing principal-scoped management and proxy usage histories accept an optional exact request_id filter, intersected with model/time/keyset filters for JSON and CSV. Canonical parameterized SQL and full-page/lookahead validation preserve isolation; fresh IAM and mandatory audit remain required. No new authority, session acquisition, schema or deployment activation. Browser drilldown integration and installed/live acceptance remain separate. See [plan](plans/642-usage-request-filter.md) and [contract](../contracts/usage-request-filter.md).
+
+
+## Request-scoped usage review (#642)
+
+Usage now accepts an exact Request ID filter and a row action that reloads authorized attempts for that request while preserving the current principal mode and applied model/time bounds. Self mode does not gain an explicit principal_id (which would require usage:ReadAll); explicit target mode retains its existing authorization. Fresh loads reset cursors; paging and current-page CSV retain request_id. JSON rows are checked against the captured exact request ID, and invalid IDs never reach transport. No complete-history, invoice-total, session or deployment claim. See [plan](plans/642-request-usage-browser.md) and [contract](../contracts/usage-request-review.md).
+
+### 2026-11-16 opt-in SSO operations HTTP (#637)
+New src/gateway/postgres-sso-operations-http.ts joins existing token issue/revoke and canonical model/history readers without changing the read-only factory. test/sso-operations-http.test.ts verifies actual local SQL/HTTP paths, mandatory audits, fresh Deny/identity disable and token revocation. No session acquisition, cookie boundary, runtime deployment or installed/provider acceptance. Administrator login, remaining original PRD CRUD and release/handoff remain incomplete. See docs/plans/637-sso-operations-http.md and contracts/sso-operations-http.md.
+
+## Disconnected management response cleanup (#637)
+
+The shared Node adapter discards a response returned after client disconnect without awaiting its producer cancellation. This lets request listeners settle even when cleanup stalls; cleanup remains best-effort, not forced producer reclamation or mutation rollback. See [plan](plans/637-disconnected-response-cleanup.md) and [contract](../contracts/disconnected-management-response.md). Actual local socket tests cover cancellation and continued service, not administrator login, installed deployment or provider acceptance.
+## CSP-compatible model descriptions (#637)
+The public management shell serves a fixed no-store stylesheet and links it explicitly. Published multiline descriptions use a fixed class and literal text, never inline styles or HTML. CSP remains unchanged; static method/framing/query checks and exact API delegation remain in force. See [plan](plans/637-model-description-csp.md) and [contract](../contracts/model-description-csp.md). Local native-browser rendering is not company SSO, installed PostgreSQL, deployment or provider acceptance.
