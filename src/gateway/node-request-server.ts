@@ -16,6 +16,34 @@ function discardResponse(response: Response | undefined): void {
   }
 }
 
+/** Buffer a fallback without retaining a disconnected request on an idle producer. */
+async function readFallbackText(response: Response, signal: AbortSignal): Promise<string> {
+  if (signal.aborted) {
+    discardResponse(response);
+    throw new Error('Disconnected request');
+  }
+  if (response.bodyUsed) throw new Error('Consumed fallback');
+  if (!response.body) return '';
+  const reader = response.body.getReader();
+  const cancel = () => {
+    void reader.cancel().catch(() => undefined);
+  };
+  signal.addEventListener('abort', cancel, { once: true });
+  try {
+    const decoder = new TextDecoder();
+    let text = '';
+    while (true) {
+      const chunk = await reader.read();
+      if (signal.aborted) throw new Error('Disconnected request');
+      if (chunk.done) return text + decoder.decode();
+      text += decoder.decode(chunk.value, { stream: true });
+    }
+  } finally {
+    signal.removeEventListener('abort', cancel);
+    reader.releaseLock();
+  }
+}
+
 /** Adapt an already-composed Fetch-style request boundary to a Node HTTP socket server. */
 export function createNodeRequestServer(
   handle: (request: Request) => Promise<Response>,
@@ -83,7 +111,12 @@ export function createNodeRequestServer(
       });
       if (discoveryRequest || managementRequest) outgoing.setHeader('cache-control', 'no-store');
       if (managementRequest) outgoing.setHeader('x-content-type-options', 'nosniff');
-      if (response.body) {
+      if (method === 'HEAD') {
+        // HEAD preserves representation metadata but never consumes its producer.
+        // Cleanup is best-effort: a stalled cancel must not hold the socket open.
+        discardResponse(response);
+        outgoing.end();
+      } else if (response.body) {
         await pipeline(Readable.fromWeb(response.body), outgoing);
       } else {
         outgoing.end();
@@ -112,7 +145,12 @@ export function createNodeRequestServer(
           response.headers.forEach((value, name) => {
             validateHeaderValue(name, value);
           });
-          body = await response.text();
+          if (incoming.method === 'HEAD') {
+            discardResponse(response);
+            body = '';
+          } else {
+            body = await readFallbackText(response, cancellation.signal);
+          }
         } catch {
           discardResponse(response);
           response = createClientErrorResponse(500, 'internal_error', undefined, errorFormat);
