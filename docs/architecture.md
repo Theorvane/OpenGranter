@@ -1614,3 +1614,8 @@ Changing Usage/Audit views, including request-investigation links, cancels outgo
 ## Keyboard history filter submission (#642)
 
 Usage and Audit filters use a named native form. Enter and Apply filters each dispatch one existing authorized JSON read with identical parsing, scope and cursor reset. Native form navigation is prevented, so private filter values do not enter the document URL. Invalid input remains locally rejected; detached forms cannot revive work after rerender, denial or disposal. Other actions remain non-submit buttons. This does not acquire session authority or change HTTP/IAM/audit contracts. See [plan](plans/642-history-filter-submit.md).
+
+
+## Unapplied history filter drafts (#642)
+
+History input listeners record only per-tab draft strings, guarded by the current render generation and active identity. Draft state never replaces the applied query until Apply; records/pagination/CSV remain bound to that query. Renders clear detached controls; terminal identity boundaries clear both maps. Explicit request drilldowns reset destination drafts to the applied intersection. No transport, session, runtime or schema change. See [plan](plans/642-history-draft-preservation.md) and [contract](../contracts/history-filter-drafts.md).
