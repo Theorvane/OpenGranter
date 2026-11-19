@@ -18,3 +18,7 @@ Preserve an existing leading UTF-8 byte-order mark, including when it is split a
 ## CSV response length integrity (#642)
 
 Reject identity-encoded CSV whose observed UTF-8 byte length disagrees with a supplied Content-Length; never return partial text as ready. Compare bytes rather than characters. For compressed Fetch responses, the browser exposes decoded bytes, so do not compare them to the compressed wire length. Existing decoded byte/deadline bounds, scope and cancellation remain unchanged. No UI, session, runtime or installed acceptance is implied. See [plan](../docs/plans/642-csv-length-integrity.md).
+
+## Browser continuation progress (#642)
+
+For a request carrying a cursor, any nonterminal CSV response must return a strictly older continuation tuple in descending occurredAt then UTF-8 attemptId byte order. Equal or newer keys fail as unavailable before exposing CSV, with unread body cancellation. Compare against the cursor actually serialized, unaffected by caller mutation during transport. A terminal page may omit continuation, and a first page may supply any valid continuation; neither implies CSV row validation. Return valid cursor strings unchanged. See [plan](../docs/plans/642-csv-client-progress.md).

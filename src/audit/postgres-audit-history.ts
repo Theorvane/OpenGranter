@@ -1,3 +1,7 @@
+import type { AuditHistoryEvent, AuditHistoryPage } from '../shared/audit/history-types.ts';
+
+export type { AuditHistoryEvent, AuditHistoryPage } from '../shared/audit/history-types.ts';
+
 import {
   type AuditHistoryFilters,
   matchesAuditHistoryFilters,
@@ -45,27 +49,27 @@ export interface AuditHistoryQuery extends AuditHistoryFilters {
   readonly cursor?: string | null;
 }
 
-export interface AuditHistoryEvent {
-  readonly eventId: string;
-  readonly occurredAt: number;
-  readonly kind: string;
-  readonly requestId: string;
-  readonly principalId: string;
-  readonly credentialId: string;
-  readonly policyVersions: readonly { readonly id: string; readonly version: string }[];
-  readonly details: Readonly<Record<string, unknown>>;
-}
-
-export interface AuditHistoryPage {
-  readonly events: readonly AuditHistoryEvent[];
-  readonly nextCursor: string | null;
-}
-
 /** Read one principal's nonsecret audit metadata in descending event-ID order. */
 export function createPostgresAuditHistoryReader(
   client: GatewayAuditSqlClient,
 ): (query: AuditHistoryQuery) => Promise<AuditHistoryPage> {
-  return async (query) => {
+  return async (input) => {
+    // SQL parameters and post-await validation must use the same owned scope.
+    let query: AuditHistoryQuery;
+    try {
+      const { principalId, limit, cursor, requestId, modelAlias, fromMs, toMs } = input;
+      query = {
+        principalId,
+        limit,
+        ...(cursor === undefined ? {} : { cursor }),
+        ...(requestId === undefined ? {} : { requestId }),
+        ...(modelAlias === undefined ? {} : { modelAlias }),
+        ...(fromMs === undefined ? {} : { fromMs }),
+        ...(toMs === undefined ? {} : { toMs }),
+      };
+    } catch {
+      throw new AuditHistoryUnavailable();
+    }
     if (
       typeof query.principalId !== 'string' ||
       query.principalId.length === 0 ||
@@ -89,6 +93,7 @@ export function createPostgresAuditHistoryReader(
            AND ($4::bigint IS NULL OR occurred_at_ms >= $4::bigint)
            AND ($5::bigint IS NULL OR occurred_at_ms < $5::bigint)
            AND ($6::text IS NULL OR details->>'modelAlias' = $6::text)
+           AND ($7::text IS NULL OR request_id = $7::text)
          ORDER BY gateway_audit_events.event_id DESC
          LIMIT $3`,
         [
@@ -98,6 +103,7 @@ export function createPostgresAuditHistoryReader(
           query.fromMs ?? null,
           query.toMs ?? null,
           query.modelAlias ?? null,
+          query.requestId ?? null,
         ],
       );
       if (result.rows.length > query.limit + 1) throw new AuditHistoryUnavailable();
@@ -122,7 +128,12 @@ export function createPostgresAuditHistoryReader(
           occurredAt(row.occurred_at_ms),
         );
         if (
-          !matchesAuditHistoryFilters(projected.occurredAt, projected.details, query) ||
+          !matchesAuditHistoryFilters(
+            projected.occurredAt,
+            projected.details,
+            query,
+            projected.requestId,
+          ) ||
           projected.principalId !== query.principalId ||
           projected.credentialId === null ||
           projected.policyVersions === null

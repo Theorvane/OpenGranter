@@ -18,3 +18,7 @@ Exact HEAD CI plus independent formal approval required before merge. Rollback i
 ## Execution evidence
 
 RED: /tmp/og-1230-red.log 11 tests, 9 expected failures, 2 controls pass, zero skips. SQL/projector failed to reject holes; public JSON and CSV incorrectly returned200. GREEN after two production traversal replacements: /tmp/og-1230-green.log 47/47 zero skips, including 12 new regression tests, real loopback JSON/CSV failure, existing embedded SQL keyset, HTTP and CSV cases. Typecheck passes. Remaining full-suite and CI results must be recorded separately; no full-suite success implied.
+
+## Current main integration
+
+Retain the main shared HTTP projector and request-ID filters; apply the approved Array.from dense-position validation in that canonical shared implementation as well as the SQL reader. Preserve all sparse/lookahead regression tests and existing audit boundaries.

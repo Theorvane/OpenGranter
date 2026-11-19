@@ -9,3 +9,9 @@ Invalid host/port fails before connection opening. Source, connection, migration
 ## Durable catalog reads (#641)
 
 The same owned listener dispatches exact /management/v1/models and its slash-prefixed detail paths to the durable registered-key SSO catalog boundary. Both token and catalog handlers share the single migrated connection, issuer, API audience, keys, clock and request-ID factory. Every catalog request resolves fresh human bindings, IAM and catalog state and awaits attributed durable audit; catalog authentication/audit errors remain fail-closed. Unrelated paths remain with the token handler, never an inference server. Optional static browser assets wrap the combined application without granting a session or changing authentication. No browser credential bridge or deployment activation is introduced.
+
+## Usage and audit on the management listener (#642)
+
+The existing explicitly selected management/browser process now also dispatches exact GET /management/v1/usage and /management/v1/audit, including their existing JSON/CSV query contracts. Each factory receives only the same owned migrated connection, clock, request-ID factory and registered-key issuer/audience/JWKS configuration. Dedicated durable SSO usage/access-audit stores are selected internally; extra caller callbacks cannot replace them. Publication waits for mandatory audit, including failed authentication/authorization. Cookie-only or proxy-token requests cannot establish SSO authority. Unsupported methods retain the existing history-handler 400 response; unknown/prefix/slash paths retain 404.
+
+Token and catalog dispatch, optional public bundle, shutdown order and no-default-activation are unchanged. The separate canonical review listener remains read-only and has no token writes. This is local process/API integration, not browser login, company IdP, installed PostgreSQL or provider acceptance.
