@@ -6,3 +6,7 @@
 4. RED: route a provisional operations bootstrap through the existing read-only runtime; prove authenticated issue returns 404 instead of 201 over a real loopback socket.
 5. GREEN: select the operations composition; test issue/revoke, Account prerequisites, revocation/Deny, audit rollback, no proxy inference, artifact rejection before open, cleanup and idempotent close.
 6. Run focused tests, typecheck/lint/scripts checks and open draft PR on #955; require exact-head CI and independent formal approval before ordered merge. No deployment, real IdP, cookie session or paid-call certification.
+
+## 2026-11-20 integration
+
+Reconcile with current #955 shared SSO operations implementation, preserving its compatibility exports and the read-only/default runtime. Snapshot the mandatory artifact digest once before asynchronous I/O: a changing accessor must not turn the required integrity check into the optional unverified reader path. RED uses a changing digest accessor and replaced artifact, checks rejection before database acquisition; GREEN reuses the single captured digest. Preserve existing owned HTTP lifecycle and no new deployment/session/schema authority.

@@ -27,3 +27,21 @@
 1. Preserve older uncommitted worktrees. Recover the bounded mutation implementation into the current #948 dependency base; preserve newer token validation and Account handoffs.
 2. Run original deadline cases as meaningful RED before adapting production clients.
 3. Verify client, UI and actual owned HTTP/SQL token regressions, then submit an exact-head draft PR and independent review request.
+
+## Canonical integration 2026-11-19 16:00 KST
+- Reconcile the existing PR with current #948/main, preserving newer management, Account/history and transport safeguards. Do not duplicate the feature stack or change session/runtime activation.
+- Verify the bounded request/body lifetime, cancellation, secret disposal, and issue/revoke UI uncertainty against the integrated tree, including owned HTTP/SQL committed-outcome cases. Refresh exact-head CI and independent review after integration; parent #948 must merge first.
+
+## Integrated verification
+- Canonical #948/main integration: 72 focused public-client, panel, Account handoff and owned HTTP/synthetic JWT/PGlite tests passed with zero failures or skips; strict TypeScript, full Biome and planning/fixture checks passed.
+- Bundled production Operations in native Chromium with a synthetic abort-ignoring request port: issuance and revocation left pending state at the real ten-second deadline, displayed existing uncertainty warnings, made exactly one request, cancelled late response bodies, never displayed the late synthetic credential, and disposed cleanly. This is not actual IdP/login, installed PostgreSQL, TLS deployment or provider acceptance.
+
+## Parent reconciliation 2026-11-19 16:30 KST
+- Parent #948 advanced to integrate main 292e106 usage-review sessions, cursor progress and Operations stream disposal. Carry the canonical changes into the existing token deadline PR without changing the deadline/uncertainty contract. Re-run all deadline client/panel/owned HTTP and stale-body regression cases, strict types, lint and document checks.
+- Parent must merge first; old approvals and CI do not certify this integration. No session/runtime activation, API, DDL or deployment expansion.
+
+Parent-refresh evidence: 86 focused deadline, panel, Account handoff, owned HTTP/synthetic JWT/PGlite and Operations response-disposal regressions PASS, zero FAIL/SKIP; strict full TypeScript, full Biome and planning/link/fixture checks PASS. No fresh installed browser/live acceptance claimed.
+
+## Parent merged — 2026-11-19 17:00 KST
+
+PR948 merged by squash at0295d465f6696fa56bb30bbaf4aa8ee7464ee7f4 after exact-head seven successful checks and independent formal approval. Integrate that canonical main tree into existing PR949 before retargeting main. Preserve all token deadlines, uncertain mutation/no retry, late-secret disposal and session bounds. This integration requires fresh focused token/Account/HTTP validation, exact-head CI and independent formal approval; no runtime/session expansion.

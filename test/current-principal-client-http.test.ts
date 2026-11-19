@@ -83,7 +83,7 @@ async function fixture(installAudit = true, shell = false) {
 }
 
 test('Account client consumes actual owned HTTP and fresh PostgreSQL identity/audit', async () => {
-  const f = await fixture();
+  const f = await fixture(true, true);
   try {
     const client = createCurrentPrincipalClient((path, init) =>
       f.request(path, `Bearer ${token}`, {
@@ -94,17 +94,52 @@ test('Account client consumes actual owned HTTP and fresh PostgreSQL identity/au
         },
       }),
     );
+    const anonymous = createCurrentPrincipalClient((path, init) => f.request(path, '', init));
+    const beforeAssets = f.calls;
+    for (const path of ['/management', '/management/app.js', '/management/app.css']) {
+      const response = await f.request(path, '');
+      assert.equal(response.status, 200);
+      assert.equal(response.headers.get('set-cookie'), null);
+      await response.arrayBuffer();
+    }
+    assert.equal(f.calls, beforeAssets);
+    assert.deepEqual(await anonymous.read(), { state: 'unauthenticated' });
     assert.deepEqual(await client.read(), {
       state: 'ready',
       data: { id: 'account-human', kind: 'human' },
     });
     assert.equal(
       (await f.db.query('SELECT * FROM sso_current_principal_audit_events')).rows.length,
-      1,
+      2,
     );
     await f.db.exec('UPDATE iam_principals SET active=false');
     assert.deepEqual(await client.read(), { state: 'unauthenticated' });
     await f.db.exec('UPDATE iam_principals SET active=true');
+    await f.db.exec('DELETE FROM iam_sso_identity_bindings');
+    assert.deepEqual(await client.read(), { state: 'unauthenticated' });
+    await f.db.query('INSERT INTO iam_sso_identity_bindings VALUES ($1,$2,$3)', [
+      jwt.issuer,
+      jwt.subject,
+      'account-human',
+    ]);
+    assert.deepEqual(await client.read(), {
+      state: 'ready',
+      data: { id: 'account-human', kind: 'human' },
+    });
+    assert.deepEqual(
+      (
+        await f.db.query(
+          'SELECT outcome, principal_id FROM sso_current_principal_audit_events ORDER BY event_id',
+        )
+      ).rows,
+      [
+        { outcome: 'unauthenticated', principal_id: null },
+        { outcome: 'ready', principal_id: 'account-human' },
+        { outcome: 'unauthenticated', principal_id: null },
+        { outcome: 'unauthenticated', principal_id: null },
+        { outcome: 'ready', principal_id: 'account-human' },
+      ],
+    );
     await f.db.exec('DROP TABLE sso_current_principal_audit_events');
     assert.deepEqual(await client.read(), { state: 'unavailable' });
   } finally {
