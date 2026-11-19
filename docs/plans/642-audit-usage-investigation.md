@@ -17,3 +17,8 @@
 - System node18 rejected strip-types; native Node22.23.4 arm64 used. Initial unrestricted full typecheck resource-killed; final full repository TypeScript check passed with 256MiB V8 heap. Bounded TS7 command required --ignoreConfig then passed. Changed-file Biome, scripts/check.py, diff check passed.
 - Shared gh switched to sjungwon03-ai between calls. Corrected/API-verified sjungwon03 before production copy and commit; git author/committer configuration sjungwon03. No secrets printed. Preliminary worktree/doc/test copies happened before correction; no remote write used other identity.
 - Exact-head CI and independent formal GitHub approval required before merge; read-only review is NOT approval. Original #637 and login/deployment gates OPEN.
+
+## Canonical integration 2026-11-19 16:30 KST
+- Reconcile the existing Audit-to-Usage slice with parent #949 and canonical main, retaining exact Account principal handoff, request-ID validation, mandatory fresh authorization, retry/framing and stale-body safeguards.
+- Preserve both applied Usage filters and Audit row attribution without elevating Audit read permission to Usage access. Resolve source conflicts explicitly, then rerun original meaningful regressions plus integrated HTTP, Account/history and client/session tests.
+- Parent #949 must merge first. No session/runtime activation, DDL, provider calls or deployment; new exact HEAD needs CI and independent formal review. No new domain decision.
