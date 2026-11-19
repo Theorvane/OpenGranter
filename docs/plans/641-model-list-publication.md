@@ -22,3 +22,7 @@
 
 7. Run bounded regressions, full TypeScript, changed-file lint and planning/fixture checks. Record exact commands/logs in PR. Submit exact-head CI and independent formal review; no merge without both, including stack dependencies.
 8. Rollback is removal of list-only presentation/filter changes. No persisted data or active session contract changes. Deployment/provider tests and original PRD completion remain open.
+
+## 2026-11-19 canonical integration
+
+9. Reconcile the existing PR with current parent #951 before publication. Preserve the canonical model-detail renderer, Account/session/history integrations and fresh exact-alias refresh. Remove no newer behavior and create no parallel catalog. Re-run source/compiled DOM and owned HTTP/JWT/durable audit tests; local browser discovery is synthetic, not deployed SSO acceptance. No session/runtime/DDL/activation expansion.
