@@ -1985,6 +1985,10 @@ The history DOM mount preserves the CsvDownloadResult port contract: only `start
 - Require successful streamed issuance before expiry; logout, identity replacement and screen navigation cancel a pending body without stale publication. Source failures show only generic uncertain-outcome guidance, never source diagnostics.
 
 
+## Request-scoped usage API (#642)
+
+Existing principal-scoped management and proxy usage histories accept an optional exact request_id filter, intersected with model/time/keyset filters for JSON and CSV. Canonical parameterized SQL and full-page/lookahead validation preserve isolation; fresh IAM and mandatory audit remain required. No new authority, session acquisition, schema or deployment activation. Browser drilldown integration and installed/live acceptance remain separate. See [plan](plans/642-usage-request-filter.md) and [contract](../contracts/usage-request-filter.md).
+
 ## Canonical Account identity read (#637 / #639)
 
 The canonical read composition now routes exact /management/v1/me and /management/v1/principal to fresh registered-key active-human authentication and mandatory dedicated SQL audit. This ports the existing PR769/771/775/777 Account contract, not a browser login/session approval or IAM grant. The me response contains only principalId; principal contains only id and kind. The explicit optional [audit SQL contract](../contracts/sql/current-principal-audit.sql) is NOT a default migration and is never auto-installed; missing audit storage fails closed. Caller-owned committed/autocommit SQL and schema approval remain prerequisites. No runtime activation or deployment is included. See [contract](../contracts/canonical-current-principal.md) and [plan](plans/639-canonical-current-principal.md).
@@ -2026,3 +2030,5 @@ Existing principal-scoped management and proxy usage histories accept an optiona
 ## Request-scoped usage review (#642)
 
 Usage now accepts an exact Request ID filter and a row action that reloads authorized attempts for that request while preserving the current principal mode and applied model/time bounds. Self mode does not gain an explicit principal_id (which would require usage:ReadAll); explicit target mode retains its existing authorization. Fresh loads reset cursors; paging and current-page CSV retain request_id. JSON rows are checked against the captured exact request ID, and invalid IDs never reach transport. No complete-history, invoice-total, session or deployment claim. See [plan](plans/642-request-usage-browser.md) and [contract](../contracts/usage-request-review.md).
+### Request-filter and usage framing integration (#642)
+- Request-scoped Usage JSON/CSV rejects framed GETs before any identity/usage SQL or service audit; absent/zero-length reads preserve exact principal/request intersection, keyset/lookahead and awaited audit. Audit failure withholds both formats. Preserve both original request-filter and framing regressions during main integration. Synthetic signed-token/PGlite and loopback results are not installed acceptance. See [plan](plans/642-usage-get-framing.md).
