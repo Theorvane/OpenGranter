@@ -1,0 +1,12 @@
+# Request-scoped usage history (#642)
+
+1. Port the existing PR742 backend request_id filter onto canonical main without the stale legacy UI stack. Add an optional exact request_id filter to existing principal-scoped usage queries.
+2. Validate the existing exact case-sensitive 1–256 ASCII identifier matching /^[A-Za-z0-9][A-Za-z0-9._+:/@-]*$/; reject duplicate/empty values.
+3. Parameterize canonical SQL and revalidate all returned rows, including lookahead.
+4. Forward through existing proxy and SSO usage readers; preserve fresh IAM, mandatory audit, JSON/CSV pagination and cost uncertainty.
+5. Prove RED/GREEN with embedded PostgreSQL and signed SSO Fetch requests. No session issuance, UI ownership, schema, deployment or provider changes.
+
+## 2026-11-19 canonical-main integration
+Merge exact current main into the existing #934 branch to resolve append-only documentation conflicts. Preserve both the request-filter checkpoint and the newer Account, operations, DOM, CSP and response-integrity checkpoints in all four conflicted documents. Main production and test changes merge without conflicts; do not alter their behavior or optional audit schema installation gate. Re-run bounded request-filter, canonical SSO, proxy JSON/CSV and main identity/runtime regressions plus strict type/lint/document checks. The previous exact-head approval does not approve the new merge commit; require fresh independent formal approval and CI before merge.
+
+Integration evidence: main faf607c8d922d9abcde847c28647da91cd739927 merged with no production-code conflicts. Four append-only documentation conflicts were resolved by retaining both sides; no source implementation was edited. Seven bounded suites produced 54 pass / 1 fail / 0 skip, with the operations test file SIGKILL (resource limit, not a behavioral assertion). All ten operations cases then pass in separate per-case processes, zero failures/skips, including actual loopback SQL/issue/revoke, fresh Deny, disabled identity, cookie/proxy rejection, durable audit failures and browser-controller consumption. Full strict TypeScript, full lint (42 existing warnings/181 infos), planning/contract/link checks, all six offline schema pins and staged diff checks pass. Full npm check was also started; its result is recorded separately and is not assumed to pass. No production/provider calls, session acquisition, audit schema install or deployment occurred.
