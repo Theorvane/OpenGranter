@@ -1,0 +1,3 @@
+# Usage request filter
+
+GET /management/v1/usage and existing /v1/usage accept optional request_id. It is an exact intersection with the authorized principal, model, time and keyset filters, not a global lookup or authorization grant. Omitting it preserves existing queries. JSON and CSV share identical selection. Preserve PR742: IDs are exact case-sensitive 1–256 ASCII characters matching /^[A-Za-z0-9][A-Za-z0-9._+:/@-]*$/. Reject repeated, empty, whitespace, Unicode-control, SQL-like and overlong IDs. Pagination callers must retain the filter with the opaque cursor. Storage mismatches, including lookahead, fail closed. Existing audit failure withholds results. This is opt-in backend API support; browser login and installed/live evidence remain separate.

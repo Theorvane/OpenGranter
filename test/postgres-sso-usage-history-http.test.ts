@@ -266,6 +266,62 @@ test('human disable, wrong audience and policy removal deny fresh requests', asy
   }
 });
 
+test('request filter selects persisted attempts within the SSO principal and preserves pagination CSV and audit gates', async () => {
+  const f = await fixture();
+  try {
+    const first = await f.request('?request_id=inference&limit=1');
+    assert.equal(first.status, 200);
+    const page = await json(first);
+    assert.deepEqual(
+      page.data.map((row) => row.attemptId),
+      ['c'],
+    );
+    assert.equal(page.has_more, true);
+    const next = await json(
+      await f.request(`?request_id=inference&limit=1&cursor=${page.next_cursor}`),
+    );
+    assert.deepEqual(
+      next.data.map((row) => row.attemptId),
+      ['b'],
+    );
+    const missing = await json(await f.request('?request_id=not-present'));
+    assert.deepEqual(missing.data, []);
+    assert.equal(missing.has_more, false);
+    assert.equal(missing.next_cursor, null);
+    const csv = await f.request('?request_id=inference&format=csv');
+    assert.equal(csv.status, 200);
+    const text = await csv.text();
+    assert.ok(text.includes('inference'));
+    assert.ok(!text.includes('foreign'));
+    f.failAudit();
+    const blocked = await f.request('?request_id=inference');
+    assert.equal(blocked.status, 503);
+    assert.ok(!(await blocked.text()).includes('inference'));
+  } finally {
+    await f.db.close();
+  }
+});
+
+test('SSO request filter rejects invalid values after authentication without usage SQL', async () => {
+  const f = await fixture();
+  try {
+    for (const query of [
+      '?request_id=',
+      '?request_id=a&request_id=b',
+      '?request_id=%00',
+      `?request_id=${'x'.repeat(257)}`,
+    ]) {
+      const before = f.sql.filter((sql) => sql.includes('FROM usage_records')).length;
+      assert.equal((await f.request(query)).status, 400);
+      assert.equal(f.sql.filter((sql) => sql.includes('FROM usage_records')).length, before);
+      assert.equal(f.events.at(-1)?.outcome, 'invalid_query');
+    }
+    assert.equal((await f.request('?request_id=inference', 'invalid')).status, 401);
+  } finally {
+    await f.db.close();
+  }
+});
+
 test('usage GET framing: Fetch rejects hidden bodies before identity SQL or audit', async () => {
   const f = await fixture();
   try {
@@ -380,6 +436,66 @@ test('usage GET framing: Node HTTP rejects framed JSON/CSV reads and still serve
     assert.ok(f.sql.some((query) => query.includes('FROM usage_records')));
   } finally {
     await new Promise<void>((resolve) => server.close(() => resolve()));
+    await f.db.close();
+  }
+});
+
+test('request-id JSON/CSV framing integration preserves scope and mandatory audit', async () => {
+  const f = await fixture();
+  try {
+    for (const format of ['json', 'csv']) {
+      f.sql.length = 0;
+      const before = f.events.length;
+      const rejected = await f.handler(
+        new Request(
+          `https://management.test/management/v1/usage?request_id=inference&format=${format}&limit=1`,
+          {
+            headers: { authorization: `Bearer ${token}`, 'content-length': '1' },
+          },
+        ),
+      );
+      assert.equal(rejected.status, 400);
+      assert.equal(f.sql.length, 0, 'framed request-id reads never reach identity or usage SQL');
+      assert.equal(f.events.length, before);
+      const allowed = await f.handler(
+        new Request(
+          `https://management.test/management/v1/usage?request_id=inference&format=${format}&limit=1`,
+          {
+            headers: { authorization: `Bearer ${token}`, 'content-length': '0' },
+          },
+        ),
+      );
+      assert.equal(allowed.status, 200);
+      const body = await allowed.text();
+      assert.ok(body.includes('inference'));
+      assert.ok(!body.includes('foreign'));
+      assert.equal(f.events.length, before + 1);
+      if (format === 'json') {
+        const page = JSON.parse(body);
+        assert.deepEqual(
+          page.data.map((row: { attemptId: string }) => row.attemptId),
+          ['c'],
+        );
+        assert.equal(page.has_more, true);
+        const next = await json(
+          await f.request(`?request_id=inference&limit=1&cursor=${page.next_cursor}`),
+        );
+        assert.deepEqual(
+          next.data.map((row: { attemptId: string }) => row.attemptId),
+          ['b'],
+        );
+      } else {
+        assert.equal(allowed.headers.get('x-has-more'), 'true');
+        assert.ok(allowed.headers.get('x-next-cursor'));
+      }
+    }
+    f.failAudit();
+    for (const format of ['json', 'csv']) {
+      const blocked = await f.request(`?request_id=inference&format=${format}`);
+      assert.equal(blocked.status, 503);
+      assert.ok(!(await blocked.text()).includes('inference'));
+    }
+  } finally {
     await f.db.close();
   }
 });
