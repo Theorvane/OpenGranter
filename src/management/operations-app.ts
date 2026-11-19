@@ -3,6 +3,7 @@ import type { CatalogRequest } from './catalog-client.ts';
 import type { CatalogElement } from './catalog-view.ts';
 import { mountCurrentPrincipalPanel } from './current-principal-panel.ts';
 import { type HistoryDownload, mountHistoryWorkspace } from './history-app.ts';
+import { mountOperationsCatalog } from './operations-catalog.ts';
 import { mountTokenManagementPanel } from './token-management-panel.ts';
 
 /** Explicit approved-caller integration, not an authentication boundary.
@@ -28,7 +29,7 @@ export function mountManagementOperations(
     previous?.dispose();
     root.replaceChildren();
   }
-  function navigate(kind: 'history' | 'tokens' | 'account', principalId?: string) {
+  function navigate(kind: 'history' | 'tokens' | 'models' | 'account', principalId?: string) {
     if (stopped) return;
     const current = ++epoch;
     clear();
@@ -55,6 +56,7 @@ export function mountManagementOperations(
     navigation.setAttribute('aria-label', 'Management operations');
     for (const [target, label] of [
       ['history', 'History'],
+      ['models', 'Models'],
       ['tokens', 'Proxy tokens'],
       ['account', 'Account'],
     ] as const) {
@@ -103,6 +105,8 @@ export function mountManagementOperations(
         return;
       }
       mounted = mountHistoryWorkspace(content, guarded, download);
+    } else if (kind === 'models') {
+      mounted = mountOperationsCatalog(content, guarded);
     } else if (kind === 'account') {
       mounted = mountCurrentPrincipalPanel(content, guarded, (id) => {
         if (active()) navigate('tokens', id);

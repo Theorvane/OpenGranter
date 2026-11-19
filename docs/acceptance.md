@@ -1996,6 +1996,10 @@ The history DOM mount preserves the CsvDownloadResult port contract: only `start
 - Require successful streamed issuance before expiry; logout, identity replacement and screen navigation cancel a pending body without stale publication. Source failures show only generic uncertain-outcome guidance, never source diagnostics.
 
 
+## Model navigation within trusted operations (#637)
+
+The opt-in trusted operations mount now connects Models list/detail to the existing scoped SSO catalog API, alongside History and Proxy tokens. It preserves loading, empty, missing, retry and global current-denial states; navigation disposes/aborts the prior screen and returning reloads data. Detached controls and late responses cannot revive old content. Existing server authentication, IAM, audit and trusted-session expiry remain authoritative; no login source, public activation or installed acceptance is added. See [plan](plans/637-operations-catalog.md) and [contract](../contracts/management-operations.md).
+
 ## Request-scoped usage API (#642)
 
 Existing principal-scoped management and proxy usage histories accept an optional exact request_id filter, intersected with model/time/keyset filters for JSON and CSV. Canonical parameterized SQL and full-page/lookahead validation preserve isolation; fresh IAM and mandatory audit remain required. No new authority, session acquisition, schema or deployment activation. Browser drilldown integration and installed/live acceptance remain separate. See [plan](plans/642-usage-request-filter.md) and [contract](../contracts/usage-request-filter.md).
