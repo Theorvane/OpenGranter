@@ -1475,3 +1475,6 @@ Usage now accepts an exact Request ID filter and a row action that reloads autho
 ## Account to token issuance preparation (#640)
 
 The opt-in operations workspace now prepares the existing token form from the exact validated signed-in Account ID, without manual copying. Expiry remains blank and issuing still requires a separate review and confirmation. Account identity is not an IAM grant; fresh Deny and mandatory audit remain enforced by the actual API. No login/session or installed acceptance is claimed. See [contract](../contracts/account-token-handoff.md) and [plan](plans/640-account-token-handoff.md).
+## Usage history bodyless GET enforcement (#642)
+
+The existing SSO Usage JSON/CSV handler now rejects Transfer-Encoding and nonzero/noncanonical Content-Length before identity/usage SQL or service audit, matching Audit and Models even when Node omits a GET body. Normal absent/zero-length requests retain fresh IAM and awaited audit. Signed-token PGlite plus loopback HTTP tests are not real IdP, browser login or installed PostgreSQL/provider acceptance. No runtime/session activation. See [plan](plans/642-usage-get-framing.md) and [contract](../contracts/sso-usage-history.md).
