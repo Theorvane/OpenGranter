@@ -44,7 +44,7 @@ for (const base of ['/v1', '/api/v1'] as const)
       });
 
       test(`${label}: already-started failure retains generic SSE semantics and no advisory metadata`, async () => {
-        for (const status of [429, 503])
+        for (const status of [408, 429, 503, 504])
           for (const interruptionFails of [false, true]) {
             const f = probabilityFixture(delegated ? 'openrouter' : 'openai');
             const fail = async (
@@ -62,8 +62,20 @@ for (const base of ['/v1', '/api/v1'] as const)
               });
               const category = status === 429 ? 'rate-limit' : 'server-error';
               throw delegated
-                ? new OpenRouterChatFailure(category, true, true, 7, status)
-                : new DirectProviderFailure(category, true, true, 7, status);
+                ? new OpenRouterChatFailure(
+                    status === 408 ? 'upstream' : category,
+                    true,
+                    true,
+                    7,
+                    status,
+                  )
+                : new DirectProviderFailure(
+                    status === 408 ? 'other' : category,
+                    true,
+                    true,
+                    7,
+                    status,
+                  );
             };
             const handler = createChatHandler({
               ...f.ports,
@@ -134,7 +146,7 @@ for (const base of ['/v1', '/api/v1'] as const)
 
 for (const base of ['/v1', '/api/v1'] as const)
   for (const functions of [false, true])
-    for (const end of ['success', 'generic', 'hinted'] as const)
+    for (const end of ['success', 'generic', 'hinted', 'timeout'] as const)
       test(`pre-stream managed fallback ${base} functions=${functions} end=${end}: only the last outcome supplies metadata`, async () => {
         const f = probabilityFixture('openai', undefined, {
           stream: true,
@@ -151,6 +163,8 @@ for (const base of ['/v1', '/api/v1'] as const)
           if (++attempts === 1) throw new DirectProviderFailure('rate-limit', false, true, 7, 429);
           if (end === 'generic') throw new DirectProviderFailure('other', true, true);
           if (end === 'hinted') throw new DirectProviderFailure('server-error', true, true, 9, 503);
+          if (end === 'timeout')
+            throw new DirectProviderFailure('server-error', true, true, 9, 504);
         };
         const invokeText = f.ports.invokeDirectTextStream;
         const invokeFunctions = f.ports.invokeDirectFunctionStream;
@@ -181,7 +195,13 @@ for (const base of ['/v1', '/api/v1'] as const)
         );
         assert.equal(
           response.status,
-          end === 'success' ? 200 : end === 'hinted' && base === '/api/v1' ? 503 : 502,
+          end === 'success'
+            ? 200
+            : end === 'timeout' && base === '/api/v1'
+              ? 504
+              : end === 'hinted' && base === '/api/v1'
+                ? 503
+                : 502,
         );
         assert.equal(response.headers.get('retry-after'), end === 'hinted' ? '9' : null);
         const body = await response.text();

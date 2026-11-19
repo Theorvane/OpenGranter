@@ -244,6 +244,8 @@ export async function invokeDelegatedRoute<T>(
       possiblyBilled,
       ...(upstreamStatus === undefined ? {} : { upstreamStatus }),
       ...(failure &&
+      upstreamStatus !== 408 &&
+      upstreamStatus !== 504 &&
       (failure.category === 'rate-limit' || failure.category === 'server-error') &&
       validRetryAfterSeconds(failure.retryAfterSeconds)
         ? { retryAfterSeconds: failure.retryAfterSeconds }

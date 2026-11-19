@@ -1,6 +1,6 @@
 import { mountManagementBoundaryView } from './boundary-view.ts';
-import { renderCatalogModelDetails } from './catalog-model-details.ts';
 import type { ManagementCatalogSnapshot } from './catalog-session.ts';
+import { renderPublishedModelDetails } from './model-detail-view.ts';
 
 export interface CatalogElement {
   textContent: string | null;
@@ -111,7 +111,7 @@ export function renderCatalogView(
     }
     main.append(button('Refresh models', actions.list));
   } else if (value.state === 'detail') {
-    renderCatalogModelDetails(main, value.model);
+    main.append(...renderPublishedModelDetails(root, value.model));
     main.append(button('Refresh model', () => actions.detail(value.model.id)));
     main.append(button('Back to models', actions.list));
   }
