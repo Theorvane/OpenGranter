@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
 import { createPostgresSsoUsageHistoryHandler } from '../src/gateway/postgres-sso-usage-history-http.ts';
+import { createSsoUsageClient } from '../src/management/usage-client.ts';
 import { loadPostgresMigrationSources } from '../src/storage/postgres-migration-sources.ts';
 import { createPostgresUsageLedger } from '../src/usage/postgres-ledger.ts';
 import { buildUsageRecord } from '../src/usage/record-usage.ts';
@@ -10,7 +11,9 @@ import { createSsoAccessTokenFixture } from './sso-access-token-fixture.ts';
 const jwt = await createSsoAccessTokenFixture();
 const token = await jwt.token();
 interface UsageResponse {
-  readonly data: readonly import('../src/usage/record-usage.ts').UsageRecord[];
+  readonly data: readonly (import('../src/usage/record-usage.ts').UsageRecord & {
+    costComparison: import('../src/usage/cost-comparison.ts').UsageCostComparison;
+  })[];
   readonly has_more: boolean;
   readonly next_cursor: string | null;
 }
@@ -66,6 +69,20 @@ async function fixture() {
         outcome: 'succeeded',
         possiblyBilled: true,
         possibleDuplicate: false,
+        ...(attemptId === 'c'
+          ? {
+              estimatedCost: {
+                amountDecimal: '9007199254740993.000000000000000001',
+                currency: 'USD',
+                priceVersion: 'v1',
+              },
+              upstreamBilledCost: {
+                amountDecimal: '9007199254740993.000000000000000002',
+                currency: 'USD',
+                source: 'openrouter',
+              },
+            }
+          : {}),
       }),
     );
   }
@@ -109,8 +126,18 @@ test('concrete composition persists signed SSO attribution for JSON, CSV and emp
     assert.equal(response.headers.get('cache-control'), 'no-store');
     const page = await json(response);
     assert.equal(page.data[0]?.attemptId, 'c');
+    assert.deepEqual(page.data[0]?.costComparison, {
+      status: 'reported_above_estimate',
+      reportedMinusEstimated: '0.000000000000000001',
+      currency: 'USD',
+    });
     assert.equal(page.has_more, true);
-    assert.equal((await f.request('?format=csv&limit=1')).status, 200);
+    const csvResponse = await f.request('?format=csv&limit=1');
+    assert.equal(csvResponse.status, 200);
+    const csv = await csvResponse.text();
+    assert.ok(csv.includes('"reported_above_estimate","0.000000000000000001","USD"'));
+    assert.ok(!csv.includes('foreign'));
+    assert.ok(!csv.includes(token));
     assert.equal((await json(await f.request('?model=absent'))).data.length, 0);
     const rows = (
       await f.db.query<Record<string, unknown>>(
@@ -208,6 +235,34 @@ test('durable insert is awaited and failure withholds JSON, CSV and anonymous re
     );
   } finally {
     release();
+    await f.db.close();
+  }
+});
+
+test('signed SSO SQL usage reaches the browser transport with exact cost comparison and mandatory audit', async () => {
+  const f = await fixture();
+  try {
+    const client = createSsoUsageClient(async (path) =>
+      f.request(new URL(path, 'https://management.test').search),
+    );
+    const result = await client.read({ limit: 1, model: 'chat' });
+    assert.equal(result.state, 'ready');
+    if (result.state !== 'ready') return;
+    assert.deepEqual(result.data[0]?.costComparison, {
+      status: 'reported_above_estimate',
+      reportedMinusEstimated: '0.000000000000000001',
+      currency: 'USD',
+    });
+    assert.equal(result.data[0]?.principalId, 'human');
+    assert.equal(result.data[0]?.attemptId, 'c');
+    assert.ok(!JSON.stringify(result).includes(token));
+    const audit = await f.db.query<Record<string, unknown>>('SELECT * FROM sso_usage_audit_events');
+    assert.equal(audit.rows.length, 1);
+    assert.equal(audit.rows[0]?.principal_id, 'human');
+    assert.equal((await client.read({ principalId: 'other', limit: 1 })).state, 'denied');
+    f.failAudit();
+    assert.deepEqual(await client.read({ limit: 1 }), { state: 'unavailable' });
+  } finally {
     await f.db.close();
   }
 });

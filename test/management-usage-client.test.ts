@@ -36,7 +36,17 @@ test('JSON keeps unknown billing and duplicate markers and strips private extens
   });
   const result = await client.read({ model: 'chat', fromMs: 0, toMs: 11, limit: 2 });
   assert.equal(path, '/management/v1/usage?format=json&model=chat&from_ms=0&to_ms=11&limit=2');
-  assert.deepEqual(result, { state: 'ready', data: [row()], hasMore: false, nextCursor: null });
+  assert.deepEqual(result, {
+    state: 'ready',
+    data: [
+      {
+        ...row(),
+        costComparison: { status: 'estimate_only', reportedMinusEstimated: null, currency: null },
+      },
+    ],
+    hasMore: false,
+    nextCursor: null,
+  });
   assert.ok(!JSON.stringify(result).includes('PRIVATE'));
 });
 test('empty is ready, not unavailable or invented zero billing', async () => {
@@ -296,7 +306,7 @@ test('JSON transport uses signed SSO, SQL history and mandatory durable audit', 
   }
 });
 
-test('reported usage keeps both decimal cost sources without arithmetic or zero filling', async () => {
+test('reported usage preserves decimal cost sources alongside exact comparison', async () => {
   const value = buildUsageRecord({
     ...row(),
     actualInferenceProviderId: undefined,
@@ -304,7 +314,21 @@ test('reported usage keeps both decimal cost sources without arithmetic or zero 
     upstreamBilledCost: { amountDecimal: '0.00000100', currency: 'USD', source: 'direct-provider' },
   });
   const result = await createSsoUsageClient(async () => page([value])).read();
-  assert.deepEqual(result, { state: 'ready', data: [value], hasMore: false, nextCursor: null });
+  assert.deepEqual(result, {
+    state: 'ready',
+    data: [
+      {
+        ...value,
+        costComparison: {
+          status: 'reported_below_estimate',
+          reportedMinusEstimated: '-0.009999',
+          currency: 'USD',
+        },
+      },
+    ],
+    hasMore: false,
+    nextCursor: null,
+  });
 });
 
 test('JSON rejects complete-looking pages with mismatched identity Content-Length', async () => {
@@ -345,7 +369,12 @@ test('JSON accepts byte-exact UTF8 identity, absent length and compressed decode
     });
     assert.deepEqual(await createSsoUsageClient(async () => response).read(), {
       state: 'ready',
-      data: [row('é')],
+      data: [
+        {
+          ...row('é'),
+          costComparison: { status: 'estimate_only', reportedMinusEstimated: null, currency: null },
+        },
+      ],
       hasMore: false,
       nextCursor: null,
     });

@@ -34,3 +34,7 @@ Direct main6757eee branch fix/858-usage-http-framing. No dependency on unmerged8
 - GREEN: original framing fix restored, 24/24 focused runtime and transport cases pass, zero skips; /tmp/og-0400-green.log. Both actual owned sockets use signed generated test JWTs and migrated embedded SQL; fixed-length/chunked JSON/CSV bodies produce private400 without ledger reads or durable read-access events. Ordinary reads, attribution, policy revocation and failures still pass.
 - Full TypeScript, Biome597files (42 existing warnings/162infos, no errors), planning/link/contract checker, six offline compatibility pins and diff checks pass. Formatter invocation through bundled npm failed permission; direct Node invocation succeeded. No full local suite claimed.
 - Existing PR859 updated, stacked on exact PR855 a6a0db5; no new duplicate PR. Browser login, session approval, installed PostgreSQL and provider/deployment acceptance remain open.
+
+## Current main integration
+
+Main already contains the same pre-dispatch usage GET framing guard and trusted owned usage dispatch. Preserve audit/principal routing and enumerated trusted ports while retaining all original framing and runtime regressions.

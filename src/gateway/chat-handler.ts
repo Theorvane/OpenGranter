@@ -34,12 +34,12 @@ import { serializeUsageCsv } from '../usage/csv.ts';
 import {
   encodeUsageCursor,
   matchesUsageHistoryFilters,
-  parseStoredUsageRecord,
   parseUsageHistoryQuery,
   type UsageHistoryPage,
   type UsageHistoryQuery,
   validUsageHistoryOrder,
 } from '../usage/history.ts';
+import { projectUsageJson, type UsageJsonRecord } from '../usage/json.ts';
 import type { UsageRecord } from '../usage/record-usage.ts';
 import { type ChatMessage, snapshotChatMessages } from './chat-messages.ts';
 import {
@@ -907,7 +907,7 @@ export function createChatHandler<T>(
         }
         return errorResponse(403, 'forbidden', requestId);
       }
-      let data: UsageRecord[];
+      let data: UsageJsonRecord[];
       let hasMore: boolean;
       let nextCursor: string | null;
       let csv: string | null = null;
@@ -917,6 +917,7 @@ export function createChatHandler<T>(
           principalId: targetPrincipalId,
           limit: parsed.limit,
           cursor: parsed.cursor,
+          ...(parsed.requestId === undefined ? {} : { requestId: parsed.requestId }),
           ...(parsed.modelAlias === undefined ? {} : { modelAlias: parsed.modelAlias }),
           ...(parsed.fromMs === undefined ? {} : { fromMs: parsed.fromMs }),
           ...(parsed.toMs === undefined ? {} : { toMs: parsed.toMs }),
@@ -930,7 +931,7 @@ export function createChatHandler<T>(
         ) {
           throw new Error('invalid usage page');
         }
-        data = page.records.map(parseStoredUsageRecord);
+        data = page.records.map(projectUsageJson);
         if (
           data.some(
             (record) =>

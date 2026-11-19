@@ -25,7 +25,7 @@ export function createSsoUsageHistoryHandler(ports: SsoUsageHistoryHttpPorts) {
       requestId = newRequestId();
       const url = new URL(request.url);
       if (url.pathname !== '/management/v1/usage') return failure(404, 'not_found', requestId);
-      // Node omits GET bodies during Fetch adaptation; validate original framing too.
+      // The Node adapter omits GET bodies; retain the wire framing guard.
       const length = request.headers.get('content-length');
       if (
         request.method !== 'GET' ||
