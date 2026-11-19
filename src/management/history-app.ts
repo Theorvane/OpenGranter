@@ -1,9 +1,11 @@
 import type { AuditFilters } from './audit-client.ts';
+import { renderAuditRecord } from './audit-record-view.ts';
 import { mountManagementBoundaryView } from './boundary-view.ts';
 import type { CatalogRequest } from './catalog-client.ts';
 import type { CatalogElement } from './catalog-view.ts';
 import type { CsvDownloadResult } from './csv-download.ts';
 import { createHistoryWorkspace } from './history-workspace.ts';
+import { renderUsageRecordDetails } from './usage-record-view.ts';
 
 /** Compatible with createCsvDownload; ownership transfers to this mount. */
 export interface HistoryDownload {
@@ -96,9 +98,15 @@ export function mountHistoryWorkspace(
     nav.setAttribute('aria-label', 'History views');
     for (const tab of ['usage', 'audit'] as const) {
       const node = button(tab === 'usage' ? 'Usage' : 'Audit', () => {
+        if (active === tab) return;
         active = tab;
-        render();
-        if (workspace[tab].snapshot().state === 'idle') void workspace[tab].load(filters[tab]);
+        const state = workspace[tab].snapshot().state;
+        // Read before rendering: never expose the old authorized page while
+        // fresh IAM is being checked, even for one synchronous render.
+        if (state === 'idle') void workspace[tab].load(filters[tab]);
+        else if (['ready', 'empty', 'unavailable', 'cancelled'].includes(state))
+          void workspace[tab].retry();
+        else render();
       });
       node.setAttribute('aria-pressed', String(kind === tab));
       nav.append(node);
@@ -202,13 +210,12 @@ export function mountHistoryWorkspace(
         if (row.possibleDuplicate) item.append(element('p', 'Possible duplicate'));
         if (row.possiblyBilled)
           item.append(element('p', 'Possibly billed; not an invoice reconciliation'));
+        item.append(renderUsageRecordDetails(root, row));
         rows.append(item);
       }
     else
       for (const row of snapshot.audit.data) {
-        rows.append(
-          element('li', `${row.occurredAt} · ${row.kind} · ${row.principalId} · ${row.requestId}`),
-        );
+        rows.append(renderAuditRecord(root, row));
       }
     main.append(rows);
     main.append(
@@ -227,6 +234,15 @@ export function mountHistoryWorkspace(
           void review.next();
         },
         view.canNext,
+      ),
+    );
+    main.append(
+      button(
+        'Refresh current page',
+        () => {
+          void review.retry();
+        },
+        view.state === 'ready' || view.state === 'empty',
       ),
     );
     if (view.state === 'unavailable' || view.state === 'cancelled')
