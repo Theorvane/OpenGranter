@@ -66,7 +66,13 @@ test('snapshots deeply frozen without altering unknown money and duplicate marke
   const snapshot = session.snapshot();
   assert.equal(snapshot.state, 'rows');
   if (snapshot.state !== 'rows') return;
-  assert.deepEqual(snapshot.data, [row()]);
+  assert.deepEqual(snapshot.data, [
+    {
+      ...row(),
+      costComparison: { status: 'unknown', reportedMinusEstimated: null, currency: null },
+    },
+  ]);
+  assert.ok(Object.isFrozen(snapshot.data[0]?.costComparison));
   assert.ok(Object.isFrozen(snapshot));
   assert.ok(Object.isFrozen(snapshot.data));
   assert.ok(Object.isFrozen(snapshot.data[0]));
@@ -243,4 +249,27 @@ test('a pending retry hides rows and cannot publish after expiry', async () => {
   release?.(page());
   await Promise.resolve();
   assert.deepEqual(session.snapshot(), { state: 'expired' });
+});
+
+test('search, pagination and explicit retry retain the main request-ID filter', async () => {
+  const session = createSsoUsageSession();
+  const cursor = Buffer.from(JSON.stringify([10, 'z'])).toString('base64url');
+  const paths: string[] = [];
+  let fail = false;
+  session.authorize(async (path) => {
+    paths.push(path);
+    if (fail) return new Response(null, { status: 503 });
+    return page([row()], cursor);
+  });
+  const filters = { requestId: 'r', limit: 1 };
+  await session.search(filters);
+  filters.requestId = 'changed';
+  fail = true;
+  await session.next();
+  await session.retry();
+  assert.equal(paths.length, 3);
+  for (const path of paths) {
+    assert.equal(new URL(path, 'https://local.invalid').searchParams.get('request_id'), 'r');
+  }
+  assert.equal(paths[1], paths[2]);
 });

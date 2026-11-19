@@ -29,3 +29,7 @@
 
 - 2026-11-11 recovery evidence: initial shell test append failed before edit; old 7-pass run was not RED. Corrected public-boundary RED /tmp/og-0900-retry-red-corrected.log has 7 pass and 3 expected missing-retry failures. GREEN /tmp/og-0900-retry-green-final.log has 42/42 zero skips across lifecycle10, JSON25 and signed SSO/migrated embedded SQL/durable HTTP7. Retry itself is tested through the injected request port; signed SQL transport tests are separate, not browser acceptance. Full typecheck, lint (42 preexisting warnings/162 infos), docs, six compatibility pins and diff pass.
 - Rebased onto merged #844 (main6757eee); dropped superseded predecessor61677b8 after inspecting conflicts and retained both pending-request snapshot and lifecycle acceptance sections. No frontend-owned file changed. Standard full check remains a separate gate; exact-head CI/formal review and frontend selection remain required before activation.
+
+## Main integration
+
+Preserve the canonical additive costComparison projection and deep immutability, including unknown costs; retain the existing exact request-ID filter through copied search scope, pagination and explicit retry. Validate these via the public session lifecycle alongside all original regressions. No new authority or activation.

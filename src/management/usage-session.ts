@@ -1,4 +1,4 @@
-import type { UsageRecord } from '../usage/record-usage.ts';
+import type { UsageJsonRecord } from '../shared/usage/json.ts';
 import type { CatalogRequest } from './catalog-client.ts';
 import { createSsoUsageClient, type UsageFilters } from './usage-client.ts';
 
@@ -8,7 +8,7 @@ export type UsageSnapshot =
   | { readonly state: LockedState | 'idle' | 'loading' | 'empty' | 'invalid_query' | 'disposed' }
   | {
       readonly state: 'rows';
-      readonly data: readonly UsageRecord[];
+      readonly data: readonly UsageJsonRecord[];
       readonly hasMore: boolean;
     };
 
@@ -85,6 +85,7 @@ export function createSsoUsageSession() {
       // Copy explicitly: never retain mutable caller input or a caller cursor.
       filters = {
         ...(search.principalId !== undefined ? { principalId: search.principalId } : {}),
+        ...(search.requestId !== undefined ? { requestId: search.requestId } : {}),
         ...(search.model !== undefined ? { model: search.model } : {}),
         ...(search.fromMs !== undefined ? { fromMs: search.fromMs } : {}),
         ...(search.toMs !== undefined ? { toMs: search.toMs } : {}),
