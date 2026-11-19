@@ -1393,6 +1393,10 @@ The opt-in history/token operations adapter consumes an existing trusted request
 ### Operations streamed-body deadline (#637)
 The trusted operations lifecycle must enforce known expiry through body consumption, not only at response headers. A late streamed issuance body must never reveal its bearer secret after the deadline even with missed timer delivery; existing server authorization and uncertain mutation-outcome guidance remain unchanged.
 
+### Bounded authenticated token request bodies (#640)
+
+Existing signed-SSO issuance/revocation now reject stalled or trickling JSON bodies within a single 15-second read budget before service dispatch, with private cancellation cleanup. Authentication/IAM/audit and post-dispatch mutation semantics remain unchanged. No session or deployment activation. See [plan](plans/640-management-body-deadline.md) and [contract](../contracts/sso-management-http.md#whole-request-body-read-deadline-640).
+
 ## Versioned attempt estimate calculation (#642)
 
 The existing accounting handoff can now attach an exact flat aggregate token-cost estimate from an explicitly caller-supplied applicable version. Preserve unknown usage as unknown, actual zero as zero and estimates separately from reported bills. No automatic price selection, discovery repricing, gateway configuration activation, invoice reconciliation or budget semantics. See [contract](../contracts/versioned-attempt-estimates.md) and [plan](plans/642-versioned-attempt-estimates.md).

@@ -52,3 +52,7 @@ An oversized, malformed or aborted body never dispatches a mutation. Body-reader
 ## Rejected response producer disposal (#640)
 
 The Node HTTP adapter initiates best-effort cancellation of discarded normal/custom fallback bodies before emitting its safe fallback. Invalid metadata cannot leave an untouched private response producer running. Cancellation rejection, synchronous failure, or an unsettled promise cannot delay or replace the fallback. Valid streams remain unchanged. Locked/consumed streams may refuse cleanup; this is not forced resource reclamation, a total request deadline, or mutation rollback. See [plan](../docs/plans/640-node-response-disposal.md).
+
+## Whole request-body read deadline (#640)
+
+Authenticated JSON issuance/revocation bodies must finish within one 15-second monotonic budget starting before the first read. Chunks do not renew it. Timeout, late chunk/EOF or abort before dispatch returns existing generic 400 invalid_request with no-store and trusted request ID, without IAM/mutation dispatch. Pending reads are released via best-effort cancellation; producer cleanup is never awaited. Clear timer/listener on every exit. Authentication still precedes body access. This does not bound authentication, required audit or dispatched service work and never retries or proves mutation rollback. The earlier byte-only cleanup limitation is superseded only for this body-read phase.
