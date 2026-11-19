@@ -8,7 +8,7 @@
 
 ## Parent reconciliation (2026-11-20 05:00 KST)
 
-Integrate existing #963 with current #962 exact 54c835e96c3b11454157facd3af0bff94bf5a093 before extending expiry work. Preserve destination-owned cancellation, current Account identity handoff, authorization and exact server lifetime validation; no session/runtime/schema/activation changes. Inspect source conflicts, run bounded real-HTTP issuance success/denial/audit-failure plus UTC panel and Account/Operations regressions, and exercise browser input/review against the integrated bundle. Integration evidence is not new original-source RED or installed/company-IdP/native-PG/provider acceptance. Keep draft and all dependency/exact-head approval gates.
+Integrate existing #963 with current #962 exact 54c835e96c3b11454157facd3af0bff94bf5a093 before extending expiry work. Preserve destination-owned cancellation, current Account identity handoff, authorization and exact server lifetime validation; no session/runtime/schema/activation changes. Inspect source conflicts, run bounded real-HTTP issuance success/denial/audit-failure plus UTC panel and Account/Operations regressions, and exercise browser input/review against the integrated bundle. Integration evidence is not new original-source RED or installed/company-IdP/native-PG/provider acceptance. Preserve the existing PR readiness state and all dependency/exact-head approval gates; do not toggle readiness or auto-merge.
 
 ### Reconciliation evidence
 
