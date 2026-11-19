@@ -1533,3 +1533,7 @@ Usage and Audit HTTP reads reject invalid server-generated correlation IDs befor
 
 The existing opt-in SSO operations composition connects canonical Account/Models/Usage/Audit reads and authorized proxy-token issue/revoke APIs on one application boundary. CanonicalOperations factory names are compatibility exports of that shared implementation, not a duplicate router. Token errors and successes retain no-store/nosniff, including private503 failures. The previous canonical-review composition remains read-only. Human JWT, current IAM, lifetime limits and transactional audit are reused; no session, default activation or installation is implied. See [plan](plans/637-canonical-operations-composition.md) and [contract](../contracts/canonical-operations-composition.md).
 Published model list descriptions preserve administrator whitespace through the fixed CSP-safe shell stylesheet, matching model details.
+
+## Explicit owned operations bootstrap (#637/#640)
+
+Canonical reads and existing proxy-token issue/revoke can now be deliberately selected through a hash-verified public-artifact bootstrap sharing existing migration/listener/close ownership. Existing read-only services and CLI remain unchanged; deployment selection needs approval. Account audit DDL remains a separate caller prerequisite. See [contract](../contracts/canonical-operations-bootstrap.md) and [plan](plans/637-canonical-operations-bootstrap.md). Loopback PGlite evidence is not installed/browser-session/provider certification.
