@@ -121,10 +121,11 @@ export function createUsageReview(
       base = {};
       try {
         // Read known getters once. A fresh search must never reuse a stale cursor.
-        const { principalId, model, fromMs, toMs, limit } = input;
+        const { principalId, requestId, model, fromMs, toMs, limit } = input;
         if (blocked || revision !== current) return;
         base = Object.freeze({
           ...(principalId === undefined ? {} : { principalId }),
+          ...(requestId === undefined ? {} : { requestId }),
           ...(model === undefined ? {} : { model }),
           ...(fromMs === undefined ? {} : { fromMs }),
           ...(toMs === undefined ? {} : { toMs }),
