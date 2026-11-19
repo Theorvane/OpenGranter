@@ -30,3 +30,7 @@
 - Fresh canonical FE2591928 build: 130,653 bytes, SHA-256 9cab1c847be956377490b4f10551f54134bf3c73d0e8901f19bf90b0090c5348; eight explicit shared source grants, no FE edits. The selected FE revision and grants still require independent publication review.
 - Local browser http://127.0.0.1:18954/management renders signed-out management navigation and Usage history sign-in-required state. Audit clicks appeared to render Account; sent the observation to the FE owner rather than changing owned navigation. No login/private SQL API/provider/install acceptance is claimed.
 - Fresh npx invocations encountered a nonexecutable installed npx launcher; direct node invocation of installed TypeScript and Biome succeeded. This is a tool-launch issue, not a source or filesystem denial.
+
+## Current main integration
+
+Preserve main fixed reviewed canonical usage/audit browser closure and deny arbitrary server dependencies. Add the approved exact root-relative publicSources grants only for transitive imports; entry stays under management and every additional transitive source needs its own grant. Preserve canonical build tests and retain the complete original PR test suite separately as management-browser-build-pr860.test.ts.

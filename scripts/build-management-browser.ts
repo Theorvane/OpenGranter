@@ -35,17 +35,27 @@ export async function buildManagementBrowser(
       throw new Error('Management build requires local TypeScript sources');
     allowed.add(canonical);
   }
-  async function local(path: string, entry = false) {
+  // Fixed reviewed pure closure, not a general shared/server source allowlist.
+  const shared = new Set([
+    ...['attribution', 'record-usage', 'stored-row', 'cost-comparison', 'json'].map((name) =>
+      resolve(root, 'src/shared/usage', `${name}.ts`),
+    ),
+    ...['history-http', 'history-filters', 'time-range', 'event-projection', 'history-types'].map(
+      (name) => resolve(root, 'src/shared/audit', `${name}.ts`),
+    ),
+  ]);
+  async function local(path: string, transitive = false) {
     const canonical = await realpath(path);
     if (
       !canonical.endsWith('.ts') ||
-      (!within(source, canonical) && (entry || !allowed.has(canonical)))
+      (!within(source, canonical) &&
+        (!transitive || (!shared.has(canonical) && !allowed.has(canonical))))
     ) {
       throw new Error('Management build requires local TypeScript sources');
     }
     return canonical;
   }
-  const entry = await local(resolve(root, options.entry), true);
+  const entry = await local(resolve(root, options.entry));
   const result = await build({
     absWorkingDir: root,
     entryPoints: [entry],
@@ -68,7 +78,7 @@ export async function buildManagementBrowser(
             if (!args.path.startsWith('./') && !args.path.startsWith('../')) {
               throw new Error('Management build forbids external dependencies');
             }
-            return { path: await local(resolve(dirname(args.importer), args.path)) };
+            return { path: await local(resolve(dirname(args.importer), args.path), true) };
           });
         },
       },

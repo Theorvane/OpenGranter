@@ -324,6 +324,7 @@ test('dual runtime migrates before configuration and invokes both persisted rout
               '011',
               '012',
               '013',
+              '014',
             ],
           );
           await db.exec(`

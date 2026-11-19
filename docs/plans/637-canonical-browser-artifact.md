@@ -1,0 +1,6 @@
+# Canonical browser artifact bootstrap (#637, #643)
+
+1. Add an explicit separately named bootstrap combining a reviewed on-disk public bundle with the owned canonical catalog/usage/audit runtime. Require an exact lowercase SHA-256 pin; reject missing/malformed/mismatching pins and unreadable/invalid bundles before acquiring SQL or migrations.
+2. Reuse the bounded UTF-8 file reader and existing owned runtime. Snapshot bytes once. Ignore caller javascript/browserJavascript and reader/audit overrides; only the verified artifact supplies the public shell. Keep existing token bootstrap and defaults unchanged.
+3. Demonstrate meaningful RED before implementation and mutation RED against routing to the old token runtime. GREEN builds the actual catalog TypeScript entry, checks shell/script snapshot over loopback HTTP, signed catalog list/detail and usage/audit JSON/CSV, cookie denial, absent token/inference routes and mandatory audit failure. Invalid files and pins must never connect.
+4. Run regression/type/documentation checks and exact-head CI; obtain formal independent approval before merge. This is public artifact + signed bearer API integration, not browser SSO/session approval or installed PostgreSQL/provider/deployment certification.

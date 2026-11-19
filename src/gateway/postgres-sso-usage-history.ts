@@ -11,15 +11,15 @@ import { evaluate } from '../policy/evaluate.ts';
 import type { PolicyVersion } from '../policy/evaluate-attachments.ts';
 import { serializeUsageCsv } from '../usage/csv.ts';
 import { encodeUsageCursor, parseUsageCursor, parseUsageHistoryQuery } from '../usage/history.ts';
+import { projectUsageJson, type UsageJsonRecord } from '../usage/json.ts';
 import type { UsageSqlClient } from '../usage/postgres-ledger.ts';
 import { createPostgresUsageReader } from '../usage/postgres-reader.ts';
-import type { UsageRecord } from '../usage/record-usage.ts';
 
 type Failure = 'unauthenticated' | 'forbidden' | 'invalid_query' | 'unavailable';
 type ReadResult =
   | { readonly state: Failure }
   | ({ readonly state: 'ready'; readonly hasMore: boolean; readonly nextCursor: string | null } & (
-      | { readonly format: 'json'; readonly data: readonly UsageRecord[] }
+      | { readonly format: 'json'; readonly data: readonly UsageJsonRecord[] }
       | { readonly format: 'csv'; readonly csv: string }
     ));
 
@@ -85,6 +85,7 @@ export function createPostgresSsoUsageHistory(
             principalId: targetPrincipalId,
             limit: parsed.limit,
             cursor: parsed.cursor,
+            ...(parsed.requestId === undefined ? {} : { requestId: parsed.requestId }),
             ...(parsed.modelAlias === undefined ? {} : { modelAlias: parsed.modelAlias }),
             ...(parsed.fromMs === undefined ? {} : { fromMs: parsed.fromMs }),
             ...(parsed.toMs === undefined ? {} : { toMs: parsed.toMs }),
@@ -103,7 +104,7 @@ export function createPostgresSsoUsageHistory(
           result =
             parsed.format === 'csv'
               ? { ...common, format: 'csv', csv: serializeUsageCsv(page.records) }
-              : { ...common, format: 'json', data: page.records };
+              : { ...common, format: 'json', data: page.records.map(projectUsageJson) };
           count = page.records.length;
         }
       } catch (error) {
