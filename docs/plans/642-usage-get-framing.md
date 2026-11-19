@@ -1,0 +1,14 @@
+# Usage GET framing parity (#637, #642)
+
+1. Reuse the existing SSO usage handler and its fresh identity/IAM/audit service; preserve the unactivated deployment/session boundary.
+2. Reproduce the missing GET framing rejection in signed-token PGlite Fetch and loopback Node HTTP tests. Audit and Models already reject these headers, while the Node adapter intentionally omits GET bodies.
+3. Reject Transfer-Encoding and any Content-Length other than the exact normalized string `0` before calling history.read, returning fixed private 400 responses. Keep body, method and cancellation guards unchanged.
+4. Prove rejected JSON/CSV reads execute no identity/usage SQL and no service audit, matching existing syntactic rejection. Valid absent/zero-length reads still apply fresh IAM and awaited audit and return authorized JSON/CSV.
+5. Run focused RED/GREEN, related adapter tests, full typecheck, changed lint and script checks. Obtain exact-head required CI and independent formal approval before merge.
+
+No request-smuggling immunity claim: Node/proxies retain their own parser/ingress responsibilities. Local HTTP + signed synthetic IdP + PGlite is not installed PostgreSQL, real SSO/browser or provider E2E. No authority, runtime mount, migration, credential, paid call or deployment change.
+
+## Main integration (2026-11-19 13:30 KST)
+Merge current main into existing PR927, preserving both request-id filtering from merged PR928 and bodyless GET enforcement. Resolve the append-only PRD and test conflicts by retaining both complete scenarios, not choosing one side. Add cross-feature Fetch/loopback coverage: exact request-id and pagination JSON/CSV remain principal scoped; framed request-id reads reject before SQL/audit, and mandatory audit failure still withholds output. Establish RED against main without the framing guard, then restore the reviewed guard and verify GREEN. No new authority, runtime/session/DDL, deployment or paid calls. Prior approval is obsolete after the integration commit: require new exact-head independent approval and CI.
+
+Integration verification: the cross-feature request-id test fails on current main without the framing guard (expected 400, actual 200); restoring the existing guard passes. Final six-suite serial regression: 53 pass, 0 fail, 0 skip, including synthetic signed SSO, PGlite and actual loopback HTTP. Both original request-filter tests and both original framing tests are preserved in full. Full strict TypeScript, full lint (42 existing warnings/181 infos), document checks and six offline compatibility pins pass. Literal npm run check started separately; no full-check pass is claimed until its final result is inspected. Logs: /tmp/og-191330-{red,final-tests,types,lint,docs,compat,fullcheck}.log. No browser/operator URL or real IdP/installed PostgreSQL/provider acceptance was performed for this HTTP-only integration.

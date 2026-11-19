@@ -510,3 +510,59 @@ test('proxy JSON exposes unknown cost comparison without inventing zero or chang
     currency: null,
   });
 });
+
+test('request_id reaches authorized proxy history readers for JSON and CSV', async () => {
+  const seen: UsageHistoryQuery[] = [];
+  const handler = createChatHandler({
+    newRequestId: () => 'usage-read',
+    authenticate: async () => ({
+      id: 'person-1',
+      active: true,
+      credentialId: 'credential-1',
+      policyVersions: [],
+      statements: [
+        { effect: 'Allow', actions: ['usage:ReadSelf'], resources: ['principal:person-1'] },
+      ],
+    }),
+    resolveRoute: async () => {
+      throw Error('no routing');
+    },
+    checkLimit: async () => {
+      throw Error('no limits');
+    },
+    resolveSecret: async () => {
+      throw Error('no secrets');
+    },
+    writeUsage: async () => {
+      throw Error('no inference');
+    },
+    writeAudit: async () => {},
+    invokeDirect: async () => {
+      throw Error('no provider');
+    },
+    listUsage: async (query) => {
+      seen.push(query);
+      return { records: [ownRecord], hasMore: false };
+    },
+  });
+  for (const base of ['/v1']) {
+    for (const format of ['json', 'csv']) {
+      const response = await handler(
+        new Request(`https://gateway.test${base}/usage?request_id=chat-1&format=${format}`, {
+          headers: { authorization: 'Bearer proxy-token' },
+        }),
+      );
+      assert.equal(response.status, 200);
+      assert.equal(seen.at(-1)?.requestId, 'chat-1');
+      assert.equal(seen.at(-1)?.principalId, 'person-1');
+      assert.ok((await response.text()).includes('chat-1'));
+    }
+    const mismatch = await handler(
+      new Request(`https://gateway.test${base}/usage?request_id=not-matching`, {
+        headers: { authorization: 'Bearer proxy-token' },
+      }),
+    );
+    assert.equal(mismatch.status, 503);
+    assert.ok(!(await mismatch.text()).includes('chat-1'));
+  }
+});
