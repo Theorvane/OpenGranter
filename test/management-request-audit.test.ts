@@ -138,17 +138,67 @@ test('usage row opens a fresh exact request/principal audit query and returns to
   assert.match(text(root), /authorized view/);
   assert.match(text(root), /not invoice reconciliation/);
   click(root, 'Back to usage');
+  assert.match(text(root), /Loading history/);
+  assert.doesNotMatch(text(root), /9007199254740993/);
+  assert.equal(paths.length, 3, 'return rechecks usage authorization');
+  assert.equal(paths[2], paths[0], 'return retains submitted usage filters');
+  await tick();
   assert.equal(
     nodes(root).find((n) => n.attributes['aria-label'] === 'Principal')?.value,
     'unsaved-draft',
   );
   assert.match(text(root), /9007199254740993.0000000001/);
-  assert.equal(paths.length, 2);
   click(root, 'View related audit');
   await tick();
-  assert.equal(paths.length, 3, 'same row rechecks audit authorization');
+  assert.equal(paths.length, 4, 'same row rechecks audit authorization');
   app.dispose();
 });
+
+for (const status of [401, 403, 503])
+  test(`Back to usage rechecks authorization and hides cached rows on ${status}`, async () => {
+    const root = new Element();
+    const paths: string[] = [];
+    let changed = false;
+    let finish: ((response: Response) => void) | undefined;
+    const download = downloads();
+    const app = mountHistoryWorkspace(
+      root,
+      async (path) => {
+        paths.push(path);
+        if (changed) return new Promise<Response>((resolve) => (finish = resolve));
+        return page(path.includes('/audit?'));
+      },
+      download,
+    );
+    await tick();
+    assert.match(text(root), /9007199254740993.0000000001/);
+    const stale = nodes(root).find((n) => n.textContent === 'View related audit');
+    assert.ok(stale);
+    click(root, 'View related audit');
+    await tick();
+    changed = true;
+    click(root, 'Back to usage');
+    assert.equal(paths.length, 3, 'return must issue a fresh usage read');
+    assert.equal(paths[2], paths[0], 'return must retain the exact usage query');
+    assert.match(text(root), /Loading history/);
+    assert.doesNotMatch(text(root), /9007199254740993|View related audit/);
+    assert.ok(finish);
+    finish(new Response('', { status }));
+    await tick();
+    assert.match(
+      text(root),
+      status === 401
+        ? /Sign-in required/
+        : status === 403
+          ? /Access denied/
+          : /History unavailable/,
+    );
+    assert.doesNotMatch(text(root), /9007199254740993|View related audit/);
+    stale.listeners.click?.();
+    assert.equal(paths.length, 3, 'stale row callbacks cannot revive cached data');
+    assert.equal(download.disposed, status === 503 ? 0 : 1);
+    app.dispose();
+  });
 
 test('correlation discards previous audit drafts/range/model/cursor and manual apply clears context', async () => {
   const root = new Element();
@@ -174,6 +224,9 @@ test('correlation discards previous audit drafts/range/model/cursor and manual a
   click(root, 'Next page');
   await tick();
   click(root, 'Usage');
+  // Main rechecks authority on tab return; act only on the newly loaded row.
+  assert.match(text(root), /Loading history/);
+  await tick();
   click(root, 'View related audit');
   await tick();
   const query = new URL(paths.at(-1) ?? '', 'https://local.invalid').searchParams;
@@ -379,6 +432,9 @@ test('request drill-down uses owned HTTP, signed SSO, migrated SQL and fresh aud
     assert.match(saved.saved[0]?.[1] ?? '', /req/);
     assert.doesNotMatch(saved.saved[0]?.[1] ?? '', /unrelated/);
     click(root, 'Back to usage');
+    assert.match(text(root), /Loading history/);
+    assert.doesNotMatch(text(root), /9007199254740993/);
+    await until(() => text(root).includes('records shown'));
     assert.match(text(root), /9007199254740993.0000000001/);
     await db.query('UPDATE iam_policies SET version=$1, statements=$2::jsonb', [
       'v2',
@@ -430,10 +486,23 @@ test('back to usage preserves the selected page and applied range', async () => 
   click(root, 'Next page');
   await tick();
   const before = paths.length;
+  const selectedPage = paths.at(-1);
+  assert.ok(selectedPage);
+  assert.ok(new URL(selectedPage, 'https://local.invalid').searchParams.get('cursor'));
+  input(root, 'Principal', 'unsaved-principal');
   click(root, 'View related audit');
   await tick();
   click(root, 'Back to usage');
-  assert.equal(paths.length, before + 1);
+  assert.equal(paths.length, before + 2, 'audit and usage each require a fresh read');
+  assert.equal(paths.at(-1), selectedPage, 'recheck uses the exact applied filters and cursor');
+  assert.match(text(root), /Loading history/);
+  assert.doesNotMatch(text(root), /9007199254740993/);
+  await tick();
+  assert.match(text(root), /9007199254740993.0000000001/);
+  assert.equal(
+    nodes(root).find((n) => n.attributes['aria-label'] === 'Principal')?.value,
+    'unsaved-principal',
+  );
   assert.equal(
     nodes(root).find((n) => n.attributes['aria-label'] === 'From (Unix ms, inclusive)')?.value,
     '10',

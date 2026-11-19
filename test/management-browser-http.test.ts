@@ -14,7 +14,7 @@ const application = async () =>
 
 test('shell and module expose only explicit public assets with restrictive headers', async () => {
   const handle = createManagementBrowserHandler({ javascript, application });
-  for (const path of ['/management', '/management/', '/management/app.js']) {
+  for (const path of ['/management', '/management/', '/management/app.js', '/management/app.css']) {
     const response = await handle(new Request(`https://example.test${path}`));
     assert.equal(response.status, 200);
     assert.equal(response.headers.get('cache-control'), 'no-store');
@@ -36,7 +36,14 @@ test('shell and module expose only explicit public assets with restrictive heade
     if (path.endsWith('.js')) {
       assert.equal(body, javascript);
       assert.match(response.headers.get('content-type') ?? '', /javascript/);
+    } else if (path.endsWith('.css')) {
+      assert.match(response.headers.get('content-type') ?? '', /text\/css/);
+      assert.match(body, /[.]management-model-description\s*\{/);
+      assert.match(body, /white-space:\s*pre-wrap/);
+      assert.match(body, /overflow-wrap:\s*anywhere/);
+      assert.doesNotMatch(body, /@import|url\(/);
     } else {
+      assert.match(body, /<link rel="stylesheet" href="\/management\/app.css">/);
       assert.match(body, /id="app"/);
       assert.match(body, /type="module" src="\/management\/app.js"/);
       assert.ok(!body.includes(javascript));
@@ -56,7 +63,7 @@ test('static routes reject queries, framing and methods without touching applica
       return new Response();
     },
   });
-  for (const path of ['/management', '/management/', '/management/app.js']) {
+  for (const path of ['/management', '/management/', '/management/app.js', '/management/app.css']) {
     assert.equal(
       (await handle(new Request(`https://example.test${path}?token=private`))).status,
       400,
@@ -91,6 +98,7 @@ test('non-static API requests and responses are delegated unchanged, never HTML 
     '/api/v1/models/vendor%2Fmodel',
     '/management/unknown',
     '/management/app.js.map',
+    '/management/app.css.map',
     '/',
   ]) {
     const request = new Request(`https://example.test${path}`, {
@@ -125,6 +133,13 @@ test('real localhost serves shell/module, empty HEAD and preserves API denial', 
   const origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   assert.match(await (await fetch(`${origin}/management`)).text(), /id="app"/);
   assert.equal(await (await fetch(`${origin}/management/app.js`)).text(), javascript);
+  const css = await fetch(`${origin}/management/app.css`);
+  assert.equal(css.status, 200);
+  assert.match(css.headers.get('content-type') ?? '', /text\/css/);
+  assert.match(await css.text(), /white-space:\s*pre-wrap/);
+  const cssHead = await fetch(`${origin}/management/app.css`, { method: 'HEAD' });
+  assert.equal(cssHead.status, 200);
+  assert.equal(await cssHead.text(), '');
   const head = await fetch(`${origin}/management`, { method: 'HEAD' });
   assert.equal(head.status, 200);
   assert.equal(await head.text(), '');

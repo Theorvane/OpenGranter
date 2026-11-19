@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { CatalogElement } from '../src/management/catalog-view.ts';
 import { mountHistoryWorkspace } from '../src/management/history-app.ts';
+import type { AuditHistoryEvent } from '../src/shared/audit/history-types.ts';
 import { buildUsageRecord } from '../src/usage/record-usage.ts';
 
 class Element implements CatalogElement {
@@ -138,6 +139,10 @@ test('history mount connects actual clients to filters, tabs and exact usage met
   click(root, 'Audit');
   await tick();
   assert.match(text(root), /models-listed/);
+  assert.equal(nodes(root).filter((n) => n.tag === 'details').length, 1);
+  assert.match(text(root), /Event ID/);
+  assert.match(text(root), /Credential ID/);
+  assert.match(text(root), /count/);
   assert.doesNotMatch(text(root), /PRIVATE/);
   input(root, 'Request ID', 'req');
   click(root, 'Apply filters');
@@ -387,6 +392,7 @@ for (const failure of ['unavailable', 'invalid', 'disposed', 'throw'] as const)
     assert.doesNotMatch(text(root), /CSV unavailable/);
     click(root, 'Usage');
     assert.match(text(root), /CSV unavailable/);
+    await tick();
     click(root, 'Download current page CSV');
     assert.doesNotMatch(text(root), /CSV unavailable/);
     await tick();
@@ -417,4 +423,303 @@ test('reentrant download disposal cannot restore private DOM or error', async ()
   click(root, 'Download current page CSV');
   await tick();
   assert.equal(root.children.length, 0);
+});
+
+test('audit details expose projected metadata only, with policy versions and no second fetch', async () => {
+  const root = new Element();
+  let calls = 0;
+  const app = mountHistoryWorkspace(
+    root,
+    async (path) => {
+      calls++;
+      if (!path.includes('/audit?')) return page();
+      const response = (await page(true).json()) as {
+        data: {
+          policyVersions: { id: string; version: string }[];
+          details: Record<string, unknown>;
+        }[];
+      };
+      const row = response.data[0] as {
+        policyVersions: { id: string; version: string }[];
+        details: Record<string, unknown>;
+      };
+      row.policyVersions = [{ id: 'policy-a', version: 'v3' }];
+      row.details.authorization = 'PRIVATE-BEARER';
+      return Response.json(response);
+    },
+    downloads(),
+  );
+  await tick();
+  click(root, 'Audit');
+  await tick();
+  const detail = nodes(root).find((n) => n.tag === 'details');
+  assert.ok(detail);
+  assert.equal(detail.attributes.open, undefined);
+  assert.match(text(detail), /Event ID.*1/);
+  assert.match(text(detail), /policy-a.*v3/);
+  assert.match(text(detail), /"count": 1/);
+  assert.doesNotMatch(text(detail), /PRIVATE|prompt|authorization/);
+  assert.equal(calls, 2);
+  click(root, 'Usage');
+  assert.equal(nodes(root).filter((n) => n.tag === 'details').length, 0);
+  click(root, 'Audit');
+  assert.doesNotMatch(text(root), /policy-a/);
+  await tick();
+  assert.match(text(root), /policy-a/);
+  app.dispose();
+  assert.equal(root.children.length, 0);
+});
+
+for (const status of [401, 403, 503])
+  test(`audit details clear immediately on filter reload and remain absent after ${status}`, async () => {
+    const root = new Element();
+    let fail = false;
+    const app = mountHistoryWorkspace(
+      root,
+      async (path) => (fail ? new Response(null, { status }) : page(path.includes('/audit?'))),
+      downloads(),
+    );
+    await tick();
+    click(root, 'Audit');
+    await tick();
+    assert.equal(nodes(root).filter((n) => n.tag === 'details').length, 1);
+    assert.match(text(root), /No policy versions recorded/);
+    const old = nodes(root).find((n) => n.textContent === 'Apply filters')?.listeners.click;
+    fail = true;
+    click(root, 'Apply filters');
+    assert.equal(nodes(root).filter((n) => n.tag === 'details').length, 0);
+    await tick();
+    assert.doesNotMatch(text(root), /Event ID|Credential ID|models-listed/);
+    app.dispose();
+    old?.();
+    await tick();
+    assert.equal(root.children.length, 0);
+  });
+
+test('standalone audit renderer never stringifies raw or unsupported metadata', async () => {
+  const { renderAuditRecord } = await import('../src/management/audit-record-view.ts');
+  const root = new Element();
+  const valid = ((await page(true).json()) as { data: AuditHistoryEvent[] }).data[0];
+  assert.ok(valid);
+  for (const row of [
+    { ...valid, eventId: '<script>PRIVATE</script>' },
+    { ...valid, kind: 'unknown', details: { token: 'PRIVATE' } },
+    { ...valid, details: { count: -1, prompt: 'PRIVATE' } },
+  ]) {
+    const item = renderAuditRecord(root, row) as Element;
+    assert.match(text(item), /Audit record unavailable/);
+    assert.doesNotMatch(text(item), /PRIVATE|script|token/);
+    assert.equal(
+      nodes(item).some((n) => n.tag === 'script'),
+      false,
+    );
+  }
+});
+
+for (const status of [401, 403]) {
+  test(`tab return immediately clears stale rows and rechecks authority ${status}`, async () => {
+    const root = new Element();
+    const paths: string[] = [];
+    let finish!: (response: Response) => void;
+    let revoke = false;
+    const download = downloads();
+    const app = mountHistoryWorkspace(
+      root,
+      async (path) => {
+        paths.push(path);
+        if (revoke)
+          return new Promise<Response>((resolve) => {
+            finish = resolve;
+          });
+        return page(path.includes('/audit?'));
+      },
+      download,
+    );
+    await tick();
+    click(root, 'Audit');
+    await tick();
+    assert.match(text(root), /Event ID/);
+    click(root, 'Usage');
+    await tick();
+    revoke = true;
+    const before = paths.length;
+    click(root, 'Audit');
+    assert.equal(paths.length, before + 1);
+    assert.match(text(root), /Loading history/);
+    assert.doesNotMatch(text(root), /Event ID|Credential ID|models-listed/);
+    finish(new Response(null, { status }));
+    await tick();
+    assert.match(text(root), status === 401 ? /Sign-in required/ : /Access denied/);
+    assert.doesNotMatch(text(root), /Usage and audit history|human|Download/);
+    assert.equal(download.disposed, 1);
+    app.dispose();
+  });
+}
+
+test('explicit refresh preserves the current page and applied filters, not drafts', async () => {
+  const root = new Element();
+  const paths: string[] = [];
+  let finish!: (response: Response) => void;
+  let pause = false;
+  const app = mountHistoryWorkspace(
+    root,
+    async (path) => {
+      paths.push(path);
+      if (pause)
+        return new Promise<Response>((resolve) => {
+          finish = resolve;
+        });
+      if (new URL(path, 'https://local.invalid').searchParams.has('cursor'))
+        return Response.json({ object: 'list', data: [], has_more: false, next_cursor: null });
+      return page(false, true);
+    },
+    downloads(),
+  );
+  await tick();
+  input(root, 'Principal', 'human');
+  click(root, 'Apply filters');
+  await tick();
+  click(root, 'Next page');
+  await tick();
+  const applied = paths.at(-1);
+  input(root, 'Principal', 'unsubmitted');
+  pause = true;
+  click(root, 'Refresh current page');
+  assert.equal(paths.at(-1), applied);
+  assert.match(applied ?? '', /principal_id=human/);
+  assert.match(applied ?? '', /cursor=/);
+  assert.match(text(root), /Loading history/);
+  assert.doesNotMatch(text(root), /Possible duplicate/);
+  const count = paths.length;
+  click(root, 'Refresh current page');
+  assert.equal(paths.length, count);
+  finish(Response.json({ object: 'list', data: [], has_more: false, next_cursor: null }));
+  await tick();
+  assert.match(text(root), /No history matches/);
+  app.dispose();
+});
+
+test('usage row request drilldown reloads exact principal intersection and retains bounds for CSV', async () => {
+  const root = new Element();
+  const paths: string[] = [];
+  const download = downloads();
+  const app = mountHistoryWorkspace(
+    root,
+    async (path) => {
+      paths.push(path);
+      if (path.includes('format=csv'))
+        return new Response('request_id\r\nreq\r\n', {
+          headers: { 'content-type': 'text/csv', 'x-has-more': 'false' },
+        });
+      return page();
+    },
+    download,
+  );
+  await tick();
+  input(root, 'Model', '<script>chat</script>');
+  input(root, 'From (Unix ms, inclusive)', '0');
+  input(root, 'To (Unix ms, exclusive)', '200');
+  click(root, 'Apply filters');
+  await tick();
+  const stale = nodes(root).find((n) => n.textContent === 'View attempts for this request');
+  click(root, 'View attempts for this request');
+  assert.match(text(root), /Loading history/);
+  assert.doesNotMatch(text(root), /Possibly billed/);
+  await tick();
+  const q = new URL(paths.at(-1) ?? '', 'https://local.invalid').searchParams;
+  assert.equal(q.get('principal_id'), null);
+  assert.equal(q.get('request_id'), 'req');
+  assert.equal(q.get('model'), '<script>chat</script>');
+  assert.equal(q.get('from_ms'), '0');
+  assert.equal(q.get('to_ms'), '200');
+  assert.equal(q.has('cursor'), false);
+  click(root, 'Download current page CSV');
+  await tick();
+  assert.equal(
+    new URL(paths.at(-1) ?? '', 'https://local.invalid').searchParams.get('request_id'),
+    'req',
+  );
+  assert.equal(download.saved.length, 1);
+  app.dispose();
+  const count = paths.length;
+  stale?.listeners.click?.();
+  await tick();
+  assert.equal(paths.length, count);
+  assert.equal(text(root), '');
+});
+test('manual usage request filter has empty, invalid and unavailable states without stale rows', async () => {
+  const root = new Element();
+  const paths: string[] = [];
+  const app = mountHistoryWorkspace(
+    root,
+    async (path) => {
+      paths.push(path);
+      const id = new URL(path, 'https://local.invalid').searchParams.get('request_id');
+      return id === 'absent'
+        ? Response.json({ object: 'list', data: [], has_more: false, next_cursor: null })
+        : id === 'failed'
+          ? new Response('PRIVATE', { status: 503 })
+          : page();
+    },
+    downloads(),
+  );
+  await tick();
+  input(root, 'Request ID', 'absent');
+  click(root, 'Apply filters');
+  await tick();
+  assert.match(text(root), /No history matches/);
+  input(root, 'Request ID', 'bad&value');
+  click(root, 'Apply filters');
+  await tick();
+  assert.match(text(root), /Invalid filters/);
+  assert.equal(paths.length, 2);
+  input(root, 'Request ID', 'failed');
+  click(root, 'Apply filters');
+  await tick();
+  assert.match(text(root), /History unavailable/);
+  assert.doesNotMatch(text(root), /PRIVATE|Possibly billed/);
+  app.dispose();
+});
+
+test('returning to a pending tab coalesces its read and active-tab clicks do not refresh', async () => {
+  const root = new Element();
+  const paths: string[] = [];
+  let finish!: (response: Response) => void;
+  const app = mountHistoryWorkspace(
+    root,
+    async (path) => {
+      paths.push(path);
+      if (path.includes('/audit?'))
+        return new Promise<Response>((resolve) => {
+          finish = resolve;
+        });
+      return page();
+    },
+    downloads(),
+  );
+  try {
+    await tick();
+    click(root, 'Usage');
+    assert.equal(paths.length, 1);
+    click(root, 'Audit');
+    assert.match(text(root), /Loading history/);
+    const refresh = nodes(root).find((node) => node.textContent === 'Refresh current page');
+    assert.ok(refresh);
+    assert.equal(refresh.attributes.disabled, '');
+    click(root, 'Usage');
+    await tick();
+    click(root, 'Audit');
+    assert.match(text(root), /Loading history/);
+    assert.equal(paths.filter((path) => path.includes('/audit?')).length, 1);
+    click(root, 'Audit');
+    assert.equal(paths.filter((path) => path.includes('/audit?')).length, 1);
+    finish(page(true));
+    await tick();
+    assert.match(text(root), /Event ID/);
+    const count = paths.length;
+    click(root, 'Audit');
+    assert.equal(paths.length, count);
+  } finally {
+    app.dispose();
+  }
 });
