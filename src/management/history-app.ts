@@ -4,14 +4,22 @@ import { mountManagementBoundaryView } from './boundary-view.ts';
 import type { CatalogRequest } from './catalog-client.ts';
 import type { CatalogElement } from './catalog-view.ts';
 import type { CsvDownloadResult } from './csv-download.ts';
+import { formatHistoryTimestamp } from './history-timestamp.ts';
 import { createHistoryWorkspace } from './history-workspace.ts';
 import { renderUsageRecordDetails } from './usage-record-view.ts';
+import { parseUtcMilliseconds } from './utc-milliseconds-input.ts';
 
 /** Compatible with createCsvDownload; ownership transfers to this mount. */
 export interface HistoryDownload {
   save(kind: 'usage' | 'audit', csv: string): CsvDownloadResult;
   dispose(): void;
 }
+type HistoryInput = CatalogElement & {
+  selectionStart?: number | null;
+  selectionEnd?: number | null;
+  selectionDirection?: string | null;
+  setSelectionRange?(start: number, end: number, direction?: string): void;
+};
 type Kind = 'usage' | 'audit';
 
 /** Explicit trusted SSO integration only. Caller MUST dispose on known session
@@ -27,12 +35,14 @@ export function mountHistoryWorkspace(
   let downloadDisposed = false;
   let active: Kind = 'usage';
   let generation = 0;
-  const deliveryFailed: Record<Kind, boolean> = { usage: false, audit: false };
+  const delivery: Record<Kind, 'idle' | 'started' | 'failed'> = { usage: 'idle', audit: 'idle' };
   // Preserve the exact target. Existing clients reject invalid history IDs
   // locally; never silently fall back to a self/unfiltered request.
   const initial = initialPrincipalId === undefined ? {} : { principalId: initialPrincipalId };
   const filters: Record<Kind, AuditFilters> = { usage: { ...initial }, audit: { ...initial } };
   const retainedInputs = new Set<CatalogElement>();
+  let renderedKind: Kind = active;
+  const renderedInputs = new Map<keyof AuditFilters, HistoryInput>();
   function clearInputs() {
     for (const input of retainedInputs) input.value = '';
     retainedInputs.clear();
@@ -82,21 +92,34 @@ export function mountHistoryWorkspace(
     return node;
   }
   async function exportCsv(kind: Kind) {
-    deliveryFailed[kind] = false;
+    delivery[kind] = 'idle';
     const result = await workspace[kind].exportCsv();
     if (!available() || result.state !== 'ready') return;
+    const deliveryGeneration = generation;
     let started = false;
     try {
       started = download.save(kind, result.csv) === 'started';
     } catch {
       /* Render only the same generic, retryable delivery failure. */
     }
-    // A browser adapter may synchronously dispose the identity epoch.
-    if (!available()) return;
-    deliveryFailed[kind] = !started;
+    // A browser adapter may synchronously navigate or dispose the identity epoch.
+    if (!available() || generation !== deliveryGeneration) return;
+    delivery[kind] = started ? 'started' : 'failed';
     render();
   }
   function render() {
+    const focused = (root.ownerDocument as { activeElement?: unknown }).activeElement;
+    const focusedEntry = [...renderedInputs].find(([, input]) => input === focused);
+    const restore =
+      renderedKind === active && focusedEntry
+        ? {
+            field: focusedEntry[0],
+            start: focusedEntry[1].selectionStart,
+            end: focusedEntry[1].selectionEnd,
+            direction: focusedEntry[1].selectionDirection,
+          }
+        : undefined;
+    renderedInputs.clear();
     generation++;
     clearInputs();
     if (disposed) {
@@ -105,10 +128,19 @@ export function mountHistoryWorkspace(
     }
     const snapshot = workspace.snapshot();
     if (snapshot.state !== 'active') {
+      drafts.usage.clear();
+      drafts.audit.clear();
+      filters.usage = {};
+      filters.audit = {};
       releaseDownload();
       if (snapshot.state === 'disposed') root.replaceChildren();
       else mountManagementBoundaryView(root, snapshot.state);
       return;
+    }
+    for (const tab of ['usage', 'audit'] as const) {
+      const page = snapshot[tab];
+      if ((page.state !== 'ready' && page.state !== 'empty') || page.exportState === 'loading')
+        delivery[tab] = 'idle';
     }
     const kind = active;
     const review = workspace[kind];
@@ -137,11 +169,25 @@ export function mountHistoryWorkspace(
     controls.setAttribute('novalidate', '');
     controls.setAttribute('aria-label', 'History filters');
     const values = new Map<keyof AuditFilters, CatalogElement>();
+    const draftStatus = element('p');
+    draftStatus.setAttribute('role', 'status');
+    function updateDraftStatus() {
+      const edited = [...values].some(([field, node]) => {
+        const value = node.value ?? '';
+        if ((field === 'fromMs' || field === 'toMs') && value !== '')
+          return (parseUtcMilliseconds(value) ?? Number.NaN) !== filters[kind][field];
+        return value !== String(filters[kind][field] ?? '');
+      });
+      draftStatus.textContent = edited
+        ? 'Unapplied filter edits. Records, pagination and CSV still use the applied filters.'
+        : '';
+    }
+    const inputGeneration = generation;
     for (const [field, name] of [
       ['principalId', 'Principal'],
       ['model', 'Model'],
-      ['fromMs', 'From (Unix ms, inclusive)'],
-      ['toMs', 'To (Unix ms, exclusive)'],
+      ['fromMs', 'From (UTC or Unix ms, inclusive)'],
+      ['toMs', 'To (UTC or Unix ms, exclusive)'],
       ['requestId', 'Request ID'],
       ['limit', 'Page size (1–100, blank for default)'],
     ] as const) {
@@ -151,10 +197,24 @@ export function mountHistoryWorkspace(
       input.setAttribute('aria-label', name);
       input.value = drafts[kind].get(field) ?? String(filters[kind][field] ?? '');
       retainedInputs.add(input);
+      renderedInputs.set(field, input);
       label.append(input);
       controls.append(label);
       values.set(field, input);
+      input.addEventListener('input', () => {
+        if (inputGeneration !== generation || !available()) return;
+        drafts[kind].set(field, input.value ?? '');
+        updateDraftStatus();
+      });
     }
+    updateDraftStatus();
+    controls.append(
+      element(
+        'p',
+        'Time bounds: use explicit UTC, for example 2026-11-20T00:00:00.000Z, or integer Unix milliseconds. From is inclusive; To is exclusive.',
+      ),
+      draftStatus,
+    );
     function applyFilters() {
       const input: {
         principalId?: string;
@@ -172,7 +232,12 @@ export function mountHistoryWorkspace(
       for (const field of ['fromMs', 'toMs', 'limit'] as const) {
         const value = values.get(field)?.value ?? '';
         if (value !== '')
-          input[field] = /^(0|[1-9][0-9]*)$/u.test(value) ? Number(value) : Number.NaN;
+          input[field] =
+            field === 'limit'
+              ? /^(0|[1-9][0-9]*)$/u.test(value)
+                ? Number(value)
+                : Number.NaN
+              : (parseUtcMilliseconds(value) ?? Number.NaN);
       }
       filters[kind] = input;
       void review.load(input);
@@ -189,7 +254,7 @@ export function mountHistoryWorkspace(
         // load() owns stale JSON/CSV cancellation and resets the cursor path.
         filters[kind] = { ...initial };
         drafts[kind].clear();
-        deliveryFailed[kind] = false;
+        delivery[kind] = 'idle';
         void review.load(filters[kind]);
       }),
     );
@@ -211,6 +276,38 @@ export function mountHistoryWorkspace(
     if (['invalid_query', 'unavailable', 'cancelled'].includes(view.state))
       status.setAttribute('role', 'alert');
     main.append(status);
+    // This is the query used by the authorized page, never the mutable drafts.
+    // Withhold it with the rows on pending, failed or invalid reads.
+    if (view.state === 'ready' || view.state === 'empty') {
+      const applied = filters[kind];
+      const scope = element('section');
+      scope.setAttribute('aria-label', 'Applied history query scope');
+      scope.append(element('h3', 'Applied history query scope'));
+      const fields = element('dl');
+      for (const [label, value] of [
+        ['Principal', applied.principalId ?? 'Signed-in principal (self)'],
+        ['Model', applied.model ?? 'No model filter'],
+        ['Request ID', applied.requestId ?? 'No request filter'],
+        [
+          'From (inclusive)',
+          applied.fromMs === undefined ? 'No lower bound' : formatHistoryTimestamp(applied.fromMs),
+        ],
+        [
+          'To (exclusive)',
+          applied.toMs === undefined ? 'No upper bound' : formatHistoryTimestamp(applied.toMs),
+        ],
+        ['Page size', applied.limit === undefined ? 'Server default' : String(applied.limit)],
+      ])
+        fields.append(element('dt', label), element('dd', value));
+      scope.append(
+        fields,
+        element(
+          'p',
+          'Query restrictions only, not effective permissions or complete history. Records and current-page CSV use these filters, not unapplied edits.',
+        ),
+      );
+      main.append(scope);
+    }
     const rows = element('ul');
     rows.setAttribute('aria-label', `${kind} records`);
     if (kind === 'usage')
@@ -219,7 +316,7 @@ export function mountHistoryWorkspace(
         item.append(
           element(
             'p',
-            `${row.principalId} · ${row.modelAlias} · ${row.requestId} · ${row.occurredAt}`,
+            `${row.principalId} · ${row.modelAlias} · ${row.requestId} · ${formatHistoryTimestamp(row.occurredAt)}`,
           ),
         );
         item.append(
@@ -265,7 +362,7 @@ export function mountHistoryWorkspace(
             // Exact intersection, not an organization-wide lookup. Clear the
             // opaque cursor by loading afresh; retain applied time/model bounds.
             filters.usage = { ...filters.usage, requestId: row.requestId };
-            drafts.usage.set('requestId', row.requestId);
+            drafts.usage.clear();
             void workspace.usage.load(filters.usage);
           }),
         );
@@ -353,19 +450,31 @@ export function mountHistoryWorkspace(
     main.append(
       element('p', 'CSV downloads only this page. Exported files cannot be erased on logout.'),
     );
-    if (view.exportState !== 'idle' || deliveryFailed[kind]) {
+    if (view.exportState !== 'idle' || delivery[kind] !== 'idle') {
       const message = element(
         'p',
         view.exportState === 'loading'
           ? 'Preparing CSV…'
           : view.exportState === 'cancelled'
             ? 'CSV preparation cancelled. Download again to retry.'
-            : 'CSV unavailable. Try again.',
+            : delivery[kind] === 'started'
+              ? 'CSV download requested. Check your browser; file save is not confirmed.'
+              : 'CSV unavailable. Try again.',
       );
-      message.setAttribute('role', view.exportState === 'loading' ? 'status' : 'alert');
+      message.setAttribute(
+        'role',
+        view.exportState === 'loading' || delivery[kind] === 'started' ? 'status' : 'alert',
+      );
       main.append(message);
     }
+    renderedKind = kind;
     root.replaceChildren(main);
+    if (restore) {
+      const input = renderedInputs.get(restore.field);
+      input?.focus();
+      if (input && typeof restore.start === 'number' && typeof restore.end === 'number')
+        input.setSelectionRange?.(restore.start, restore.end, restore.direction ?? undefined);
+    }
   }
   render();
   void workspace.usage.load(filters.usage);

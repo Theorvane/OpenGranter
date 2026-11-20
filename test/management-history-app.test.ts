@@ -127,8 +127,8 @@ test('history mount connects actual clients to filters, tabs and exact usage met
   );
   input(root, 'Principal', 'alice');
   input(root, 'Model', 'chat');
-  input(root, 'From (Unix ms, inclusive)', '10');
-  input(root, 'To (Unix ms, exclusive)', '20');
+  input(root, 'From (UTC or Unix ms, inclusive)', '10');
+  input(root, 'To (UTC or Unix ms, exclusive)', '20');
   click(root, 'Apply filters');
   await tick();
   const url = new URL(paths.at(-1) ?? '', 'https://local.invalid');
@@ -194,16 +194,17 @@ test('invalid time filters never issue a request; fresh search recovers', async 
     downloads(),
   );
   await tick();
-  input(root, 'From (Unix ms, inclusive)', '1e2');
+  input(root, 'From (UTC or Unix ms, inclusive)', '1e2');
   click(root, 'Apply filters');
   await tick();
   assert.equal(calls, 1);
   assert.match(text(root), /Invalid filters/);
   assert.equal(
-    nodes(root).find((n) => n.attributes['aria-label'] === 'From (Unix ms, inclusive)')?.value,
+    nodes(root).find((n) => n.attributes['aria-label'] === 'From (UTC or Unix ms, inclusive)')
+      ?.value,
     '1e2',
   );
-  input(root, 'From (Unix ms, inclusive)', '10');
+  input(root, 'From (UTC or Unix ms, inclusive)', '10');
   click(root, 'Apply filters');
   await tick();
   assert.equal(calls, 2);
@@ -391,7 +392,8 @@ for (const failure of ['unavailable', 'invalid', 'disposed', 'throw'] as const)
     await tick();
     assert.doesNotMatch(text(root), /CSV unavailable/);
     click(root, 'Usage');
-    assert.match(text(root), /CSV unavailable/);
+    // Tab entry starts a freshly authorized page, retiring old delivery feedback.
+    assert.doesNotMatch(text(root), /CSV unavailable/);
     await tick();
     click(root, 'Download current page CSV');
     assert.doesNotMatch(text(root), /CSV unavailable/);
@@ -617,8 +619,8 @@ test('usage row request drilldown reloads exact principal intersection and retai
   );
   await tick();
   input(root, 'Model', '<script>chat</script>');
-  input(root, 'From (Unix ms, inclusive)', '0');
-  input(root, 'To (Unix ms, exclusive)', '200');
+  input(root, 'From (UTC or Unix ms, inclusive)', '0');
+  input(root, 'To (UTC or Unix ms, exclusive)', '200');
   click(root, 'Apply filters');
   await tick();
   const stale = nodes(root).find((n) => n.textContent === 'View attempts for this request');
@@ -702,8 +704,8 @@ for (const kind of ['usage', 'audit'] as const) {
     input(root, 'Principal', 'other');
     input(root, 'Request ID', 'req-filter');
     input(root, 'Model', 'chat');
-    input(root, 'From (Unix ms, inclusive)', '10');
-    input(root, 'To (Unix ms, exclusive)', '20');
+    input(root, 'From (UTC or Unix ms, inclusive)', '10');
+    input(root, 'To (UTC or Unix ms, exclusive)', '20');
     input(root, 'Page size (1–100, blank for default)', '2');
     click(root, 'Apply filters');
     await tick();
@@ -834,7 +836,7 @@ test('reset recovers from invalid input without sending the invalid query', asyn
     'human',
   );
   await tick();
-  input(root, 'From (Unix ms, inclusive)', 'invalid');
+  input(root, 'From (UTC or Unix ms, inclusive)', 'invalid');
   click(root, 'Apply filters');
   await tick();
   assert.equal(paths.length, 1);
@@ -891,3 +893,66 @@ test('active pending tab coalesces repeated clicks without refreshing', async ()
     app.dispose();
   }
 });
+
+for (const kind of ['usage', 'audit'] as const) {
+  test(`${kind} CSV delivery feedback expires on fresh reads and acknowledges dispatch only`, async () => {
+    const root = new Element();
+    let fail = true;
+    let saves = 0;
+    let denied = false;
+    const app = mountHistoryWorkspace(
+      root,
+      async (path) =>
+        denied
+          ? new Response(null, { status: 403 })
+          : path.includes('format=csv')
+            ? new Response('header\nrow\n', {
+                headers: { 'content-type': 'text/csv', 'x-has-more': 'false' },
+              })
+            : page(path.includes('/audit?')),
+      {
+        save() {
+          saves++;
+          return fail ? 'unavailable' : 'started';
+        },
+        dispose() {},
+      },
+    );
+    await tick();
+    if (kind === 'audit') {
+      click(root, 'Audit');
+      await tick();
+    }
+    click(root, 'Download current page CSV');
+    await tick();
+    assert.match(text(root), /CSV unavailable/);
+    click(root, 'Refresh current page');
+    await tick();
+    assert.doesNotMatch(
+      text(root),
+      /CSV unavailable/,
+      'a new page must not retain the old delivery failure',
+    );
+    fail = false;
+    click(root, 'Download current page CSV');
+    await tick();
+    assert.equal(saves, 2);
+    assert.match(
+      text(root),
+      /CSV download requested\. Check your browser; file save is not confirmed\./,
+    );
+    const feedback = nodes(root).find((n) => n.textContent?.startsWith('CSV download requested.'));
+    assert.equal(feedback?.attributes.role, 'status');
+    click(root, 'Refresh current page');
+    await tick();
+    assert.doesNotMatch(text(root), /CSV download requested/);
+    denied = true;
+    click(root, 'Download current page CSV');
+    await tick();
+    assert.match(text(root), /Access denied/);
+    assert.doesNotMatch(text(root), /CSV download requested|CSV unavailable/);
+    assert.equal(nodes(root).filter((n) => n.tag === 'input').length, 0);
+    app.dispose();
+    assert.equal(root.children.length, 0);
+  });
+}

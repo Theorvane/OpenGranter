@@ -2101,8 +2101,31 @@ Changing Usage/Audit views, including request-investigation links, cancels outgo
 
 Usage and Audit filters use a named native form. Enter and Apply filters each dispatch one existing authorized JSON read with identical parsing, scope and cursor reset. Native form navigation is prevented, so private filter values do not enter the document URL. Invalid input remains locally rejected; detached forms cannot revive work after rerender, denial or disposal. Other actions remain non-submit buttons. This does not acquire session authority or change HTTP/IAM/audit contracts. See [plan](plans/642-history-filter-submit.md).
 
+
+## Unapplied history filter drafts (#642)
+
+For Usage and Audit, type exact private filters without applying: no request occurs, and a live status explains the applied records/CSV scope. Switch tabs and refresh: edits survive but the request retains the original principal/applied filters. Edit during loading: completion preserves it. Invalid Apply sends no request; Reset restores the initial target. Detached input, denial and disposal cannot restore or submit edits. Verify native input and tab behavior separately from installed SSO/E2E. See [plan](plans/642-history-draft-preservation.md) and [contract](../contracts/history-filter-drafts.md).
+
 ## Account history adapter recovery (#637, #642)
 - Fail the download adapter after reading Account, then retry: the first Usage request retains exact principal_id and the input displays it.
 - Unsupported identifiers never produce an unfiltered fallback request; fresh 403 terminates navigation and 503 retains scoped retryable state.
 - Manual History clears the default; retired retry controls cannot issue requests.
 - Regression: test/account-history-navigation.test.ts; synthetic native browser checks are not installed SSO/provider acceptance. See [plan](plans/637-ui-main-account-integration.md).
+
+### Focus continuity during history responses (#642)
+When an asynchronous history notification replaces the current focused filter on the same tab, preserve its unapplied draft, keyboard focus and text selection (including backward selections). Do not steal focus from external controls or restore filters across tab changes, denial or disposal. Detached private inputs still clear. This is local presentation continuity, not saved-search persistence or authority. See [draft preservation plan](plans/642-history-draft-preservation.md).
+
+## Page-local history CSV feedback (#642)
+On Usage and Audit, simulate browser-adapter failure and verify a generic retryable alert. Refresh or re-enter the tab: fresh authorization and page loading retire the old alert. A successful adapter result announces dispatch only, never a completed file save. A new CSV attempt, denial, identity disposal or fresh page cannot retain or resurrect that acknowledgement. JSON/CSV still use the existing applied principal/filter scope and required audits. See [plan](plans/642-history-draft-preservation.md).
+
+### Readable history UTC ranges (#642)
+Both Usage/Audit accept explicit UTC bounds and submit one request with exact inclusive from_ms/exclusive to_ms, retaining principal/model/request scope. Equivalent millisecond drafts have no false unapplied warning. Invalid calendar/local timezone/offset/noncanonical/unsafe inputs and reversed intervals stay local. Real signed test JWT + migrated embedded PostgreSQL HTTP coverage verifies existing pagination, bounded CSV, mandatory audits and fresh Deny with UTC-derived bounds. Installed company SSO/native PostgreSQL/provider acceptance remains separate. See [plan](plans/642-history-utc-range.md).
+
+## Readable history timestamps (#642)
+
+Authorized Usage/Audit list summaries and details show explicit millisecond-precision ISO UTC. Details retain exact Unix milliseconds; out-of-Date-range valid integers retain their numeric value with UTC unavailable. API/CSV/filter/cursor/authority behavior is unchanged. Tests cover epoch, exact milliseconds, unavailable UTC, failed/denied refresh and disposal. See [contract](../contracts/history-readable-time.md) and [plan](plans/642-history-readable-time.md). Local evidence is not installed login/provider acceptance.
+
+
+## Applied history query scope (#642)
+
+For both histories, verify self and explicit target modes, exact UTC inclusive/exclusive bounds, literal Unicode/markup model values and default/explicit page size. Draft edits must not change the summary or CSV query. Verify sibling isolation, reset target restoration, and removal during loading, invalid filters, failed reads, Deny and disposal. See [plan](plans/642-history-applied-scope.md) and [contract](../contracts/history-applied-scope.md).

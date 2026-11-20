@@ -39,18 +39,52 @@ for (const kind of ['usage', 'audit'] as const) {
         click(root, 'Audit');
         await until(ready);
       }
+      for (const [prefix, value] of [
+        ['From (', '1970-01-01T00:00:00.100Z'],
+        ['To (', '1970-01-01T00:00:00.104Z'],
+      ]) {
+        const input = nodes(root).find(
+          (n) => n.tag === 'input' && n.attributes['aria-label']?.startsWith(prefix ?? ''),
+        );
+        assert.ok(input);
+        input.value = value ?? '';
+        input.listeners.input?.();
+      }
       size(root, '1');
       click(root, 'Apply filters');
       await until(ready);
       assert.match(text(root), /1 records shown/);
+      const appliedScope = nodes(root).find(
+        (n) => n.attributes['aria-label'] === 'Applied history query scope',
+      );
+      assert.ok(appliedScope);
+      assert.match(text(appliedScope), /Principal Signed-in principal \(self\)/);
+      assert.match(text(appliedScope), /Page size 1/);
+      assert.ok(text(appliedScope).includes('From (inclusive) 1970-01-01T00:00:00.100Z (UTC)'));
+      assert.ok(text(appliedScope).includes('To (exclusive) 1970-01-01T00:00:00.104Z (UTC)'));
+
       assert.doesNotMatch(text(root), /other-request|other-credential/);
       assert.match(text(root), /human-request-3/);
+      assert.ok(
+        text(root).includes(
+          kind === 'usage' ? '1970-01-01T00:00:00.103Z (UTC)' : '1970-01-01T00:00:00.100Z (UTC)',
+        ),
+      );
+      assert.ok(text(root).includes('Occurred at (Unix ms) ' + (kind === 'usage' ? 103 : 100)));
       click(root, 'Next page');
       await until(ready);
       assert.match(text(root), /human-request-2/);
+      assert.ok(
+        text(root).includes(
+          kind === 'usage' ? '1970-01-01T00:00:00.102Z (UTC)' : '1970-01-01T00:00:00.100Z (UTC)',
+        ),
+      );
+      assert.ok(text(root).includes('Occurred at (Unix ms) ' + (kind === 'usage' ? 102 : 100)));
       assert.doesNotMatch(text(root), /human-request-3/);
       const current = new URL(f.statuses.at(-1)?.path ?? '', 'https://local.invalid');
       assert.equal(current.searchParams.get('limit'), '1');
+      assert.equal(current.searchParams.get('from_ms'), '100');
+      assert.equal(current.searchParams.get('to_ms'), '104');
       assert.ok(current.searchParams.has('cursor'));
       click(root, 'Download current page CSV');
       await until(() => csv !== undefined);
@@ -58,6 +92,8 @@ for (const kind of ['usage', 'audit'] as const) {
       assert.doesNotMatch(csv ?? '', /human-request-3|human-request-1|other-/);
       const exported = new URL(f.statuses.at(-1)?.path ?? '', 'https://local.invalid');
       assert.equal(exported.searchParams.get('limit'), '1');
+      assert.equal(exported.searchParams.get('from_ms'), '100');
+      assert.equal(exported.searchParams.get('to_ms'), '104');
       assert.equal(exported.searchParams.get('cursor'), current.searchParams.get('cursor'));
       assert.ok((await f.auditCount(kind)) >= 4);
       size(root, '2');

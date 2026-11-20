@@ -1615,5 +1615,25 @@ Changing Usage/Audit views, including request-investigation links, cancels outgo
 
 Usage and Audit filters use a named native form. Enter and Apply filters each dispatch one existing authorized JSON read with identical parsing, scope and cursor reset. Native form navigation is prevented, so private filter values do not enter the document URL. Invalid input remains locally rejected; detached forms cannot revive work after rerender, denial or disposal. Other actions remain non-submit buttons. This does not acquire session authority or change HTTP/IAM/audit contracts. See [plan](plans/642-history-filter-submit.md).
 
+
+## Unapplied history filter drafts (#642)
+
+History input listeners record only per-tab draft strings, guarded by the current render generation and active identity. Draft state never replaces the applied query until Apply; records/pagination/CSV remain bound to that query. Renders clear detached controls; terminal identity boundaries clear both maps. Explicit request drilldowns reset destination drafts to the applied intersection. No transport, session, runtime or schema change. See [plan](plans/642-history-draft-preservation.md) and [contract](../contracts/history-filter-drafts.md).
+
 ## Account history retry context (#637)
 The epoch-bound download-adapter recovery callback retains the captured principalId instead of navigating to unfiltered history. Existing history-client validation, current IAM and durable audit remain authoritative; explicit manual navigation resets context. See [contract](../contracts/account-history-navigation.md#adapter-initialization-recovery).
+
+### Focus continuity during history responses (#642)
+When an asynchronous history notification replaces the current focused filter on the same tab, preserve its unapplied draft, keyboard focus and text selection (including backward selections). Do not steal focus from external controls or restore filters across tab changes, denial or disposal. Detached private inputs still clear. This is local presentation continuity, not saved-search persistence or authority. See [draft preservation plan](plans/642-history-draft-preservation.md).
+
+### Management UTC range conversion (#642)
+The history view and token expiry input share a strict, pure UTC-to-millisecond converter; clients and server retain their own range/lifetime policy. Drafts remain identity-local strings; applied queries remain numeric, with semantic equality for equivalent time representations. See [plan](plans/642-history-utc-range.md).
+
+## Readable history timestamps (#642)
+
+Authorized Usage/Audit list summaries and details show explicit millisecond-precision ISO UTC. Details retain exact Unix milliseconds; out-of-Date-range valid integers retain their numeric value with UTC unavailable. API/CSV/filter/cursor/authority behavior is unchanged. Tests cover epoch, exact milliseconds, unavailable UTC, failed/denied refresh and disposal. See [contract](../contracts/history-readable-time.md) and [plan](plans/642-history-readable-time.md). Local evidence is not installed login/provider acceptance.
+
+
+## Applied history query scope (#642)
+
+The history DOM mount renders a labelled read-only summary from active applied filters only in ready/empty states. Draft input, response rows and sibling filters cannot replace its source. It is withheld on loading/invalid/failure/cancel/denial/disposal and describes query restrictions, not effective permissions. See [plan](plans/642-history-applied-scope.md) and [contract](../contracts/history-applied-scope.md).
