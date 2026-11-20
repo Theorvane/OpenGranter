@@ -2129,3 +2129,7 @@ Authorized Usage/Audit list summaries and details show explicit millisecond-prec
 ## Applied history query scope (#642)
 
 For both histories, verify self and explicit target modes, exact UTC inclusive/exclusive bounds, literal Unicode/markup model values and default/explicit page size. Draft edits must not change the summary or CSV query. Verify sibling isolation, reset target restoration, and removal during loading, invalid filters, failed reads, Deny and disposal. See [plan](plans/642-history-applied-scope.md) and [contract](../contracts/history-applied-scope.md).
+
+## Trusted operations page exit (#637)
+
+The opt-in trusted operations-session adapter terminally disposes on native document pagehide, including persisted exits. History, Account and token operations lose their local grant: pending work aborts, the expiry timer and download owner are released, and the mounted subtree clears. Restoration and calls on the disposed adapter cannot restore authority; the trusted host must create a fresh adapter and establish approved authority again. Explicit clear/reauthorize remains available before exit. This does not authenticate a browser, revoke credentials, prove mutation rollback or activate a runtime. See [plan](plans/637-operations-page-exit.md).

@@ -95,7 +95,25 @@ export function mountSessionManagementOperations(
       return false;
     }
   }
+  // A bfcache restoration is not fresh authority. Stop the complete adapter,
+  // including history/account reads, rather than only the token child.
+  const page = (
+    root.ownerDocument as typeof root.ownerDocument & {
+      readonly defaultView?: {
+        addEventListener(type: string, listener: () => void): void;
+        removeEventListener(type: string, listener: () => void): void;
+      } | null;
+    }
+  ).defaultView;
+  function dispose() {
+    if (disposed) return;
+    disposed = true;
+    page?.removeEventListener('pagehide', dispose);
+    const current = invalidate();
+    if (revision === current) root.replaceChildren();
+  }
   mountManagementBoundaryView(root, 'unauthenticated');
+  page?.addEventListener('pagehide', dispose);
   return Object.freeze({
     authorize(grant: CatalogAuthorityGrant) {
       if (disposed) return;
@@ -199,11 +217,6 @@ export function mountSessionManagementOperations(
       }
     },
     clear,
-    dispose() {
-      if (disposed) return;
-      disposed = true;
-      const current = invalidate();
-      if (revision === current) root.replaceChildren();
-    },
+    dispose,
   });
 }
