@@ -127,8 +127,8 @@ test('history mount connects actual clients to filters, tabs and exact usage met
   );
   input(root, 'Principal', 'alice');
   input(root, 'Model', 'chat');
-  input(root, 'From (Unix ms, inclusive)', '10');
-  input(root, 'To (Unix ms, exclusive)', '20');
+  input(root, 'From (UTC or Unix ms, inclusive)', '10');
+  input(root, 'To (UTC or Unix ms, exclusive)', '20');
   click(root, 'Apply filters');
   await tick();
   const url = new URL(paths.at(-1) ?? '', 'https://local.invalid');
@@ -194,16 +194,17 @@ test('invalid time filters never issue a request; fresh search recovers', async 
     downloads(),
   );
   await tick();
-  input(root, 'From (Unix ms, inclusive)', '1e2');
+  input(root, 'From (UTC or Unix ms, inclusive)', '1e2');
   click(root, 'Apply filters');
   await tick();
   assert.equal(calls, 1);
   assert.match(text(root), /Invalid filters/);
   assert.equal(
-    nodes(root).find((n) => n.attributes['aria-label'] === 'From (Unix ms, inclusive)')?.value,
+    nodes(root).find((n) => n.attributes['aria-label'] === 'From (UTC or Unix ms, inclusive)')
+      ?.value,
     '1e2',
   );
-  input(root, 'From (Unix ms, inclusive)', '10');
+  input(root, 'From (UTC or Unix ms, inclusive)', '10');
   click(root, 'Apply filters');
   await tick();
   assert.equal(calls, 2);
@@ -618,8 +619,8 @@ test('usage row request drilldown reloads exact principal intersection and retai
   );
   await tick();
   input(root, 'Model', '<script>chat</script>');
-  input(root, 'From (Unix ms, inclusive)', '0');
-  input(root, 'To (Unix ms, exclusive)', '200');
+  input(root, 'From (UTC or Unix ms, inclusive)', '0');
+  input(root, 'To (UTC or Unix ms, exclusive)', '200');
   click(root, 'Apply filters');
   await tick();
   const stale = nodes(root).find((n) => n.textContent === 'View attempts for this request');
@@ -703,8 +704,8 @@ for (const kind of ['usage', 'audit'] as const) {
     input(root, 'Principal', 'other');
     input(root, 'Request ID', 'req-filter');
     input(root, 'Model', 'chat');
-    input(root, 'From (Unix ms, inclusive)', '10');
-    input(root, 'To (Unix ms, exclusive)', '20');
+    input(root, 'From (UTC or Unix ms, inclusive)', '10');
+    input(root, 'To (UTC or Unix ms, exclusive)', '20');
     input(root, 'Page size (1–100, blank for default)', '2');
     click(root, 'Apply filters');
     await tick();
@@ -835,7 +836,7 @@ test('reset recovers from invalid input without sending the invalid query', asyn
     'human',
   );
   await tick();
-  input(root, 'From (Unix ms, inclusive)', 'invalid');
+  input(root, 'From (UTC or Unix ms, inclusive)', 'invalid');
   click(root, 'Apply filters');
   await tick();
   assert.equal(paths.length, 1);

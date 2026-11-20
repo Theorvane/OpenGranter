@@ -101,8 +101,8 @@ test('Usage investigation preserves Audit applied target/model/time, discards un
   await tick();
   input(f.root, 'Principal', 'audit-target');
   input(f.root, 'Model', 'chat');
-  input(f.root, 'From (Unix ms, inclusive)', '10');
-  input(f.root, 'To (Unix ms, exclusive)', '200');
+  input(f.root, 'From (UTC or Unix ms, inclusive)', '10');
+  input(f.root, 'To (UTC or Unix ms, exclusive)', '200');
   click(f.root, 'Apply filters');
   await tick();
   input(f.root, 'Model', 'unsubmitted');
@@ -193,7 +193,7 @@ test('invalid applied Audit scope cannot broaden a Usage investigation', async (
   await tick();
   click(f.root, 'Audit');
   await tick();
-  input(f.root, 'From (Unix ms, inclusive)', 'invalid');
+  input(f.root, 'From (UTC or Unix ms, inclusive)', 'invalid');
   click(f.root, 'Apply filters');
   await tick();
   assert.match(text(f.root), /Invalid filters/);

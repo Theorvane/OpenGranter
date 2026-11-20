@@ -1604,3 +1604,6 @@ When an asynchronous history notification replaces the current focused filter on
 
 ## History CSV dispatch feedback (#642)
 The history workspace clears prior delivery feedback on fresh page reads and reports successful browser dispatch without claiming a completed save. Generic failure remains retryable; no new request authority or activation. See [plan](plans/642-history-draft-preservation.md) and [contract](../contracts/history-filter-drafts.md).
+
+### Management history time input (#642)
+Authorized Usage/Audit time ranges accept explicit UTC ISO timestamps or canonical integer Unix milliseconds, preserving inclusive/exclusive bounds and exact existing HTTP query values. No timezone inference, new authority or endpoint. See [implementation plan](plans/642-history-utc-range.md).

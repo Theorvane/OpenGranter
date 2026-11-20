@@ -12,3 +12,6 @@ When an asynchronous history notification replaces the current focused filter on
 
 ### Page-local CSV delivery feedback (#642)
 Browser-adapter failures remain generic and retryable, but expire when a new JSON page read starts (including tab re-entry) or a new CSV attempt begins. A successful adapter dispatch announces only: CSV download requested. Check your browser; file save is not confirmed. It must not claim file-save completion. Feedback belongs to the current render; synchronous navigation/disposal inside the adapter cannot publish it into a replacement view. Denial still removes private content. No API, authority or activation changes.
+
+### Explicit UTC history ranges (#642)
+From (inclusive) and To (exclusive) accept canonical nonnegative integer Unix milliseconds or strict YYYY-MM-DDTHH:mm:ss[.sss]Z UTC timestamps. No local timezone/offset inference, whitespace trimming or invalid calendar normalization. Only exact milliseconds cross the existing API. Equivalent UTC/millisecond drafts are not unapplied edits. Existing time-range validation, principal/model/request scope, pagination, CSV, fresh IAM and read audits are unchanged. See [UTC range plan](../docs/plans/642-history-utc-range.md).

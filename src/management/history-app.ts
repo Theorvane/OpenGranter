@@ -6,6 +6,7 @@ import type { CatalogElement } from './catalog-view.ts';
 import type { CsvDownloadResult } from './csv-download.ts';
 import { createHistoryWorkspace } from './history-workspace.ts';
 import { renderUsageRecordDetails } from './usage-record-view.ts';
+import { parseUtcMilliseconds } from './utc-milliseconds-input.ts';
 
 /** Compatible with createCsvDownload; ownership transfers to this mount. */
 export interface HistoryDownload {
@@ -170,9 +171,12 @@ export function mountHistoryWorkspace(
     const draftStatus = element('p');
     draftStatus.setAttribute('role', 'status');
     function updateDraftStatus() {
-      const edited = [...values].some(
-        ([field, node]) => (node.value ?? '') !== String(filters[kind][field] ?? ''),
-      );
+      const edited = [...values].some(([field, node]) => {
+        const value = node.value ?? '';
+        if ((field === 'fromMs' || field === 'toMs') && value !== '')
+          return (parseUtcMilliseconds(value) ?? Number.NaN) !== filters[kind][field];
+        return value !== String(filters[kind][field] ?? '');
+      });
       draftStatus.textContent = edited
         ? 'Unapplied filter edits. Records, pagination and CSV still use the applied filters.'
         : '';
@@ -181,8 +185,8 @@ export function mountHistoryWorkspace(
     for (const [field, name] of [
       ['principalId', 'Principal'],
       ['model', 'Model'],
-      ['fromMs', 'From (Unix ms, inclusive)'],
-      ['toMs', 'To (Unix ms, exclusive)'],
+      ['fromMs', 'From (UTC or Unix ms, inclusive)'],
+      ['toMs', 'To (UTC or Unix ms, exclusive)'],
       ['requestId', 'Request ID'],
       ['limit', 'Page size (1–100, blank for default)'],
     ] as const) {
@@ -203,7 +207,13 @@ export function mountHistoryWorkspace(
       });
     }
     updateDraftStatus();
-    controls.append(draftStatus);
+    controls.append(
+      element(
+        'p',
+        'Time bounds: use explicit UTC, for example 2026-11-20T00:00:00.000Z, or integer Unix milliseconds. From is inclusive; To is exclusive.',
+      ),
+      draftStatus,
+    );
     function applyFilters() {
       const input: {
         principalId?: string;
@@ -221,7 +231,12 @@ export function mountHistoryWorkspace(
       for (const field of ['fromMs', 'toMs', 'limit'] as const) {
         const value = values.get(field)?.value ?? '';
         if (value !== '')
-          input[field] = /^(0|[1-9][0-9]*)$/u.test(value) ? Number(value) : Number.NaN;
+          input[field] =
+            field === 'limit'
+              ? /^(0|[1-9][0-9]*)$/u.test(value)
+                ? Number(value)
+                : Number.NaN
+              : (parseUtcMilliseconds(value) ?? Number.NaN);
       }
       filters[kind] = input;
       void review.load(input);

@@ -2117,3 +2117,6 @@ When an asynchronous history notification replaces the current focused filter on
 
 ## Page-local history CSV feedback (#642)
 On Usage and Audit, simulate browser-adapter failure and verify a generic retryable alert. Refresh or re-enter the tab: fresh authorization and page loading retire the old alert. A successful adapter result announces dispatch only, never a completed file save. A new CSV attempt, denial, identity disposal or fresh page cannot retain or resurrect that acknowledgement. JSON/CSV still use the existing applied principal/filter scope and required audits. See [plan](plans/642-history-draft-preservation.md).
+
+### Readable history UTC ranges (#642)
+Both Usage/Audit accept explicit UTC bounds and submit one request with exact inclusive from_ms/exclusive to_ms, retaining principal/model/request scope. Equivalent millisecond drafts have no false unapplied warning. Invalid calendar/local timezone/offset/noncanonical/unsafe inputs and reversed intervals stay local. Real signed test JWT + migrated embedded PostgreSQL HTTP coverage verifies existing pagination, bounded CSV, mandatory audits and fresh Deny with UTC-derived bounds. Installed company SSO/native PostgreSQL/provider acceptance remains separate. See [plan](plans/642-history-utc-range.md).
