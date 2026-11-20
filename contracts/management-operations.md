@@ -27,3 +27,11 @@ Account is a third inner operations screen, using the existing caller-authorized
 ## History initialization recovery (#642)
 
 A download-adapter construction failure shows a generic alert and Retry history. Explicit retry constructs once and only then starts the existing history GET. It never issues a token mutation or exports CSV automatically. Old retry controls cannot act after a new retry, navigation, current denial or disposal. Private adapter diagnostics remain hidden; reentrant teardown cannot revive the screen.
+
+## Native page-exit lifetime (#637)
+
+The trusted-session adapter observes root.ownerDocument.defaultView.pagehide when available. Both persisted and nonpersisted exits call terminal dispose, abort the current grant, cancel its expiry timer, dispose child/download ownership and clear the root. The observer removes itself on explicit or page-triggered disposal; sibling adapters retain independent lifetimes. Locked adapters are terminally disposed too. Non-browser documents retain explicit disposal.
+
+pageshow is not reauthorization. Retained navigation/refresh/confirmation actions, old timers, late headers/body and authorize/clear on this disposed object cannot republish or send work. A host must construct a new adapter and establish approved authority for reuse. Before page exit, clear and replacement authorize keep their existing semantics. No automatic mutation replay or assertion of revocation/rollback is introduced.
+
+Public-boundary cases: test/operations-page-exit.test.ts covers ready history/account, aborted account read and late-body cancellation, pending issuance, old controls, grant replacement, shared document observers and non-browser disposal. Native Chromium exercises actual navigation plus synthetic persisted transitions separately; neither establishes installed IdP/provider or actual bfcache restoration acceptance.
