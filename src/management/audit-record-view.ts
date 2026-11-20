@@ -1,6 +1,7 @@
 import { projectGatewayAuditEvent } from '../shared/audit/event-projection.ts';
 import type { AuditHistoryEvent } from '../shared/audit/history-types.ts';
 import type { CatalogElement } from './catalog-view.ts';
+import { formatHistoryTimestamp } from './history-timestamp.ts';
 
 /** One already-authorized page row. No fetch, cache, content retention or authority. */
 export function renderAuditRecord(root: CatalogElement, row: AuditHistoryEvent): CatalogElement {
@@ -29,12 +30,13 @@ export function renderAuditRecord(root: CatalogElement, row: AuditHistoryEvent):
     detail.append(
       element(
         'summary',
-        `${safe.occurredAt} · ${safe.kind} · ${safe.principalId ?? 'Unknown'} · ${safe.requestId}`,
+        `${formatHistoryTimestamp(safe.occurredAt)} · ${safe.kind} · ${safe.principalId ?? 'Unknown'} · ${safe.requestId}`,
       ),
     );
     const fields = element('dl');
     for (const [label, value] of [
       ['Event ID', row.eventId],
+      ['Occurred at (UTC)', formatHistoryTimestamp(safe.occurredAt)],
       ['Occurred at (Unix ms)', String(safe.occurredAt)],
       ['Event kind', safe.kind],
       ['Request ID', safe.requestId],

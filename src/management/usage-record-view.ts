@@ -1,5 +1,6 @@
 import { projectUsageJson } from '../shared/usage/json.ts';
 import type { CatalogElement } from './catalog-view.ts';
+import { formatHistoryTimestamp } from './history-timestamp.ts';
 
 /** One already-authorized row. No fetch, cache, authority or retained content. */
 export function renderUsageRecordDetails(root: CatalogElement, row: unknown): CatalogElement {
@@ -19,6 +20,7 @@ export function renderUsageRecordDetails(root: CatalogElement, row: unknown): Ca
     for (const [label, value] of [
       ['Request ID', safe.requestId],
       ['Attempt ID', safe.attemptId],
+      ['Occurred at (UTC)', formatHistoryTimestamp(safe.occurredAt)],
       ['Occurred at (Unix ms)', String(safe.occurredAt)],
       ['Principal ID', safe.principalId],
       ['Credential ID', safe.credentialId],

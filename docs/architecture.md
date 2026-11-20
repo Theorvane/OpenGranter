@@ -1628,3 +1628,7 @@ When an asynchronous history notification replaces the current focused filter on
 
 ### Management UTC range conversion (#642)
 The history view and token expiry input share a strict, pure UTC-to-millisecond converter; clients and server retain their own range/lifetime policy. Drafts remain identity-local strings; applied queries remain numeric, with semantic equality for equivalent time representations. See [plan](plans/642-history-utc-range.md).
+
+## Readable history timestamps (#642)
+
+Authorized Usage/Audit list summaries and details show explicit millisecond-precision ISO UTC. Details retain exact Unix milliseconds; out-of-Date-range valid integers retain their numeric value with UTC unavailable. API/CSV/filter/cursor/authority behavior is unchanged. Tests cover epoch, exact milliseconds, unavailable UTC, failed/denied refresh and disposal. See [contract](../contracts/history-readable-time.md) and [plan](plans/642-history-readable-time.md). Local evidence is not installed login/provider acceptance.

@@ -56,9 +56,21 @@ for (const kind of ['usage', 'audit'] as const) {
       assert.match(text(root), /1 records shown/);
       assert.doesNotMatch(text(root), /other-request|other-credential/);
       assert.match(text(root), /human-request-3/);
+      assert.ok(
+        text(root).includes(
+          kind === 'usage' ? '1970-01-01T00:00:00.103Z (UTC)' : '1970-01-01T00:00:00.100Z (UTC)',
+        ),
+      );
+      assert.ok(text(root).includes('Occurred at (Unix ms) ' + (kind === 'usage' ? 103 : 100)));
       click(root, 'Next page');
       await until(ready);
       assert.match(text(root), /human-request-2/);
+      assert.ok(
+        text(root).includes(
+          kind === 'usage' ? '1970-01-01T00:00:00.102Z (UTC)' : '1970-01-01T00:00:00.100Z (UTC)',
+        ),
+      );
+      assert.ok(text(root).includes('Occurred at (Unix ms) ' + (kind === 'usage' ? 102 : 100)));
       assert.doesNotMatch(text(root), /human-request-3/);
       const current = new URL(f.statuses.at(-1)?.path ?? '', 'https://local.invalid');
       assert.equal(current.searchParams.get('limit'), '1');

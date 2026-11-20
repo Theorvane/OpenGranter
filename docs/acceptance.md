@@ -2120,3 +2120,7 @@ On Usage and Audit, simulate browser-adapter failure and verify a generic retrya
 
 ### Readable history UTC ranges (#642)
 Both Usage/Audit accept explicit UTC bounds and submit one request with exact inclusive from_ms/exclusive to_ms, retaining principal/model/request scope. Equivalent millisecond drafts have no false unapplied warning. Invalid calendar/local timezone/offset/noncanonical/unsafe inputs and reversed intervals stay local. Real signed test JWT + migrated embedded PostgreSQL HTTP coverage verifies existing pagination, bounded CSV, mandatory audits and fresh Deny with UTC-derived bounds. Installed company SSO/native PostgreSQL/provider acceptance remains separate. See [plan](plans/642-history-utc-range.md).
+
+## Readable history timestamps (#642)
+
+Authorized Usage/Audit list summaries and details show explicit millisecond-precision ISO UTC. Details retain exact Unix milliseconds; out-of-Date-range valid integers retain their numeric value with UTC unavailable. API/CSV/filter/cursor/authority behavior is unchanged. Tests cover epoch, exact milliseconds, unavailable UTC, failed/denied refresh and disposal. See [contract](../contracts/history-readable-time.md) and [plan](plans/642-history-readable-time.md). Local evidence is not installed login/provider acceptance.

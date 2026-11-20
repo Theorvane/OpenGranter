@@ -1607,3 +1607,7 @@ The history workspace clears prior delivery feedback on fresh page reads and rep
 
 ### Management history time input (#642)
 Authorized Usage/Audit time ranges accept explicit UTC ISO timestamps or canonical integer Unix milliseconds, preserving inclusive/exclusive bounds and exact existing HTTP query values. No timezone inference, new authority or endpoint. See [implementation plan](plans/642-history-utc-range.md).
+
+## Readable history timestamps (#642)
+
+Authorized Usage/Audit list summaries and details show explicit millisecond-precision ISO UTC. Details retain exact Unix milliseconds; out-of-Date-range valid integers retain their numeric value with UTC unavailable. API/CSV/filter/cursor/authority behavior is unchanged. Tests cover epoch, exact milliseconds, unavailable UTC, failed/denied refresh and disposal. See [contract](../contracts/history-readable-time.md) and [plan](plans/642-history-readable-time.md). Local evidence is not installed login/provider acceptance.
