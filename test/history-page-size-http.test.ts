@@ -54,6 +54,15 @@ for (const kind of ['usage', 'audit'] as const) {
       click(root, 'Apply filters');
       await until(ready);
       assert.match(text(root), /1 records shown/);
+      const appliedScope = nodes(root).find(
+        (n) => n.attributes['aria-label'] === 'Applied history query scope',
+      );
+      assert.ok(appliedScope);
+      assert.match(text(appliedScope), /Principal Signed-in principal \(self\)/);
+      assert.match(text(appliedScope), /Page size 1/);
+      assert.ok(text(appliedScope).includes('From (inclusive) 1970-01-01T00:00:00.100Z (UTC)'));
+      assert.ok(text(appliedScope).includes('To (exclusive) 1970-01-01T00:00:00.104Z (UTC)'));
+
       assert.doesNotMatch(text(root), /other-request|other-credential/);
       assert.match(text(root), /human-request-3/);
       assert.ok(

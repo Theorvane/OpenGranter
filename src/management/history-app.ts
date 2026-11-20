@@ -276,6 +276,38 @@ export function mountHistoryWorkspace(
     if (['invalid_query', 'unavailable', 'cancelled'].includes(view.state))
       status.setAttribute('role', 'alert');
     main.append(status);
+    // This is the query used by the authorized page, never the mutable drafts.
+    // Withhold it with the rows on pending, failed or invalid reads.
+    if (view.state === 'ready' || view.state === 'empty') {
+      const applied = filters[kind];
+      const scope = element('section');
+      scope.setAttribute('aria-label', 'Applied history query scope');
+      scope.append(element('h3', 'Applied history query scope'));
+      const fields = element('dl');
+      for (const [label, value] of [
+        ['Principal', applied.principalId ?? 'Signed-in principal (self)'],
+        ['Model', applied.model ?? 'No model filter'],
+        ['Request ID', applied.requestId ?? 'No request filter'],
+        [
+          'From (inclusive)',
+          applied.fromMs === undefined ? 'No lower bound' : formatHistoryTimestamp(applied.fromMs),
+        ],
+        [
+          'To (exclusive)',
+          applied.toMs === undefined ? 'No upper bound' : formatHistoryTimestamp(applied.toMs),
+        ],
+        ['Page size', applied.limit === undefined ? 'Server default' : String(applied.limit)],
+      ])
+        fields.append(element('dt', label), element('dd', value));
+      scope.append(
+        fields,
+        element(
+          'p',
+          'Query restrictions only, not effective permissions or complete history. Records and current-page CSV use these filters, not unapplied edits.',
+        ),
+      );
+      main.append(scope);
+    }
     const rows = element('ul');
     rows.setAttribute('aria-label', `${kind} records`);
     if (kind === 'usage')

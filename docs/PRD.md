@@ -1611,3 +1611,8 @@ Authorized Usage/Audit time ranges accept explicit UTC ISO timestamps or canonic
 ## Readable history timestamps (#642)
 
 Authorized Usage/Audit list summaries and details show explicit millisecond-precision ISO UTC. Details retain exact Unix milliseconds; out-of-Date-range valid integers retain their numeric value with UTC unavailable. API/CSV/filter/cursor/authority behavior is unchanged. Tests cover epoch, exact milliseconds, unavailable UTC, failed/denied refresh and disposal. See [contract](../contracts/history-readable-time.md) and [plan](plans/642-history-readable-time.md). Local evidence is not installed login/provider acceptance.
+
+
+## Applied history query scope (#642)
+
+Administrators can inspect the applied principal, model, request, UTC time bounds and page-size setting independently of unapplied filter drafts. Self is explicit, not organization-wide scope. The summary is shown only for ready/empty authorized pages and matches the filters used by current-page CSV. See [plan](plans/642-history-applied-scope.md) and [contract](../contracts/history-applied-scope.md).
