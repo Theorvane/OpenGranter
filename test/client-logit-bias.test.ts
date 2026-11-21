@@ -96,6 +96,8 @@ function httpFixture(
   const usage: unknown[] = [];
   let routes = 0;
   const handler = createChatHandler({
+    // Keep token-ID leak assertions independent of digits in the wall clock.
+    now: () => 1_700_000_000_000,
     newRequestId: () => 'request',
     authenticate: async () => ({
       id: 'user',
