@@ -134,6 +134,7 @@ export function mountHistoryWorkspace(
       ['fromMs', 'From (Unix ms, inclusive)'],
       ['toMs', 'To (Unix ms, exclusive)'],
       ['requestId', 'Request ID'],
+      ['limit', 'Page size (1–100, blank for default)'],
     ] as const) {
       const label = element('label', name);
       const input = element('input');
@@ -152,13 +153,14 @@ export function mountHistoryWorkspace(
         requestId?: string;
         fromMs?: number;
         toMs?: number;
+        limit?: number;
       } = {};
       for (const [field, node] of values) drafts[kind].set(field, node.value ?? '');
       for (const field of ['principalId', 'model', 'requestId'] as const) {
         const value = values.get(field)?.value ?? '';
         if (value !== '') input[field] = value;
       }
-      for (const field of ['fromMs', 'toMs'] as const) {
+      for (const field of ['fromMs', 'toMs', 'limit'] as const) {
         const value = values.get(field)?.value ?? '';
         if (value !== '')
           input[field] = /^(0|[1-9][0-9]*)$/u.test(value) ? Number(value) : Number.NaN;
@@ -189,7 +191,7 @@ export function mountHistoryWorkspace(
       loading: 'Loading history…',
       empty: 'No history matches these filters.',
       ready: `${view.data.length} records shown.`,
-      invalid_query: 'Invalid filters. Check identifiers and time range.',
+      invalid_query: 'Invalid filters. Check identifiers, time range and page size (1–100).',
       unavailable: 'History unavailable. Try again.',
       cancelled: 'History request cancelled.',
       unauthenticated: 'Sign-in required.',

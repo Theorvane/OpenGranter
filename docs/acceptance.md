@@ -2040,3 +2040,8 @@ Clear filters in the canonical history mount recovers invalid drafts, clears onl
 
 ## Canonical history keyboard submission (#988)
 For Usage and Audit, submit the named History filters form with Enter or Apply filters: exactly one authorized read, exact principal/model/request/time scope, and no filter disclosure in the document URL. Invalid timestamps stay local. Old forms after rerender, denial or disposal are inert. Existing model drilldown, page summary and reset remain available. No installed/SSO acceptance is implied by fixture tests.
+
+
+## Canonical history page size (#988)
+- Usage and audit independently reject zero, values above 100, decimals, nonnumeric or noncanonical integers without a request. Blank retains the server default.
+- Limits 1 and 100 reach JSON/CSV unchanged; refresh, cursor navigation and exact model drilldown preserve the applied principal/model/limit intersection. Clearing one tab removes its limit and leaves the sibling unchanged. Covered by test/history-page-size.test.ts; not installed-login or deployment acceptance.

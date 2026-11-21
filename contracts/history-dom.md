@@ -30,3 +30,7 @@ The active Usage or Audit tab offers Clear filters, which clears only that tab's
 
 ## Canonical native filter submission (#988, #979)
 Usage and Audit filters use a named native form. Enter and Apply filters each apply the existing exact filters once without document navigation; other controls do not submit. Validation and fresh authorization remain in the existing clients. Detached forms, denial and disposal cannot issue another read. This integrates only keyboard submission from #979, not its stacked page-size or runtime behavior.
+
+
+## Canonical page-size input (#988)
+The usage and audit filter forms expose an optional page size using the existing query contract: blank omits limit, otherwise only an integer from 1 through 100 is accepted. Invalid drafts issue no transport request. Applied limits remain scoped to the active history and survive refresh, cursor navigation, exact-model drilldown and current-page CSV; Clear filters removes the active limit without changing the other history. Existing server authentication, IAM, redaction and audit remain mandatory. No public entry or session activation is implied.
