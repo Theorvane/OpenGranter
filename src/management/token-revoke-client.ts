@@ -1,4 +1,5 @@
 import type { CatalogRequest } from './catalog-client.ts';
+import { withTokenMutationLifetime } from './token-mutation-lifetime.ts';
 
 export type TokenRevokeResult =
   | { readonly state: 'ready'; readonly revoked: boolean }
@@ -21,7 +22,16 @@ export async function revokeManagementToken(
   signal?: AbortSignal,
 ): Promise<TokenRevokeResult> {
   if (!validCredentialId(credentialId)) return { state: 'invalid_input' };
-  if (signal?.aborted) return { state: 'cancelled' };
+  return withTokenMutationLifetime(signal, (activeSignal) =>
+    revokeToken(request, credentialId, activeSignal),
+  );
+}
+
+async function revokeToken(
+  request: CatalogRequest,
+  credentialId: string,
+  signal: AbortSignal,
+): Promise<TokenRevokeResult> {
   let response: Response | undefined;
   let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
   const cancel = () => {

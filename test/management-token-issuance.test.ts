@@ -387,3 +387,38 @@ test('client accepts maximum server-compatible escaped Unicode secret without tr
   assert.equal(result.state, 'ready');
   if (result.state === 'ready') assert.equal(result.token.length, 16384);
 });
+
+test('issuance panel exits stalled confirmation, warns of uncertainty, and ignores late success', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const root = new Element();
+  let calls = 0;
+  let resolve!: (response: Response) => void;
+  const panel = mountTokenIssuancePanel(root, () => {
+    calls++;
+    return new Promise((done) => {
+      resolve = done;
+    });
+  });
+  enter(root);
+  const staleConfirm = button(root, 'Confirm issuance');
+  staleConfirm.listeners.click?.();
+  assert.match(text(root), /in progress/u);
+  assert.equal(calls, 1);
+  t.mock.timers.tick(10000);
+  await tick();
+  assert.match(text(root), /outcome is unknown/u);
+  assert.match(text(root), /Verify before submitting another request/u);
+  assert.doesNotMatch(text(root), /in progress/u);
+  staleConfirm.listeners.click?.();
+  t.mock.timers.tick(20000);
+  await tick();
+  assert.equal(calls, 1);
+  resolve(issued());
+  await tick();
+  assert.match(text(root), /outcome is unknown/u);
+  assert.doesNotMatch(text(root), /synthetic-display-only|revocation confirmed/u);
+  assert.equal(calls, 1);
+  button(root, 'Review issuance');
+  panel.dispose();
+  assert.equal(text(root), '');
+});

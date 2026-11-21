@@ -279,3 +279,38 @@ test('aborting a pending response read cancels stream but never reports rollback
   assert.deepEqual(await operation, { state: 'cancelled' });
   assert.equal(cancelled, true);
 });
+
+test('revocation panel exits stalled confirmation, warns of uncertainty, and ignores late success', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const root = new Element();
+  let calls = 0;
+  let resolve!: (response: Response) => void;
+  const panel = mountTokenRevocationPanel(root, () => {
+    calls++;
+    return new Promise((done) => {
+      resolve = done;
+    });
+  });
+  enter(root);
+  const staleConfirm = button(root, 'Confirm revocation');
+  staleConfirm.listeners.click?.();
+  assert.match(text(root), /in progress/u);
+  assert.equal(calls, 1);
+  t.mock.timers.tick(10000);
+  await tick();
+  assert.match(text(root), /outcome is unknown/u);
+  assert.match(text(root), /Verify before submitting another request/u);
+  assert.doesNotMatch(text(root), /in progress/u);
+  staleConfirm.listeners.click?.();
+  t.mock.timers.tick(20000);
+  await tick();
+  assert.equal(calls, 1);
+  resolve(Response.json({ revoked: true }));
+  await tick();
+  assert.match(text(root), /outcome is unknown/u);
+  assert.doesNotMatch(text(root), /synthetic-display-only|revocation confirmed/u);
+  assert.equal(calls, 1);
+  button(root, 'Review revocation');
+  panel.dispose();
+  assert.equal(text(root), '');
+});

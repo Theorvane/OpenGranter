@@ -1,4 +1,5 @@
 import type { CatalogRequest } from './catalog-client.ts';
+import { withTokenMutationLifetime } from './token-mutation-lifetime.ts';
 import { validCredentialId } from './token-revoke-client.ts';
 
 export type TokenIssueResult =
@@ -27,7 +28,17 @@ export async function issueManagementToken(
   signal?: AbortSignal,
 ): Promise<TokenIssueResult> {
   if (!validIssuance(principalId, expiresAt)) return { state: 'invalid_input' };
-  if (signal?.aborted) return { state: 'cancelled' };
+  return withTokenMutationLifetime(signal, (activeSignal) =>
+    issueToken(request, principalId, expiresAt, activeSignal),
+  );
+}
+
+async function issueToken(
+  request: CatalogRequest,
+  principalId: string,
+  expiresAt: number,
+  signal: AbortSignal,
+): Promise<TokenIssueResult> {
   let response: Response | undefined;
   let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
   const cancel = () => {
@@ -88,5 +99,6 @@ export async function issueManagementToken(
   } finally {
     signal?.removeEventListener('abort', cancel);
     cancel();
+    reader?.releaseLock();
   }
 }
