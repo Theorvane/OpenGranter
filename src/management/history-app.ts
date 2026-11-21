@@ -5,6 +5,7 @@ import type { CatalogRequest } from './catalog-client.ts';
 import type { CatalogElement } from './catalog-view.ts';
 import type { CsvDownloadResult } from './csv-download.ts';
 import { createHistoryWorkspace } from './history-workspace.ts';
+import { renderUsagePageSummary } from './usage-page-summary.ts';
 import { renderUsageRecordDetails } from './usage-record-view.ts';
 
 /** Compatible with createCsvDownload; ownership transfers to this mount. */
@@ -60,12 +61,13 @@ export function mountHistoryWorkspace(
     if (text !== undefined) node.textContent = text;
     return node;
   }
-  function button(text: string, action: () => void, enabled = true) {
+  function button(text: string, action: () => void, enabled = true, submit = false) {
     const node = element('button', text);
-    node.setAttribute('type', 'button');
+    node.setAttribute('type', submit ? 'submit' : 'button');
     if (!enabled) node.setAttribute('disabled', '');
     const current = generation;
-    node.addEventListener('click', () => {
+    node.addEventListener('click', (event) => {
+      if (submit) event?.preventDefault();
       if (enabled && current === generation && available()) action();
     });
     return node;
@@ -122,7 +124,8 @@ export function mountHistoryWorkspace(
       nav.append(node);
     }
     main.append(nav, element('h2', kind === 'usage' ? 'Usage' : 'Audit'));
-    const controls = element('section');
+    const controls = element('form');
+    controls.setAttribute('novalidate', '');
     controls.setAttribute('aria-label', 'History filters');
     const values = new Map<keyof AuditFilters, CatalogElement>();
     for (const [field, name] of [
@@ -131,6 +134,7 @@ export function mountHistoryWorkspace(
       ['fromMs', 'From (Unix ms, inclusive)'],
       ['toMs', 'To (Unix ms, exclusive)'],
       ['requestId', 'Request ID'],
+      ['limit', 'Page size (1–100, blank for default)'],
     ] as const) {
       const label = element('label', name);
       const input = element('input');
@@ -142,27 +146,41 @@ export function mountHistoryWorkspace(
       controls.append(label);
       values.set(field, input);
     }
+    function applyFilters() {
+      const input: {
+        principalId?: string;
+        model?: string;
+        requestId?: string;
+        fromMs?: number;
+        toMs?: number;
+        limit?: number;
+      } = {};
+      for (const [field, node] of values) drafts[kind].set(field, node.value ?? '');
+      for (const field of ['principalId', 'model', 'requestId'] as const) {
+        const value = values.get(field)?.value ?? '';
+        if (value !== '') input[field] = value;
+      }
+      for (const field of ['fromMs', 'toMs', 'limit'] as const) {
+        const value = values.get(field)?.value ?? '';
+        if (value !== '')
+          input[field] = /^(0|[1-9][0-9]*)$/u.test(value) ? Number(value) : Number.NaN;
+      }
+      filters[kind] = input;
+      void review.load(input);
+    }
+    const formGeneration = generation;
+    controls.addEventListener('submit', (event) => {
+      event?.preventDefault();
+      if (formGeneration === generation && available()) applyFilters();
+    });
+    controls.append(button('Apply filters', applyFilters, true, true));
     controls.append(
-      button('Apply filters', () => {
-        const input: {
-          principalId?: string;
-          model?: string;
-          requestId?: string;
-          fromMs?: number;
-          toMs?: number;
-        } = {};
-        for (const [field, node] of values) drafts[kind].set(field, node.value ?? '');
-        for (const field of ['principalId', 'model', 'requestId'] as const) {
-          const value = values.get(field)?.value ?? '';
-          if (value !== '') input[field] = value;
-        }
-        for (const field of ['fromMs', 'toMs'] as const) {
-          const value = values.get(field)?.value ?? '';
-          if (value !== '')
-            input[field] = /^(0|[1-9][0-9]*)$/u.test(value) ? Number(value) : Number.NaN;
-        }
-        filters[kind] = input;
-        void review.load(input);
+      button('Clear filters', () => {
+        // Explicit reset only; the existing review retires cursors and pending JSON/CSV.
+        drafts[kind].clear();
+        filters[kind] = {};
+        deliveryFailed[kind] = false;
+        void review.load({});
       }),
     );
     main.append(controls);
@@ -173,7 +191,7 @@ export function mountHistoryWorkspace(
       loading: 'Loading history…',
       empty: 'No history matches these filters.',
       ready: `${view.data.length} records shown.`,
-      invalid_query: 'Invalid filters. Check identifiers and time range.',
+      invalid_query: 'Invalid filters. Check identifiers, time range and page size (1–100).',
       unavailable: 'History unavailable. Try again.',
       cancelled: 'History request cancelled.',
       unauthenticated: 'Sign-in required.',
@@ -183,6 +201,8 @@ export function mountHistoryWorkspace(
     if (['invalid_query', 'unavailable', 'cancelled'].includes(view.state))
       status.setAttribute('role', 'alert');
     main.append(status);
+    if (kind === 'usage' && snapshot.usage.state === 'ready')
+      main.append(renderUsagePageSummary(root.ownerDocument, snapshot.usage.data));
     const rows = element('ul');
     rows.setAttribute('aria-label', `${kind} records`);
     if (kind === 'usage')
@@ -222,6 +242,15 @@ export function mountHistoryWorkspace(
         if (row.possiblyBilled)
           item.append(element('p', 'Possibly billed; not an invoice reconciliation'));
         item.append(renderUsageRecordDetails(root, row));
+        item.append(
+          button('View usage for this model', () => {
+            // Intersect the selected model with applied scope, not row identity
+            // or unapplied edits. Existing load resets pagination and CSV.
+            filters.usage = { ...filters.usage, model: row.modelAlias };
+            drafts.usage.set('model', row.modelAlias);
+            void workspace.usage.load(filters.usage);
+          }),
+        );
         item.append(
           button('View attempts for this request', () => {
             // Exact intersection, not an organization-wide lookup. Clear the

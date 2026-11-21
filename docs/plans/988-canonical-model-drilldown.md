@@ -1,0 +1,40 @@
+# Canonical history model drilldown (#988, #637, #642)
+
+## Issue and problem
+Legacy #737/#756 implement model drilldown in usage-app.ts. Canonical history-app.ts does not expose it. Live open PR inventory checked before edits; reset985/987 and summary983 are distinct and unmerged.
+
+## Scope and expected behavior
+Own only canonical history row model action, new focused test and append-only contract/acceptance/PRD. Click reloads existing protected usage endpoint with exact row model intersected with applied principal, request and time bounds. It resets cursors via existing review.load. Self mode never adds row principal. Audit is unchanged. Model draft follows selected model; unrelated drafts remain unapplied. Existing generation/authority guards prevent detached action reuse. CSV and paging use the same captured model filter. No grant, session, runtime, DDL, endpoint or activation changes.
+
+## Design
+Reuse the established request drilldown pattern and existing usage client validation; do not port legacy workspace or new transport. The API and IAM remain authoritative. Dependencies: canonical main7479633 only; no dependency on unmerged legacy model-summary or reset/summary changes. Existing session/installed release decisions stay open. No new domain terms or irreversible decisions.
+
+## TDD plan
+RED mounted DOM tests for exact model URL encoding, principal/self and request/time intersections, fresh pagination, CSV, empty/error recovery, denial/disposal and stale controls. GREEN minimal row button using review.load. Run focused regression, typecheck, lint, planning and compatibility checks; attempt npm run check. Native browser with synthetic signed SSO and PGlite is separate from installed/live-provider acceptance.
+
+## Delivery
+Draft PR refs988/637/642. Independent exact-head approval, required CI and parent gates before merge. Rollback removes action; read API unchanged. No production or paid calls. Independent review stage follows implementation; source ownership announced in issue988, no peer acknowledgement claimed.
+
+## Execution 2026-11-22 00:30 KST
+RED six tests fail for absent model action. Initial GREEN found test query key typo (from/to instead of existing from_ms/to_ms), corrected assertion against existing client contract. GREEN three serial canonical suites50PASS0FAIL0SKIP. Four-suite attempt:50PASS plus workspace-integration process SIGKILL, not acceptance. npm run check stopped at default tsc Killed (137). Compiler single-threaded mode (--noEmit --singleThreaded) PASS; full lint PASS with existing42 warnings187infos, changed files clean. Planning/secret-scan, pinned compatibility, diffcheck PASS.
+Native browser actual new bundled mount at loopback18746 with explicit two-row HTTP fixture: initial2records; clicking first model gives1record and exact model field including spaces/Unicode/+ and ampersand. Browser fixture log records encoded model; not authentication, SQL, installed or provider acceptance. PGlite/signed-SSO harness18745 failed to listen with empty log/no surviving process; no such success claimed. Other teammate tabs untouched. Logs /tmp/og-988-{red,green,focused,unit,fullcheck,typecheck,lint,dom,browser}.log.
+
+## Integration follow-up 2026-11-22 01:00 KST
+Consolidate existing canonical summary #983 (4a29255), reset #985 (e368a2e), and unique reset tests #987 (10910f8) here instead of merging overlapping standalone source edits. Own history-app.ts plus summary helper and these focused tests only; shell/backend/session contracts unchanged. Preserve both reset suites and source plans. Add a combined drilldown -> filtered page summary -> CSV -> explicit reset -> fresh summary path, verify page-only totals and stale/reset terminal behavior. Run combined regression RED before bringing in source and GREEN after integration. PRs983/985/987 remain unmerged; supersede only after actual code/tests are preserved and cross-linked. No new domain decisions.
+
+## Verified integration 2026-11-22 02:00 KST
+Recovered the uncommitted 01:00 integration without dropping changes. Summary helper and both reset suites are byte-identical to #983/#985/#987 (SHA-256 checked). Combined model -> page totals -> scoped CSV -> reset tests cover success and 403. Six serial suites: 51 PASS, zero FAIL/SKIP. Changed-file Biome, planning/secret scan, compatibility and diffcheck PASS. Both single-threaded typecheck and npm run check default typecheck were resource-killed; no aggregate/typecheck success for this revision.
+Fresh bundled native browser HTTP fixture18947: 2 rows/3 USD -> exact Unicode model 1 row/1 USD -> CSV request with that model -> Clear filters -> 2 rows/3 USD and blank model. CSV save port is stubbed (no file-download acceptance). Initial18747 attempt hit EADDRINUSE; existing fixture showed CSV alert, not acceptance. No existing process stopped; corrected fresh fixture18947 includes x-has-more header. No authentication/SQL/installed/provider acceptance. Sources983/985/987 remain open until independent consolidation review; never merge all overlapping PRs.
+
+## Native submission integration 2026-11-22 02:30 KST
+Reuse the named form/submission behavior from PR979 exact4569f365bc481d027c1fc5614ac815b91551d459. Canonical controls remain a section so Enter does not apply filters. Port only native form, event prevention and generation guards; preserve existing page summary/model/reset and current query contract (no new page-size control). Adapt existing public-boundary tests to existing invalid timestamp input. RED before implementation; GREEN serial focused suites and browser Enter/mouse check. Original979 remains open and its other stacked changes are not superseded. No new policy, session, runtime, DDL or activation decision.
+
+## Recovery verification 2026-11-22 05:00 KST
+Recovered native submission source/tests left uncommitted by earlier executions, without replacing existing work. Meaningful RED preserved in /tmp/og-0230-red.log (missing native form). Fresh six serial suites: 53 PASS, zero FAIL/SKIP (/tmp/og-0500-canonical.log). Browser18949 verified Enter on Model=other: 2 rows/3 USD to 1 row/2 USD, unchanged document URL; mouse Apply with blank model returns 2 rows/3 USD. Actual bundle with HTTP fixture only, stubbed CSV save: no login/SQL/deployment/provider acceptance. Previous default npm run check passed typecheck/lint then ended with 10306 passes, 4 SIGKILL file failures and 1 skipped; not aggregate success. Bounded serial full validation started separately (/tmp/og-0500-serialcheck.log), result recorded in handoff. No original source PR closure or merge before independent review.
+
+
+## Page-size integration 2026-11-22 05:30 KST
+Port only the already defined page-size input from #979: blank uses the existing default, integer 1–100 is validated by the shared client/server query contract. Preserve all applied scope through pagination, CSV, model/request drilldown; explicit Clear filters removes the limit for the active tab only. No new API or policy decisions. Own history-app.ts and focused page-size tests, not shell/backend/session/runtime. RED absent control before minimal GREEN implementation. Original979 is not wholly superseded. Independent exact-head CI/formal approval remain required.
+
+## Recovery verification 2026-11-22 06:00 KST
+Recovered the existing uncommitted page-size integration without discarding it. Original RED /tmp/og-0530-red.log fails on missing canonical page-size input. Fresh eight serial suites: 74 PASS, zero FAIL/SKIP (/tmp/og-220600-suites.log). Focused page-size suite: 3 PASS. First local Node18 invocation could not strip types; corrected using installed Node22.23.0. npm run check passed typecheck and lint, then exceeded the explicit 80-second bound during tests (exit124); NOT aggregate success. Prior 05:30 full check ended 10320PASS/1 SIGKILL file failure/1SKIP; 05:00 serial check ended10317PASS/1cancelled/1SKIP. Browser page tool timed out and native desktop showed Chromium Aw Snap error9; no fresh browser acceptance. No browser processes restarted or killed. Retain all deployment/IdP/SQL/provider gates.
