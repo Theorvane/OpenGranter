@@ -1,4 +1,4 @@
-import { projectGatewayAuditEvent } from './event-projection.ts';
+import { projectGatewayAuditEvent, validAuditPrincipalReference } from './event-projection.ts';
 import {
   type AuditHistoryFilters,
   matchesAuditHistoryFilters,
@@ -25,10 +25,6 @@ function eventId(value: unknown): bigint {
   return parsed;
 }
 
-function principalId(value: string): boolean {
-  return value.length <= 256 && /^[A-Za-z0-9][A-Za-z0-9._+:/@-]*$/u.test(value);
-}
-
 export function parseAuditHistoryQuery(url: URL): AuditHistoryFilters & {
   readonly requestedPrincipalId: string | null;
   readonly format: 'json' | 'csv';
@@ -53,7 +49,7 @@ export function parseAuditHistoryQuery(url: URL): AuditHistoryFilters & {
     }
   }
   const requestedPrincipalId = url.searchParams.get('principal_id');
-  if (requestedPrincipalId !== null && !principalId(requestedPrincipalId)) {
+  if (requestedPrincipalId !== null && !validAuditPrincipalReference(requestedPrincipalId)) {
     throw new InvalidAuditHistoryQuery();
   }
   const format = url.searchParams.get('format') ?? 'json';

@@ -1837,6 +1837,12 @@ The unused mount adapter builds fixed detached main/heading/status nodes with te
 - Verify one connection and idempotent close. Local test issuer/PGlite sockets are not browser login, installed PostgreSQL, company IdP or provider acceptance.
 
 
+## Exact audit principal references (#642)
+
+- Test exact Korean/supplementary principals, distinct composed/decomposed IDs, blank/C0/DEL/C1/overlength rejection and unchanged non-principal identifier restrictions.
+- Exercise actual loopback HTTP with PGlite-backed audit insert/read for scoped JSON and CSV keyset pages; fresh target Deny prevents reads and failed mandatory audit suppresses records.
+- No installed PostgreSQL, native browser/IdP, SSO audit route, runtime activation or full #637 completion is certified. See [contract](../contracts/audit-principal-references.md).
+
 ## Management transport privacy (#639)
 
 The shared Node HTTP bridge forces no-store and nosniff on exact /management and slash descendants, including handler errors and custom fallback responses. This preserves existing status/body/authentication/audit behavior and activates no routes or session. See [contract](../contracts/management-http-privacy.md) and [plan](plans/639-management-http-privacy.md). Loopback socket evidence is not native-browser, company SSO or installed ingress acceptance.

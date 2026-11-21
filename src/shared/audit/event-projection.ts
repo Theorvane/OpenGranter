@@ -1,3 +1,13 @@
+/** Exact nonsecret principal references; never normalized or interpreted as patterns. */
+export function validAuditPrincipalReference(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    value.trim().length > 0 &&
+    value.length <= 256 &&
+    !/[\p{Cc}]/u.test(value)
+  );
+}
+
 export class InvalidGatewayAuditEvent extends Error {
   constructor() {
     super('Invalid gateway audit event');
@@ -23,6 +33,11 @@ function identifier(value: unknown): string {
   ) {
     throw new InvalidGatewayAuditEvent();
   }
+  return value;
+}
+
+function principalReference(value: unknown): string {
+  if (!validAuditPrincipalReference(value)) throw new InvalidGatewayAuditEvent();
   return value;
 }
 
@@ -141,21 +156,24 @@ function details(event: RecordValue): RecordValue {
     }
     case 'usage-read':
       return {
-        targetPrincipalId: identifier(event.targetPrincipalId),
+        targetPrincipalId: principalReference(event.targetPrincipalId),
         count: count(event.count),
         mode: oneOf(event.mode, ['self', 'all'] as const),
       };
     case 'usage-read-denied':
     case 'usage-read-unavailable':
       return {
-        targetPrincipalId: identifier(event.targetPrincipalId),
+        targetPrincipalId: principalReference(event.targetPrincipalId),
         mode: oneOf(event.mode, ['self', 'all'] as const),
       };
     case 'audit-history-read':
-      return { targetPrincipalId: identifier(event.targetPrincipalId), count: count(event.count) };
+      return {
+        targetPrincipalId: principalReference(event.targetPrincipalId),
+        count: count(event.count),
+      };
     case 'audit-history-read-denied':
     case 'audit-history-read-unavailable':
-      return { targetPrincipalId: identifier(event.targetPrincipalId) };
+      return { targetPrincipalId: principalReference(event.targetPrincipalId) };
     case 'request-denied': {
       const modelAlias = optionalIdentifier(event.modelAlias);
       return {
@@ -275,7 +293,7 @@ export function projectGatewayAuditEvent(value: unknown, now: number) {
     kind === 'auth-unavailable' ||
     kind === 'management-auth-denied' ||
     kind === 'management-auth-unavailable';
-  const principalId = anonymous ? null : identifier(event.principalId);
+  const principalId = anonymous ? null : principalReference(event.principalId);
   const credentialId = anonymous ? null : credentialIdentifier(event.credentialId);
   const versions = anonymous ? null : policyVersions(event.policyVersions);
   return {
