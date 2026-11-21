@@ -2055,3 +2055,6 @@ Both Usage and Audit list/detail show exact ISO UTC with millisecond precision; 
 
 ## Canonical UTC history input (#988, #637, #642)
 On both history tabs apply explicit UTC bounds and verify exact millisecond queries intersect principal/model/request scope. Equivalent numeric text clears the unapplied notice; changed drafts remain private and do not affect CSV. Returning from the other tab retains draft text and applied range. Ambiguous timestamps, normalized invalid dates, unsafe numbers and reversed ranges issue no request; numeric epoch compatibility, denial and disposal remain intact. Public-mount tests are not installed IdP/PostgreSQL/provider acceptance.
+
+## Canonical filter focus continuity (#988)
+Asynchronous same-tab history renders preserve focus and selection only for the currently focused filter draft. External focus and tab changes never trigger restoration. Denial and disposal clear private filters without refocusing them. UTC draft text, applied request/CSV scope and authorization remain unchanged. Source980 is only partially integrated. See test/history-filter-focus.test.ts and the #988 plan.

@@ -15,6 +15,12 @@ export interface HistoryDownload {
   save(kind: 'usage' | 'audit', csv: string): CsvDownloadResult;
   dispose(): void;
 }
+type HistoryInput = CatalogElement & {
+  selectionStart?: number | null;
+  selectionEnd?: number | null;
+  selectionDirection?: string | null;
+  setSelectionRange?(start: number, end: number, direction?: string): void;
+};
 type Kind = 'usage' | 'audit';
 
 /** Explicit trusted SSO integration only. Caller MUST dispose on known session
@@ -35,6 +41,8 @@ export function mountHistoryWorkspace(
   // locally; never silently fall back to a self/unfiltered request.
   const initial = initialPrincipalId === undefined ? {} : { principalId: initialPrincipalId };
   const filters: Record<Kind, AuditFilters> = { usage: { ...initial }, audit: { ...initial } };
+  const renderedInputs = new Map<keyof AuditFilters, HistoryInput>();
+  let renderedKind: Kind | undefined;
   const retainedInputs = new Set<CatalogElement>();
   function clearInputs() {
     for (const input of retainedInputs) input.value = '';
@@ -90,6 +98,18 @@ export function mountHistoryWorkspace(
     render();
   }
   function render() {
+    const focused = (root.ownerDocument as { activeElement?: unknown }).activeElement;
+    const focusedEntry = [...renderedInputs].find(([, input]) => input === focused);
+    const restore =
+      renderedKind === active && focusedEntry
+        ? {
+            field: focusedEntry[0],
+            start: focusedEntry[1].selectionStart,
+            end: focusedEntry[1].selectionEnd,
+            direction: focusedEntry[1].selectionDirection,
+          }
+        : undefined;
+    renderedInputs.clear();
     generation++;
     clearInputs();
     if (disposed) {
@@ -165,6 +185,7 @@ export function mountHistoryWorkspace(
       label.append(input);
       controls.append(label);
       values.set(field, input);
+      renderedInputs.set(field, input);
       input.addEventListener('input', () => {
         if (inputGeneration !== generation || !available()) return;
         drafts[kind].set(field, input.value ?? '');
@@ -358,7 +379,14 @@ export function mountHistoryWorkspace(
       message.setAttribute('role', view.exportState === 'loading' ? 'status' : 'alert');
       main.append(message);
     }
+    renderedKind = kind;
     root.replaceChildren(main);
+    if (restore) {
+      const input = renderedInputs.get(restore.field);
+      input?.focus();
+      if (input && typeof restore.start === 'number' && typeof restore.end === 'number')
+        input.setSelectionRange?.(restore.start, restore.end, restore.direction ?? undefined);
+    }
   }
   render();
   void workspace.usage.load(filters.usage);
@@ -368,6 +396,7 @@ export function mountHistoryWorkspace(
       disposed = true;
       generation++;
       clearInputs();
+      renderedInputs.clear();
       drafts.usage.clear();
       drafts.audit.clear();
       filters.usage = {};

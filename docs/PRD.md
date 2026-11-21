@@ -1527,3 +1527,6 @@ Reuse the existing readable-time scope in the canonical Usage/Audit workspace: e
 
 ## Canonical UTC range input (#988, #637, #642)
 Integrate the existing PR980 strict UTC-or-Unix-ms range input into canonical history, preserving exact drafts, applied numeric API/CSV scope and all existing authorization boundaries. This is partial source integration only. See [contract](../contracts/history-readable-time.md) and [plan](plans/988-canonical-model-drilldown.md).
+
+## Canonical filter focus continuity (#988)
+Asynchronous same-tab history renders preserve focus and selection only for the currently focused filter draft. External focus and tab changes never trigger restoration. Denial and disposal clear private filters without refocusing them. UTC draft text, applied request/CSV scope and authorization remain unchanged. Source980 is only partially integrated. See test/history-filter-focus.test.ts and the #988 plan.
