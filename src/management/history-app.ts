@@ -165,6 +165,16 @@ export function mountHistoryWorkspace(
         void review.load(input);
       }),
     );
+    controls.append(
+      button('Clear filters', () => {
+        // Explicit reset only: never silently discard an invalid/account target.
+        drafts[kind].clear();
+        filters[kind] = {};
+        deliveryFailed[kind] = false;
+        // Existing load retires cursor history, pending read and pending CSV.
+        void review.load({});
+      }),
+    );
     main.append(controls);
     const status = element('p');
     status.setAttribute('role', 'status');

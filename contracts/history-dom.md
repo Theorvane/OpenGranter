@@ -12,3 +12,7 @@ Evidence: test/management-history-app.test.ts and existing shared workspace/clie
 
 ## History CSV delivery failures (#642)
 The history DOM mount preserves the CsvDownloadResult port contract: only `started` means browser delivery initiation, not completed file persistence. Returned `unavailable`, `invalid`, `disposed`, and thrown adapter errors show a generic retryable CSV alert in the originating tab. Explicit retry clears that delivery alert; other tabs do not inherit it. Raw diagnostics are never rendered, and synchronous disposal during save cannot restore DOM or errors. This adds no session acquisition, authority, retention, deployment or provider behavior.
+
+## Explicit filter reset (#984)
+
+Clear filters resets only the active Usage/Audit tab to a fresh protected read with no principal/model/request/time/cursor. It clears invalid drafts, prior cursor history, pending reads/CSV and CSV delivery errors. Inactive tab filters remain intact. Account targets are preserved unless explicitly cleared. Fresh server authorization determines scope; the reset is not an identity or permission grant. Replaced/denied/disposed controls cannot act. Already downloaded files cannot be erased.
