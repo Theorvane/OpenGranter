@@ -115,6 +115,7 @@ test('explicit reset clears invalid drafts and all applied filters with a fresh 
     'account-target',
   );
   await tick();
+  assert.ok(paths[0]);
   assert.match(paths[0], /principal_id=account-target/);
   input(root, 'Model', 'chat');
   input(root, 'Request ID', 'req');
@@ -217,7 +218,7 @@ test('reset cancels pending CSV without delivering old page', async () => {
     async (path, init) => {
       paths.push(path);
       if (path.includes('format=csv')) {
-        csvSignal = init.signal;
+        csvSignal = init.signal ?? undefined;
         return new Promise<Response>((resolve) => {
           finish = resolve;
         });
@@ -248,7 +249,7 @@ test('reset aborts pending read and ignores a late previous result', async () =>
     root,
     async (_path, init) => {
       if (++calls === 1) {
-        firstSignal = init.signal;
+        firstSignal = init.signal ?? undefined;
         return new Promise<Response>((resolve) => {
           finish = resolve;
         });
