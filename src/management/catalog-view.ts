@@ -9,7 +9,7 @@ export interface CatalogElement {
   setAttribute(name: string, value: string): void;
   append(...nodes: CatalogElement[]): void;
   replaceChildren(...nodes: CatalogElement[]): void;
-  addEventListener(type: string, listener: () => void): void;
+  addEventListener(type: string, listener: (event?: { preventDefault(): void }) => void): void;
   focus(): void;
 }
 export type CatalogViewState = ManagementCatalogSnapshot;

@@ -2037,3 +2037,6 @@ The ready canonical Usage history page shows exact estimated and reported totals
 
 ## History filter reset (#986)
 Clear filters in the canonical history mount recovers invalid drafts, clears only the active tab's drafts/applied filters and CSV delivery alert, cancels in-flight reads/exports, resets cursors and issues one fresh first-page authorized request; the other tab keeps its filters and initial Account scope. Detached controls after navigation, denial or disposal cannot re-dispatch, and 401/403 during the reset clears both histories and releases the download lease once. Focused suites cover fixture DOM plus bundled-workspace loopback HTTP with migrated embedded SQL; this is not native-browser IdP login, installed PostgreSQL or live-provider acceptance. See [plan](plans/986-canonical-history-reset.md) and [contract](../contracts/history-dom.md).
+
+## Canonical history keyboard submission (#988)
+For Usage and Audit, submit the named History filters form with Enter or Apply filters: exactly one authorized read, exact principal/model/request/time scope, and no filter disclosure in the document URL. Invalid timestamps stay local. Old forms after rerender, denial or disposal are inert. Existing model drilldown, page summary and reset remain available. No installed/SSO acceptance is implied by fixture tests.

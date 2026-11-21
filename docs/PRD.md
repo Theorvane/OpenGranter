@@ -1514,3 +1514,6 @@ The canonical Usage history now provides View usage for this model per authorize
 
 ### Canonical history integration (#988)
 The current-page cost summary, explicit active-tab filter reset and model drilldown are composed in one canonical history mount. Estimates and reported costs remain distinct, missing values stay Unknown, and reset cancels old work before a fresh authorized read. Combined mounted tests cover scoped CSV and denial cleanup; synthetic browser evidence is not installed login or live-provider acceptance. Source PRs #983/#985/#987 remain unmerged pending consolidation review.
+
+## Canonical history keyboard filters (#988)
+Usage/Audit filters support native Enter submission as well as Apply filters without document navigation or changing existing API/IAM boundaries. This is source integration of #979; its stacked features are not implicitly activated.

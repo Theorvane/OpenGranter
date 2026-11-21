@@ -27,3 +27,6 @@ Clear filters resets only the active Usage/Audit tab to a fresh protected read w
 
 ## Clear all history filters (#986)
 The active Usage or Audit tab offers Clear filters, which clears only that tab's drafts and applied filters, cancels its pending JSON/CSV work, resets its cursor path and starts a fresh first-page authorized read. The other tab keeps its own filters. A recovered invalid draft becomes editable again with no transport request, and a retained control from a replaced view or after denial/disposal cannot dispatch. Reset grants nothing: the fresh read still authenticates, authorizes and awaits required audit, and a 401/403 on it terminally clears both histories and releases download leases once. This adds no session acquisition, retention, deployment or provider behavior.
+
+## Canonical native filter submission (#988, #979)
+Usage and Audit filters use a named native form. Enter and Apply filters each apply the existing exact filters once without document navigation; other controls do not submit. Validation and fresh authorization remain in the existing clients. Detached forms, denial and disposal cannot issue another read. This integrates only keyboard submission from #979, not its stacked page-size or runtime behavior.
