@@ -1590,3 +1590,6 @@ Existing principal-scoped management and proxy usage histories accept an optiona
 ## Request-scoped usage review (#642)
 
 Usage now accepts an exact Request ID filter and a row action that reloads authorized attempts for that request while preserving the current principal mode and applied model/time bounds. Self mode does not gain an explicit principal_id (which would require usage:ReadAll); explicit target mode retains its existing authorization. Fresh loads reset cursors; paging and current-page CSV retain request_id. JSON rows are checked against the captured exact request ID, and invalid IDs never reach transport. No complete-history, invoice-total, session or deployment claim. See [plan](plans/642-request-usage-browser.md) and [contract](../contracts/usage-request-review.md).
+
+## Canonical history UTC input (#988, #637, #642)
+The history view converts strict explicit UTC or integer draft text through a pure input helper before existing range/client validation. Transport continues to receive numeric from_ms/to_ms; no endpoint, identity, persistence, session or deployment architecture changes. Source980 integration remains partial.

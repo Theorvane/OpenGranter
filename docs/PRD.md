@@ -1524,3 +1524,6 @@ The current Usage/Audit workspace preserves per-tab edits independently of appli
 ## Canonical history UTC presentation (#988, #642)
 
 Reuse the existing readable-time scope in the canonical Usage/Audit workspace: explicit UTC list/detail and exact raw Unix milliseconds, preserving epoch and numeric fallback. No API/CSV or authority change. See [contract](../contracts/history-readable-time.md) and [plan](plans/988-canonical-model-drilldown.md).
+
+## Canonical UTC range input (#988, #637, #642)
+Integrate the existing PR980 strict UTC-or-Unix-ms range input into canonical history, preserving exact drafts, applied numeric API/CSV scope and all existing authorization boundaries. This is partial source integration only. See [contract](../contracts/history-readable-time.md) and [plan](plans/988-canonical-model-drilldown.md).

@@ -2052,3 +2052,6 @@ For each history tab, edit principal/model/page size without submitting, switch 
 ## Canonical UTC history presentation (#988, #642)
 
 Both Usage and Audit list/detail show exact ISO UTC with millisecond precision; details retain raw Unix milliseconds. Epoch zero and out-of-Date-range safe timestamps remain visible. Failed refresh and fresh Deny remove old rows/timestamps; retry restores current authorized data, disposal clears the view. Source-derived public-mount regressions: test/history-readable-time.test.ts. API/CSV, filters and authorization unchanged. This is source-level evidence, not installed login/deployment/provider acceptance.
+
+## Canonical UTC history input (#988, #637, #642)
+On both history tabs apply explicit UTC bounds and verify exact millisecond queries intersect principal/model/request scope. Equivalent numeric text clears the unapplied notice; changed drafts remain private and do not affect CSV. Returning from the other tab retains draft text and applied range. Ambiguous timestamps, normalized invalid dates, unsafe numbers and reversed ranges issue no request; numeric epoch compatibility, denial and disposal remain intact. Public-mount tests are not installed IdP/PostgreSQL/provider acceptance.

@@ -30,7 +30,7 @@ test('clear filters recovers invalid drafts and resets only the active tab with 
     'human/exact',
   );
   await tick();
-  input(root, 'From (Unix ms, inclusive)', 'invalid');
+  input(root, 'From (UTC or Unix ms, inclusive)', 'invalid');
   input(root, 'Model', 'chat');
   click(root, 'Apply filters');
   await tick();
@@ -43,8 +43,8 @@ test('clear filters recovers invalid drafts and resets only the active tab with 
   for (const label of [
     'Principal',
     'Model',
-    'From (Unix ms, inclusive)',
-    'To (Unix ms, exclusive)',
+    'From (UTC or Unix ms, inclusive)',
+    'To (UTC or Unix ms, exclusive)',
     'Request ID',
   ])
     assert.equal(input(root, label).value, '');

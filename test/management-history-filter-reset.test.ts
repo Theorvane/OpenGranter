@@ -119,7 +119,7 @@ test('explicit reset clears invalid drafts and all applied filters with a fresh 
   assert.match(paths[0], /principal_id=account-target/);
   input(root, 'Model', 'chat');
   input(root, 'Request ID', 'req');
-  input(root, 'From (Unix ms, inclusive)', 'bad');
+  input(root, 'From (UTC or Unix ms, inclusive)', 'bad');
   click(root, 'Apply filters');
   await tick();
   assert.match(text(root), /Invalid filters/);
@@ -133,8 +133,8 @@ test('explicit reset clears invalid drafts and all applied filters with a fresh 
     'Principal',
     'Model',
     'Request ID',
-    'From (Unix ms, inclusive)',
-    'To (Unix ms, exclusive)',
+    'From (UTC or Unix ms, inclusive)',
+    'To (UTC or Unix ms, exclusive)',
   ]) {
     assert.equal(nodes(root).find((n) => n.attributes['aria-label'] === name)?.value, '');
   }

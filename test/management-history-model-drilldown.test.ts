@@ -129,8 +129,8 @@ test('model drilldown preserves applied scope and exact Unicode, not unapplied e
   );
   await tick();
   input(root, 'Request ID', 'req');
-  input(root, 'From (Unix ms, inclusive)', '10');
-  input(root, 'To (Unix ms, exclusive)', '200');
+  input(root, 'From (UTC or Unix ms, inclusive)', '10');
+  input(root, 'To (UTC or Unix ms, exclusive)', '200');
   click(root, 'Apply filters');
   await tick();
   input(root, 'Principal', 'unapplied-other');

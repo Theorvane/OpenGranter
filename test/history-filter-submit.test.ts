@@ -82,12 +82,12 @@ for (const kind of ['usage', 'audit'] as const) {
     assert.equal(prevented, 2, 'mouse submission also prevents native navigation');
     assert.equal(paths.length, before + 2, 'one authorized read per mouse activation');
     const afterMouse = paths.length;
-    input(root, 'From (Unix ms, inclusive)', 'invalid');
+    input(root, 'From (UTC or Unix ms, inclusive)', 'invalid');
     form(root).listeners.submit?.();
     await tick();
     assert.equal(paths.length, afterMouse);
     assert.match(text(root), /Invalid filters/);
-    input(root, 'From (Unix ms, inclusive)', '5');
+    input(root, 'From (UTC or Unix ms, inclusive)', '5');
     deny = true;
     const deniedForm = form(root);
     deniedForm.listeners.submit?.();
