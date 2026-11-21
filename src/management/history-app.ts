@@ -165,6 +165,16 @@ export function mountHistoryWorkspace(
         void review.load(input);
       }),
     );
+    controls.append(
+      button('Clear filters', () => {
+        // Reset only this tab through a fresh authorized first-page read.
+        // The review owns pending read/CSV cancellation and cursor clearing.
+        drafts[kind].clear();
+        filters[kind] = {};
+        deliveryFailed[kind] = false;
+        void review.load({});
+      }),
+    );
     main.append(controls);
     const status = element('p');
     status.setAttribute('role', 'status');
