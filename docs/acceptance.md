@@ -1664,6 +1664,17 @@ See [plan](plans/556-ai-sdk-image-tools.md), [contract](../contracts/ai-sdk-clie
 
 See [plan](plans/558-prestream-errors.md) and [contract](../contracts/openrouter-error-schema.md#pre-stream-observed-status-and-retry-hints-558).
 
+## Observed upstream timeout status boundaries (#560)
+
+- Both bases/all four adapters/nonstream and text/function pre-stream boundaries exercise actual HTTP408/504: /api/v1 preserves status/numeric error.code, legacy keeps502/symbolic upstream_failed, fixed messages/unmapped metadata/request IDs remain.
+- Known observed metadata requires responseStarted:true and existing matching classification (other/upstream408, server-error504). Missing/wrong-type/mismatched/unclassified/no-response metadata and actual transport TimeoutError retain502 without inferring a provider cause or zero billing.
+- No retry hint is captured for408/504. Constructors and route revalidation reject contradictory hints for validated408/504 on either base, including legacy502; prior429/503 behavior is retained.
+- Auth/implicit/model/provider/limit/selection denials prevent upstream/secret work. Failed/delayed required usage and outcome audit retain safe errors or prevent early completion. Preserve missing/possibly-billed records and operational prompt/credential/metadata privacy.
+- After streaming starts, both new codes still produce generic safe SSE errors under HTTP200, without hint/status overrides or final usage/DONE; interruption-audit failure retains its own error. Managed fallback success/generic/final-timeout outcomes cannot inherit earlier metadata; duplicate flags/eligibility remain.
+- Actual pinned OpenAI/OpenRouter/AI SDK clients receive JSON statuses without retry hints with retries disabled and one attempt across both bases/all adapters/three modes. No automatic policy/live-provider guarantee, source-pin/dependency/storage change or full #116 claim; Jev #7 stays unresolved.
+
+See [plan](plans/560-timeout-statuses.md) and [contract](../contracts/openrouter-error-schema.md#observed-upstream-timeout-statuses-560).
+
 ## Gateway service entrypoint (#564)
 
 - Validate configuration before import; reject missing factories or required connection/secret/limit ports with fixed diagnostics.
@@ -1826,6 +1837,12 @@ The unused mount adapter builds fixed detached main/heading/status nodes with te
 - Verify one connection and idempotent close. Local test issuer/PGlite sockets are not browser login, installed PostgreSQL, company IdP or provider acceptance.
 
 
+## Exact audit principal references (#642)
+
+- Test exact Korean/supplementary principals, distinct composed/decomposed IDs, blank/C0/DEL/C1/overlength rejection and unchanged non-principal identifier restrictions.
+- Exercise actual loopback HTTP with PGlite-backed audit insert/read for scoped JSON and CSV keyset pages; fresh target Deny prevents reads and failed mandatory audit suppresses records.
+- No installed PostgreSQL, native browser/IdP, SSO audit route, runtime activation or full #637 completion is certified. See [contract](../contracts/audit-principal-references.md).
+
 ## Management transport privacy (#639)
 
 The shared Node HTTP bridge forces no-store and nosniff on exact /management and slash descendants, including handler errors and custom fallback responses. This preserves existing status/body/authentication/audit behavior and activates no routes or session. See [contract](../contracts/management-http-privacy.md) and [plan](plans/639-management-http-privacy.md). Loopback socket evidence is not native-browser, company SSO or installed ingress acceptance.
@@ -1859,6 +1876,10 @@ Explicit caller-authorized export adapter reads one bounded CSV page with existi
 Acceptance: signed SSO JSON/CSV and empty pages persist attribution; malformed query and fresh Deny persist zero-count outcomes; no response completes while its insert is pending; failed insert withholds results. Additive migration preserves previous checksums and data and is idempotent under the existing runner. The factory is unactivated; database migration/lifecycle, runtime mount, browser sessions, retention/readers and installed PostgreSQL/IdP/provider E2E remain separate gates. See [plan](plans/642-durable-sso-usage-http.md).
 
 
+## CSV continuation progress (#642)
+
+Browser CSV export rejects repeated or backwards next-cursor metadata before consuming the body. Continuations must advance in descending timestamp and UTF-8 attempt-ID order relative to the serialized request cursor, including when the caller mutates its filters while transport is pending. Invalid metadata yields a private unavailable state and cancels the unread body. This is a transport guard, not CSV-row revalidation, session activation or installed/browser acceptance. See [plan](plans/642-export-cursor-progress.md).
+
 ## Verbatim CSV encoding (#642)
 
 Preserve an existing leading UTF-8 byte-order mark, including when it is split across stream chunks; never add a marker to an unmarked export. Strict UTF-8 decoding and existing byte/time bounds remain enforced. This transport-only correction does not activate UI/session/downloads. See [plan](plans/642-csv-byte-order-mark.md).
@@ -1877,6 +1898,14 @@ JSON usage transport also withholds complete-looking pages when uncompressed Con
 
 - While a JSON usage request is pending, mutate caller principal/model/time/limit/cursor filters. Release a valid original-scope page and require ready; release a page matching only mutated scope and require unavailable. Increasing the caller limit must not release oversized original pages.
 - Read each allowlisted accessor once before query construction and bind response validation to the same captured values. Preserve existing identity invalidation, no-store, bounded body and private errors. This is not a server authorization or session decision. See [client contract](../contracts/management-usage-client.md).
+
+## Usage review lifecycle (#642)
+
+Read-only SSO usage lifecycle copies filters, follows only current opaque continuation and replaces pages. Loading, identity change, expiry and teardown clear old rows; stale completions cannot publish. Unknown costs and duplicate markers are preserved. Caller owns trusted authorization, expiry and rendering; no session/runtime activation. See [plan](plans/642-usage-review-session.md) and [contract](../contracts/management-usage-session.md).
+
+## Exact failed usage page recovery (#642)
+
+Explicit usage lifecycle retry repeats the failed first page or continuation with the original copied principal/model/time/limit and exact opaque cursor. Loading hides old rows; no previous rows are retained. Success, new search, invalid query, denial, logout/expiry, replacement authority and disposal remove retry authority. A pending retry cannot publish after identity teardown. This is an unactivated UI-independent lifecycle, not browser/session/runtime acceptance. See [contract](../contracts/management-usage-session.md).
 
 ## CSV browser page progress (#642)
 
@@ -1983,3 +2012,56 @@ The history DOM mount preserves the CsvDownloadResult port contract: only `start
 ### Streamed operations response expiry regression (#637)
 - Receive issuance status 201 before the grant deadline; deliver bytes or EOF after expiry without firing the timer. Require expired boundary, no issued-secret publication and cancellation of an open source.
 - Require successful streamed issuance before expiry; logout, identity replacement and screen navigation cancel a pending body without stale publication. Source failures show only generic uncertain-outcome guidance, never source diagnostics.
+
+
+## Late operations response disposal (#637)
+
+If an abort-ignoring trusted request returns headers after logout, expiry, identity replacement, navigation or disposal, the operations adapter rejects it and attempts to cancel its unused body without waiting. Cancellation failures stay private; local cleanup does not guarantee remote resource reclamation or mutation rollback. Existing success, denial and streamed authority checks remain unchanged. No public entry or session acquisition is enabled. See docs/plans/637-operations-stream-teardown.md (repository-root relative).
+
+## Request-scoped usage API (#642)
+
+Existing principal-scoped management and proxy usage histories accept an optional exact request_id filter, intersected with model/time/keyset filters for JSON and CSV. Canonical parameterized SQL and full-page/lookahead validation preserve isolation; fresh IAM and mandatory audit remain required. No new authority, session acquisition, schema or deployment activation. Browser drilldown integration and installed/live acceptance remain separate. See [plan](plans/642-usage-request-filter.md) and [contract](../contracts/usage-request-filter.md).
+
+## Canonical Account identity read (#637 / #639)
+
+The canonical read composition now routes exact /management/v1/me and /management/v1/principal to fresh registered-key active-human authentication and mandatory dedicated SQL audit. This ports the existing PR769/771/775/777 Account contract, not a browser login/session approval or IAM grant. The me response contains only principalId; principal contains only id and kind. The explicit optional [audit SQL contract](../contracts/sql/current-principal-audit.sql) is NOT a default migration and is never auto-installed; missing audit storage fails closed. Caller-owned committed/autocommit SQL and schema approval remain prerequisites. No runtime activation or deployment is included. See [contract](../contracts/canonical-current-principal.md) and [plan](plans/639-canonical-current-principal.md).
+
+Bounded local acceptance: signed registered-key JWT + explicitly prepared embedded PostgreSQL + actual Node loopback HTTP verify exact Account payload, revocation, no model permission grant, mandatory pending audit, missing audit with no auto-install, malformed acknowledgement suppression, anonymous rejection, and zero-private-work malformed/unknown requests. These tests are not browser sign-in or installed/deployed acceptance.
+
+
+## Owned management Account API (#639)
+Local loopback HTTP with signed test JWT and migrated embedded PostgreSQL must cover exact Account projections, fresh binding revocation, no implicit model permission, mandatory audit completion, missing-table no-install suppression, malformed acknowledgements, anonymous authentication failure, exact route/method/query handling, public-shell no-authority and idempotent resource closure. Existing management runtime and browser artifact tests remain required. No live IdP, installed PostgreSQL, browser login or deployment certification is implied.
+
+## Opt-in SSO operations HTTP checkpoint (#637)
+
+A new caller-owned HTTP composition connects existing human bearer-authenticated token issue/revoke to canonical models list/detail and usage/audit JSON/CSV. Existing read-only review remains read-only; existing fresh authentication, IAM and durable audits are reused. No browser session acquisition, new authority, runtime activation or deployment is introduced. Migrated embedded SQL and bound loopback HTTP are local integration evidence, not installed PostgreSQL, external IdP/browser login or provider acceptance. See [plan](plans/637-sso-operations-http.md) and [contract](../contracts/sso-operations-http.md). Original PRD, administrator login, CRUD and deployment/handoff goals remain open.
+## Review DOM canonical integration (#637)
+
+Legacy audit/usage extraction exports must preserve canonical shared function and error-constructor identity. Existing review DOM and browser build tests continue to pass with the canonical exact shared source closure. No authenticated deployment acceptance is implied. See [plan](plans/637-review-dom-main-integration.md).
+
+## Disconnected management response cleanup (#637)
+
+The shared Node adapter discards a response returned after client disconnect without awaiting its producer cancellation. This lets request listeners settle even when cleanup stalls; cleanup remains best-effort, not forced producer reclamation or mutation rollback. See [plan](plans/637-disconnected-response-cleanup.md) and [contract](../contracts/disconnected-management-response.md). Actual local socket tests cover cancellation and continued service, not administrator login, installed deployment or provider acceptance.
+
+## CSP-compatible model descriptions (#637)
+The public management shell serves a fixed no-store stylesheet and links it explicitly. Published multiline descriptions use a fixed class and literal text, never inline styles or HTML. CSP remains unchanged; static method/framing/query checks and exact API delegation remain in force. See [plan](plans/637-model-description-csp.md) and [contract](../contracts/model-description-csp.md). Local native-browser rendering is not company SSO, installed PostgreSQL, deployment or provider acceptance.
+
+
+## Issued-token revocation handoff (#640)
+
+After a successful authorized issuance, activate Review issued token revocation: both live and retained bearer display nodes clear, exact credential ID appears in a separate confirmation, and no request is sent. Cancel sends nothing; only Confirm revocation sends one existing POST. Pending mutation refuses replacement; stale callbacks, disposal and fresh 401/403 cannot revive credentials or submit again. Verify persisted revocation/event and rejected credential through owned HTTP; Deny/audit outage must leave credential unrevoked and must not report success. Local embedded evidence is not installed SSO acceptance.
+
+
+## Account response byte integrity (#639)
+The caller-authorized Account client rejects malformed, oversized or mismatched identity/no-encoding Content-Length before publishing identity. It cancels declared overflow without waiting for EOF. Fetch-decoded compressed representations are not compared with their compressed wire length; all decoded bodies remain limited to 4096 bytes and fatal UTF-8. Rejection uses the existing unavailable/retry UI, never partial identity or raw diagnostics. No session, endpoint, authorization, storage or deployment change. See [plan](plans/639-account-response-integrity.md).
+
+## Request-scoped usage API (#642)
+
+Existing principal-scoped management and proxy usage histories accept an optional exact request_id filter, intersected with model/time/keyset filters for JSON and CSV. Canonical parameterized SQL and full-page/lookahead validation preserve isolation; fresh IAM and mandatory audit remain required. No new authority, session acquisition, schema or deployment activation. Browser drilldown integration and installed/live acceptance remain separate. See [plan](plans/642-usage-request-filter.md) and [contract](../contracts/usage-request-filter.md).
+
+
+## Request-scoped usage review (#642)
+
+Usage now accepts an exact Request ID filter and a row action that reloads authorized attempts for that request while preserving the current principal mode and applied model/time bounds. Self mode does not gain an explicit principal_id (which would require usage:ReadAll); explicit target mode retains its existing authorization. Fresh loads reset cursors; paging and current-page CSV retain request_id. JSON rows are checked against the captured exact request ID, and invalid IDs never reach transport. No complete-history, invoice-total, session or deployment claim. See [plan](plans/642-request-usage-browser.md) and [contract](../contracts/usage-request-review.md).
+### Request-filter and usage framing integration (#642)
+- Request-scoped Usage JSON/CSV rejects framed GETs before any identity/usage SQL or service audit; absent/zero-length reads preserve exact principal/request intersection, keyset/lookahead and awaited audit. Audit failure withholds both formats. Preserve both original request-filter and framing regressions during main integration. Synthetic signed-token/PGlite and loopback results are not installed acceptance. See [plan](plans/642-usage-get-framing.md).

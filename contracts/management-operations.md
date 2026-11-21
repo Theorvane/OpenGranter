@@ -19,3 +19,16 @@ mountSessionManagementOperations(root, createDownload, options?) begins unauthen
 Valid authorization schedules expiry before mounting existing history/token operations. Known expiry removes retained issued-token text, aborts pending local work and releases download ownership. Clock uncertainty/invalid deadlines fail closed. Check the clock before requests, after headers and before delivering each body chunk or EOF as well as on timer delivery. Body reads use no prefetch, preserve backpressure and existing client size limits, and cancel the source on rejected reads or caller cancellation; source diagnostics remain private. A successful status before expiry cannot publish a token whose body completes after expiry even if the timer never fires. Cap long timer delays and re-arm early callbacks. Scheduling failure leaves generic unavailable UI with no request. Cleanup diagnostics never become UI text.
 
 Current non-aborted 401/403 terminates the grant; aborted prior-screen responses and stale grants/timers cannot terminate a replacement. Isolated per-grant DOM prevents reentrant teardown from clearing a replacement mount. Local teardown does not revoke credentials, prove mutation rollback or replace server authentication/IAM. Tests: test/management-operations-session.test.ts; synthetic boundaries only, not installed SSO acceptance.
+
+
+## Late operations response disposal (#637)
+
+If an abort-ignoring trusted request returns headers after logout, expiry, identity replacement, navigation or disposal, the operations adapter rejects it and attempts to cancel its unused body without waiting. Cancellation failures stay private; local cleanup does not guarantee remote resource reclamation or mutation rollback. Existing success, denial and streamed authority checks remain unchanged. No public entry or session acquisition is enabled. See docs/plans/637-operations-stream-teardown.md (repository-root relative).
+
+## Canonical Account navigation (#639)
+
+Account is a third inner operations screen, using the existing caller-authorized request port for GET /management/v1/principal. History remains the initial screen. Navigation disposes its predecessor and cancels local reads; 401/403 locks the complete operations mount. Use the existing trusted operations-session wrapper for expiry/logout/replacement. No session acquisition, IAM grant, credential bridge, downloads or writes are added. The public entry and outer Models owner remain unchanged.
+
+## History initialization recovery (#642)
+
+A download-adapter construction failure shows a generic alert and Retry history. Explicit retry constructs once and only then starts the existing history GET. It never issues a token mutation or exports CSV automatically. Old retry controls cannot act after a new retry, navigation, current denial or disposal. Private adapter diagnostics remain hidden; reentrant teardown cannot revive the screen.

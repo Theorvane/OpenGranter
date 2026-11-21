@@ -8,6 +8,7 @@ import {
   validAuditHistoryFilters,
 } from './history-filters.ts';
 import { type GatewayAuditSqlClient, projectGatewayAuditEvent } from './postgres-gateway-audit.ts';
+import { validAuditPrincipalReference } from './principal-reference.ts';
 
 const MAX_BIGINT = 9_223_372_036_854_775_807n;
 
@@ -71,9 +72,7 @@ export function createPostgresAuditHistoryReader(
       throw new AuditHistoryUnavailable();
     }
     if (
-      typeof query.principalId !== 'string' ||
-      query.principalId.length === 0 ||
-      query.principalId.length > 256 ||
+      !validAuditPrincipalReference(query.principalId) ||
       !Number.isSafeInteger(query.limit) ||
       query.limit < 1 ||
       query.limit > 100 ||

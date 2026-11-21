@@ -1,9 +1,11 @@
 import type { AuditFilters } from './audit-client.ts';
+import { renderAuditRecord } from './audit-record-view.ts';
 import { mountManagementBoundaryView } from './boundary-view.ts';
 import type { CatalogRequest } from './catalog-client.ts';
 import type { CatalogElement } from './catalog-view.ts';
 import type { CsvDownloadResult } from './csv-download.ts';
 import { createHistoryWorkspace } from './history-workspace.ts';
+import { renderUsageRecordDetails } from './usage-record-view.ts';
 
 /** Compatible with createCsvDownload; ownership transfers to this mount. */
 export interface HistoryDownload {
@@ -19,13 +21,22 @@ export function mountHistoryWorkspace(
   root: CatalogElement,
   request: CatalogRequest,
   download: HistoryDownload,
+  initialPrincipalId?: string,
 ) {
   let disposed = false;
   let downloadDisposed = false;
   let active: Kind = 'usage';
   let generation = 0;
   const deliveryFailed: Record<Kind, boolean> = { usage: false, audit: false };
-  const filters: Record<Kind, AuditFilters> = { usage: {}, audit: {} };
+  // Preserve the exact target. Existing clients reject invalid history IDs
+  // locally; never silently fall back to a self/unfiltered request.
+  const initial = initialPrincipalId === undefined ? {} : { principalId: initialPrincipalId };
+  const filters: Record<Kind, AuditFilters> = { usage: { ...initial }, audit: { ...initial } };
+  const retainedInputs = new Set<CatalogElement>();
+  function clearInputs() {
+    for (const input of retainedInputs) input.value = '';
+    retainedInputs.clear();
+  }
   const drafts: Record<Kind, Map<keyof AuditFilters, string>> = {
     usage: new Map(),
     audit: new Map(),
@@ -76,6 +87,7 @@ export function mountHistoryWorkspace(
   }
   function render() {
     generation++;
+    clearInputs();
     if (disposed) {
       root.replaceChildren();
       return;
@@ -96,9 +108,15 @@ export function mountHistoryWorkspace(
     nav.setAttribute('aria-label', 'History views');
     for (const tab of ['usage', 'audit'] as const) {
       const node = button(tab === 'usage' ? 'Usage' : 'Audit', () => {
+        if (active === tab) return;
         active = tab;
-        render();
-        if (workspace[tab].snapshot().state === 'idle') void workspace[tab].load(filters[tab]);
+        const state = workspace[tab].snapshot().state;
+        // Read before rendering: never expose the old authorized page while
+        // fresh IAM is being checked, even for one synchronous render.
+        if (state === 'idle') void workspace[tab].load(filters[tab]);
+        else if (['ready', 'empty', 'unavailable', 'cancelled'].includes(state))
+          void workspace[tab].retry();
+        else render();
       });
       node.setAttribute('aria-pressed', String(kind === tab));
       nav.append(node);
@@ -112,13 +130,14 @@ export function mountHistoryWorkspace(
       ['model', 'Model'],
       ['fromMs', 'From (Unix ms, inclusive)'],
       ['toMs', 'To (Unix ms, exclusive)'],
-      ...(kind === 'audit' ? [['requestId', 'Request ID'] as const] : []),
+      ['requestId', 'Request ID'],
     ] as const) {
       const label = element('label', name);
       const input = element('input');
       input.setAttribute('type', 'text');
       input.setAttribute('aria-label', name);
       input.value = drafts[kind].get(field) ?? String(filters[kind][field] ?? '');
+      retainedInputs.add(input);
       label.append(input);
       controls.append(label);
       values.set(field, input);
@@ -202,13 +221,21 @@ export function mountHistoryWorkspace(
         if (row.possibleDuplicate) item.append(element('p', 'Possible duplicate'));
         if (row.possiblyBilled)
           item.append(element('p', 'Possibly billed; not an invoice reconciliation'));
+        item.append(renderUsageRecordDetails(root, row));
+        item.append(
+          button('View attempts for this request', () => {
+            // Exact intersection, not an organization-wide lookup. Clear the
+            // opaque cursor by loading afresh; retain applied time/model bounds.
+            filters.usage = { ...filters.usage, requestId: row.requestId };
+            drafts.usage.set('requestId', row.requestId);
+            void workspace.usage.load(filters.usage);
+          }),
+        );
         rows.append(item);
       }
     else
       for (const row of snapshot.audit.data) {
-        rows.append(
-          element('li', `${row.occurredAt} · ${row.kind} · ${row.principalId} · ${row.requestId}`),
-        );
+        rows.append(renderAuditRecord(root, row));
       }
     main.append(rows);
     main.append(
@@ -227,6 +254,15 @@ export function mountHistoryWorkspace(
           void review.next();
         },
         view.canNext,
+      ),
+    );
+    main.append(
+      button(
+        'Refresh current page',
+        () => {
+          void review.retry();
+        },
+        view.state === 'ready' || view.state === 'empty',
       ),
     );
     if (view.state === 'unavailable' || view.state === 'cancelled')
@@ -258,12 +294,17 @@ export function mountHistoryWorkspace(
     root.replaceChildren(main);
   }
   render();
-  void workspace.usage.load();
+  void workspace.usage.load(filters.usage);
   return Object.freeze({
     dispose() {
       if (disposed) return;
       disposed = true;
       generation++;
+      clearInputs();
+      drafts.usage.clear();
+      drafts.audit.clear();
+      filters.usage = {};
+      filters.audit = {};
       workspace.dispose();
       releaseDownload();
       root.replaceChildren();

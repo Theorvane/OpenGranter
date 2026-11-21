@@ -11,6 +11,10 @@ No credentials, persistent storage, DOM/download, listener, session/BFF activati
 Plan: [implementation](../docs/plans/642-browser-usage-export.md). Test: test/management-usage-export-client.test.ts. Parent #637 / #642.
 
 
+## CSV continuation progress (#642)
+
+Browser CSV export rejects repeated or backwards next-cursor metadata before consuming the body. Continuations must advance in descending timestamp and UTF-8 attempt-ID order relative to the serialized request cursor, including when the caller mutates its filters while transport is pending. Invalid metadata yields a private unavailable state and cancels the unread body. This is a transport guard, not CSV-row revalidation, session activation or installed/browser acceptance. See [plan](../docs/plans/642-export-cursor-progress.md).
+
 ## Verbatim CSV encoding (#642)
 
 Preserve an existing leading UTF-8 byte-order mark, including when it is split across stream chunks; never add a marker to an unmarked export. Strict UTF-8 decoding and existing byte/time bounds remain enforced. This transport-only correction does not activate UI/session/downloads. See [plan](../docs/plans/642-csv-byte-order-mark.md).

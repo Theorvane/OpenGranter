@@ -42,3 +42,10 @@ Integrated GREEN: 43/43 focused transport/encoding/lifecycle/real-HTTP tests, ze
 ## 2026-11-17 main integration
 
 Preserve the canonical main client, session, publication projections and expanded tests rather than resurrecting the earlier parser. Source features are already present on main; the remaining delta is this plan and real HTTP signed-JWT/PGlite client integration in sso-model-catalog-http.test.ts, retaining fresh Deny, binding deactivation and mandatory audit failure cases. Focused client/session/HTTP/SQL tests: 39 pass, zero skip; full typecheck passed. No new authentication meaning, endpoint or browser activation.
+
+## 2026-11-21 canonical-main integration
+
+1. Integrate main 7479633f78408db2d552df71d417b3a553ba6c1f without restoring obsolete transport/session implementations. The remaining two-file delta connects the actual client to the signed-JWT/migrated-PGlite loopback HTTP regression and retains this plan.
+2. Preserve fresh policy Deny, inactive binding and mandatory durable-audit failure projections across actual client/server composition. Synthetic server-side bearer injection is test-only, not browser login or BFF activation.
+3. Node22 supported-PATH serial focused client/session/encoding/HTTP/SQL regression: 44 PASS, 0 FAIL/SKIP. Full strict TypeScript, whole-tree Biome (warnings/info retained), planning/fixture scan and pinned compatibility checks PASS. Full test aggregate and new exact-head required CI plus independent formal approval remain separate gates.
+4. No new production source, session/runtime/DDL, public activation, deployed URL, native-browser or installed/provider acceptance is claimed by this integration.

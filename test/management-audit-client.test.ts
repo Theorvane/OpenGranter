@@ -111,7 +111,7 @@ test('invalid audit query never calls request and accessor errors fail safely', 
     { limit: 101 },
     { cursor: '01' },
     { cursor: '9223372036854775808' },
-    { principalId: 'bad space' },
+    { principalId: 'bad\u0085control' },
     { requestId: 'bad space' },
     { model: '\n' },
     { fromMs: 2, toMs: 1 },
@@ -403,4 +403,25 @@ test('audit request filter accessors are captured once before asynchronous respo
   assert.equal(accesses, 1);
   assert.match(path, /principal_id=human/u);
   assert.equal(result.state, 'ready');
+});
+
+test('audit browser query preserves exact Unicode and nonblank spaced principal references', async () => {
+  for (const principalId of ['사람-😀', 'human with space', 'e\u0301', 'é']) {
+    let calls = 0;
+    const client = createSsoAuditClient(async (path) => {
+      calls++;
+      assert.equal(
+        new URL(path, 'https://local.invalid').searchParams.get('principal_id'),
+        principalId,
+      );
+      return page([]);
+    });
+    assert.deepEqual(await client.read({ principalId }), {
+      state: 'ready',
+      data: [],
+      hasMore: false,
+      nextCursor: null,
+    });
+    assert.equal(calls, 1);
+  }
 });

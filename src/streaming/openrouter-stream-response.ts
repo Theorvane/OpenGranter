@@ -22,7 +22,7 @@ function fail(response: Response, category: OpenRouterFailureCategory): never {
     true,
     true,
     rejected ? parseRetryAfterSeconds(response.headers.get('retry-after')) : undefined,
-    rejected ? response.status : undefined,
+    response.status,
   );
 }
 

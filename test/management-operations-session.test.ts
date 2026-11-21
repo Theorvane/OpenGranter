@@ -534,3 +534,147 @@ for (const outcome of ['success', 'logout', 'replace', 'navigate', 'failure'] as
     f.app.dispose();
   });
 }
+
+for (const reason of ['logout', 'expiry', 'replace', 'navigate', 'dispose'] as const) {
+  test(`stalled issuance source is cancelled immediately on ${reason}`, async () => {
+    const f = fixture();
+    let cancelled = 0;
+    let pulls = 0;
+    f.app.authorize({
+      expiresAt: 2000,
+      request: async (_path, init) =>
+        init.method !== 'POST'
+          ? empty()
+          : new Response(
+              new ReadableStream<Uint8Array>({
+                pull() {
+                  pulls++;
+                },
+                cancel() {
+                  cancelled++;
+                  return new Promise<void>(() => {});
+                },
+              }),
+              { status: 201 },
+            ),
+    });
+    await tick();
+    click(f.root, 'Proxy tokens');
+    enter(f.root, 'Principal ID', 'person');
+    enter(f.root, 'Expiry (Unix milliseconds, integer)', '3000');
+    click(f.root, 'Review issuance');
+    click(f.root, 'Confirm issuance');
+    await tick();
+    assert.ok(pulls > 0);
+    if (reason === 'logout') f.app.clear();
+    if (reason === 'expiry') {
+      f.setTime(2000);
+      f.timers[0]?.fire();
+    }
+    if (reason === 'replace') f.app.authorize({ expiresAt: 4000, request: async () => empty() });
+    if (reason === 'navigate') click(f.root, 'History');
+    if (reason === 'dispose') f.app.dispose();
+    await tick();
+    assert.equal(cancelled, 1);
+    assert.doesNotMatch(text(f.root), /One-time token/);
+    f.app.dispose();
+    assert.equal(cancelled, 1);
+  });
+}
+
+for (const reason of ['logout', 'expiry', 'replace', 'navigate', 'dispose'] as const) {
+  test(`late headers cancel unused body after ${reason}`, async () => {
+    const f = fixture();
+    let deliver: ((response: Response) => void) | undefined;
+    let cancelled = 0;
+    f.app.authorize({
+      expiresAt: 2000,
+      request: () =>
+        new Promise<Response>((resolve) => {
+          deliver = resolve;
+        }),
+    });
+    await tick();
+    if (reason === 'logout') f.app.clear();
+    if (reason === 'expiry') f.setTime(2000);
+    if (reason === 'replace') f.app.authorize({ expiresAt: 4000, request: async () => empty() });
+    if (reason === 'navigate') click(f.root, 'Proxy tokens');
+    if (reason === 'dispose') f.app.dispose();
+    assert.ok(deliver);
+    deliver(
+      new Response(
+        new ReadableStream<Uint8Array>({
+          cancel() {
+            cancelled++;
+            return new Promise<void>(() => {});
+          },
+        }),
+      ),
+    );
+    await tick();
+    assert.equal(cancelled, 1);
+    if (reason === 'replace') assert.match(text(f.root), /No history matches/);
+    if (reason === 'expiry') assert.match(text(f.root), /Session expired/);
+    if (reason === 'logout') assert.match(text(f.root), /Sign-in required/);
+    if (reason === 'navigate') assert.match(text(f.root), /Proxy tokens/);
+    if (reason === 'dispose') assert.equal(f.root.children.length, 0);
+    f.app.dispose();
+    assert.equal(cancelled, 1);
+  });
+}
+
+for (const status of [401, 403]) {
+  test(`denial body is cancelled without exposing diagnostics: ${status}`, async () => {
+    const f = fixture();
+    let cancelled = 0;
+    f.app.authorize({
+      expiresAt: 2000,
+      request: async () =>
+        new Response(
+          new ReadableStream<Uint8Array>({
+            cancel() {
+              cancelled++;
+              throw new Error('private-cancellation-diagnostic');
+            },
+          }),
+          { status },
+        ),
+    });
+    await tick();
+    assert.equal(cancelled, 1);
+    assert.match(text(f.root), status === 401 ? /Sign-in required/ : /Access denied/);
+    assert.doesNotMatch(text(f.root), /private-cancellation-diagnostic/);
+    f.app.dispose();
+  });
+}
+
+for (const mode of ['throw', 'reject', 'locked', 'empty'] as const) {
+  test(`late response cleanup isolates ${mode}`, async () => {
+    const f = fixture();
+    let deliver: ((response: Response) => void) | undefined;
+    f.app.authorize({
+      expiresAt: 2000,
+      request: () =>
+        new Promise<Response>((resolve) => {
+          deliver = resolve;
+        }),
+    });
+    await tick();
+    f.app.clear();
+    const body = new ReadableStream<Uint8Array>({
+      cancel() {
+        if (mode === 'throw') throw new Error('private-cancel-throw');
+        return Promise.reject(new Error('private-cancel-rejection'));
+      },
+    });
+    const response = new Response(mode === 'empty' ? null : body);
+    const reader = mode === 'locked' ? body.getReader() : undefined;
+    assert.ok(deliver);
+    deliver(response);
+    await tick();
+    assert.match(text(f.root), /Sign-in required/);
+    assert.doesNotMatch(text(f.root), /private-cancel/);
+    reader?.releaseLock();
+    f.app.dispose();
+  });
+}

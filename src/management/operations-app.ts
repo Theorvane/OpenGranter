@@ -1,6 +1,7 @@
 import { mountManagementBoundaryView } from './boundary-view.ts';
 import type { CatalogRequest } from './catalog-client.ts';
 import type { CatalogElement } from './catalog-view.ts';
+import { mountCurrentPrincipalPanel } from './current-principal-panel.ts';
 import { type HistoryDownload, mountHistoryWorkspace } from './history-app.ts';
 import { mountTokenManagementPanel } from './token-management-panel.ts';
 
@@ -27,7 +28,7 @@ export function mountManagementOperations(
     previous?.dispose();
     root.replaceChildren();
   }
-  function navigate(kind: 'history' | 'tokens') {
+  function navigate(kind: 'history' | 'tokens' | 'account', principalId?: string) {
     if (stopped) return;
     const current = ++epoch;
     clear();
@@ -55,6 +56,7 @@ export function mountManagementOperations(
     for (const [target, label] of [
       ['history', 'History'],
       ['tokens', 'Proxy tokens'],
+      ['account', 'Account'],
     ] as const) {
       const button = element('button', label);
       button.setAttribute('type', 'button');
@@ -83,7 +85,12 @@ export function mountManagementOperations(
         if (active()) {
           const status = element('p', 'History unavailable. Try again.');
           status.setAttribute('role', 'alert');
-          content.replaceChildren(status);
+          const retry = element('button', 'Retry history');
+          retry.setAttribute('type', 'button');
+          retry.addEventListener('click', () => {
+            if (active()) navigate('history');
+          });
+          content.replaceChildren(status, retry);
         }
         return;
       }
@@ -95,9 +102,20 @@ export function mountManagementOperations(
         }
         return;
       }
-      mounted = mountHistoryWorkspace(content, guarded, download);
+      mounted = mountHistoryWorkspace(content, guarded, download, principalId);
+    } else if (kind === 'account') {
+      mounted = mountCurrentPrincipalPanel(
+        content,
+        guarded,
+        (id) => {
+          if (active()) navigate('tokens', id);
+        },
+        (id) => {
+          if (active()) navigate('history', id);
+        },
+      );
     } else {
-      mounted = mountTokenManagementPanel(content, guarded);
+      mounted = mountTokenManagementPanel(content, guarded, principalId);
     }
     if (active()) child = mounted;
     else mounted.dispose();
