@@ -1517,3 +1517,6 @@ The current-page cost summary, explicit active-tab filter reset and model drilld
 
 ## Canonical history keyboard filters (#988)
 Usage/Audit filters support native Enter submission as well as Apply filters without document navigation or changing existing API/IAM boundaries. This is source integration of #979; its stacked features are not implicitly activated.
+
+## Canonical unapplied history filter drafts (#988, #637, #642)
+The current Usage/Audit workspace preserves per-tab edits independently of applied read/CSV scope and announces unapplied changes. Guarded input events do not query or widen authority. Pending completion and navigation preserve drafts; denial/disposal erase them. Canonical Clear filters behavior is unchanged. This is a partial integration of PR980 only, not installed/login/E2E acceptance. See [contract](../contracts/history-dom.md#canonical-partial-draft-integration-988-637-642) and [plan](plans/988-canonical-model-drilldown.md).

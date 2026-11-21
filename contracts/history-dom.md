@@ -34,3 +34,6 @@ Usage and Audit filters use a named native form. Enter and Apply filters each ap
 
 ## Canonical page-size input (#988)
 The usage and audit filter forms expose an optional page size using the existing query contract: blank omits limit, otherwise only an integer from 1 through 100 is accepted. Invalid drafts issue no transport request. Applied limits remain scoped to the active history and survive refresh, cursor navigation, exact-model drilldown and current-page CSV; Clear filters removes the active limit without changing the other history. Existing server authentication, IAM, redaction and audit remain mandatory. No public entry or session activation is implied.
+
+## Canonical partial draft integration (#988, #637, #642)
+Usage/Audit retain input-event drafts per tab across refresh, pagination, CSV lifecycle and pending read completion. Typing does not apply filters or send a request; an accessible status says records, pagination and CSV use applied filters. Native submission applies the draft. Clear filters retains its canonical explicit clear semantics. Model/request drilldown retains unrelated edits visibly unapplied. Detached inputs are erased and generation-guarded; terminal denial/disposal clears both drafts and applied filters. This ports only draft preservation from PR980, not its UTC/focus/reset-to-target/cancellation features.

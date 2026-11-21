@@ -2045,3 +2045,6 @@ For Usage and Audit, submit the named History filters form with Enter or Apply f
 ## Canonical history page size (#988)
 - Usage and audit independently reject zero, values above 100, decimals, nonnumeric or noncanonical integers without a request. Blank retains the server default.
 - Limits 1 and 100 reach JSON/CSV unchanged; refresh, cursor navigation and exact model drilldown preserve the applied principal/model/limit intersection. Clearing one tab removes its limit and leaves the sibling unchanged. Covered by test/history-page-size.test.ts; not installed-login or deployment acceptance.
+
+### Canonical unapplied history drafts (#988)
+For each history tab, edit principal/model/page size without submitting, switch away/back, refresh and export CSV: the exact draft remains visible, no typing request occurs, and reads/CSV retain applied scope. An accessible status distinguishes edits from applied filters. Pending completion preserves edits, detached listeners cannot overwrite them, invalid submission stays local, and denial/disposal erases private inputs. Explicit Clear filters keeps existing canonical semantics.

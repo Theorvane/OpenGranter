@@ -96,6 +96,10 @@ export function mountHistoryWorkspace(
     }
     const snapshot = workspace.snapshot();
     if (snapshot.state !== 'active') {
+      drafts.usage.clear();
+      drafts.audit.clear();
+      filters.usage = {};
+      filters.audit = {};
       releaseDownload();
       if (snapshot.state === 'disposed') root.replaceChildren();
       else mountManagementBoundaryView(root, snapshot.state);
@@ -128,6 +132,17 @@ export function mountHistoryWorkspace(
     controls.setAttribute('novalidate', '');
     controls.setAttribute('aria-label', 'History filters');
     const values = new Map<keyof AuditFilters, CatalogElement>();
+    const draftStatus = element('p');
+    draftStatus.setAttribute('role', 'status');
+    function updateDraftStatus() {
+      const edited = [...values].some(
+        ([field, node]) => (node.value ?? '') !== String(filters[kind][field] ?? ''),
+      );
+      draftStatus.textContent = edited
+        ? 'Unapplied filter edits. Records, pagination and CSV still use the applied filters.'
+        : '';
+    }
+    const inputGeneration = generation;
     for (const [field, name] of [
       ['principalId', 'Principal'],
       ['model', 'Model'],
@@ -145,7 +160,14 @@ export function mountHistoryWorkspace(
       label.append(input);
       controls.append(label);
       values.set(field, input);
+      input.addEventListener('input', () => {
+        if (inputGeneration !== generation || !available()) return;
+        drafts[kind].set(field, input.value ?? '');
+        updateDraftStatus();
+      });
     }
+    updateDraftStatus();
+    controls.append(draftStatus);
     function applyFilters() {
       const input: {
         principalId?: string;

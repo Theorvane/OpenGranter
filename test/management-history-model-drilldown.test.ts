@@ -134,11 +134,20 @@ test('model drilldown preserves applied scope and exact Unicode, not unapplied e
   click(root, 'Apply filters');
   await tick();
   input(root, 'Principal', 'unapplied-other');
+  nodes(root)
+    .find((n) => n.attributes['aria-label'] === 'Principal')
+    ?.listeners.input?.();
   action(root).listeners.click?.();
   assert.match(text(root), /Loading/);
   await tick();
   const query = params(paths.at(-1));
   assert.equal(query.get('model'), model);
+  assert.equal(
+    nodes(root).find((n) => n.attributes['aria-label'] === 'Principal')?.value,
+    'unapplied-other',
+    'model drilldown retains unrelated draft without using it as authority',
+  );
+  assert.match(text(root), /Unapplied filter edits/);
   assert.equal(query.get('principal_id'), 'human');
   assert.equal(query.get('request_id'), 'req');
   assert.equal(query.get('from_ms'), '10');
