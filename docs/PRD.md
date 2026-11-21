@@ -1505,3 +1505,8 @@ The existing SSO Usage JSON/CSV handler now rejects Transfer-Encoding and nonzer
 ## Account-scoped history handoff (#637, #642)
 
 Explicitly mounted Account can open usage and audit with its exact principal filter, preserving server authorization and fresh Deny/audit-failure behavior. Explicit usage targets still require usage:ReadAll; identity alone is not a grant. Manual History does not retain this default. No session or deployment activation. See [plan](plans/642-account-history-navigation.md) and [contract](../contracts/account-history-navigation.md).
+
+
+## Canonical row model drilldown (#988)
+
+The canonical Usage history now provides View usage for this model per authorized row. It reloads the existing protected endpoint with the exact model, preserving applied principal/request/time bounds, never substituting row principal in self mode. A fresh load resets cursors and pending CSV; paging/CSV retain model scope. Model draft follows the action, while unrelated edits are not applied. Audit filters are independent; detached controls, denial and disposal cannot revive reads. Loading, empty and error states remove old rows. This is not a complete-history aggregation, session acquisition or installed/live acceptance. See [plan](plans/988-canonical-model-drilldown.md).

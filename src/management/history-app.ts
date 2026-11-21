@@ -223,6 +223,15 @@ export function mountHistoryWorkspace(
           item.append(element('p', 'Possibly billed; not an invoice reconciliation'));
         item.append(renderUsageRecordDetails(root, row));
         item.append(
+          button('View usage for this model', () => {
+            // Intersect the selected model with applied scope, not row identity
+            // or unapplied edits. Existing load resets pagination and CSV.
+            filters.usage = { ...filters.usage, model: row.modelAlias };
+            drafts.usage.set('model', row.modelAlias);
+            void workspace.usage.load(filters.usage);
+          }),
+        );
+        item.append(
           button('View attempts for this request', () => {
             // Exact intersection, not an organization-wide lookup. Clear the
             // opaque cursor by loading afresh; retain applied time/model bounds.

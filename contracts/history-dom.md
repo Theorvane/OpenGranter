@@ -12,3 +12,8 @@ Evidence: test/management-history-app.test.ts and existing shared workspace/clie
 
 ## History CSV delivery failures (#642)
 The history DOM mount preserves the CsvDownloadResult port contract: only `started` means browser delivery initiation, not completed file persistence. Returned `unavailable`, `invalid`, `disposed`, and thrown adapter errors show a generic retryable CSV alert in the originating tab. Explicit retry clears that delivery alert; other tabs do not inherit it. Raw diagnostics are never rendered, and synchronous disposal during save cannot restore DOM or errors. This adds no session acquisition, authority, retention, deployment or provider behavior.
+
+
+## Canonical row model drilldown (#988)
+
+The canonical Usage history now provides View usage for this model per authorized row. It reloads the existing protected endpoint with the exact model, preserving applied principal/request/time bounds, never substituting row principal in self mode. A fresh load resets cursors and pending CSV; paging/CSV retain model scope. Model draft follows the action, while unrelated edits are not applied. Audit filters are independent; detached controls, denial and disposal cannot revive reads. Loading, empty and error states remove old rows. This is not a complete-history aggregation, session acquisition or installed/live acceptance. See [plan](../docs/plans/988-canonical-model-drilldown.md).
