@@ -12,3 +12,8 @@ Evidence: test/management-history-app.test.ts and existing shared workspace/clie
 
 ## History CSV delivery failures (#642)
 The history DOM mount preserves the CsvDownloadResult port contract: only `started` means browser delivery initiation, not completed file persistence. Returned `unavailable`, `invalid`, `disposed`, and thrown adapter errors show a generic retryable CSV alert in the originating tab. Explicit retry clears that delivery alert; other tabs do not inherit it. Raw diagnostics are never rendered, and synchronous disposal during save cannot restore DOM or errors. This adds no session acquisition, authority, retention, deployment or provider behavior.
+
+
+## Canonical current-page cost coverage (#982)
+
+The ready canonical Usage history page shows exact estimated and reported totals separately per currency, cost coverage, reported/partial/missing/invalid usage counts, possibly billed and duplicate counts. Missing amounts remain Unknown; explicit zero is retained. Duplicate rows remain included and flagged. The summary is current-page only, not an invoice, reconciliation or all-pages total; no extra request, authority or accounting write is introduced. Loading, empty/error, audit navigation, denial and disposal remove the summary with the current rows. See [plan](../docs/plans/982-canonical-page-cost-summary.md).
