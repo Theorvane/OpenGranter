@@ -666,3 +666,56 @@ for (const state of ['consumed', 'locked'] as const) {
     }
   });
 }
+
+for (const operation of ['issue', 'revoke'] as const) {
+  for (const invalid of ['oversized', 'invalid-utf8'] as const) {
+    test(`${operation} rejects ${invalid} without awaiting stalled body cleanup`, async () => {
+      const f = fixture();
+      let cancelled = false;
+      let finishCleanup!: () => void;
+      const cleanup = new Promise<void>((resolve) => {
+        finishCleanup = resolve;
+      });
+      const stream = new ReadableStream<Uint8Array>(
+        {
+          start(controller) {
+            controller.enqueue(
+              invalid === 'oversized' ? new Uint8Array(16385) : new Uint8Array([0xff]),
+            );
+          },
+          cancel() {
+            cancelled = true;
+            return cleanup;
+          },
+        },
+        { highWaterMark: 0 },
+      );
+      const req = new Request(`http://localhost${paths[operation]}`, {
+        method: 'POST',
+        headers: { authorization: 'Bearer opaque-SSO-token', 'content-type': 'application/json' },
+        body: stream,
+        duplex: 'half',
+      } as RequestInit);
+      const response = f.handler(req);
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        const result = await Promise.race([
+          response,
+          new Promise<undefined>((resolve) => {
+            timer = setTimeout(() => resolve(undefined), 500);
+          }),
+        ]);
+        assert.ok(result, 'rejected body must settle before cancellation cleanup');
+        await checkError(result, 400, 'invalid_request');
+        assert.equal(cancelled, true);
+        assert.equal(stream.locked, false);
+        assert.deepEqual(f.calls, ['authenticate']);
+        assert.deepEqual(f.inputs, []);
+      } finally {
+        clearTimeout(timer);
+        finishCleanup();
+        await response;
+      }
+    });
+  }
+}

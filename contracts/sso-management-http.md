@@ -45,6 +45,10 @@ Use gateway_audit_events without a new migration. management-auth-denied and man
 
 The boundary performs no inference, provider secret lookup, limit check or usage accounting. It preserves all proxy IAM/limits/audit/usage paths by not changing them. Separate binding, policy, cap and credential reads are not one transaction and do not revalidate intervening changes. There is no automatic retry, replay detection, introspection, access-token revocation check or issuance deduplication. A disconnect or response failure after issuance can leave a valid credential whose secret the caller did not receive; request IDs are correlation only. Audited binding provisioning, owned runtime activation, network key refresh and complete release gates remain follow-up work.
 
+## Rejected body cleanup (#764)
+
+Oversized and invalid UTF-8 credential bodies retain 400 invalid_request before service dispatch. Reader cancellation is best-effort and not awaited: pending or rejecting cleanup cannot delay the existing rejection, authorize a mutation or expose dependency details. Release the reader lock on exit. This is not a new upload deadline, rollback guarantee or session policy.
+
 ## Bounded body cleanup (#640)
 
 An oversized, malformed or aborted body never dispatches a mutation. Body-reader cancellation is initiated and rejections are handled privately, but a producer cancellation promise is not awaited before returning invalid_request. Reader lock release is best-effort. This is not a total request/read deadline: a producer that stalls before reaching the byte budget still needs transport cancellation. No retry or mutation rollback is implied.
