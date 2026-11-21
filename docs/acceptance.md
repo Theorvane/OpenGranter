@@ -2048,3 +2048,7 @@ For Usage and Audit, submit the named History filters form with Enter or Apply f
 
 ### Canonical unapplied history drafts (#988)
 For each history tab, edit principal/model/page size without submitting, switch away/back, refresh and export CSV: the exact draft remains visible, no typing request occurs, and reads/CSV retain applied scope. An accessible status distinguishes edits from applied filters. Pending completion preserves edits, detached listeners cannot overwrite them, invalid submission stays local, and denial/disposal erases private inputs. Explicit Clear filters keeps existing canonical semantics.
+
+## Canonical UTC history presentation (#988, #642)
+
+Both Usage and Audit list/detail show exact ISO UTC with millisecond precision; details retain raw Unix milliseconds. Epoch zero and out-of-Date-range safe timestamps remain visible. Failed refresh and fresh Deny remove old rows/timestamps; retry restores current authorized data, disposal clears the view. Source-derived public-mount regressions: test/history-readable-time.test.ts. API/CSV, filters and authorization unchanged. This is source-level evidence, not installed login/deployment/provider acceptance.

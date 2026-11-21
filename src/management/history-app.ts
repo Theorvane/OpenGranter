@@ -4,6 +4,7 @@ import { mountManagementBoundaryView } from './boundary-view.ts';
 import type { CatalogRequest } from './catalog-client.ts';
 import type { CatalogElement } from './catalog-view.ts';
 import type { CsvDownloadResult } from './csv-download.ts';
+import { formatHistoryTimestamp } from './history-timestamp.ts';
 import { createHistoryWorkspace } from './history-workspace.ts';
 import { renderUsagePageSummary } from './usage-page-summary.ts';
 import { renderUsageRecordDetails } from './usage-record-view.ts';
@@ -233,7 +234,7 @@ export function mountHistoryWorkspace(
         item.append(
           element(
             'p',
-            `${row.principalId} · ${row.modelAlias} · ${row.requestId} · ${row.occurredAt}`,
+            `${row.principalId} · ${row.modelAlias} · ${row.requestId} · ${formatHistoryTimestamp(row.occurredAt)}`,
           ),
         );
         item.append(
