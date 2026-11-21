@@ -666,3 +666,157 @@ for (const state of ['consumed', 'locked'] as const) {
     }
   });
 }
+
+for (const operation of ['issue', 'revoke'] as const) {
+  for (const coding of [
+    'gzip',
+    'br',
+    'deflate',
+    'zstd',
+    '',
+    'unknown-private',
+    'identity, gzip',
+    'identity, identity',
+    'identity; q=1',
+  ]) {
+    test(`${operation} rejects unsupported content coding before mutation: ${coding}`, async () => {
+      const f = fixture();
+      const req = request(operation);
+      req.headers.set('content-encoding', coding);
+      await checkError(await f.handler(req), 400, 'invalid_request');
+      assert.deepEqual(f.calls, ['authenticate']);
+      assert.deepEqual(f.inputs, []);
+      assert.equal(req.bodyUsed, false);
+      assert.deepEqual(f.events, []);
+    });
+  }
+  test(`${operation} unsupported coding cannot touch the body`, async () => {
+    const f = fixture();
+    const req = request(operation);
+    req.headers.set('content-encoding', 'gzip');
+    let touched = false;
+    Object.defineProperty(req, 'body', {
+      get() {
+        touched = true;
+        throw Error('private body must not be accessed');
+      },
+    });
+    await checkError(await f.handler(req), 400, 'invalid_request');
+    assert.equal(touched, false);
+    assert.deepEqual(f.calls, ['authenticate']);
+    assert.deepEqual(f.inputs, []);
+  });
+  for (const coding of [undefined, 'identity', 'IDENTITY', ' identity \t']) {
+    test(`${operation} preserves uncoded JSON: ${String(coding)}`, async () => {
+      const f = fixture();
+      const req = request(operation);
+      if (coding !== undefined) req.headers.set('content-encoding', coding);
+      const response = await f.handler(req);
+      assert.equal(response.status, operation === 'issue' ? 201 : 200);
+      assert.equal(response.headers.get('cache-control'), 'no-store');
+      assert.deepEqual(f.calls, ['authenticate', operation]);
+      assert.equal(f.inputs.length, 1);
+    });
+  }
+  for (const mode of ['missing', 'unavailable', 'audit-failure'] as const) {
+    test(`${operation} content coding preserves ${mode} auth precedence`, async () => {
+      const f = fixture(
+        mode === 'unavailable'
+          ? {
+              authenticate: async () => {
+                throw Error('private auth');
+              },
+            }
+          : mode === 'audit-failure'
+            ? {
+                writeAudit: async () => {
+                  throw Error('private audit');
+                },
+              }
+            : {},
+      );
+      const req = request(
+        operation,
+        bodies[operation],
+        mode === 'unavailable' ? 'Bearer opaque-SSO-token' : null,
+      );
+      req.headers.set('content-encoding', 'gzip');
+      Object.defineProperty(req, 'body', {
+        get() {
+          throw Error('body must remain unread');
+        },
+      });
+      await checkError(
+        await f.handler(req),
+        mode === 'missing' ? 401 : 503,
+        mode === 'missing'
+          ? 'unauthorized'
+          : mode === 'unavailable'
+            ? 'authentication_unavailable'
+            : 'audit_unavailable',
+      );
+      assert.deepEqual(f.inputs, []);
+      if (mode !== 'audit-failure')
+        assert.deepEqual(f.events, [
+          {
+            kind: mode === 'missing' ? 'management-auth-denied' : 'management-auth-unavailable',
+            operation,
+            requestId: 'server-id',
+          },
+        ]);
+    });
+  }
+  test(`${operation} Node socket rejects gzip-labelled JSON without mutation`, async () => {
+    const f = fixture();
+    const server = createSsoManagementServer(f.ports);
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    try {
+      const address = server.address();
+      assert.ok(address && typeof address === 'object');
+      const response = await new Promise<Response>((resolve, reject) => {
+        const req = nodeRequest(
+          `http://127.0.0.1:${address.port}${paths[operation]}`,
+          {
+            method: 'POST',
+            headers: {
+              authorization: 'Bearer opaque-SSO-token',
+              'content-type': 'application/json',
+              'content-encoding': 'gzip',
+            },
+          },
+          (res) => {
+            let text = '';
+            res.setEncoding('utf8');
+            res.on('data', (data) => {
+              text += data;
+            });
+            res.on('error', reject);
+            res.on('end', () =>
+              resolve(
+                new Response(text, {
+                  status: res.statusCode ?? 500,
+                  headers: {
+                    'cache-control': String(res.headers['cache-control']),
+                    'x-request-id': String(res.headers['x-request-id']),
+                  },
+                }),
+              ),
+            );
+          },
+        );
+        req.on('error', reject);
+        req.end(JSON.stringify(bodies[operation]));
+      });
+      await checkError(response, 400, 'invalid_request');
+      assert.deepEqual(f.calls, ['authenticate']);
+      assert.deepEqual(f.inputs, []);
+      assert.deepEqual(f.events, []);
+    } finally {
+      server.closeAllConnections();
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
+  });
+}
