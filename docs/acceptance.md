@@ -2065,3 +2065,9 @@ Existing principal-scoped management and proxy usage histories accept an optiona
 Usage now accepts an exact Request ID filter and a row action that reloads authorized attempts for that request while preserving the current principal mode and applied model/time bounds. Self mode does not gain an explicit principal_id (which would require usage:ReadAll); explicit target mode retains its existing authorization. Fresh loads reset cursors; paging and current-page CSV retain request_id. JSON rows are checked against the captured exact request ID, and invalid IDs never reach transport. No complete-history, invoice-total, session or deployment claim. See [plan](plans/642-request-usage-browser.md) and [contract](../contracts/usage-request-review.md).
 ### Request-filter and usage framing integration (#642)
 - Request-scoped Usage JSON/CSV rejects framed GETs before any identity/usage SQL or service audit; absent/zero-length reads preserve exact principal/request intersection, keyset/lookahead and awaited audit. Audit failure withholds both formats. Preserve both original request-filter and framing regressions during main integration. Synthetic signed-token/PGlite and loopback results are not installed acceptance. See [plan](plans/642-usage-get-framing.md).
+
+## Canonical history explicit reset (#984)
+
+- Explicit Clear filters recovers invalid drafts, removes applied filters and paging cursors only on active tab, and starts existing scoped JSON read. Inactive tab unchanged.
+- Pending read/CSV is aborted; late old data cannot render/download; CSV delivery errors clear. Detached controls after reset/denial/disposal cannot read or acquire authority.
+- Focused mounted DOM and loopback synthetic-SSO/native-browser evidence are not installed login/PostgreSQL/provider or deployment acceptance.
