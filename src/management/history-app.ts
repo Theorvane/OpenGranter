@@ -5,6 +5,7 @@ import type { CatalogRequest } from './catalog-client.ts';
 import type { CatalogElement } from './catalog-view.ts';
 import type { CsvDownloadResult } from './csv-download.ts';
 import { createHistoryWorkspace } from './history-workspace.ts';
+import { renderUsagePageSummary } from './usage-page-summary.ts';
 import { renderUsageRecordDetails } from './usage-record-view.ts';
 
 /** Compatible with createCsvDownload; ownership transfers to this mount. */
@@ -165,6 +166,15 @@ export function mountHistoryWorkspace(
         void review.load(input);
       }),
     );
+    controls.append(
+      button('Clear filters', () => {
+        // Explicit reset only; the existing review retires cursors and pending JSON/CSV.
+        drafts[kind].clear();
+        filters[kind] = {};
+        deliveryFailed[kind] = false;
+        void review.load({});
+      }),
+    );
     main.append(controls);
     const status = element('p');
     status.setAttribute('role', 'status');
@@ -183,6 +193,8 @@ export function mountHistoryWorkspace(
     if (['invalid_query', 'unavailable', 'cancelled'].includes(view.state))
       status.setAttribute('role', 'alert');
     main.append(status);
+    if (kind === 'usage' && snapshot.usage.state === 'ready')
+      main.append(renderUsagePageSummary(root.ownerDocument, snapshot.usage.data));
     const rows = element('ul');
     rows.setAttribute('aria-label', `${kind} records`);
     if (kind === 'usage')
