@@ -1593,3 +1593,7 @@ Usage now accepts an exact Request ID filter and a row action that reloads autho
 
 ## Canonical history UTC input (#988, #637, #642)
 The history view converts strict explicit UTC or integer draft text through a pure input helper before existing range/client validation. Transport continues to receive numeric from_ms/to_ms; no endpoint, identity, persistence, session or deployment architecture changes. Source980 integration remains partial.
+
+## Canonical history applied query scope (#988, #637, #642)
+
+Usage and Audit display the applied query scope separately from unapplied edits, including principal/self, model/request, UTC time bounds and page size. Only ready/empty pages expose it; pending/failure/invalid/terminal states hide it. Current-page CSV retains the same applied filters. This is not effective permissions or complete history. Clear filters retains its explicit all-filter reset behavior. See [contract](../contracts/history-applied-scope.md) and [plan](plans/988-canonical-model-drilldown.md).

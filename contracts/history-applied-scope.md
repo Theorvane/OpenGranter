@@ -1,0 +1,3 @@
+# Canonical history applied query scope
+
+The Usage and Audit mount shows the applied principal/self mode, model, request, inclusive/exclusive UTC bounds and page size for ready or empty pages only. Mutable drafts do not change this summary or current-page CSV until applied. Query restrictions are not effective permissions or a complete-history claim. Loading, invalid, failed, cancelled, denied and disposed states withhold the summary. Clear filters explicitly clears all query filters including an initial principal; subsequent requests still require current IAM. No new session, endpoint or authority is introduced.

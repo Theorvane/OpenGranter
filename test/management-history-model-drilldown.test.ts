@@ -142,6 +142,14 @@ test('model drilldown preserves applied scope and exact Unicode, not unapplied e
   await tick();
   const query = params(paths.at(-1));
   assert.equal(query.get('model'), model);
+  const scope = nodes(root).find(
+    (n) => n.attributes['aria-label'] === 'Applied history query scope',
+  );
+  assert.ok(scope);
+  assert.ok(text(scope).includes(model));
+  assert.match(text(scope), /Principal human/);
+  assert.ok(!text(scope).includes('unapplied-other'));
+
   assert.equal(
     nodes(root).find((n) => n.attributes['aria-label'] === 'Principal')?.value,
     'unapplied-other',
