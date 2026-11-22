@@ -87,3 +87,58 @@ test('state replacement removes previously published list text and search state'
     assert.ok(!nodes(view.root).some((node) => node.tag === 'input'));
   }
 });
+
+test('clear model filters restores authorized publication locally and retires old rows', () => {
+  const view = setup();
+  const selects = nodes(view.root).filter((node) => node.tag === 'select');
+  assert.equal(selects.length, 3);
+  const staleRow = nodes(view.root).find((node) => node.textContent === published.id);
+  assert.ok(staleRow);
+  const clear = nodes(view.root).find((node) => node.textContent === 'Clear model filters');
+  assert.ok(clear, 'authorized list has a native filter recovery button');
+  assert.equal(clear.tag, 'button');
+  assert.equal(clear.attributes.type, 'button');
+  view.search('no matching publication');
+  for (const select of selects) {
+    select.value = 'unpublished';
+    select.listeners.change?.();
+  }
+  assert.match(text(view.root), /No matching models/);
+  clear.listeners.click?.();
+  assert.match(text(view.root), /2 models shown/);
+  assert.ok(selects.every((select) => select.value === ''));
+  const input = nodes(view.root).find((node) => node.tag === 'input');
+  assert.ok(input);
+  assert.equal(input.value, '');
+  assert.equal(input.focused, true);
+  staleRow.listeners.click?.();
+  assert.deepEqual(view.selected, []);
+  nodes(view.root)
+    .find((node) => node.textContent === published.id)
+    ?.listeners.click?.();
+  assert.deepEqual(view.selected, [published.id]);
+  assert.equal(view.lists(), 0, 'reset must not fetch or expand the publication');
+});
+
+test('retired model filter reset cannot focus, mutate or navigate after terminal replacement', () => {
+  for (const state of ['loading', 'empty', 'denied', 'expired', 'disposed'] as const) {
+    const view = setup();
+    const clear = nodes(view.root).find((node) => node.textContent === 'Clear model filters');
+    const input = nodes(view.root).find((node) => node.tag === 'input');
+    assert.ok(clear);
+    assert.ok(input);
+    view.search('private draft');
+    renderCatalogView(
+      view.root,
+      state === 'loading' ? { state, view: 'list' } : { state },
+      view.actions,
+    );
+    const before = text(view.root);
+    clear.listeners.click?.();
+    assert.equal(text(view.root), before);
+    assert.equal(input.value, '');
+    assert.equal(input.focused, false);
+    assert.equal(view.lists(), 0);
+    assert.deepEqual(view.selected, []);
+  }
+});

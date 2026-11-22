@@ -169,6 +169,13 @@ export function renderCatalogView(
       main.append(
         label,
         ...selectors,
+        button('Clear model filters', () => {
+          search.value = '';
+          for (const field of ['input', 'output', 'parameter'] as const) selection[field] = '';
+          for (const control of controls) control.value = '';
+          filter();
+          search.focus();
+        }),
         element(
           'p',
           'Filters inspect this authorized publication only, not live provider capability or permission to execute.',
