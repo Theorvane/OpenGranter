@@ -2073,3 +2073,8 @@ Usage and Audit display the applied query scope separately from unapplied edits,
 - From a second authorized page, discard preserves visible records and the current opaque cursor used by CSV. The other tab's draft is unchanged.
 - Discard during pending JSON or CSV does not abort or restart it. Successful completion still renders/saves once. Denial/disposal retires detached discard actions and leaves no editable private inputs.
 - Automated mount tests are not native-browser download or installed SSO/PostgreSQL/provider acceptance.
+
+
+## Canonical operations page-exit integration (#990, #637)
+
+Integrate PR981 pagehide teardown into canonical PR989: dispose the complete trusted operations adapter for both persisted and nonpersisted exits, clearing Account/History/token display, pending local work, timers and download ownership. Retained controls and pageshow cannot reuse its grant. A new adapter and fresh trusted authority are required. No login acquisition, entry/runtime activation, IAM or DDL change, token revocation or mutation rollback claim. See docs/plans/990-canonical-operations-page-exit.md (repository-root relative); test/canonical-operations-page-exit.test.ts covers the public mount. Independent review/CI and parent gates remain mandatory; synthetic tests do not certify installed E2E.

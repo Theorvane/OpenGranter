@@ -32,3 +32,8 @@ Account is a third inner operations screen, using the existing caller-authorized
 ## History initialization recovery (#642)
 
 A download-adapter construction failure shows a generic alert and Retry history. Explicit retry constructs once and only then starts the existing history GET. It never issues a token mutation or exports CSV automatically. Old retry controls cannot act after a new retry, navigation, current denial or disposal. Private adapter diagnostics remain hidden; reentrant teardown cannot revive the screen.
+
+
+## Canonical operations page-exit integration (#990, #637)
+
+Integrate PR981 pagehide teardown into canonical PR989: dispose the complete trusted operations adapter for both persisted and nonpersisted exits, clearing Account/History/token display, pending local work, timers and download ownership. Retained controls and pageshow cannot reuse its grant. A new adapter and fresh trusted authority are required. No login acquisition, entry/runtime activation, IAM or DDL change, token revocation or mutation rollback claim. See docs/plans/990-canonical-operations-page-exit.md (repository-root relative); test/canonical-operations-page-exit.test.ts covers the public mount. Independent review/CI and parent gates remain mandatory; synthetic tests do not certify installed E2E.
