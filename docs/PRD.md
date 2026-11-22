@@ -1547,3 +1547,6 @@ Port existing PR952 name/description list discovery and PR964 exact published mo
 
 ## Canonical Audit-to-Usage request investigation (#994)
 An authorized Audit row can open Usage for its exact request ID. Intersect destination applied Usage principal/model/time/page-size filters, clear its cursor and unapplied drafts, and require a fresh Usage read. Never copy Audit scope or infer Usage permission from Audit visibility. Canonical tab departure cancels pending CSV delivery; stale responses/controls cannot download or restore data after denial/disposal. Empty results are not proof of no provider call, bill, or complete history. Preserve pending JSON coalescing and all existing session/activation gates. See [plan](plans/994-canonical-audit-usage-investigation.md).
+
+## Canonical request decision investigation (#996)
+The explicitly mounted canonical history UI links Usage rows to a fresh exact-request Audit read, intersected with applied Audit scope. Usage visibility does not grant Audit authority; unsubmitted destination edits and pagination are discarded. Empty results do not establish no decision or complete history. See [history workspace contract](../contracts/management-history-workspace.md). This is source UI behavior, not installed login or live E2E acceptance.
