@@ -371,9 +371,27 @@ export function mountHistoryWorkspace(
       }
     else
       for (const row of snapshot.audit.data) {
-        rows.append(renderAuditRecord(root, row));
+        const item = renderAuditRecord(root, row);
+        item.append(
+          button('View usage for this request', () => {
+            // Audit visibility does not confer Usage authority. Keep only the
+            // applied destination scope and require a fresh authorized read.
+            if (!select('usage')) return;
+            filters.usage = { ...filters.usage, requestId: row.requestId };
+            drafts.usage.clear();
+            void workspace.usage.load(filters.usage);
+          }),
+        );
+        rows.append(item);
       }
     main.append(rows);
+    if (kind === 'usage' && filters.usage.requestId !== undefined)
+      main.append(
+        element(
+          'p',
+          'Request investigation uses the applied Usage scope only. No visible usage is not proof of no provider call or bill; this is not complete history or invoice reconciliation.',
+        ),
+      );
     main.append(
       button(
         'Previous page',

@@ -21,3 +21,6 @@ Asynchronous same-tab history renders preserve focus and selection only for the 
 
 ## Canonical tab departure CSV cancellation (#988)
 Leaving Usage or Audit cancels only its pending CSV delivery. Abort the export request and retire its completion before selecting the destination. A late success cannot save a file; a late403 from that aborted export cannot terminate the current identity epoch. Returning to an authorized ready/empty page still requires a fresh read. Preserve the existing pending JSON coalescing contract; tab departure does not revoke authority or erase an already downloaded file.
+
+## Canonical Audit-to-Usage request investigation (#994)
+An authorized Audit row can open Usage for its exact request ID. Intersect destination applied Usage principal/model/time/page-size filters, clear its cursor and unapplied drafts, and require a fresh Usage read. Never copy Audit scope or infer Usage permission from Audit visibility. Canonical tab departure cancels pending CSV delivery; stale responses/controls cannot download or restore data after denial/disposal. Empty results are not proof of no provider call, bill, or complete history. Preserve pending JSON coalescing and all existing session/activation gates. See [plan](../docs/plans/994-canonical-audit-usage-investigation.md).
