@@ -243,6 +243,13 @@ export function mountHistoryWorkspace(
     });
     controls.append(button('Apply filters', applyFilters, true, true));
     controls.append(
+      button('Discard filter edits', () => {
+        // Local rollback only: keep submitted scope, cursors and pending work.
+        drafts[kind].clear();
+        render();
+      }),
+    );
+    controls.append(
       button('Clear filters', () => {
         // Explicit reset only; the existing review retires cursors and pending JSON/CSV.
         drafts[kind].clear();

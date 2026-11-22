@@ -37,3 +37,7 @@ The usage and audit filter forms expose an optional page size using the existing
 
 ## Canonical partial draft integration (#988, #637, #642)
 Usage/Audit retain input-event drafts per tab across refresh, pagination, CSV lifecycle and pending read completion. Typing does not apply filters or send a request; an accessible status says records, pagination and CSV use applied filters. Native submission applies the draft. Clear filters retains its canonical explicit clear semantics. Model/request drilldown retains unrelated edits visibly unapplied. Detached inputs are erased and generation-guarded; terminal denial/disposal clears both drafts and applied filters. This ports only draft preservation from PR980, not its UTC/focus/reset-to-target/cancellation features.
+
+
+## Discard unapplied edits (canonical integration, #988)
+Usage and Audit expose a non-submit Discard filter edits button. It restores the active tab's current submitted values, including explicit principal, model, request, UTC millisecond bounds and page size, using canonical numeric representation. Unlike Clear filters it makes no request, changes no submitted scope and leaves current cursor, rows, JSON/CSV operations and the other tab's private draft untouched. It does not restore a previous successful query after invalid submission. Generation and authority guards reject retired buttons; detached input values are scrubbed by the existing renderer. This is local editing state, not a grant or an authentication check. Tests: test/history-discard-edits.test.ts.

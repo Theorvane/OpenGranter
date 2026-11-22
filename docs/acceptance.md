@@ -2066,3 +2066,10 @@ Usage and Audit display the applied query scope separately from unapplied edits,
 ## Canonical history tab CSV cancellation (#988)
 - In either Usage or Audit, start a current-page CSV download and select the other tab before completion. The export signal is aborted; a late successful body saves no file.
 - A late403 from that aborted CSV cannot clear the fresh destination. Returning reads with current authority. Existing pending JSON coalescing remains unchanged. Evidence: test/history-tab-cancellation.test.ts; installed browser download acceptance remains separate.
+
+
+### Canonical history discard edits (#637, #642, #988)
+- On either tab, edit principal/model/request/time/page-size without applying, then Discard filter edits: restore submitted values and remove the unapplied notice without another HTTP read. Clear filters remains a separate scope-changing action.
+- From a second authorized page, discard preserves visible records and the current opaque cursor used by CSV. The other tab's draft is unchanged.
+- Discard during pending JSON or CSV does not abort or restart it. Successful completion still renders/saves once. Denial/disposal retires detached discard actions and leaves no editable private inputs.
+- Automated mount tests are not native-browser download or installed SSO/PostgreSQL/provider acceptance.
