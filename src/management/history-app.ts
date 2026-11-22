@@ -66,6 +66,15 @@ export function mountHistoryWorkspace(
   function available() {
     return !disposed && workspace.snapshot().state === 'active';
   }
+  function select(kind: Kind) {
+    const previous = active;
+    // Stop file delivery on departure, before selecting the destination.
+    // Preserve existing coalescing of pending JSON reads on a return visit.
+    if (previous !== kind) workspace[previous].cancelExport();
+    if (!available()) return false;
+    active = kind;
+    return true;
+  }
   function element(tag: string, text?: string) {
     const node = root.ownerDocument.createElement(tag);
     if (text !== undefined) node.textContent = text;
@@ -137,7 +146,7 @@ export function mountHistoryWorkspace(
     for (const tab of ['usage', 'audit'] as const) {
       const node = button(tab === 'usage' ? 'Usage' : 'Audit', () => {
         if (active === tab) return;
-        active = tab;
+        if (!select(tab)) return;
         const state = workspace[tab].snapshot().state;
         // Read before rendering: never expose the old authorized page while
         // fresh IAM is being checked, even for one synchronous render.

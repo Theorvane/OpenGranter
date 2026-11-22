@@ -2062,3 +2062,7 @@ Asynchronous same-tab history renders preserve focus and selection only for the 
 ## Canonical history applied query scope (#988, #637, #642)
 
 Usage and Audit display the applied query scope separately from unapplied edits, including principal/self, model/request, UTC time bounds and page size. Only ready/empty pages expose it; pending/failure/invalid/terminal states hide it. Current-page CSV retains the same applied filters. This is not effective permissions or complete history. Clear filters retains its explicit all-filter reset behavior. See [contract](../contracts/history-applied-scope.md) and [plan](plans/988-canonical-model-drilldown.md).
+
+## Canonical history tab CSV cancellation (#988)
+- In either Usage or Audit, start a current-page CSV download and select the other tab before completion. The export signal is aborted; a late successful body saves no file.
+- A late403 from that aborted CSV cannot clear the fresh destination. Returning reads with current authority. Existing pending JSON coalescing remains unchanged. Evidence: test/history-tab-cancellation.test.ts; installed browser download acceptance remains separate.

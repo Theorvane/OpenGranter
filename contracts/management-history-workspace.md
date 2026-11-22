@@ -18,3 +18,6 @@ This is application integration API evidence, not native browser rendering/login
 
 ## Canonical filter focus continuity (#988)
 Asynchronous same-tab history renders preserve focus and selection only for the currently focused filter draft. External focus and tab changes never trigger restoration. Denial and disposal clear private filters without refocusing them. UTC draft text, applied request/CSV scope and authorization remain unchanged. Source980 is only partially integrated. See test/history-filter-focus.test.ts and the #988 plan.
+
+## Canonical tab departure CSV cancellation (#988)
+Leaving Usage or Audit cancels only its pending CSV delivery. Abort the export request and retire its completion before selecting the destination. A late success cannot save a file; a late403 from that aborted export cannot terminate the current identity epoch. Returning to an authorized ready/empty page still requires a fresh read. Preserve the existing pending JSON coalescing contract; tab departure does not revoke authority or erase an already downloaded file.
