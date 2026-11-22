@@ -1539,3 +1539,8 @@ Usage and Audit display the applied query scope separately from unapplied edits,
 ## Canonical operations page-exit integration (#990, #637)
 
 Integrate PR981 pagehide teardown into canonical PR989: dispose the complete trusted operations adapter for both persisted and nonpersisted exits, clearing Account/History/token display, pending local work, timers and download ownership. Retained controls and pageshow cannot reuse its grant. A new adapter and fresh trusted authority are required. No login acquisition, entry/runtime activation, IAM or DDL change, token revocation or mutation rollback claim. See docs/plans/990-canonical-operations-page-exit.md (repository-root relative); test/canonical-operations-page-exit.test.ts covers the public mount. Independent review/CI and parent gates remain mandatory; synthetic tests do not certify installed E2E.
+
+
+## Canonical model discovery integration (#992, #637, #641)
+
+Port existing PR952 name/description list discovery and PR964 exact published modality/parameter selectors into the canonical catalog. Filtering is local to the current authorized publication; fresh details/refresh retain existing IAM/audit. Preserve canonical detail projection, unknown/empty distinction, safe text and retired-control invalidation. No session/runtime/DDL/entry activation or installed acceptance. See [contract](../contracts/canonical-model-discovery.md) and [plan](plans/992-canonical-model-discovery.md). Source PRs are not wholly superseded.

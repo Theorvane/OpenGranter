@@ -1,6 +1,13 @@
 import { mountManagementBoundaryView } from './boundary-view.ts';
+import {
+  matchesPublication,
+  type PublicationField,
+  publicationOptions,
+} from './catalog-publication-filter.ts';
 import type { ManagementCatalogSnapshot } from './catalog-session.ts';
 import { renderPublishedModelDetails } from './model-detail-view.ts';
+
+const releaseView = new WeakMap<CatalogElement, () => void>();
 
 export interface CatalogElement {
   textContent: string | null;
@@ -25,6 +32,14 @@ export function renderCatalogView(
   actions: CatalogActions,
   moveFocus = false,
 ): void {
+  releaseView.get(root)?.();
+  releaseView.delete(root);
+  let active = true;
+  const controls: CatalogElement[] = [];
+  releaseView.set(root, () => {
+    active = false;
+    for (const control of controls) control.value = '';
+  });
   if (value.state === 'disposed') {
     root.replaceChildren();
     return;
@@ -37,7 +52,9 @@ export function renderCatalogView(
   const button = (text: string, click: () => void) => {
     const node = element('button', text);
     node.setAttribute('type', 'button');
-    node.addEventListener('click', click);
+    node.addEventListener('click', () => {
+      if (active) click();
+    });
     return node;
   };
   if (value.state === 'unauthenticated' || value.state === 'expired' || value.state === 'denied') {
@@ -78,20 +95,63 @@ export function renderCatalogView(
       const label = element('label', 'Search models');
       const search = element('input');
       search.setAttribute('type', 'search');
-      search.setAttribute('placeholder', 'Model ID or publisher');
+      search.setAttribute('placeholder', 'Model ID, publisher, name or description');
       label.append(search);
+      controls.push(search);
+      const selection: Record<PublicationField, string> = { input: '', output: '', parameter: '' };
+      const selectors: CatalogElement[] = [];
+      for (const [field, name] of [
+        ['input', 'Published input modality'],
+        ['output', 'Published output modality'],
+        ['parameter', 'Published supported parameter'],
+      ] as const) {
+        const wrapper = element('label', name);
+        const select = element('select');
+        select.setAttribute('aria-label', name);
+        const all = element('option', 'Any (including unpublished)');
+        all.setAttribute('value', '');
+        select.append(all);
+        for (const option of publicationOptions(value.models, field)) {
+          const item = element('option', option);
+          item.setAttribute('value', option);
+          select.append(item);
+        }
+        select.value = '';
+        select.addEventListener('change', () => {
+          if (!active) return;
+          selection[field] = select.value ?? '';
+          filter();
+        });
+        controls.push(select);
+        wrapper.append(select);
+        selectors.push(wrapper);
+      }
       const list = element('ul');
       const status = element('p');
       status.setAttribute('role', 'status');
       const filter = () => {
+        if (!active) return;
         const query = (search.value ?? '').trim().toLowerCase();
-        const models = value.models.filter((model) =>
-          [model.id, model.owned_by].some((text) => text.toLowerCase().includes(query)),
+        const models = value.models.filter(
+          (model) =>
+            matchesPublication(model, selection) &&
+            [model.id, model.owned_by, model.name, model.description].some((text) =>
+              text?.toLowerCase().includes(query),
+            ),
         );
         list.replaceChildren();
         for (const model of models) {
           const row = element('li');
           row.append(button(model.id, () => actions.detail(model.id)));
+          if (model.name !== undefined) row.append(element('p', model.name));
+          if (model.description !== undefined) {
+            const description = element(
+              'p',
+              model.description === '' ? 'Empty description' : model.description,
+            );
+            description.setAttribute('class', 'management-model-description');
+            row.append(description);
+          }
           list.append(row);
         }
         status.textContent = models.length
@@ -100,7 +160,16 @@ export function renderCatalogView(
       };
       search.addEventListener('input', filter);
       filter();
-      main.append(label, status, list);
+      main.append(
+        label,
+        ...selectors,
+        element(
+          'p',
+          'Filters inspect this authorized publication only, not live provider capability or permission to execute.',
+        ),
+        status,
+        list,
+      );
     }
     main.append(button('Refresh models', actions.list));
   } else if (value.state === 'detail') {
