@@ -267,3 +267,37 @@ test('publication choices preserve exact Unicode, whitespace and case while dedu
   select.listeners.change?.();
   assert.equal(root.children.length, 0);
 });
+
+test('filter and search retire old row actions even when a model remains visible', () => {
+  const f = setup();
+  const row = (id: string) => {
+    const button = nodes(f.root).find((n) => n.tag === 'button' && n.textContent === id);
+    assert.ok(button);
+    return button;
+  };
+  const firstVision = row('vision');
+  const firstSpeech = row('speech');
+  f.choose('Published input modality', 'image');
+  firstVision.listeners.click?.();
+  firstSpeech.listeners.click?.();
+  assert.deepEqual(f.selected, [], 'retired filtered rows must not invoke detail');
+  const filteredVision = row('vision');
+  filteredVision.listeners.click?.();
+  assert.deepEqual(f.selected, ['vision']);
+  const search = nodes(f.root).find((n) => n.tag === 'input');
+  assert.ok(search);
+  search.value = 'no-match';
+  search.listeners.input?.();
+  filteredVision.listeners.click?.();
+  assert.deepEqual(f.selected, ['vision'], 'search must retire the previous row');
+  search.value = '';
+  search.listeners.input?.();
+  firstVision.listeners.click?.();
+  filteredVision.listeners.click?.();
+  row('vision').listeners.click?.();
+  assert.deepEqual(f.selected, ['vision', 'vision'], 'only the current generation may act');
+  const finalVision = row('vision');
+  renderCatalogView(f.root, { state: 'denied' }, f.actions);
+  finalVision.listeners.click?.();
+  assert.deepEqual(f.selected, ['vision', 'vision']);
+});

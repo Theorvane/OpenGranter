@@ -129,8 +129,10 @@ export function renderCatalogView(
       const list = element('ul');
       const status = element('p');
       status.setAttribute('role', 'status');
+      let generation = 0;
       const filter = () => {
         if (!active) return;
+        const current = ++generation;
         const query = (search.value ?? '').trim().toLowerCase();
         const models = value.models.filter(
           (model) =>
@@ -142,7 +144,11 @@ export function renderCatalogView(
         list.replaceChildren();
         for (const model of models) {
           const row = element('li');
-          row.append(button(model.id, () => actions.detail(model.id)));
+          row.append(
+            button(model.id, () => {
+              if (generation === current) actions.detail(model.id);
+            }),
+          );
           if (model.name !== undefined) row.append(element('p', model.name));
           if (model.description !== undefined) {
             const description = element(
