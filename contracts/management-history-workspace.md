@@ -38,3 +38,6 @@ While preparing a canonical Usage/Audit CSV, Cancel CSV export aborts only that 
 ## Explicit pending page cancellation (#1002)
 
 While Usage or Audit JSON is loading, Cancel history request aborts that review’s pending transport, clears rows and pagination and shows neutral cancellation status. It preserves the attempted applied filters/cursor path for explicit Retry and preserves unapplied drafts without submitting them. No automatic read, export, download, permission grant or session change occurs. Retry reauthorizes the exact attempted page; previously visible rows are not restored as fresh authority. Ignored-abort success/401/403 is stale and cannot overwrite/revoke a newer read; current 401/403 remains terminal for the shared workspace. Cancellation is inert outside loading and after disposal, and retained controls cannot cancel a replacement request. Aborting a browser read does not guarantee that server-side work stopped.
+
+## Action focus continuity
+Same-tab renders preserve keyboard focus only on the same still-enabled action. Do not restore absent/disabled actions, cross-tab focus, external focus, or private controls after authority denial/disposal. Input selection behavior remains unchanged.

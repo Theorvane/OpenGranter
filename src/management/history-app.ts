@@ -43,6 +43,7 @@ export function mountHistoryWorkspace(
   const filters: Record<Kind, AuditFilters> = { usage: { ...initial }, audit: { ...initial } };
   const renderedInputs = new Map<keyof AuditFilters, HistoryInput>();
   let renderedKind: Kind | undefined;
+  const renderedActions = new Map<string, CatalogElement>();
   const retainedInputs = new Set<CatalogElement>();
   function clearInputs() {
     for (const input of retainedInputs) input.value = '';
@@ -84,6 +85,25 @@ export function mountHistoryWorkspace(
     const node = element('button', text);
     node.setAttribute('type', submit ? 'submit' : 'button');
     if (!enabled) node.setAttribute('disabled', '');
+    // Only unique workspace controls have stable action identity. Row actions
+    // may share labels and change targets after refresh/pagination.
+    else if (
+      [
+        'Usage',
+        'Audit',
+        'Apply filters',
+        'Discard filter edits',
+        'Clear filters',
+        'Cancel history request',
+        'Previous page',
+        'Next page',
+        'Refresh current page',
+        'Retry',
+        'Download current page CSV',
+        'Cancel CSV export',
+      ].includes(text)
+    )
+      renderedActions.set(text, node);
     const current = generation;
     node.addEventListener('click', (event) => {
       if (submit) event?.preventDefault();
@@ -118,6 +138,11 @@ export function mountHistoryWorkspace(
             direction: focusedEntry[1].selectionDirection,
           }
         : undefined;
+    const restoreAction =
+      renderedKind === active
+        ? [...renderedActions].find(([, node]) => node === focused)?.[0]
+        : undefined;
+    renderedActions.clear();
     renderedInputs.clear();
     generation++;
     clearInputs();
@@ -485,6 +510,7 @@ export function mountHistoryWorkspace(
     }
     renderedKind = kind;
     root.replaceChildren(main);
+    if (restoreAction) renderedActions.get(restoreAction)?.focus();
     if (restore) {
       const input = renderedInputs.get(restore.field);
       input?.focus();
@@ -501,6 +527,7 @@ export function mountHistoryWorkspace(
       generation++;
       clearInputs();
       renderedInputs.clear();
+      renderedActions.clear();
       drafts.usage.clear();
       drafts.audit.clear();
       filters.usage = {};
