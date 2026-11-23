@@ -392,7 +392,9 @@ for (const failure of ['unavailable', 'invalid', 'disposed', 'throw'] as const)
     await tick();
     assert.doesNotMatch(text(root), /CSV unavailable/);
     click(root, 'Usage');
-    assert.match(text(root), /CSV unavailable/);
+    // Returning starts fresh IAM/JSON and retires the old delivery attempt.
+    assert.match(text(root), /Loading history/);
+    assert.doesNotMatch(text(root), /CSV unavailable/);
     await tick();
     click(root, 'Download current page CSV');
     assert.doesNotMatch(text(root), /CSV unavailable/);

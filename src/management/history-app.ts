@@ -139,6 +139,9 @@ export function mountHistoryWorkspace(
     const kind = active;
     const review = workspace[kind];
     const view = snapshot[kind];
+    // A fresh JSON read retires the previous browser delivery attempt.
+    // Local draft renders keep its failure visible until a new read/export.
+    if (view.state === 'loading') deliveryFailed[kind] = false;
     const main = element('main');
     main.append(element('h1', 'Usage and audit history'));
     const nav = element('nav');

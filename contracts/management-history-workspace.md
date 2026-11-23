@@ -27,3 +27,6 @@ An authorized Audit row can open Usage for its exact request ID. Intersect desti
 
 ## Canonical Usage-to-Audit request investigation (#996)
 An authorized Usage row can open Audit for its exact request ID. Preserve destination applied Audit principal/model/time/page-size restrictions only, discard unsubmitted destination edits and pagination, cancel departing CSV before navigation and issue a fresh authorized Audit read. Never copy Usage row principal or infer Audit permission from Usage visibility. Existing loading, empty, sanitized failure/retry, terminal401/403, disposal and retired-control rules apply. No visible audit is not proof of no decision or complete history. No new session or runtime activation.
+
+## CSV delivery alert lifecycle (#998)
+A new canonical Usage/Audit JSON read clears that tab browser delivery-failure alert immediately at loading. Refresh, submitted filters and tab re-entry are fresh reads; local draft edits/discard are not and retain the alert. This does not retry a download, change authorization, clear exported files or certify installed E2E. Denial/disposal still clear the shared authority and retained controls.
