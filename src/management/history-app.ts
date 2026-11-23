@@ -276,9 +276,14 @@ export function mountHistoryWorkspace(
       denied: 'Access denied.',
     };
     status.textContent = messages[view.state] ?? 'History unavailable.';
-    if (['invalid_query', 'unavailable', 'cancelled'].includes(view.state))
-      status.setAttribute('role', 'alert');
+    if (['invalid_query', 'unavailable'].includes(view.state)) status.setAttribute('role', 'alert');
     main.append(status);
+    if (view.state === 'loading')
+      main.append(
+        button('Cancel history request', () => {
+          review.cancelRead();
+        }),
+      );
     if (kind === 'usage' && snapshot.usage.state === 'ready')
       main.append(renderUsagePageSummary(root.ownerDocument, snapshot.usage.data));
     // This is the query used by the authorized page, never the mutable drafts.
