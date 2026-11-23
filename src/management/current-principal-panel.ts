@@ -9,6 +9,7 @@ export function mountCurrentPrincipalPanel(
   root: CatalogElement,
   request: CatalogRequest,
   prepareToken?: (principalId: string) => void,
+  viewHistory?: (principalId: string) => void,
 ) {
   const client = createCurrentPrincipalClient(request);
   let epoch = 0;
@@ -50,6 +51,20 @@ export function mountCurrentPrincipalPanel(
         element('dd', result.data.kind),
       );
       section.replaceChildren(heading, identity, action('Refresh account'));
+      if (viewHistory) {
+        const history = element('button', 'View history for this account');
+        history.setAttribute('type', 'button');
+        history.addEventListener('click', () => {
+          if (!stopped && current === epoch) viewHistory(result.data.id);
+        });
+        section.append(
+          history,
+          element(
+            'p',
+            'History uses explicit principal filters. Usage requires usage:ReadAll and audit requires audit:Read; Account identity does not grant either permission.',
+          ),
+        );
+      }
       if (prepareToken) {
         const prepare = element('button', 'Prepare token for this account');
         prepare.setAttribute('type', 'button');

@@ -23,3 +23,9 @@ checks, six pinned compatibility checks and diff whitespace check passed. Lint
 retains 42 existing warnings and 181 infos. Full `npm run check`/all-suite testing
 was not run. Tests used a credential-free environment and existing local locked
 dependencies; no remote write, deployment or installed/company SSO claim.
+
+## 2026-11-23 main integration
+
+Preserve request correlation and Back fresh authorization while retaining main initial principal scoping and clearing detached inputs. Resolve both PRD additions cumulatively. Run existing public-mount correlation, account navigation and retained-control regressions before committing. No new session or runtime contract.
+
+Integration evidence: new detached-principal assertion RED (unsaved-draft retained), GREEN 1/1 zero skips on exact targeted public mount test after combining capture reset with input clearing. Four-suite run: 41 pass and two file-level SIGKILL failures (SQL suites), not an all-pass result. Sequential correction also hit SIGKILL; typecheck exited137 Killed. Touched Biome format fixed and check passed; planning checks passed. No full-check or live acceptance claim. Local merge only pending resource-safe validation, remote update and fresh independent exact-head approval/CI.

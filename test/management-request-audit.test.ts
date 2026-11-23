@@ -126,9 +126,16 @@ test('usage row opens a fresh exact request/principal audit query and returns to
   );
   await tick();
   input(root, 'Principal', 'unsaved-draft');
+  const retainedPrincipal = nodes(root).find((n) => n.attributes['aria-label'] === 'Principal');
+  assert.ok(retainedPrincipal);
   click(root, 'View related audit');
   assert.match(text(root), /Loading history/);
   assert.match(text(root), /Audit for request req/);
+  assert.equal(
+    retainedPrincipal.value,
+    '',
+    'detached usage draft is cleared on correlation navigation',
+  );
   await tick();
   const url = new URL(paths.at(-1) ?? '', 'https://local.invalid');
   assert.equal(url.pathname, '/management/v1/audit');

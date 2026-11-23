@@ -1233,6 +1233,10 @@ An optional PostgreSQL handler/non-listening server factory composes registered 
 Explicit SSO management startup now serves existing authorized catalog list/detail on its single migrated database connection, alongside owner-scoped token operations and optional static browser assets. Catalog replies require fresh IAM and durable attributed audit; no browser session, inference or new deployment is granted. See [plan](plans/641-catalog-runtime.md) and [contract](../contracts/sso-management-runtime.md).
 
 
+## Exact audit principal references (#642)
+
+Existing audit JSON/CSV queries and durable actor/target projection support exact bounded Unicode principal references, without normalization, new authority or relaxed non-principal identifiers. Current target IAM, explicit Deny and mandatory audit remain enforced. No SSO/session/runtime/schema activation. See [contract](../contracts/audit-principal-references.md) and [plan](plans/642-audit-unicode-principal.md).
+
 ## Management transport privacy (#639)
 
 The shared Node HTTP bridge forces no-store and nosniff on exact /management and slash descendants, including handler errors and custom fallback responses. This preserves existing status/body/authentication/audit behavior and activates no routes or session. See [contract](../contracts/management-http-privacy.md) and [plan](plans/639-management-http-privacy.md). Loopback socket evidence is not native-browser, company SSO or installed ingress acceptance.
@@ -1261,6 +1265,10 @@ Explicit caller-authorized export adapter reads one bounded CSV page with existi
 Acceptance: signed SSO JSON/CSV and empty pages persist attribution; malformed query and fresh Deny persist zero-count outcomes; no response completes while its insert is pending; failed insert withholds results. Additive migration preserves previous checksums and data and is idempotent under the existing runner. The factory is unactivated; database migration/lifecycle, runtime mount, browser sessions, retention/readers and installed PostgreSQL/IdP/provider E2E remain separate gates. See [plan](plans/642-durable-sso-usage-http.md).
 
 
+## CSV continuation progress (#642)
+
+Browser CSV export rejects repeated or backwards next-cursor metadata before consuming the body. Continuations must advance in descending timestamp and UTF-8 attempt-ID order relative to the serialized request cursor, including when the caller mutates its filters while transport is pending. Invalid metadata yields a private unavailable state and cancels the unread body. This is a transport guard, not CSV-row revalidation, session activation or installed/browser acceptance. See [plan](plans/642-export-cursor-progress.md).
+
 ## Verbatim CSV encoding (#642)
 
 Preserve an existing leading UTF-8 byte-order mark, including when it is split across stream chunks; never add a marker to an unmarked export. Strict UTF-8 decoding and existing byte/time bounds remain enforced. This transport-only correction does not activate UI/session/downloads. See [plan](plans/642-csv-byte-order-mark.md).
@@ -1274,6 +1282,10 @@ Reject identity-encoded CSV whose observed UTF-8 byte length disagrees with a su
 An explicit caller-authorized JSON page adapter preserves unknown usage, estimated/billed decimal costs and duplicate markers; validates and sanitizes the entire page, filter isolation, order and opaque continuation; bounds bytes/time and suppresses stale identity results. No UI/session/runtime activation. Local signed-SSO + migrated embedded SQL + durable-audit Fetch integration is not installed/browser acceptance. See [contract](../contracts/management-usage-client.md) and [plan](plans/642-browser-usage-history.md).
 
 JSON usage transport also withholds complete-looking pages when uncompressed Content-Length disagrees with observed UTF-8 bytes. Exact multibyte lengths, absent lengths and compressed Fetch decoded bodies remain accepted within the existing bounds. No UI/session/runtime activation.
+
+## Usage review lifecycle (#642)
+
+Read-only SSO usage lifecycle copies filters, follows only current opaque continuation and replaces pages. Loading, identity change, expiry and teardown clear old rows; stale completions cannot publish. Unknown costs and duplicate markers are preserved. Caller owns trusted authorization, expiry and rendering; no session/runtime activation. See [plan](plans/642-usage-review-session.md) and [contract](../contracts/management-usage-session.md).
 
 
 ## Scoped SSO audit metadata history (#642)
@@ -1397,6 +1409,10 @@ The trusted operations lifecycle must enforce known expiry through body consumpt
 
 Authorized usage rows can open the existing audit API for the exact principal/request, with fresh server authorization and without inheriting a stale cursor or unrelated model/time filters. Returning preserves the usage page and draft filters. Audit pagination, retry and current-page CSV retain the selected request; manual filter application clears the correlation context. Empty results are limited to the authorized view, not proof of global absence or invoice reconciliation. This internal trusted-SSO UI integration does not activate browser login or change permissions, retention or deployment.
 
+## Late operations response disposal (#637)
+
+If an abort-ignoring trusted request returns headers after logout, expiry, identity replacement, navigation or disposal, the operations adapter rejects it and attempts to cancel its unused body without waiting. Cancellation failures stay private; local cleanup does not guarantee remote resource reclamation or mutation rollback. Existing success, denial and streamed authority checks remain unchanged. No public entry or session acquisition is enabled. See docs/plans/637-operations-stream-teardown.md (repository-root relative).
+
 ## Versioned attempt estimate calculation (#642)
 
 The existing accounting handoff can now attach an exact flat aggregate token-cost estimate from an explicitly caller-supplied applicable version. Preserve unknown usage as unknown, actual zero as zero and estimates separately from reported bills. No automatic price selection, discovery repricing, gateway configuration activation, invoice reconciliation or budget semantics. See [contract](../contracts/versioned-attempt-estimates.md) and [plan](plans/642-versioned-attempt-estimates.md).
@@ -1488,3 +1504,7 @@ The opt-in operations workspace now prepares the existing token form from the ex
 ## Usage history bodyless GET enforcement (#642)
 
 The existing SSO Usage JSON/CSV handler now rejects Transfer-Encoding and nonzero/noncanonical Content-Length before identity/usage SQL or service audit, matching Audit and Models even when Node omits a GET body. Normal absent/zero-length requests retain fresh IAM and awaited audit. Signed-token PGlite plus loopback HTTP tests are not real IdP, browser login or installed PostgreSQL/provider acceptance. No runtime/session activation. See [plan](plans/642-usage-get-framing.md) and [contract](../contracts/sso-usage-history.md).
+
+## Account-scoped history handoff (#637, #642)
+
+Explicitly mounted Account can open usage and audit with its exact principal filter, preserving server authorization and fresh Deny/audit-failure behavior. Explicit usage targets still require usage:ReadAll; identity alone is not a grant. Manual History does not retain this default. No session or deployment activation. See [plan](plans/642-account-history-navigation.md) and [contract](../contracts/account-history-navigation.md).
