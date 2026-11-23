@@ -27,6 +27,8 @@ export function mountHistoryWorkspace(
   let downloadDisposed = false;
   let active: Kind = 'usage';
   let generation = 0;
+  let related: { principalId: string; requestId: string } | undefined;
+  let captureDrafts = () => {};
   const deliveryFailed: Record<Kind, boolean> = { usage: false, audit: false };
   // Preserve the exact target. Existing clients reject invalid history IDs
   // locally; never silently fall back to a self/unfiltered request.
@@ -85,8 +87,21 @@ export function mountHistoryWorkspace(
     deliveryFailed[kind] = !started;
     render();
   }
+  function selectHistory(tab: Kind) {
+    if (active === tab) return;
+    captureDrafts();
+    active = tab;
+    const state = workspace[tab].snapshot().state;
+    // Read before rendering: never expose the old authorized page while
+    // fresh IAM is being checked, even for one synchronous render.
+    if (state === 'idle') void workspace[tab].load(filters[tab]);
+    else if (['ready', 'empty', 'unavailable', 'cancelled'].includes(state))
+      void workspace[tab].retry();
+    else render();
+  }
   function render() {
     generation++;
+    captureDrafts = () => {};
     clearInputs();
     if (disposed) {
       root.replaceChildren();
@@ -94,6 +109,9 @@ export function mountHistoryWorkspace(
     }
     const snapshot = workspace.snapshot();
     if (snapshot.state !== 'active') {
+      related = undefined;
+      drafts.usage.clear();
+      drafts.audit.clear();
       releaseDownload();
       if (snapshot.state === 'disposed') root.replaceChildren();
       else mountManagementBoundaryView(root, snapshot.state);
@@ -107,21 +125,23 @@ export function mountHistoryWorkspace(
     const nav = element('nav');
     nav.setAttribute('aria-label', 'History views');
     for (const tab of ['usage', 'audit'] as const) {
-      const node = button(tab === 'usage' ? 'Usage' : 'Audit', () => {
-        if (active === tab) return;
-        active = tab;
-        const state = workspace[tab].snapshot().state;
-        // Read before rendering: never expose the old authorized page while
-        // fresh IAM is being checked, even for one synchronous render.
-        if (state === 'idle') void workspace[tab].load(filters[tab]);
-        else if (['ready', 'empty', 'unavailable', 'cancelled'].includes(state))
-          void workspace[tab].retry();
-        else render();
-      });
+      const node = button(tab === 'usage' ? 'Usage' : 'Audit', () => selectHistory(tab));
       node.setAttribute('aria-pressed', String(kind === tab));
       nav.append(node);
     }
     main.append(nav, element('h2', kind === 'usage' ? 'Usage' : 'Audit'));
+    if (kind === 'audit' && related) {
+      main.append(
+        element('p', `Audit for request ${related.requestId} · Principal ${related.principalId}`),
+      );
+      main.append(
+        element(
+          'p',
+          'Results are limited to your authorized view; correlation is not invoice reconciliation.',
+        ),
+      );
+      main.append(button('Back to usage', () => selectHistory('usage')));
+    }
     const controls = element('section');
     controls.setAttribute('aria-label', 'History filters');
     const values = new Map<keyof AuditFilters, CatalogElement>();
@@ -142,6 +162,9 @@ export function mountHistoryWorkspace(
       controls.append(label);
       values.set(field, input);
     }
+    captureDrafts = () => {
+      for (const [field, node] of values) drafts[kind].set(field, node.value ?? '');
+    };
     controls.append(
       button('Apply filters', () => {
         const input: {
@@ -161,6 +184,7 @@ export function mountHistoryWorkspace(
           if (value !== '')
             input[field] = /^(0|[1-9][0-9]*)$/u.test(value) ? Number(value) : Number.NaN;
         }
+        if (kind === 'audit') related = undefined;
         filters[kind] = input;
         void review.load(input);
       }),
@@ -221,6 +245,22 @@ export function mountHistoryWorkspace(
         if (row.possibleDuplicate) item.append(element('p', 'Possible duplicate'));
         if (row.possiblyBilled)
           item.append(element('p', 'Possibly billed; not an invoice reconciliation'));
+        const relatedButton = button('View related audit', () => {
+          captureDrafts();
+          related = { principalId: row.principalId, requestId: row.requestId };
+          filters.audit = { ...related };
+          drafts.audit.clear();
+          deliveryFailed.audit = false;
+          active = 'audit';
+          // load synchronously clears old audit rows/cursor and publishes loading.
+          // Do not copy usage time/model filters: related events may differ.
+          void workspace.audit.load(filters.audit);
+        });
+        relatedButton.setAttribute(
+          'aria-label',
+          `View related audit for request ${row.requestId} · Principal ${row.principalId}`,
+        );
+        item.append(relatedButton);
         item.append(renderUsageRecordDetails(root, row));
         item.append(
           button('View attempts for this request', () => {
@@ -299,10 +339,12 @@ export function mountHistoryWorkspace(
     dispose() {
       if (disposed) return;
       disposed = true;
-      generation++;
-      clearInputs();
+      related = undefined;
+      captureDrafts = () => {};
       drafts.usage.clear();
       drafts.audit.clear();
+      generation++;
+      clearInputs();
       filters.usage = {};
       filters.audit = {};
       workspace.dispose();
