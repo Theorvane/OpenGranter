@@ -454,15 +454,28 @@ export function mountHistoryWorkspace(
         (view.state === 'ready' || view.state === 'empty') && view.exportState !== 'loading',
       ),
     );
+    if (view.exportState === 'loading')
+      main.append(
+        button('Cancel CSV export', () => {
+          review.cancelExport();
+        }),
+      );
     main.append(
       element('p', 'CSV downloads only this page. Exported files cannot be erased on logout.'),
     );
     if (view.exportState !== 'idle' || deliveryFailed[kind]) {
       const message = element(
         'p',
-        view.exportState === 'loading' ? 'Preparing CSV…' : 'CSV unavailable. Try again.',
+        view.exportState === 'loading'
+          ? 'Preparing CSV…'
+          : view.exportState === 'cancelled'
+            ? 'CSV export cancelled. Download again to retry.'
+            : 'CSV unavailable. Try again.',
       );
-      message.setAttribute('role', view.exportState === 'loading' ? 'status' : 'alert');
+      message.setAttribute(
+        'role',
+        ['loading', 'cancelled'].includes(view.exportState) ? 'status' : 'alert',
+      );
       main.append(message);
     }
     renderedKind = kind;

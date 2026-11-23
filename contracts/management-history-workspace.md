@@ -30,3 +30,6 @@ An authorized Usage row can open Audit for its exact request ID. Preserve destin
 
 ## CSV delivery alert lifecycle (#998)
 A new canonical Usage/Audit JSON read clears that tab browser delivery-failure alert immediately at loading. Refresh, submitted filters and tab re-entry are fresh reads; local draft edits/discard are not and retain the alert. This does not retry a download, change authorization, clear exported files or certify installed E2E. Denial/disposal still clear the shared authority and retained controls.
+
+## Explicit pending CSV cancellation (#1000)
+While preparing a canonical Usage/Audit CSV, Cancel CSV export aborts only that export and retires its completion. Preserve authorized JSON rows, pagination, applied scope and unapplied drafts. Cancellation is a neutral status, not an unavailable alert. Download again is explicit and freshly authorized; no automatic replay. Late success cannot save a file; late denial from the aborted request cannot terminate the current identity epoch. Current fresh401/403 still tears down both histories. Retired cancel buttons cannot affect subsequent exports or disposed mounts. An already downloaded file cannot be recalled. No new session/runtime/entry activation or installed acceptance.
