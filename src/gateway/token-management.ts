@@ -50,28 +50,34 @@ function validId(value: unknown): value is string {
   return typeof value === 'string' && value.length > 0 && value.length <= 256;
 }
 
+function completeArray(value: unknown, valid: (entry: unknown) => boolean): boolean {
+  if (!Array.isArray(value)) return false;
+  for (let index = 0; index < value.length; index++) {
+    if (!Object.hasOwn(value, index) || !valid(value[index])) return false;
+  }
+  return true;
+}
+
 function validActor(value: unknown): value is TokenManagementActor {
   if (typeof value !== 'object' || value === null) return false;
   const actor = value as Record<string, unknown>;
   return (
     validId(actor.id) &&
     typeof actor.active === 'boolean' &&
-    Array.isArray(actor.statements) &&
-    actor.statements.every(
+    completeArray(
+      actor.statements,
       (statement: unknown) =>
         typeof statement === 'object' &&
         statement !== null &&
         'effect' in statement &&
         (statement.effect === 'Allow' || statement.effect === 'Deny') &&
         'actions' in statement &&
-        Array.isArray(statement.actions) &&
-        statement.actions.every((action: unknown) => typeof action === 'string') &&
+        completeArray(statement.actions, (action: unknown) => typeof action === 'string') &&
         'resources' in statement &&
-        Array.isArray(statement.resources) &&
-        statement.resources.every((resource: unknown) => typeof resource === 'string'),
+        completeArray(statement.resources, (resource: unknown) => typeof resource === 'string'),
     ) &&
-    Array.isArray(actor.policyVersions) &&
-    actor.policyVersions.every(
+    completeArray(
+      actor.policyVersions,
       (policy: unknown) =>
         typeof policy === 'object' &&
         policy !== null &&

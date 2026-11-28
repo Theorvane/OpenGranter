@@ -1422,6 +1422,10 @@ If an abort-ignoring trusted request returns headers after logout, expiry, ident
 
 Existing signed-SSO issuance/revocation now reject stalled or trickling JSON bodies within a single 15-second read budget before service dispatch, with private cancellation cleanup. Authentication/IAM/audit and post-dispatch mutation semantics remain unchanged. No session or deployment activation. See [plan](plans/640-management-body-deadline.md) and [contract](../contracts/sso-management-http.md#whole-request-body-read-deadline-640).
 
+## Complete token-management actor snapshots (#640)
+
+Token issue/revoke reject missing or inherited entries in trusted actor statements, action/resource arrays and evaluated policy versions before owner lookup, decision audit or credential mutation. Dense valid contexts preserve existing authorization and immutable attribution; this adds no browser authority. See [plan](plans/640-complete-token-actor.md) and [contract](../contracts/token-management-snapshots.md).
+
 ## Versioned attempt estimate calculation (#642)
 
 The existing accounting handoff can now attach an exact flat aggregate token-cost estimate from an explicitly caller-supplied applicable version. Preserve unknown usage as unknown, actual zero as zero and estimates separately from reported bills. No automatic price selection, discovery repricing, gateway configuration activation, invoice reconciliation or budget semantics. See [contract](../contracts/versioned-attempt-estimates.md) and [plan](plans/642-versioned-attempt-estimates.md).
