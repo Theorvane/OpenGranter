@@ -1287,6 +1287,14 @@ JSON usage transport also withholds complete-looking pages when uncompressed Con
 
 Read-only SSO usage lifecycle copies filters, follows only current opaque continuation and replaces pages. Loading, identity change, expiry and teardown clear old rows; stale completions cannot publish. Unknown costs and duplicate markers are preserved. Caller owns trusted authorization, expiry and rendering; no session/runtime activation. See [plan](plans/642-usage-review-session.md) and [contract](../contracts/management-usage-session.md).
 
+## Complete audit metadata pages (#856)
+
+Audit review and CSV export reject missing positions in untrusted SQL and injected event collections, including lookahead, instead of exposing partial evidence or null JSON entries. Preserve target audit:Read scope, redaction, mandatory audit and private errors. See [plan](plans/856-audit-page-completeness.md) and [contract](../contracts/audit-page-completeness.md).
+
+## Canonical management artifact build (#853)
+
+The canonical management UI may reuse explicitly reviewed pure shared TypeScript sources via exact build-time publicSources grants. Default management-only restrictions, entry containment, transitive grant requirements, node/package denial and atomic artifact publication remain unchanged. No browser session or API activation is implied. See [plan](plans/853-reviewed-browser-sources.md) and [contract](../contracts/management-browser-build.md).
+
 
 ## Scoped SSO audit metadata history (#642)
 
@@ -1409,6 +1417,14 @@ The trusted operations lifecycle must enforce known expiry through body consumpt
 ## Late operations response disposal (#637)
 
 If an abort-ignoring trusted request returns headers after logout, expiry, identity replacement, navigation or disposal, the operations adapter rejects it and attempts to cancel its unused body without waiting. Cancellation failures stay private; local cleanup does not guarantee remote resource reclamation or mutation rollback. Existing success, denial and streamed authority checks remain unchanged. No public entry or session acquisition is enabled. See docs/plans/637-operations-stream-teardown.md (repository-root relative).
+
+## Bounded authenticated token request bodies (#640)
+
+Existing signed-SSO issuance/revocation now reject stalled or trickling JSON bodies within a single 15-second read budget before service dispatch, with private cancellation cleanup. Authentication/IAM/audit and post-dispatch mutation semantics remain unchanged. No session or deployment activation. See [plan](plans/640-management-body-deadline.md) and [contract](../contracts/sso-management-http.md#whole-request-body-read-deadline-640).
+
+## Complete token-management actor snapshots (#640)
+
+Token issue/revoke reject missing or inherited entries in trusted actor statements, action/resource arrays and evaluated policy versions before owner lookup, decision audit or credential mutation. Dense valid contexts preserve existing authorization and immutable attribution; this adds no browser authority. See [plan](plans/640-complete-token-actor.md) and [contract](../contracts/token-management-snapshots.md).
 
 ## Versioned attempt estimate calculation (#642)
 
@@ -1550,3 +1566,8 @@ An authorized Audit row can open Usage for its exact request ID. Intersect desti
 
 ## Canonical request decision investigation (#996)
 The explicitly mounted canonical history UI links Usage rows to a fresh exact-request Audit read, intersected with applied Audit scope. Usage visibility does not grant Audit authority; unsubmitted destination edits and pagination are discarded. Empty results do not establish no decision or complete history. See [history workspace contract](../contracts/management-history-workspace.md). This is source UI behavior, not installed login or live E2E acceptance.
+
+
+## Required common gateway acknowledgement (#780)
+
+The existing common SQL audit append succeeds only after exactly one own result row with an own positive signed-bigint event_id (safe integer number or canonical decimal string). Missing, sparse, inherited, malformed or out-of-range acknowledgement fails privately with GatewayAuditUnavailable. Existing management credential denial returns no-store503 audit_unavailable before mutation; both public chat bases preserve their existing error envelopes and return503 instead of401 when required audit fails. No new host, schema, grant, retry or activation. An acknowledgement is not independent proof of transaction commit or exactly-once persistence. See [consolidation plan](plans/1006-boundary-hardening-consolidation.md).

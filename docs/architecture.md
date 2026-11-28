@@ -1466,6 +1466,14 @@ JSON usage transport also withholds complete-looking pages when uncompressed Con
 
 Read-only SSO usage lifecycle copies filters, follows only current opaque continuation and replaces pages. Loading, identity change, expiry and teardown clear old rows; stale completions cannot publish. Unknown costs and duplicate markers are preserved. Caller owns trusted authorization, expiry and rendering; no session/runtime activation. See [plan](plans/642-usage-review-session.md) and [contract](../contracts/management-usage-session.md).
 
+## Audit collection traversal (#856)
+
+The SQL reader and shared HTTP projector visit every bounded collection position through existing validators, so missing slots cannot bypass projection. JSON and CSV reuse the same fail-closed page boundary and mandatory read-failure audit. No schema, session or runtime activation change. See [contract](../contracts/audit-page-completeness.md).
+
+## Explicit public browser import closure (#853)
+
+The canonical management UI may reuse explicitly reviewed pure shared TypeScript sources via exact build-time publicSources grants. Default management-only restrictions, entry containment, transitive grant requirements, node/package denial and atomic artifact publication remain unchanged. No browser session or API activation is implied. See [plan](plans/853-reviewed-browser-sources.md) and [contract](../contracts/management-browser-build.md).
+
 ## CSV browser page progress (#642)
 
 The authorized usage CSV page transport rejects equal or regressing continuation keys against the exact serialized request cursor before exposing a page. This prevents stalled browser pagination without parsing CSV rows, granting authority, or activating sessions. See the [contract](../contracts/management-usage-export.md) and [plan](plans/642-csv-client-progress.md). Native browser and installed acceptance remain separate.
@@ -1605,3 +1613,8 @@ Integrate PR981 pagehide teardown into canonical PR989: dispose the complete tru
 
 ## Canonical Audit-to-Usage request investigation (#994)
 An authorized Audit row can open Usage for its exact request ID. Intersect destination applied Usage principal/model/time/page-size filters, clear its cursor and unapplied drafts, and require a fresh Usage read. Never copy Audit scope or infer Usage permission from Audit visibility. Canonical tab departure cancels pending CSV delivery; stale responses/controls cannot download or restore data after denial/disposal. Empty results are not proof of no provider call, bill, or complete history. Preserve pending JSON coalescing and all existing session/activation gates. See [plan](plans/994-canonical-audit-usage-investigation.md).
+
+
+## Required common gateway acknowledgement (#780)
+
+The existing common SQL audit append succeeds only after exactly one own result row with an own positive signed-bigint event_id (safe integer number or canonical decimal string). Missing, sparse, inherited, malformed or out-of-range acknowledgement fails privately with GatewayAuditUnavailable. Existing management credential denial returns no-store503 audit_unavailable before mutation; both public chat bases preserve their existing error envelopes and return503 instead of401 when required audit fails. No new host, schema, grant, retry or activation. An acknowledgement is not independent proof of transaction commit or exactly-once persistence. See [consolidation plan](plans/1006-boundary-hardening-consolidation.md).

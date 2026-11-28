@@ -1874,6 +1874,19 @@ Read-only SSO usage lifecycle copies filters, follows only current opaque contin
 
 Explicit usage lifecycle retry repeats the failed first page or continuation with the original copied principal/model/time/limit and exact opaque cursor. Loading hides old rows; no previous rows are retained. Success, new search, invalid query, denial, logout/expiry, replacement authority and disposal remove retry authority. A pending retry cannot publish after identity teardown. This is an unactivated UI-independent lifecycle, not browser/session/runtime acceptance. See [contract](../contracts/management-usage-session.md).
 
+## Audit page completeness (#856)
+
+- Missing first/middle/last/all event positions and SQL lookahead fail the whole audit page. JSON and CSV public reads return503 without partial evidence; mandatory failure audit is awaited.
+- Dense valid/empty pages preserve continuation and redaction; explicit Deny prevents reads and failed audit remains private.
+- Local loopback HTTP uses controlled authentication, not company IdP/browser login or installed PostgreSQL/provider certification. See [contract](../contracts/audit-page-completeness.md).
+
+## Reviewed shared browser source acceptance (#853)
+
+- Build a management entry importing a shared file only when that exact canonical TypeScript source is explicitly granted. Missing transitive grants must fail; granting a shared source must not permit it as an entry.
+- Reject source-tree and symlink escapes, non-TypeScript files, bare packages and Node imports, including imports from explicitly granted sources. Preserve default management-only builds and non-overwriting publication.
+- Exercise repeated CLI --public-source arguments with and without --output; reject missing values, unknown options and duplicate outputs using the fixed redacted error and no module output.
+- Compile the selected FE snapshot with the exact reviewed shared closure and verify signed-out navigation in a real browser. Report build, public navigation, private API/session and installed acceptance separately. This does not approve the source selection or a deployment. See [plan](plans/853-reviewed-browser-sources.md) and [contract](../contracts/management-browser-build.md).
+
 ## CSV browser page progress (#642)
 
 The authorized usage CSV page transport rejects equal or regressing continuation keys against the exact serialized request cursor before exposing a page. This prevents stalled browser pagination without parsing CSV rows, granting authority, or activating sessions. See the [contract](../contracts/management-usage-export.md) and [plan](plans/642-csv-client-progress.md). Native browser and installed acceptance remain separate.
@@ -2091,3 +2104,8 @@ Port existing PR952 name/description list discovery and PR964 exact published mo
 
 ## Canonical Audit-to-Usage request investigation (#994)
 An authorized Audit row can open Usage for its exact request ID. Intersect destination applied Usage principal/model/time/page-size filters, clear its cursor and unapplied drafts, and require a fresh Usage read. Never copy Audit scope or infer Usage permission from Audit visibility. Canonical tab departure cancels pending CSV delivery; stale responses/controls cannot download or restore data after denial/disposal. Empty results are not proof of no provider call, bill, or complete history. Preserve pending JSON coalescing and all existing session/activation gates. See [plan](plans/994-canonical-audit-usage-investigation.md).
+
+
+## Required common gateway acknowledgement (#780)
+
+The existing common SQL audit append succeeds only after exactly one own result row with an own positive signed-bigint event_id (safe integer number or canonical decimal string). Missing, sparse, inherited, malformed or out-of-range acknowledgement fails privately with GatewayAuditUnavailable. Existing management credential denial returns no-store503 audit_unavailable before mutation; both public chat bases preserve their existing error envelopes and return503 instead of401 when required audit fails. No new host, schema, grant, retry or activation. An acknowledgement is not independent proof of transaction commit or exactly-once persistence. See [consolidation plan](plans/1006-boundary-hardening-consolidation.md).
