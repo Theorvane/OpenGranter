@@ -22,6 +22,7 @@ const names = [
   '012_sso_catalog_audit.sql',
   '013_sso_usage_audit.sql',
   '014_sso_audit_history_access.sql',
+  '015_owned_configuration.sql',
 ];
 const migrations = await Promise.all(
   names.map(async (name) => ({
@@ -31,6 +32,43 @@ const migrations = await Promise.all(
 );
 const [firstMigration, secondMigration, thirdMigration] = migrations;
 assert.ok(firstMigration && secondMigration && thirdMigration);
+
+test('owned configuration migration retains populated legacy routes, policies, discovery and historical checksums', async () => {
+  const db = new PGlite();
+  try {
+    await applyPostgresMigrations(connection(db), migrations.slice(0, 14), () => 1000);
+    await db.exec(`INSERT INTO iam_principals VALUES ('legacy-human','human',true);
+      INSERT INTO iam_policies VALUES ('legacy-policy','v1','[]');
+      INSERT INTO catalog_models(alias,created_at_seconds,enabled,active_route_id,openrouter_metadata) VALUES ('legacy-model',0,false,NULL,'{"name":"Legacy publication"}');
+      INSERT INTO catalog_routes VALUES ('legacy-route','legacy-model','managed','v1',NULL,NULL,NULL,NULL,'[{"id":"one","kind":"managed","providerId":"openai","upstreamModelId":"fixture"}]');
+      UPDATE catalog_models SET enabled=true,active_route_id='legacy-route';`);
+    const snapshot = async () =>
+      Promise.all(
+        [
+          'schema_migrations',
+          'iam_principals',
+          'iam_policies',
+          'catalog_models',
+          'catalog_routes',
+        ].map(async (table) => (await db.query(`SELECT * FROM ${table}`)).rows),
+      );
+    const before = await snapshot();
+    assert.deepEqual(await applyPostgresMigrations(connection(db), migrations, () => 2000), [
+      '015',
+    ]);
+    const after = await snapshot();
+    assert.deepEqual(after[0]?.slice(0, 14), before[0]);
+    assert.deepEqual(after.slice(1), before.slice(1));
+    assert.deepEqual(
+      (await db.query('SELECT revision_id,generation FROM owned_configuration_publication')).rows,
+      [{ revision_id: null, generation: 0 }],
+    );
+    assert.deepEqual((await db.query('SELECT * FROM owned_configuration_revisions')).rows, []);
+    assert.deepEqual(await applyPostgresMigrations(connection(db), migrations, () => 3000), []);
+  } finally {
+    await db.close();
+  }
+});
 
 function connection(db: PGlite) {
   return {
@@ -68,6 +106,7 @@ test('apply all migration files once and retain matching checksums', async () =>
       '012',
       '013',
       '014',
+      '015',
     ]);
     const second = await applyPostgresMigrations(connection(db), migrations, () => 2_000);
     assert.deepEqual(second, []);
@@ -91,6 +130,7 @@ test('apply all migration files once and retain matching checksums', async () =>
         '012',
         '013',
         '014',
+        '015',
       ],
     );
     assert.equal(
@@ -119,6 +159,7 @@ test('SSO migration upgrades populated historical storage without backfill or ch
       '012',
       '013',
       '014',
+      '015',
     ]);
     const history = await db.query(
       'SELECT version, checksum, applied_at_ms FROM schema_migrations ORDER BY version',
@@ -237,6 +278,7 @@ test('catalog audit migration preserves populated version-011 history and human 
       '012',
       '013',
       '014',
+      '015',
     ]);
     const after = await db.query('SELECT * FROM schema_migrations ORDER BY version');
     assert.deepEqual(after.rows.slice(0, 11), before.rows);
@@ -262,6 +304,7 @@ test('usage audit migration preserves populated version-012 history and catalog 
     assert.deepEqual(await applyPostgresMigrations(connection(db), migrations, () => 2000), [
       '013',
       '014',
+      '015',
     ]);
     assert.deepEqual(
       (await db.query('SELECT * FROM schema_migrations ORDER BY version')).rows.slice(0, 12),

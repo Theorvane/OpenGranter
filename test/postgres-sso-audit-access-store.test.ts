@@ -171,7 +171,9 @@ test('additive migration preserves prior checksums/data and runner is idempotent
       ),
   };
   try {
-    const sources = await loadPostgresMigrationSources();
+    const sources = (await loadPostgresMigrationSources()).filter(
+      (source) => source.version <= '014',
+    );
     assert.equal(sources.at(-1)?.version, '014');
     await applyPostgresMigrations(connection, sources.slice(0, -1), () => 100);
     await db.exec("INSERT INTO iam_principals VALUES ('preserved', 'human', true)");

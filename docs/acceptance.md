@@ -1,5 +1,13 @@
 # Acceptance and Verification Scenarios
 
+## Owned-configuration API and persistence (#641 / THE-17)
+
+- Verify authenticated admin create/read/import/publication, fresh IAM and inactive/revoked identity, implicit/explicit Deny and action/resource mismatch. Authorization must precede body access; neither admin status nor OpenRouter transport permission grants another right.
+- Reject duplicate IDs/destinations, raw key fields, unsafe priorities, unknown strategy settings and unapproved host/reference/model/final-provider/slug mappings. Disabled/private research defaults and separate consent metadata cause no external calls.
+- Concurrent stale publication and ABA fail without overwrite; revalidated rollback increments generation. Audit/database failures roll back writes and pointer updates with fixed private errors. Caller mutation across awaits cannot change the authorized operation.
+- Explicit legacy import preserves existing catalog/discovery/policy snapshots and publication, captures source/version provenance, and rejects stale/unsupported/ambiguous conversion. Additive migration preserves historical checksums/data; operational rollback retains history.
+- `test/owned-configuration.test.ts` provides public service/Fetch fixture acceptance; it does not certify UI, installed PostgreSQL, live providers, reservations or production gateway activation. See [plan](plans/641-owned-route-configuration.md) and [contract](contracts/owned-route-configuration.md).
+
 ## Reviewed model response marker removal (#543)
 
 - Independently verify v4 provenance, exactly seven complete optional type/format shapes without nullable:true, and the complete previous v3 digest after restoring those markers. Current structure matching v2 must not allow stale v2/v3 pins.

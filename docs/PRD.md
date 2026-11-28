@@ -1,3 +1,7 @@
+## Opt-in owned-route configuration (#641 / THE-17)
+
+Authenticated active SSO humans with explicit configuration permissions can save complete versioned provider/owned-route drafts, read them and separately publish or roll back with revision/generation concurrency control. Credential references, administrator-approved origins and verified model/final-provider mappings are required; research Jev remains disabled/private by default. Explicit legacy import creates a draft only. Saved/published state does not imply runtime readiness, health, quota or gateway activation. UI and operational acceptance remain THE-18/19/20/21 work. See [plan](plans/641-owned-route-configuration.md) and [contract](contracts/owned-route-configuration.md).
+
 ## Explicit history CSV file saves (#642)
 
 An opt-in caller-owned browser adapter starts a fixed-filename UTF-8 CSV download for one already-authorized usage/audit page, preserving server bytes. Dispose with the identity epoch; no automatic fetch, authority or public-entry activation. Download dispatch is not completion. See [plan](plans/642-csv-download.md) and [contract](../contracts/management-csv-download.md).

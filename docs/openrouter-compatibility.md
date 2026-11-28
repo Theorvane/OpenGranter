@@ -1,5 +1,9 @@
 # OpenRouter external-client compatibility
 
+## Owned configuration remains separate from client discovery (#641 / THE-17)
+
+The opt-in configuration/publication API requires registered approved HTTPS origins, credential references and exact verified OpenRouter model/final-provider slug mappings. A transport registration is not permission for its final inference provider. Saved or published revisions do not change either client API base, model discovery, adapter dispatch, stream replay, IAM, quota or per-attempt audit/accounting. Existing external-client conformance cases remain authoritative; this persistence slice neither activates the unmerged owned core nor establishes complete compatibility or live operational readiness. See [configuration contract](contracts/owned-route-configuration.md).
+
 ## Observed upstream timeout statuses (#560)
 
 Nonstream and pre-stream text/function JSON failures on /api/v1 now preserve actual registered HTTP408/504 with matching numeric error.code, after required failed-attempt usage/outcome audit. /v1 retains502/symbolic upstream_failed. Existing other/upstream408 and server-error504 classification, fixed messages/unmapped metadata/request IDs, complete IAM/limits and private missing/possibly-billed accounting remain. Known observed matching metadata alone grants status authority; transport deadlines without a response, unclassified exceptions and malformed/mismatched metadata remain generic502.
