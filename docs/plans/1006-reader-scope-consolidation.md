@@ -75,3 +75,7 @@ Original audit snapshot11tests already passed unchanged. Original usage snapshot
 Original #930 tests adapted only cancelLoad→cancelRead exposed2 missing reentrant-disposal fences (28PASS/2FAIL with existing canonical cancellation tests). Adding the original post-abort revision/blocked guard makes cancellation/CSV/tab/refresh51PASS/0FAIL/0SKIP. The original actual loopback abort/retry, same-cursor retry, loading observers, stale versus fresh denial and disposal assertions remain. Existing DOM tests cover the canonical control and drafts; the old mount is not restored.
 
 Strict types, full lint, planning/links/contracts/fixture-secret scan and all six pinned compatibility checks passed. Full exact-head CI, fresh cumulative AI review and actual-main integration are still required; no successful full local aggregate is claimed. Sources838/839/930 stay open until replacement merge and coverage mapping.
+
+## Published-base integration
+
+Integrated actual main `8152ee13003c9ae1ec5359f3f3f6b10617d38a3f` after #1011 merged. The source and squash trees are identical. Only three documentation append conflicts occurred, with an empty main side; retained the added reader/cancellation section and verified the resulting12-file diff contains only this plan/contracts/docs, three source files and three original regression files. Nine related suites passed97/97 with zero failures/cancellations/skips on this actual main. Production delta is30 added/3 removed lines across three existing files. Fresh full CI and independent exact-head review remain required.
