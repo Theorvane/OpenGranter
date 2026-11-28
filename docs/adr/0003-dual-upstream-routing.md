@@ -1,5 +1,7 @@
 # ADR 0003: Support delegated and managed upstream routes
 
+Selection ownership and same-kind fallback restrictions are superseded by [ADR 0009](0009-owned-provider-routing.md) for the opt-in owned-routing successor. Existing gateway persistence/composition remains on the legacy contract pending migration.
+
 Status: Accepted for product direction on 2026-09-27. Selection controls and fallback boundary were subsequently agreed; exact scores and retry triggers are open.
 
 ## Context

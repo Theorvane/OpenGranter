@@ -4,6 +4,10 @@ An opt-in caller-owned browser adapter starts a fixed-filename UTF-8 CSV downloa
 
 # OpenGranter Product Requirements
 
+## Owned provider routing direction (#7 / THE-10)
+
+OpenRouter is a registered transport provider alongside direct providers; OpenGranter owns candidate selection and fallback. The default uses administrator priority with stable ID ties; optional strategies cannot widen IAM/capability/health/quota eligibility. The first opt-in core requires reservation infrastructure and retains existing accounting and replay barriers. Persisted configuration, gateway integration and provider/strategy UI remain separate prerequisites; existing public gateways are not switched. Sanhouse Jev is disabled by default and research-only, with separate explicit prompt sharing and deterministic failure fallback. See [plan](plans/7-owned-provider-routing.md), [contract](contracts/owned-provider-routing.md), and [ADR 0009](adr/0009-owned-provider-routing.md), which supersede older route-kind restrictions for the new contract.
+
 ## Reviewed model response source checkpoint (#543)
 
 Reconcile only the model-response structural pin to reviewed version4 after seven redundant nullable:true markers disappear from the official source. Retain explicit null type arrays and all runtime restrictions. Source/version/provenance tracking must reject stale pins even when an older projection happens to match current structure. Other five pins and all product runtime behavior remain unchanged. See [plan](plans/543-model-response-drift.md) and [contract](../contracts/model-response-schema.md#reviewed-version4-checkpoint-543).

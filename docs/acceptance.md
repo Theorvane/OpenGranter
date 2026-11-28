@@ -1,5 +1,9 @@
 # Acceptance and Verification Scenarios
 
+## Opt-in owned provider routing (#7 / THE-10)
+
+The new core chooses lower administrator priority then stable ID, excludes denied/inactive/capability/health/quota-ineligible destinations before reservation or strategy, and requires both OpenRouter transport and final-provider permission. Reservation failure, required audit/usage failure, or upstream response start blocks unsafe execution/replay. OpenRouter uses one verified provider slug per attempt; direct-to-OpenRouter fallback has distinct attempt records. Disabled or production-gated Jev makes zero calls; malformed, uncertain, invalid or timed-out research answers use deterministic fallback. Prompt sharing is explicit and separate. These are fixture-based core cases, not gateway, durable reservation or production readiness certification. See [contract](contracts/owned-provider-routing.md) and [plan](plans/7-owned-provider-routing.md).
+
 ## Reviewed model response marker removal (#543)
 
 - Independently verify v4 provenance, exactly seven complete optional type/format shapes without nullable:true, and the complete previous v3 digest after restoring those markers. Current structure matching v2 must not allow stale v2/v3 pins.

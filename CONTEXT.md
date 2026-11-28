@@ -21,7 +21,7 @@ The ability of an external model client to use OpenGranter with OpenRouter reque
 The OpenGranter API boundary that authenticates a proxy token and routes an authorized model request to an approved upstream.
 
 **Route**:
-An administrator-approved path from an OpenGranter model alias to an upstream and upstream model. A route may delegate model selection to OpenRouter or use OpenGranter's own selection.
+An administrator-approved path from an OpenGranter model alias to an upstream and upstream model.
 
 **Route policy**:
 The administrator-defined candidate restrictions, selection preference, and fallback boundary for a model alias.
@@ -36,10 +36,19 @@ A route that sends an authorized request to OpenRouter, which selects the eventu
 A route for which OpenGranter selects a registered direct provider and model before making the upstream call.
 
 **Route decision service**:
-An optional service that recommends one candidate from a managed route's already eligible direct destinations. OpenGranter remains responsible for the final selection boundary and the inference call.
+An optional service that recommends one candidate from already eligible destinations. OpenGranter remains responsible for selection and the inference call.
 
 **Jev-assisted selection**:
-A managed-route selection strategy that asks TypeSafe Jev to recommend one eligible direct destination.
+A routing strategy that asks Jev to recommend one eligible destination.
+
+**Owned route**:
+A route for which OpenGranter selects and retries registered destinations, including OpenRouter and direct providers.
+
+**Routing strategy**:
+A recommendation rule over the eligible destinations of an owned route.
+
+**Reservation**:
+An admission commitment that holds sufficient quota or budget for the bounded attempts of a request until their usage is reconciled.
 
 **Model alias**:
 A model name exposed by OpenGranter that resolves to one or more approved routes.
