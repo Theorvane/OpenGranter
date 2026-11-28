@@ -1291,6 +1291,10 @@ Read-only SSO usage lifecycle copies filters, follows only current opaque contin
 
 Audit review and CSV export reject missing positions in untrusted SQL and injected event collections, including lookahead, instead of exposing partial evidence or null JSON entries. Preserve target audit:Read scope, redaction, mandatory audit and private errors. See [plan](plans/856-audit-page-completeness.md) and [contract](../contracts/audit-page-completeness.md).
 
+## Canonical management artifact build (#853)
+
+The canonical management UI may reuse explicitly reviewed pure shared TypeScript sources via exact build-time publicSources grants. Default management-only restrictions, entry containment, transitive grant requirements, node/package denial and atomic artifact publication remain unchanged. No browser session or API activation is implied. See [plan](plans/853-reviewed-browser-sources.md) and [contract](../contracts/management-browser-build.md).
+
 
 ## Scoped SSO audit metadata history (#642)
 

@@ -1470,6 +1470,10 @@ Read-only SSO usage lifecycle copies filters, follows only current opaque contin
 
 The SQL reader and shared HTTP projector visit every bounded collection position through existing validators, so missing slots cannot bypass projection. JSON and CSV reuse the same fail-closed page boundary and mandatory read-failure audit. No schema, session or runtime activation change. See [contract](../contracts/audit-page-completeness.md).
 
+## Explicit public browser import closure (#853)
+
+The canonical management UI may reuse explicitly reviewed pure shared TypeScript sources via exact build-time publicSources grants. Default management-only restrictions, entry containment, transitive grant requirements, node/package denial and atomic artifact publication remain unchanged. No browser session or API activation is implied. See [plan](plans/853-reviewed-browser-sources.md) and [contract](../contracts/management-browser-build.md).
+
 ## CSV browser page progress (#642)
 
 The authorized usage CSV page transport rejects equal or regressing continuation keys against the exact serialized request cursor before exposing a page. This prevents stalled browser pagination without parsing CSV rows, granting authority, or activating sessions. See the [contract](../contracts/management-usage-export.md) and [plan](plans/642-csv-client-progress.md). Native browser and installed acceptance remain separate.

@@ -1880,6 +1880,13 @@ Explicit usage lifecycle retry repeats the failed first page or continuation wit
 - Dense valid/empty pages preserve continuation and redaction; explicit Deny prevents reads and failed audit remains private.
 - Local loopback HTTP uses controlled authentication, not company IdP/browser login or installed PostgreSQL/provider certification. See [contract](../contracts/audit-page-completeness.md).
 
+## Reviewed shared browser source acceptance (#853)
+
+- Build a management entry importing a shared file only when that exact canonical TypeScript source is explicitly granted. Missing transitive grants must fail; granting a shared source must not permit it as an entry.
+- Reject source-tree and symlink escapes, non-TypeScript files, bare packages and Node imports, including imports from explicitly granted sources. Preserve default management-only builds and non-overwriting publication.
+- Exercise repeated CLI --public-source arguments with and without --output; reject missing values, unknown options and duplicate outputs using the fixed redacted error and no module output.
+- Compile the selected FE snapshot with the exact reviewed shared closure and verify signed-out navigation in a real browser. Report build, public navigation, private API/session and installed acceptance separately. This does not approve the source selection or a deployment. See [plan](plans/853-reviewed-browser-sources.md) and [contract](../contracts/management-browser-build.md).
+
 ## CSV browser page progress (#642)
 
 The authorized usage CSV page transport rejects equal or regressing continuation keys against the exact serialized request cursor before exposing a page. This prevents stalled browser pagination without parsing CSV rows, granting authority, or activating sessions. See the [contract](../contracts/management-usage-export.md) and [plan](plans/642-csv-client-progress.md). Native browser and installed acceptance remain separate.
