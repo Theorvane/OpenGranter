@@ -70,22 +70,51 @@ async function readBody(request: Request): Promise<unknown> {
     return undefined;
   }
   if (!reader) return undefined;
+  let cancelled = false;
   const cancel = () => {
+    if (cancelled) return;
+    cancelled = true;
     try {
       void reader.cancel().catch(() => undefined);
     } catch {
       /* Cleanup failure must not replace the validated input result. */
     }
   };
-  request.signal.addEventListener('abort', cancel, { once: true });
+  let stopped = false;
+  let stopRead!: () => void;
+  const stoppedRead = new Promise<undefined>((resolve) => {
+    stopRead = () => {
+      stopped = true;
+      resolve(undefined);
+      cancel();
+    };
+  });
+  let timer: ReturnType<typeof setTimeout> | undefined;
   let complete = false;
   let parsed: unknown;
   try {
+    const started = performance.now();
+    if (!Number.isFinite(started)) return undefined;
+    const deadline = started + 15000;
+    timer = setTimeout(stopRead, 15000);
+    request.signal.addEventListener('abort', stopRead, { once: true });
+    const expired = () => {
+      const now = performance.now();
+      return (
+        stopped ||
+        request.signal.aborted ||
+        !Number.isFinite(now) ||
+        now < started ||
+        now >= deadline
+      );
+    };
     let size = 0;
     let text = '';
     const decoder = new TextDecoder('utf-8', { fatal: true });
-    while (!request.signal.aborted) {
-      const { done, value } = await reader.read();
+    while (!expired()) {
+      const result = await Promise.race([reader.read(), stoppedRead]);
+      if (!result || expired()) return undefined;
+      const { done, value } = result;
       if (done) {
         complete = true;
         break;
@@ -94,13 +123,14 @@ async function readBody(request: Request): Promise<unknown> {
       if (size > 16384) return undefined;
       text += decoder.decode(value, { stream: true });
     }
-    if (request.signal.aborted) return undefined;
+    if (!complete || expired()) return undefined;
     text += decoder.decode();
     parsed = JSON.parse(text) as unknown;
   } catch {
     parsed = undefined;
   } finally {
-    request.signal.removeEventListener('abort', cancel);
+    if (timer !== undefined) clearTimeout(timer);
+    request.signal.removeEventListener('abort', stopRead);
     if (!complete) cancel();
     try {
       reader.releaseLock();
