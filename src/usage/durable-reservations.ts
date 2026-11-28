@@ -5,7 +5,7 @@ import type { ReservationAuditEvent } from '../audit/reservation-event.ts';
 import { evaluate, type Statement } from '../policy/evaluate.ts';
 import type { MigrationConnection, MigrationTransaction } from '../storage/postgres-migrations.ts';
 import { createPostgresUsageLedger } from './postgres-ledger.ts';
-import type { UsageRecord } from './record-usage.ts';
+import { buildUsageRecord, type UsageRecord } from './record-usage.ts';
 import { parseStoredUsageRecord } from './stored-record.ts';
 
 export interface LiabilityCandidate {
@@ -143,11 +143,9 @@ export function createDurableReservations(ports: {
   readonly now: () => number;
   readonly resolveEvidence: (evidenceId: string) => Promise<SettlementEvidence | undefined>;
 }) {
-  async function transact<T>(
-    work: (tx: MigrationTransaction, now: number) => Promise<T>,
-  ): Promise<T> {
+  async function transact<T>(work: (tx: MigrationTransaction) => Promise<T>): Promise<T> {
     try {
-      return await ports.connection.transaction((tx) => work(tx, integer(ports.now())));
+      return await ports.connection.transaction(work);
     } catch {
       throw new ReservationFailure();
     }
@@ -204,12 +202,13 @@ export function createDurableReservations(ports: {
       ...(evidenceId === undefined ? {} : { evidenceId }),
     });
   }
-  async function owned(tx: MigrationTransaction, handle: ReservationHandle, now: number) {
+  async function owned(tx: MigrationTransaction, handle: ReservationHandle) {
     if (!(await lock(tx, id(handle.principalId)))) throw new ReservationFailure();
     const saved = await load(tx, id(handle.requestId), handle.principalId);
+    const now = integer(ports.now());
     if (saved.owner !== id(handle.ownerToken) || now >= saved.data.expiresAt)
       throw new ReservationFailure();
-    return saved;
+    return { ...saved, now };
   }
   async function close(
     tx: MigrationTransaction,
@@ -249,8 +248,9 @@ export function createDurableReservations(ports: {
             permitted('llm:UseProvider', `provider:${c.providerId}`) &&
             permitted('llm:UseProvider', `provider:${c.transportProviderId}`),
         );
-      return transact(async (tx, now) => {
+      return transact(async (tx) => {
         const policy = await lock(tx, data.principalId);
+        const now = integer(ports.now());
         const deny = async () => {
           await audit(tx, data, 'denied', now);
           return { status: 'denied' as const };
@@ -360,8 +360,9 @@ export function createDurableReservations(ports: {
         ownerToken: id(handle.ownerToken),
       };
       const selected = id(candidateId);
-      return transact(async (tx, now) => {
-        const saved = await owned(tx, captured, now);
+      return transact(async (tx) => {
+        const saved = await owned(tx, captured);
+        const now = saved.now;
         const state = await tx.query(
           'SELECT candidate_id,attempt_id,handed_off,allow_fallback FROM routing_reservation_attempts WHERE request_id=$1',
           [captured.requestId],
@@ -378,8 +379,8 @@ export function createDurableReservations(ports: {
           throw new ReservationFailure();
         const attemptId = `${captured.requestId}/managed/${rows.filter((r) => r.attempt_id !== null).length + 1}`;
         await tx.query(
-          'UPDATE routing_reservation_attempts SET attempt_id=$3 WHERE request_id=$1 AND candidate_id=$2',
-          [captured.requestId, selected, attemptId],
+          'UPDATE routing_reservation_attempts SET attempt_id=$3,started_at_ms=$4 WHERE request_id=$1 AND candidate_id=$2',
+          [captured.requestId, selected, attemptId, now],
         );
         await audit(tx, saved.data, 'intent', now, attemptId);
         return attemptId;
@@ -399,8 +400,9 @@ export function createDurableReservations(ports: {
         (retryableBeforeResponse && record.outcome !== 'failed')
       )
         throw new ReservationFailure();
-      return transact(async (tx, now) => {
+      return transact(async (tx) => {
         if (!(await lock(tx, principal))) throw new ReservationFailure();
+        const now = integer(ports.now());
         const saved = await load(tx, request, principal);
         const c = saved.data.candidates.find((c) => c.id === record.selectedCandidateId);
         const result = await tx.query(
@@ -448,8 +450,9 @@ export function createDurableReservations(ports: {
         principalId: id(handle.principalId),
         ownerToken: id(handle.ownerToken),
       };
-      return transact(async (tx, now) => {
+      return transact(async (tx) => {
         if (!(await lock(tx, captured.principalId))) throw new ReservationFailure();
+        const now = integer(ports.now());
         const saved = await load(tx, captured.requestId, captured.principalId);
         if (saved.owner === null) return;
         if (saved.owner !== captured.ownerToken) throw new ReservationFailure();
@@ -458,8 +461,9 @@ export function createDurableReservations(ports: {
     },
     async recover(principalId: string): Promise<readonly string[]> {
       const principal = id(principalId);
-      return transact(async (tx, now) => {
+      return transact(async (tx) => {
         if (!(await lock(tx, principal))) throw new ReservationFailure();
+        const now = integer(ports.now());
         const expired = await tx.query(
           'SELECT request_id FROM routing_reservations WHERE principal_id=$1 AND expires_at_ms <= $2 AND owner_token IS NOT NULL',
           [principal, now],
@@ -500,17 +504,18 @@ export function createDurableReservations(ports: {
         throw new ReservationFailure();
       }
       if (evidence.attemptId !== attempt) throw new ReservationFailure();
-      return transact(async (tx, now) => {
+      return transact(async (tx) => {
         const policy = await lock(tx, principal);
         if (!policy) throw new ReservationFailure();
+        const now = integer(ports.now());
         const saved = await load(tx, request, principal);
         const result = await tx.query(
-          'SELECT liability::text,handed_off,evidence FROM routing_reservation_attempts WHERE request_id=$1 AND attempt_id=$2',
+          'SELECT candidate_id,started_at_ms::text,liability::text,handed_off,evidence FROM routing_reservation_attempts WHERE request_id=$1 AND attempt_id=$2',
           [request, attempt],
         );
         const slot = object(result.rows[0]);
         const settlement = { evidenceId: evidenceKey, ...evidence };
-        if (slot.handed_off !== true || evidence.currency !== saved.data.candidates[0]?.currency)
+        if (evidence.currency !== saved.data.candidates[0]?.currency)
           throw new ReservationFailure();
         if (slot.evidence !== null) {
           // jsonb key ordering is not an identity contract.
@@ -521,6 +526,40 @@ export function createDurableReservations(ports: {
           )
             throw new ReservationFailure();
           return;
+        }
+        if (slot.handed_off !== true) {
+          // Only a fenced execution can be recovered without its original handoff.
+          if (saved.owner !== null) throw new ReservationFailure();
+          const selected = saved.data.candidates.find((c) => c.id === slot.candidate_id);
+          if (!selected) throw new ReservationFailure();
+          const previous = await tx.query(
+            'SELECT record FROM usage_records WHERE request_id=$1 AND attempt_id <> $2',
+            [request, attempt],
+          );
+          const recovered = buildUsageRecord({
+            requestId: request,
+            attemptId: attempt,
+            principalId: principal,
+            credentialId: saved.data.credentialId,
+            policyVersions: saved.data.policyVersions,
+            modelAlias: saved.data.modelAlias,
+            routeKind: 'managed',
+            upstreamModelId: selected.upstreamModelId,
+            selectedCandidateId: selected.id,
+            occurredAt: integer(slot.started_at_ms),
+            latencyMs: null,
+            outcome: 'unknown',
+            possiblyBilled: true,
+            possibleDuplicate: previous.rows.some(
+              (row) => parseStoredUsageRecord(object(row).record).possiblyBilled,
+            ),
+          });
+          await createPostgresUsageLedger(tx)(recovered);
+          await tx.query(
+            'UPDATE routing_reservation_attempts SET handed_off=true,allow_fallback=false WHERE attempt_id=$1',
+            [attempt],
+          );
+          await audit(tx, saved.data, 'handoff', now, attempt);
         }
         await tx.query(
           'UPDATE routing_reservation_attempts SET debit=$2,evidence=$3::jsonb WHERE attempt_id=$1',

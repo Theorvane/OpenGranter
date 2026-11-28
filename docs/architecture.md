@@ -1627,3 +1627,7 @@ The existing common SQL audit append succeeds only after exactly one own result 
 ## Owned reader scope and terminal cancellation (#1006)
 
 Usage SQL reads copy principal/filter/limit and nested cursor coordinates before awaiting SQL so parameters and post-await validation use one owned scope. The canonical audit reader retains its existing scalar snapshot and gains the original mutation regressions. Usage and audit loading cancellation preserve exact retry scope but do not overwrite reentrant disposal or newer work after transport abort. No endpoint, permission, schema, route, accounting policy or activation changes. See [plan](plans/1006-reader-scope-consolidation.md).
+
+### Fenced recovery accounting (#1016)
+
+After acquiring the principal lock, refresh the injected clock before expiry/window decisions. Persist intent time before inference. If that execution is fenced and its original handoff is lost, authoritative settlement atomically writes an unknown-outcome/null-latency record through the same immutable usage ledger before releasing the hold. Actual provider, tokens and cost sources remain unknown; the evidence-backed reservation debit does not become a fabricated provider bill. Shared history JSON/CSV/detail validation supports this explicit unknown shape while existing known outcomes retain required numeric latency.

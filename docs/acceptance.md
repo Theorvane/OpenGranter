@@ -2122,3 +2122,7 @@ The existing common SQL audit append succeeds only after exactly one own result 
 ## Owned reader scope and terminal cancellation (#1006)
 
 Usage SQL reads copy principal/filter/limit and nested cursor coordinates before awaiting SQL so parameters and post-await validation use one owned scope. The canonical audit reader retains its existing scalar snapshot and gains the original mutation regressions. Usage and audit loading cancellation preserve exact retry scope but do not overwrite reentrant disposal or newer work after transport abort. No endpoint, permission, schema, route, accounting policy or activation changes. See [plan](plans/1006-reader-scope-consolidation.md).
+
+### Independent reservation review regressions (#1016)
+
+A clock advanced during principal-lock contention must deny expired admission/start. Recovered post-intent/pre-handoff crashes can settle only after execution fencing and authoritative evidence, writing existing-ledger unknown outcome/null latency and missing provider/count/cost fields first. Active execution cannot be recovered this way. Injected recovery audit failure must roll back the usage append, handoff marker and debit together. Known-outcome/null-latency and unknown-outcome/invented-provider/count/cost combinations reject; JSON/CSV/detail views preserve unknowns rather than zero or success.

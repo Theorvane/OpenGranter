@@ -31,8 +31,8 @@ export interface UsageRecord extends AuditAttribution {
   readonly selectedCandidateId: string | null;
   readonly actualInferenceProviderId: string | null;
   readonly occurredAt: number;
-  readonly latencyMs: number;
-  readonly outcome: 'succeeded' | 'failed';
+  readonly latencyMs: number | null;
+  readonly outcome: 'succeeded' | 'failed' | 'unknown';
   readonly possiblyBilled: boolean;
   readonly possibleDuplicate: boolean;
   readonly usage: TokenUsage;
@@ -49,8 +49,8 @@ export interface BuildUsageRecordInput extends AuditAttribution {
   readonly selectedCandidateId: string | null;
   readonly actualInferenceProviderId?: string | undefined;
   readonly occurredAt: number;
-  readonly latencyMs: number;
-  readonly outcome: 'succeeded' | 'failed';
+  readonly latencyMs: number | null;
+  readonly outcome: 'succeeded' | 'failed' | 'unknown';
   readonly possiblyBilled: boolean;
   readonly possibleDuplicate: boolean;
   readonly providerUsage?: unknown;
@@ -159,8 +159,16 @@ export function buildUsageRecord(input: BuildUsageRecordInput): UsageRecord {
     (input.routeKind === 'managed' && input.selectedCandidateId === null) ||
     (input.actualInferenceProviderId !== undefined && !nonempty(input.actualInferenceProviderId)) ||
     !nonnegativeInteger(input.occurredAt) ||
-    !nonnegativeInteger(input.latencyMs) ||
-    (input.outcome !== 'succeeded' && input.outcome !== 'failed') ||
+    (input.outcome === 'unknown'
+      ? input.latencyMs !== null
+      : !nonnegativeInteger(input.latencyMs)) ||
+    (input.outcome !== 'succeeded' && input.outcome !== 'failed' && input.outcome !== 'unknown') ||
+    (input.outcome === 'unknown' &&
+      (input.possiblyBilled !== true ||
+        input.actualInferenceProviderId !== undefined ||
+        tokens(input.providerUsage).status !== 'missing' ||
+        input.estimatedCost != null ||
+        input.upstreamBilledCost != null)) ||
     typeof input.possiblyBilled !== 'boolean' ||
     typeof input.possibleDuplicate !== 'boolean'
   ) {

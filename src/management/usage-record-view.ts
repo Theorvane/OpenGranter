@@ -30,7 +30,7 @@ export function renderUsageRecordDetails(root: CatalogElement, row: unknown): Ca
       ['Selected candidate', safe.selectedCandidateId ?? 'Unknown'],
       ['Actual inference provider', safe.actualInferenceProviderId ?? 'Unknown'],
       ['Outcome', safe.outcome],
-      ['Latency (ms)', String(safe.latencyMs)],
+      ['Latency (ms)', String(safe.latencyMs ?? 'Unknown')],
       ['Usage status', safe.usage.status],
       ['Prompt tokens', String(safe.usage.promptTokens ?? 'Unknown')],
       ['Completion tokens', String(safe.usage.completionTokens ?? 'Unknown')],

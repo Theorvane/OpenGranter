@@ -27,10 +27,12 @@ CREATE TABLE routing_reservation_attempts (
   candidate_id text NOT NULL,
   liability numeric NOT NULL CHECK (liability >= 0),
   attempt_id text UNIQUE,
+  started_at_ms bigint CHECK (started_at_ms >= 0),
   handed_off boolean NOT NULL DEFAULT false,
   allow_fallback boolean NOT NULL DEFAULT false,
   debit numeric CHECK (debit >= 0),
   evidence jsonb,
   PRIMARY KEY(request_id, candidate_id),
-  CHECK (NOT handed_off OR attempt_id IS NOT NULL)
+  CHECK (NOT handed_off OR attempt_id IS NOT NULL),
+  CHECK ((attempt_id IS NULL) = (started_at_ms IS NULL))
 );

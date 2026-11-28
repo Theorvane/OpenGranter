@@ -6,12 +6,14 @@ import { test } from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
 import { createPostgresAuditHistoryReader } from '../src/audit/postgres-audit-history.ts';
 import type { MigrationConnection } from '../src/storage/postgres-migrations.ts';
+import { serializeUsageCsv } from '../src/usage/csv.ts';
 import {
   createDurableReservations,
   ReservationFailure,
   type ReservationInput,
   type SettlementEvidence,
 } from '../src/usage/durable-reservations.ts';
+import { projectUsageJson } from '../src/usage/json.ts';
 import { createPostgresUsageLedger } from '../src/usage/postgres-ledger.ts';
 import { buildUsageRecord } from '../src/usage/record-usage.ts';
 
@@ -508,6 +510,137 @@ test('malformed persisted binding cannot redirect completion to another reservat
   } finally {
     await f.db.close();
   }
+});
+
+test('clock refreshed after principal lock denies expired admission and expired attempt start', async () => {
+  const f = await setup();
+  try {
+    const delayed = createDurableReservations({
+      ...f.ports,
+      connection: {
+        transaction: (callback) =>
+          f.ports.connection.transaction((tx) =>
+            callback({
+              ...tx,
+              query: async (sql, params) => {
+                const result = await tx.query(sql, params);
+                if (sql.includes('FOR UPDATE')) f.setNow(600);
+                return result;
+              },
+            }),
+          ),
+      },
+    });
+    assert.equal((await delayed.reserve(input('expired'))).status, 'denied');
+    f.setNow(100);
+    const handle = await admitted(f.service);
+    await assert.rejects(delayed.start(handle, 'a'), ReservationFailure);
+  } finally {
+    await f.db.close();
+  }
+});
+test('authoritative recovery settles lost handoff using existing immutable unknown accounting without fabricated latency or outcome', async () => {
+  const f = await setup();
+  try {
+    const handle = await admitted(f.service);
+    const attempt = await f.service.start(handle, 'a');
+    f.setNow(600);
+    assert.deepEqual(await f.service.recover('person'), [attempt]);
+    f.evidence.set('zero', {
+      attemptId: attempt,
+      amount: '0',
+      currency: 'USD',
+      authority: 'verified-no-charge',
+    });
+    await f.service.reconcile('person', 'r1', attempt, 'zero');
+    await f.service.reconcile('person', 'r1', attempt, 'zero');
+    const rows = await f.db.query<{ record: unknown }>('SELECT record FROM usage_records');
+    assert.equal(rows.rows.length, 1);
+    const json = projectUsageJson(rows.rows[0]?.record);
+    assert.equal(json.outcome, 'unknown');
+    assert.equal(json.latencyMs, null);
+    assert.equal(json.occurredAt, 100);
+    assert.equal(json.actualInferenceProviderId, null);
+    assert.equal(json.usage.status, 'missing');
+    assert.equal(json.estimatedCost, null);
+    assert.equal(json.upstreamBilledCost, null);
+    assert.equal(json.possiblyBilled, true);
+    const csv = serializeUsageCsv([json]);
+    assert.match(csv, /"100","","unknown"/u);
+    await assert.rejects(f.service.handoff('person', 'r1', usage()), ReservationFailure);
+    assert.deepEqual(await f.service.recover('person'), []);
+  } finally {
+    await f.db.close();
+  }
+});
+
+test('recovery cannot settle active execution and required recovery audit failure rolls back accounting and liability together', async () => {
+  const f = await setup();
+  try {
+    const handle = await admitted(f.service);
+    const attempt = await f.service.start(handle, 'a');
+    f.evidence.set('zero', {
+      attemptId: attempt,
+      amount: '0',
+      currency: 'USD',
+      authority: 'verified-no-charge',
+    });
+    await assert.rejects(f.service.reconcile('person', 'r1', attempt, 'zero'), ReservationFailure);
+    f.setNow(600);
+    await f.service.recover('person');
+    const faulty = createDurableReservations({
+      ...f.ports,
+      connection: {
+        transaction: (callback) =>
+          f.ports.connection.transaction((tx) =>
+            callback({
+              ...tx,
+              query: (sql, params) => {
+                if (sql.includes('INSERT INTO gateway_audit_events'))
+                  throw new Error('private recovery audit failure');
+                return tx.query(sql, params);
+              },
+            }),
+          ),
+      },
+    });
+    await assert.rejects(faulty.reconcile('person', 'r1', attempt, 'zero'), ReservationFailure);
+    assert.equal((await f.db.query('SELECT * FROM usage_records')).rows.length, 0);
+    const rows = await f.db.query<{ handed_off: boolean; debit: string | null }>(
+      'SELECT handed_off,debit::text FROM routing_reservation_attempts',
+    );
+    assert.equal(rows.rows[0]?.handed_off, false);
+    assert.equal(rows.rows[0]?.debit, null);
+    await f.service.reconcile('person', 'r1', attempt, 'zero');
+    assert.equal((await f.db.query('SELECT * FROM usage_records')).rows.length, 1);
+  } finally {
+    await f.db.close();
+  }
+});
+test('unknown recovery accounting rejects invented latency, actual provider, counts and bills while known outcomes require latency', () => {
+  const unknown = {
+    ...usage(),
+    outcome: 'unknown',
+    latencyMs: null,
+    actualInferenceProviderId: null,
+  };
+  assert.equal(projectUsageJson(unknown).outcome, 'unknown');
+  for (const invalid of [
+    { ...unknown, latencyMs: 0 },
+    { ...unknown, actualInferenceProviderId: 'openai' },
+    { ...unknown, possiblyBilled: false },
+    {
+      ...unknown,
+      usage: { status: 'reported', promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+    },
+    { ...unknown, estimatedCost: { amountDecimal: '0', currency: 'USD', priceVersion: 'fake' } },
+    {
+      ...unknown,
+      upstreamBilledCost: { amountDecimal: '0', currency: 'USD', source: 'direct-provider' },
+    },
+    { ...usage(), latencyMs: null },
+  ])
+    assert.throws(() => projectUsageJson(invalid));
 });
 
 test('atomic admission cannot grant two requests the last quota allowance', async () => {

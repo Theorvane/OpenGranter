@@ -1,5 +1,9 @@
 # Durable owned-routing reservations
 
+## Independent review corrections
+
+The separate reviewer reproduced two gaps at 5e34082: time was captured before a contended principal lock, and missing post-crash handoff prevented authoritative settlement forever. Add failing public-boundary tests before corrections. Refresh the clock after acquiring the serialization lock for every time-sensitive transition. Persist the known attempt-intent timestamp; on a fenced recovered intent, authoritative settlement must first append a truthful unknown-outcome record to the existing usage ledger, with null latency, missing usage/costs and unknown actual provider. Extend existing usage validation/JSON/CSV/detail contracts to preserve those unknowns, without inventing outcome, latency, token counts or provider bills. Keep immutable conflict behavior for a later contradictory handoff. Required recovery-append/audit/settlement failure rolls back the entire transaction. Re-run full checks and request independent re-review of the follow-up head; the earlier passing gate does not validate these new changes.
+
 ## Issue and problem
 
 - Issue: [#1016](https://github.com/Theorvane/OpenGranter/issues/1016), THE-18.
