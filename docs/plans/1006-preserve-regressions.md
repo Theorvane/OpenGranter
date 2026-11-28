@@ -55,3 +55,14 @@ guard. Close #765/#688 only after checking actual replacement coverage and
 linking the merge, rather than treating ancestry as delivery. Keep #7/THE-10
 and its new Router PR #1007 outside cleanup. Rollback removes only these test
 and plan additions; no production behavior changes.
+
+## Integration record
+
+The initial three-suite run on main `af36d2c` passed 148 tests with no failures
+or skips. After #767 merged, integrate actual main
+`148cb85bb066f37ac612456aacbdff7e5e65b082`. Resolve the shared test-file append
+by preserving that main file completely, then appending only the two distinct
+invalid-UTF8 cleanup cases. Keep every content-coding regression from #767.
+The complete diff against this base must contain only the two test files and
+this plan. Record post-integration focused, type, lint, document and full CI
+results in the replacement PR before merge.

@@ -324,14 +324,30 @@ test('real loopback Node + signed JWT + migrated PGlite: role IAM, live deny/rev
         redirect: 'error',
       });
     // Trusted server-side test transport only, never browser bearer storage.
-    const client = createSsoManagementCatalogClient((path, init) =>
-      fetch(origin + path, {
+    // Keep existing raw response/header checks alongside the client assertions.
+    const rawResponses: Response[] = [];
+    const client = createSsoManagementCatalogClient(async (path, init) => {
+      const response = await fetch(origin + path, {
         ...init,
-        headers: { ...init.headers, authorization: 'Bearer ' + token },
-      }),
-    );
+        headers: {
+          ...init.headers,
+          authorization: 'Bearer ' + token,
+          'x-request-id': 'client-forged',
+        },
+        redirect: 'error',
+      });
+      rawResponses.push(response.clone());
+      return response;
+    });
+    const raw = async (status: number) => {
+      const response = rawResponses.shift();
+      assert.ok(response);
+      return safe(response, status);
+    };
     assert.deepEqual(await client.list(), { state: 'ready', data: [model] });
+    assert.deepEqual(await raw(200), { object: 'list', data: [model] });
     assert.deepEqual(await client.detail('team/chat'), { state: 'ready', data: model });
+    assert.deepEqual(await raw(200), model);
     assert.equal(events[0]?.principalId, 'human');
     assert.equal(events[0]?.requestId, 'http-1');
     assert.deepEqual(events[0]?.policyVersions, [{ id: 'allow', version: 'v1' }]);
@@ -339,10 +355,13 @@ test('real loopback Node + signed JWT + migrated PGlite: role IAM, live deny/rev
     await db.exec(`UPDATE iam_policies SET version = 'v2', statements =
       '[{"effect":"Deny","actions":["llm:InvokeModel"],"resources":["model:*"]}]' WHERE policy_id = 'allow'`);
     assert.deepEqual(await client.list(), { state: 'ready', data: [] });
+    assert.deepEqual(await raw(200), { object: 'list', data: [] });
     assert.deepEqual(await client.detail('team/chat'), { state: 'missing' });
+    await raw(404);
     assert.deepEqual(events.at(-1)?.policyVersions, [{ id: 'allow', version: 'v2' }]);
     await db.exec("UPDATE iam_principals SET active = false WHERE principal_id = 'human'");
     assert.deepEqual(await client.list(), { state: 'unauthenticated' });
+    await raw(401);
     assert.equal(events.at(-1)?.principalId, null);
     await safe(await get('', false), 401);
     assert.equal(events.at(-1)?.outcome, 'unauthenticated');
@@ -356,6 +375,7 @@ test('real loopback Node + signed JWT + migrated PGlite: role IAM, live deny/rev
     await db.exec("UPDATE iam_principals SET active = true WHERE principal_id = 'human'");
     await db.exec('DROP TABLE sso_catalog_audit_events');
     assert.deepEqual(await client.list(), { state: 'unavailable' });
+    await raw(503);
     auditFailure = true;
     await safe(await get('', false), 503);
   } finally {
