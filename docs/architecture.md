@@ -1,5 +1,9 @@
 # Architecture Draft
 
+## Opt-in owned routing core (#7 / THE-10)
+
+`invokeOwnedRoute` snapshots registered destinations, reuses model/final-provider IAM and additionally checks transport-provider IAM, filters trusted eligibility evidence, obtains a required all-attempt reservation and invokes a common bounded strategy. Administrator priority and code-unit ID order provide deterministic default/fallback. Dispatch uses existing direct/OpenRouter adapters and managed audit/usage execution, with singleton verified OpenRouter provider bounds and response-start replay barriers. No existing gateway path is changed; persisted configuration, concrete reservations, gateway/stream composition and UI remain prerequisites. See [contract](contracts/owned-provider-routing.md), [plan](plans/7-owned-provider-routing.md), and [ADR 0009](adr/0009-owned-provider-routing.md).
+
 ## Model-response v4 provenance review (#543)
 
 Use the existing structural projector/fixed-source transport without widening traversal or ignoring nullable keys. Pair the response pin v4 with its validator gate; remove only the seven reviewed markers and refresh its canonical source/projection digests. Restore markers in independent tests to reconstruct the complete previous digest. Other five pin bytes, all runtime source and operational schemas remain unchanged. See [plan](plans/543-model-response-drift.md) and [contract](../contracts/model-response-schema.md#reviewed-version4-checkpoint-543).

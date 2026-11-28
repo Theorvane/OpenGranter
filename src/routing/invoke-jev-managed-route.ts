@@ -102,6 +102,8 @@ export interface JevManagedRouteInput<T>
   readonly requestId: string;
   readonly jev?: Omit<JevConfig, 'apiKey'> & { readonly credentialRef: string };
   readonly promptText?: string;
+  /** Opt-in owned routing retains an accounting record for every admitted attempt. */
+  readonly captureUnbilledFailures?: boolean;
   readonly ports: JevManagedRoutePorts<T>;
 }
 
@@ -250,7 +252,7 @@ export async function invokeManagedRoute<T>(
     } catch (error) {
       const failure = error instanceof DirectProviderFailure ? error : undefined;
       const possiblyBilled = failure?.possiblyBilled ?? false;
-      if (!failure || failure.responseStarted || possiblyBilled) {
+      if (input.captureUnbilledFailures || !failure || failure.responseStarted || possiblyBilled) {
         try {
           await captureAttemptUsage(
             {

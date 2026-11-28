@@ -1,5 +1,9 @@
 # OpenRouter external-client compatibility
 
+## Opt-in owned-routing core (#7 / THE-10)
+
+The exported owned core can select registered OpenRouter and direct transports using the existing adapters. A captured-fetch conformance case verifies a singleton `provider.only`, one fixed model and no `models` fallback array after direct failure, with distinct per-attempt usage and final-provider plus transport-provider IAM. This does not change public request/response fields, model discovery, existing gateway composition or the pinned schema. Full external-client compatibility remains incomplete under #116; HTTP/streaming integration for owned routing and durable reservations are prerequisites. See [contract](contracts/owned-provider-routing.md), [plan](plans/7-owned-provider-routing.md), and `test/owned-routing.test.ts`.
+
 ## Observed upstream timeout statuses (#560)
 
 Nonstream and pre-stream text/function JSON failures on /api/v1 now preserve actual registered HTTP408/504 with matching numeric error.code, after required failed-attempt usage/outcome audit. /v1 retains502/symbolic upstream_failed. Existing other/upstream408 and server-error504 classification, fixed messages/unmapped metadata/request IDs, complete IAM/limits and private missing/possibly-billed accounting remain. Known observed matching metadata alone grants status authority; transport deadlines without a response, unclassified exceptions and malformed/mismatched metadata remain generic502.

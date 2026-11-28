@@ -1,5 +1,9 @@
 # Routing and Authorization Contract
 
+## Owned-routing successor (#7 / THE-10)
+
+The owner has replaced the managed/direct versus delegated/OpenRouter selection restriction with OpenGranter-owned selection across registered providers. [ADR 0009](adr/0009-owned-provider-routing.md) and the [owned-routing contract](contracts/owned-provider-routing.md) define the opt-in successor: deterministic administrator priority with stable ID ties, optional research-only Jev and cross-transport fallback inside one immutable eligible set. The implementation reuses the current executor and ledger representation, requires reservation ports and does not change the public gateway yet. The remaining text describes the legacy managed/delegated path; its same-kind restriction and provisional hosted TypeSafe integration are not requirements for the successor. See [plan](plans/7-owned-provider-routing.md) for rollout prerequisites.
+
 Status: Product behavior agreed at the level below. Exact score weights, retryable errors, streaming, and external API field coverage remain open. Updated 2026-09-27.
 
 ## Public request and route plan

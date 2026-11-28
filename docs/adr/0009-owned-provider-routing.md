@@ -1,0 +1,7 @@
+# OpenGranter owns selection across registered providers
+
+Accepted owner decision for THE-10 and issue #7. OpenRouter becomes a registered transport provider alongside direct providers, and OpenGranter owns candidate selection and fallback across those transports. This supersedes ADR 0003's managed/delegated selection and same-kind fallback restrictions and ADR 0005's direct-only Jev restriction for the new owned-routing contract; it does not migrate existing stored routes or switch their gateway behavior.
+
+The trade-off is responsibility for bounded final-provider mapping, eligibility, atomic reservations and per-attempt accounting in return for one locally enforceable selection boundary. Deterministic administrator priority with stable ID ties is the default; an optional strategy can recommend only an already eligible destination. OpenRouter attempts contain one model and one verified final-provider slug. Model, transport-provider and final-provider IAM must all Allow; explicit Deny wins.
+
+The first implementation is an opt-in core reusing the current executor and adapters. Durable reservation infrastructure, persisted configuration and gateway composition remain prerequisites. Sanhouse Jev is research-only, disabled by default, with separate prompt-sharing consent and deterministic fallback; its observed uncalibrated probabilities confer neither authorization nor production/commercial rights.
