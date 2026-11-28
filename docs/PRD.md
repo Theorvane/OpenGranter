@@ -1505,3 +1505,48 @@ The existing SSO Usage JSON/CSV handler now rejects Transfer-Encoding and nonzer
 ## Account-scoped history handoff (#637, #642)
 
 Explicitly mounted Account can open usage and audit with its exact principal filter, preserving server authorization and fresh Deny/audit-failure behavior. Explicit usage targets still require usage:ReadAll; identity alone is not a grant. Manual History does not retain this default. No session or deployment activation. See [plan](plans/642-account-history-navigation.md) and [contract](../contracts/account-history-navigation.md).
+
+
+## Canonical row model drilldown (#988)
+
+The canonical Usage history now provides View usage for this model per authorized row. It reloads the existing protected endpoint with the exact model, preserving applied principal/request/time bounds, never substituting row principal in self mode. A fresh load resets cursors and pending CSV; paging/CSV retain model scope. Model draft follows the action, while unrelated edits are not applied. Audit filters are independent; detached controls, denial and disposal cannot revive reads. Loading, empty and error states remove old rows. This is not a complete-history aggregation, session acquisition or installed/live acceptance. See [plan](plans/988-canonical-model-drilldown.md).
+
+
+### Canonical history integration (#988)
+The current-page cost summary, explicit active-tab filter reset and model drilldown are composed in one canonical history mount. Estimates and reported costs remain distinct, missing values stay Unknown, and reset cancels old work before a fresh authorized read. Combined mounted tests cover scoped CSV and denial cleanup; synthetic browser evidence is not installed login or live-provider acceptance. Source PRs #983/#985/#987 remain unmerged pending consolidation review.
+
+## Canonical history keyboard filters (#988)
+Usage/Audit filters support native Enter submission as well as Apply filters without document navigation or changing existing API/IAM boundaries. This is source integration of #979; its stacked features are not implicitly activated.
+
+## Canonical unapplied history filter drafts (#988, #637, #642)
+The current Usage/Audit workspace preserves per-tab edits independently of applied read/CSV scope and announces unapplied changes. Guarded input events do not query or widen authority. Pending completion and navigation preserve drafts; denial/disposal erase them. Canonical Clear filters behavior is unchanged. This is a partial integration of PR980 only, not installed/login/E2E acceptance. See [contract](../contracts/history-dom.md#canonical-partial-draft-integration-988-637-642) and [plan](plans/988-canonical-model-drilldown.md).
+
+## Canonical history UTC presentation (#988, #642)
+
+Reuse the existing readable-time scope in the canonical Usage/Audit workspace: explicit UTC list/detail and exact raw Unix milliseconds, preserving epoch and numeric fallback. No API/CSV or authority change. See [contract](../contracts/history-readable-time.md) and [plan](plans/988-canonical-model-drilldown.md).
+
+## Canonical UTC range input (#988, #637, #642)
+Integrate the existing PR980 strict UTC-or-Unix-ms range input into canonical history, preserving exact drafts, applied numeric API/CSV scope and all existing authorization boundaries. This is partial source integration only. See [contract](../contracts/history-readable-time.md) and [plan](plans/988-canonical-model-drilldown.md).
+
+## Canonical filter focus continuity (#988)
+Asynchronous same-tab history renders preserve focus and selection only for the currently focused filter draft. External focus and tab changes never trigger restoration. Denial and disposal clear private filters without refocusing them. UTC draft text, applied request/CSV scope and authorization remain unchanged. Source980 is only partially integrated. See test/history-filter-focus.test.ts and the #988 plan.
+
+## Canonical history applied query scope (#988, #637, #642)
+
+Usage and Audit display the applied query scope separately from unapplied edits, including principal/self, model/request, UTC time bounds and page size. Only ready/empty pages expose it; pending/failure/invalid/terminal states hide it. Current-page CSV retains the same applied filters. This is not effective permissions or complete history. Clear filters retains its explicit all-filter reset behavior. See [contract](../contracts/history-applied-scope.md) and [plan](plans/988-canonical-model-drilldown.md).
+
+
+## Canonical operations page-exit integration (#990, #637)
+
+Integrate PR981 pagehide teardown into canonical PR989: dispose the complete trusted operations adapter for both persisted and nonpersisted exits, clearing Account/History/token display, pending local work, timers and download ownership. Retained controls and pageshow cannot reuse its grant. A new adapter and fresh trusted authority are required. No login acquisition, entry/runtime activation, IAM or DDL change, token revocation or mutation rollback claim. See docs/plans/990-canonical-operations-page-exit.md (repository-root relative); test/canonical-operations-page-exit.test.ts covers the public mount. Independent review/CI and parent gates remain mandatory; synthetic tests do not certify installed E2E.
+
+
+## Canonical model discovery integration (#992, #637, #641)
+
+Port existing PR952 name/description list discovery and PR964 exact published modality/parameter selectors into the canonical catalog. Filtering is local to the current authorized publication; fresh details/refresh retain existing IAM/audit. Preserve canonical detail projection, unknown/empty distinction, safe text and retired-control invalidation. No session/runtime/DDL/entry activation or installed acceptance. See [contract](../contracts/canonical-model-discovery.md) and [plan](plans/992-canonical-model-discovery.md). Source PRs are not wholly superseded.
+
+## Canonical Audit-to-Usage request investigation (#994)
+An authorized Audit row can open Usage for its exact request ID. Intersect destination applied Usage principal/model/time/page-size filters, clear its cursor and unapplied drafts, and require a fresh Usage read. Never copy Audit scope or infer Usage permission from Audit visibility. Canonical tab departure cancels pending CSV delivery; stale responses/controls cannot download or restore data after denial/disposal. Empty results are not proof of no provider call, bill, or complete history. Preserve pending JSON coalescing and all existing session/activation gates. See [plan](plans/994-canonical-audit-usage-investigation.md).
+
+## Canonical request decision investigation (#996)
+The explicitly mounted canonical history UI links Usage rows to a fresh exact-request Audit read, intersected with applied Audit scope. Usage visibility does not grant Audit authority; unsubmitted destination edits and pagination are discarded. Empty results do not establish no decision or complete history. See [history workspace contract](../contracts/management-history-workspace.md). This is source UI behavior, not installed login or live E2E acceptance.

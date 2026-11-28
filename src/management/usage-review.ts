@@ -150,6 +150,24 @@ export function createUsageReview(
     async previous() {
       if (!blocked && view.canPrevious) await read(path.slice(0, -1));
     },
+    cancelRead() {
+      if (blocked || view.state !== 'loading') return;
+      // Keep the attempted scope/path for explicit retry, never old rows.
+      stop();
+      publish({
+        state: 'cancelled',
+        data: [],
+        canPrevious: false,
+        canNext: false,
+        exportState: 'idle',
+      });
+    },
+    cancelExport() {
+      if (blocked || view.exportState !== 'loading') return;
+      ++exportRevision;
+      csv.invalidate();
+      publish({ ...view, exportState: 'cancelled' });
+    },
     async retry() {
       if (!blocked && attempt.length > 0 && view.state !== 'loading') await read(attempt);
     },

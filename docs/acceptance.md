@@ -7,14 +7,12 @@
 - Verify captured source equality for the other five selections and byte-identical other pins; refresh only paired model-response version/provenance/validator. Run all six offline/live comparisons and the full gate.
 - No runtime metadata/API/IAM/audit/usage/dependency/storage change or full compatibility certification follows. Full #116 and Jev #7 remain open. See [plan](plans/543-model-response-drift.md) and [contract](../contracts/model-response-schema.md#reviewed-version4-checkpoint-543).
 
-
 ## Both-base nonstream fingerprint parity (#542)
 
 - Reproduce actual official SDK /v1 text and two-request function/result validation failures before production changes. Require null for unknown fingerprints on both bases, preserving exact reported string/null values, history correlation and separate per-attempt usage.
 - Verify ordinary/refusal/filter outputs, frozen originals and opaque values; preserve service tiers, complete numeric usage/categories and incomplete usage omission. Native Anthropic/Gemini keep their existing explicit unknown-null mapping.
 - Unknown and supplied metadata cannot bypass implicit/explicit Deny, limits, required ledger/outcome audit or malformed-native private possibly-billed failures. No metadata enters operational records.
 - This changes legacy field presence only for normalized nonstream completions; error formats, streams, source pins, dependencies and storage remain unchanged. Full #116 and Jev #7 remain open. See [plan](plans/542-legacy-fingerprints.md) and [contract](../contracts/compatible-completion-fingerprints.md#both-base-unknown-fingerprint-projection-542).
-
 
 ## Legacy compatible numeric usage (#540)
 
@@ -23,14 +21,12 @@
 - Actual OpenAI/OpenRouter SDK sockets accept absent sparse usage when other required metadata is supplied. Legacy fingerprint omission remains a separate limitation; opaque responses, error formats and streams keep their existing contracts.
 - Both-base auth/implicit/model/provider Deny, limits and required ledger/outcome audit failures cannot be bypassed by response projection. No invented totals/costs, dependency/pin/schema changes or full #116 certification. Jev #7 remains open. See [plan](plans/540-legacy-usage.md) and [contract](../contracts/compatible-completion-usage.md#both-base-numeric-usage-omission-540).
 
-
 ## OpenRouter AI SDK client conformance (#538)
 
 - Actual provider 3.1.0/AI SDK 7.0.153 sockets cover both bases and delegated OpenRouter/managed OpenAI/Anthropic/Gemini for complete-counter nonstream text, streamed text and correlated client function/result continuation.
 - Reproduce named tool-result rejection before the production fix. Verify exact matching, multi-call out-of-order results, own single capture, immutable normalized output and private pre-route rejection of mismatched/nonstring names; retain all existing orphan/duplicate/missing-result gates.
 - Test proxy authentication, implicit/model/provider Deny, limits, selection/persistence failure, fresh continuation Deny and audited abort. Preflight denial grants no tool execution or provider credential access. Persistence failures emit errors and no actual final usage/DONE even if the SDK synthesizes a finish-step.
 - Missing/partial counters stay unknown in the ledger despite SDK zero defaults or sparse legacy-schema rejection. No accounting, endpoint, source-pin or authority expansion. Full #116 and Jev #7 remain open. See [plan](plans/538-ai-sdk-workflows.md), [contract](../contracts/ai-sdk-client-workflows.md) and [reproduction](ai-sdk-conformance.md).
-
 
 ## Reported Anthropic response tiers (#536)
 
@@ -40,14 +36,12 @@
 - Tier-only native usage retains metadata while the ledger reports missing counters. Shared text/function SSE encoding preserves tier-only final frames for absent/incomplete counts without adding usage. Existing cache accounting, request tiers and provider subsets remain green.
 - Do not infer prices, SLA, capacity or served tiers from request preferences. No live inference, pin/dependency/migration/event/ledger changes or full #116 certification. Jev #7 remains open. See [plan](plans/536-anthropic-served-tiers.md) and [contract](../contracts/service-tier-requests.md#reported-anthropic-response-tiers-536).
 
-
 ## Direct Anthropic request tiers (#534)
 
 - Raw HTTP/internal invoker and actual OpenAI/OpenRouter SDK sockets cover auto/default/null/omission across both bases and nonstream/text/refusal/function streaming, with controlled native JSON/SSE. Verify exact auto/standard_only output, approved model and output cap, and no inserted speed/region fields.
 - Preserve primitive capture before credentials and mutation safety; test unsupported/native public literals and private getters, auth/implicit/model/provider Deny, limits, selection/audit/usage failure, missing usage, opened failure and audited stream cancellation.
 - Other Anthropic recognized tiers reject before secrets, and prior OpenAI/delegated/Gemini subsets remain green. Request tiers must not appear as fabricated served metadata or operational data; preserve explicit unknown usage and possible billing.
 - No pin/dependency/migration/event/accounting changes or live capacity/price/capability certification. Native served-tier projection is covered separately in #536 above; full #116 remains open. See [plan](plans/534-anthropic-service-tiers.md) and [contract](../contracts/service-tier-requests.md#direct-anthropic-capacity-mapping-534).
-
 
 ## Delegated root12h cache options (#532)
 
@@ -56,13 +50,11 @@
 - A red probe must show that accepting shared12h without a native guard would wrongly admit managed OpenAI; the final common transport must reject OpenAI/Anthropic/Gemini root12h before secrets/upstream across nonstream/text/function streams. Retain safe unsupported outcomes and existing permitted native defaults.
 - Keep API-specific official source differences and SDK extension semantics explicit; no live cache/billing/retention or complete #116 claim. Source pins and dependency/migration/event/accounting schemas are unchanged. See [plan](plans/532-delegated-cache-ttl.md) and [contract](../contracts/prompt-cache-options.md#delegated-request-ttl12h-532).
 
-
 ## Text breakpoint TTL (#530)
 
 - Raw/internal tests retain 30m/12h and mixed boundary lifetimes across five history roles, exact text/order/empty blocks, both bases/routes and nonstream/text/refusal/function streaming. Omission/null/undefined adds no TTL or root default; root options remain independent.
 - Verify own-TTL single capture before credential mutation, private getter/value/prototype rejection, auth/implicit/model/provider Deny, limits, selection/audit/usage failures, missing usage and possible-billing accounting. Native Anthropic/Gemini still reject marked histories before secrets/upstream calls with the established safe unsupported response.
 - Installed OpenAI SDK sockets preserve TTL. Installed OpenRouter1.4.18 sockets explicitly verify its serializer drops TTL; this measured client limitation remains a compatibility gate, not a server capability claim. No operational content leakage or synthetic echoes, source-pin changes or live inference. See [plan](plans/530-breakpoint-ttl.md) and [contract](../contracts/prompt-cache-breakpoints.md#optional-text-breakpoint-ttl-530).
-
 
 ## User model source conformance (#528)
 
@@ -214,7 +206,6 @@ The PostgreSQL migration runner applies versions `001` through `008` in order, r
 - Idle pool failures notify with a safe error; a failing notification cannot crash the listener. Shutdown is idempotent, drains active clients, and rejects new queries and transactions.
 - An isolated real PostgreSQL database applies all eight migrations, skips unchanged history on the second run, binds hostile-looking literal values, and leaves no schema changes after a rolled-back transaction. CI supplies that database; local integration skips unless its explicit test database URL is set.
 
-
 ## Persisted direct providers
 
 - Enabled OpenAI, Anthropic, and Google registrations load from PostgreSQL in stable provider-ID order. Disabled rows are excluded. Returned snapshots contain only provider ID, kind, secret reference, and configured output limit; extra database fields and subsequent row mutations do not leak into them.
@@ -249,7 +240,6 @@ The PostgreSQL migration runner applies versions `001` through `008` in order, r
 - Pagination is explicit through `X-Has-More` and optional `X-Next-Cursor`; an empty page has headers only. JSON stays the default, and invalid/repeated format values return 400 before storage.
 - Commas, quotes, and multiline text remain inside quoted cells. Formula-looking text receives a documented apostrophe prefix; unmodified machine-readable identifiers remain available through JSON.
 - Default/explicit Deny blocks storage. Storage failure, mixed-principal rows, and required audit failure return safe JSON errors rather than partial CSV. Successful downloads have a fixed filename and no-store cache policy.
-
 
 ## Audit CSV page export
 
@@ -749,7 +739,6 @@ Both chat paths and four adapters accept the developer instruction prefix, prese
 - Omitted/undefined native fingerprints become null on /api/v1 normalized nonstream completions and deserialize in the pinned official SDK. Supplied exact strings/null survive; /v1 and native omission remain unchanged.
 - Managed/delegated success returns clone rather than mutate response objects; opaque payloads, SSE and errors are unchanged. Native malformed failures, IAM/limits and required audit/ledger failures retain safe accounting. See [contract](../contracts/compatible-completion-fingerprints.md).
 
-
 ## Delegated streaming refusal outcomes
 
 - Both chat bases and SDK streaming preserve exact refusal string/null/omission, content coexistence and content_filter termination, with successful usage persistence before final frames.
@@ -828,31 +817,25 @@ The independent SSE encoder rejects substantive or malformed reasoning on inject
 - Malformed values fail safely after dispatch with failed possible-billing accounting and no content in errors/metadata. Fresh authentication, explicit model/provider Deny, limits and required selection/outcome audit/usage failures retain delivery gates. Missing usage stays unknown.
 - Actual official SDK sockets receive omitted/null/string reasoning on both bases and supported route kinds. No native/request/structured reasoning support is claimed. See [contract](../contracts/nonstream-reasoning.md).
 
-
 ## Nonstream response source drift
 
 Required-field, fingerprint nullability, choice references and assistant content/reasoning/refusal/tool-call structure changes cause drift even when references remain unchanged. Editorial annotations remain ignored and literal defaults remain data. Missing/malformed paths or selected definitions, rehashed incomplete/extra/malformed maps and stale versions 1..8 reject safely. Version 9 preserves prior projections and source provenance. See [plan](plans/242-response-schema.md).
-
 
 ## Chat usage source drift
 
 Token counter type/required/bounds, inline cached/reasoning details, nullable cost/format, cost/server-tool references and counters cause drift. Annotation-only and unrelated native usage changes remain ignored; literal default keys remain data. Missing/malformed source definitions and rehashed absent/incomplete/extra/malformed maps fail safely. Version 10 rejects versions 1..9 and preserves every prior projection. See [plan](plans/244-usage-schema.md).
 
-
 ## Compatible nonstream usage availability
 
 Actual official SDK sockets accept missing/partial/invalid normalized usage on /api/v1 with usage omitted and exact text preserved. Complete/zero counters survive; /v1 sparse counters and ledger missing/partial/invalid states remain. Managed/delegated and native normalization, immutable projection, authentication/model-provider Deny/limits and required ledger/outcome-audit failures retain public-boundary security and privacy behavior. See [plan](plans/246-compatible-usage.md).
-
 
 ## Nonstream service tier metadata
 
 Both public chat bases and pinned SDK sockets preserve exact service-tier string/null/omission in text/refusal/filter/tool outcomes. Malformed values fail safely with failed-attempt/possibly-billed accounting. Denials, required ledger/outcome-audit failures and metadata privacy remain shared. Scalars are captured once; native unrelated fields stay omitted and client tier controls reject before dispatch. See [plan](plans/248-service-tier.md).
 
-
 ## Delegated stream service tier metadata
 
 Both bases and actual official SDK sockets preserve exact streamed tier string/null/omission with safe JSON framing and independent final usage metadata. Missing usage emits no invented frame. Malformed first/later values fail safely with possible-billing accounting and no DONE; denial/limit/required ledger/audit gates remain. Callback identity and operational metadata contain no tier. See [plan](plans/250-stream-service-tier.md).
-
 
 ## Delegated min-p sampling subset
 
@@ -1698,7 +1681,6 @@ Both chat bases and actual OpenAI SDK sockets accept the documented explicit non
 
 The bounded non-strict object-root subset additionally transports finite minimum/maximum on explicit number/integer nodes without rounding fractional bounds. Ordered/equal/one-sided bounds retain captured JSON values; malformed/inappropriate/reversed bounds reject before secrets. Both bases, installed SDK sockets, native text streams, immutable capture, IAM/limits/persistence and privacy are covered by regressions. This does not enforce generated outputs, certify satisfiability/live-model compatibility or complete #116/#7. See [plan](plans/576-gemini-numeric-schema.md) and [contract](../contracts/client-response-formats.md).
 
-
 ## Bounded Gemini array lengths (#578)
 
 The strict:false object-root Gemini subset additionally transports minItems/maxItems only on explicitly typed arrays with an items schema. Lengths must be nonnegative safe integers; pairs must be ordered, with equality and one-sided bounds allowed. Nested lengths and captured values are preserved on nonstream/text streams. Wrong-type, negative, fractional, unsafe, nonfinite and reversed bounds reject before credentials. This is not generated-output enforcement or satisfiability certification. All existing IAM/limits/persistence/privacy and tool/strict/root restrictions remain; #116/#7 stay open. See [plan](plans/578-gemini-array-lengths.md).
@@ -1706,7 +1688,6 @@ The strict:false object-root Gemini subset additionally transports minItems/maxI
 ## Bounded Gemini additional property schemas (#580)
 
 The strict:false object-root subset additionally transports schema-valued additionalProperties on explicit object nodes, recursively applying the same type/keyword and depth<=16 restrictions as properties/items. Boolean values retain existing behavior. Typed nested object/array/scalar schemas are captured and forwarded unchanged in nonstream and native text streams; untyped, malformed, unsupported or excessive-depth schemas fail before credentials. This supersedes the earlier boolean-only limitation, not unsupported union/reference/strict/tool behavior. No generated-output enforcement, satisfiability or live-model certification follows. IAM, limits, audit/usage and privacy boundaries remain covered; #116/#7 remain open. See [plan](plans/580-gemini-property-schemas.md).
-
 
 ## Bounded Gemini oneOf transport (#592)
 
@@ -1720,51 +1701,41 @@ The strict:false literal object-root subset additionally transports root-only $d
 
 Explicit strict:false schemas additionally accept literal array roots with the same recursive keyword, depth<=16 and shared20,000-visit bounds as object roots. Items/prefixItems, min/maxItems and root-only local definitions/references are transported unchanged on nonstream/native text streams. Root scalar, nullable/type-array and untyped union/reference roots remain unsupported before credentials, as do strict/tool/Anthropic combinations. This supersedes the prior object-only root limitation, not generated-output validation, array-output guarantees, satisfiability or live-model certification. IAM/limits/accounting/persistence/privacy and deprecated responseJsonSchema transport remain unchanged; full #116 and unresolved #7 stay open. See [plan](plans/596-gemini-array-root.md) and [contract](../contracts/client-response-formats.md).
 
-
 ## Bounded Gemini scalar-root schemas (#598)
 
 Explicit strict:false schemas additionally accept literal string, number, integer and boolean roots with unchanged recursive keyword/type/reference, expanded depth<=16 and shared20,000-visit bounds. Existing scalar enum/numeric/string-format restrictions apply at the root; schemas remain immutable on nonstream/native text streams. Root null, nullable/type-array and untyped union/reference roots, strict/tool/Anthropic combinations remain unsupported before credentials. This supersedes prior scalar-root-only rejection, not generated-output validation, scalar-output guarantees, satisfiability or live-model certification. IAM/limits/accounting/persistence/privacy and deprecated responseJsonSchema transport remain unchanged; full #116 and unresolved #7 stay open. See [plan](plans/598-gemini-scalar-root.md).
-
 
 ## Bounded Gemini nullable-root schemas (#600)
 
 Explicit strict:false transport additionally accepts two-member type-array roots with null plus one supported concrete type (object, array, string, number, integer or boolean), in either order. Recursive type/keyword/local-reference/expanded-depth<=16/shared20,000-visit bounds still apply; captured schemas remain unchanged on nonstream and native text streams. Root null, malformed type arrays, untyped union/reference roots and strict/tool/Anthropic combinations remain unsupported before credentials. This supersedes prior nullable-root-only rejection, not generated-output validation, null-output guarantees, satisfiability, schema equivalence or live-model certification. IAM/limits/accounting/persistence/privacy and deprecated responseJsonSchema transport remain unchanged; full #116 and unresolved #7 stay open. See [plan](plans/600-gemini-nullable-root.md).
 
-
 ## Bounded Gemini union-root schemas (#602)
 
 Explicit strict:false transport additionally accepts untyped anyOf/oneOf roots with 1..16 recursively validated branches and optional root-only $defs. Existing local-reference, expanded-depth<=16 and shared20,000-visit bounds apply across definitions and branch expansion; captured schemas remain unchanged on nonstream/native text streams. Root references, literal root null, malformed/dual unions, nested definitions and strict/tool/Anthropic combinations remain unsupported before credentials. This supersedes prior untyped-union-root rejection, not output validation, satisfiability, oneOf exclusivity (upstream treats it as anyOf), schema equivalence or live-model certification. IAM/limits/accounting/persistence/privacy and deprecated responseJsonSchema transport remain unchanged; pinned AI SDK strict:true native rejection is unchanged. Full #116 and unresolved #7 stay open. See [plan](plans/602-gemini-union-root.md).
-
 
 ## Bounded Gemini root local references (#604)
 
 Explicit strict:false transport additionally accepts root $ref plus root-only $defs, without other reference siblings. Simple local names and all definitions (including unused ones), resolved targets, cycles, expanded depth<=16 and shared20,000-visit budget retain the existing recursive subset checks. Captured schemas remain unchanged on nonstream/native text streams; no URL fetching, inlining, output validation, satisfiability, equivalence or live-model certification. Resolved targets can use the existing scalar/object/array/nullable/union/null subset; literal root null remains unsupported. Malformed/dangling/external/escaped references, nested definitions, other siblings and strict/tool/Anthropic combinations fail before secrets. IAM/limits/accounting/persistence/privacy and deprecated responseJsonSchema transport remain unchanged; actual AI SDK strict:true native rejection remains. This supersedes only earlier root-reference exclusions; full #116 and unresolved #7 remain open. See [plan](plans/604-gemini-root-local-ref.md).
 
-
 ## Bounded Gemini literal null-root schemas (#606)
 
 Explicit strict:false transport additionally accepts literal type:null roots with existing annotations and optional root-only definitions. All unused definitions, local-reference/cycle checks, expanded depth<=16, shared20,000-visit budget and wrong-type keyword restrictions remain enforced before credentials. Captured schemas pass unchanged on nonstream and native text streams. Null enums, malformed type arrays, nested definitions and strict/tool/Anthropic combinations remain unsupported; actual AI SDK strict:true rejection is unchanged. This supersedes earlier literal-root-null-only exclusions, not generated-output validation, forced-null output, satisfiability, equivalence or live-model certification. IAM/limits/accounting/persistence/privacy and deprecated responseJsonSchema transport remain unchanged. Full #116 and unresolved #7 stay open. See [plan](plans/606-gemini-null-root.md).
-
 
 ## Bounded Gemini definition-local anchors (#608)
 
 Explicit strict:false transport additionally accepts unique 1..64 ASCII $anchor names only on direct root-$defs entries and local #name references to those entries. Pointer and anchor references share canonical definition identity for cycle checks. All unused definitions, expanded depth<=16, shared20,000-visit and 128-definition bounds remain enforced; captured schemas pass unchanged on nonstream/native text streams. Root/nested anchors, anchors on reference nodes, $id, malformed/duplicate/dangling/external/escaped references and strict/tool/Anthropic combinations remain pre-secret failures. No URI fetching, generated-output validation, satisfiability, equivalence or live-model certification. IAM/limits/accounting/persistence/privacy and deprecated responseJsonSchema transport remain unchanged. This supersedes only earlier anchor-only exclusions; full #116 and unresolved #7 remain open. See [plan](plans/608-gemini-definition-anchors.md).
 
-
 ## Bounded Gemini anchored definition aliases (#610)
 
 Explicit strict:false transport additionally accepts $anchor on direct root-$defs entries containing $ref, enabling named local aliases through existing pointer/anchor resolution. Canonical mixed-alias cycle detection, all unused definitions and expanded depth<=16/shared20,000-visit/128-definition bounds remain enforced. Captured schemas pass unchanged on nonstream/native text streams. Arbitrary reference siblings, root/nested anchors, $id, remote/dangling/malformed references and strict/tool/Anthropic combinations remain pre-secret failures. This supersedes only reference-entry-anchor rejection, not generated-output validation, satisfiability, equivalence or live-provider certification. IAM/limits/accounting/persistence/privacy and deprecated responseJsonSchema transport remain unchanged; full #116 and unresolved #7 stay open. See [plan](plans/610-gemini-anchored-aliases.md).
-
 
 ## Bounded Gemini dotted definition keys (#614)
 
 Explicit strict:false transport accepts literal ASCII dots after the initial letter/underscore in root-$defs keys and matching #/$defs/name references, retaining 1..64 characters. Direct pointers and named anchor aliases transport unchanged through both HTTP bases, actual OpenAI SDK sockets and native text streams. Dots are literal: no percent decoding, path normalization, JSON Pointer escaping or remote fetching. Canonical mixed cycles, unused definitions, depth16/shared20,000 visits/128 definitions, strict/tool/Anthropic pre-secret rejection and IAM/limits/accounting/persistence/privacy remain enforced. No generated-output validation, equivalence, live-model or operational certification. This supersedes only the earlier dotted-definition-key exclusion; full #116 and unresolved #7 remain open. See [plan](plans/614-gemini-dotted-definition-keys.md).
 
-
 ## Bounded Gemini root identity (#616)
 
 Root-only canonical HTTPS $id metadata now survives immutable Gemini nonstream/native-stream transport with unchanged local-only references and resource/IAM/privacy boundaries. Actual OpenAI SDK sockets on both bases preserve captured schema identity. No network resolution, nested base changes, generated-output validation or live/operational certification. See [plan](plans/616-gemini-root-schema-id.md); full #116 and unresolved #7 remain open.
-
 
 ## Bounded Gemini root anchor metadata (#618)
 
@@ -1778,26 +1749,21 @@ On both chat bases/all four registered adapters, upstream429/503 before client d
 
 On both bases/all four registered adapters/nonstream/text/function pre-stream paths, observed429/503 asctime hints deliver canonical seconds after required usage/outcome audit. Deterministic tests cover future/fractional/exact/past, both day forms, earliest/latest years and leap dates, invalid clocks/weekdays/calendars/case/spacing/duplicates and one-attempt private missing/possibly-billed accounting. Actual pinned OpenAI/OpenRouter/AI SDK sockets disable retries and assert normalized headers. Numeric and IMF-fixdate plus persistence/status/post-frame/authorization boundaries remain regression gates. Supersedes only earlier asctime rejections; RFC850/full RFC/live deployments remain unverified. See [plan](plans/622-asctime-retry.md).
 
-
 ## Bounded RFC850 retry hints (#624)
 
 Both bases/all four adapters/nonstream/text/function pre-stream upstream429/503 paths normalize exact RFC850 hints. Cover rounding, past/exact/future, century rollover, leap calendar, exactly50 years and one-second-over with resolved-year weekday, bounded clocks, malformed spacing/case/duplicate/timezone/calendar/size rejection, numeric/IMF/asctime regressions and unchanged required persistence/status/post-frame/privacy boundaries. Pinned OpenAI/OpenRouter/AI SDK sockets receive seconds with retries disabled. No live/operational or full #116 certification. Supersedes only previous RFC850 rejection. See [plan](plans/624-rfc850-retry.md).
-
 
 ## Bounded Gemini escaped definition pointers (#626)
 
 Explicit strict:false Gemini schema transport accepts ASCII slash/tilde after the initial letter/underscore in root-$defs keys (decoded length1..64), with exact RFC6901 ~1/~0 escapes in a single local pointer token. Resolution decodes once; literal a~1b and a/b stay distinct. Captured schemas transport unchanged through both bases, actual OpenAI SDK sockets and native text streams. Named anchors and escaped pointers share canonical cycle identity. All unused definitions, depth16/shared20,000 visits/128 definitions, IAM/limits/accounting/privacy and existing strict/tool/Anthropic exclusions remain enforced. Raw pointer path separators, malformed escapes, URI decoding, fetching and nested definitions remain unsupported. No generated-output validation, equivalence, live-provider or operational certification. This supersedes only prior slash/tilde-key and escaped-token exclusions; full #116 and unresolved #7 remain open. See [plan](plans/626-escaped-definition-pointers.md).
 
-
 ## Bounded Gemini numeric-leading definition names (#628)
 
 Explicit strict:false Gemini schema transport additionally permits ASCII digits as the initial character of root-$defs keys and their single local pointer token. Names retain decoded length1..64 and existing subsequent character/escaping bounds. Object member names remain literal: 0 and 00 are distinct, never integer-normalized. Captured schemas pass unchanged through both chat bases, actual OpenAI SDK sockets and native text streams. Anchors still start with a letter/underscore. Canonical mixed cycles, unused definitions, depth16/shared20,000 visits/128 definitions, pre-secret strict/tool/Anthropic rejection, IAM/limits/accounting/privacy remain enforced. No URI decoding, fetching, arbitrary paths, output enforcement, live-provider or operational certification. This supersedes only the earlier initial-digit definition-name exclusion; full #116 and unresolved #7 remain open. See [plan](plans/628-numeric-definition-names.md).
 
-
 ## Exact Gemini identifier regression coverage (#631)
 
 Existing bounded identifier validation rejects trailing LF, CR, CRLF and Unicode line/paragraph separators in root/definition/alias anchors, unused definition keys and local pointer/anchor references, including matching malformed pairs. Public validator, both chat bases and native stream preparation reject before credentials or transport; valid exact64-character controls preserve immutable HTTP schema transport. Investigation #630 found no production defect; this is regression coverage only, not a runtime fix or new feature. Full #116/#7 and local Docker/bridge/systemd/live-provider certification remain open. See [plan](plans/631-schema-identifier-boundaries.md).
-
 
 ## Codex operator OAuth first slice (#635)
 
@@ -1829,13 +1795,11 @@ The unused mount adapter builds fixed detached main/heading/status nodes with te
 - Anonymous denial is durably recorded; missing audit storage suppresses both authenticated and anonymous responses with 503. A deferred insert blocks metadata release.
 - Extra caller audit callbacks cannot replace durable append. No provider calls, synthetic credentials, automatic socket binding or session mounting occur. Local PGlite/loopback is not installed/browser/provider acceptance.
 
-
 ## Owned SSO catalog runtime (#641)
 
 - Real local loopback listener with migrated PGlite and a registered signed test issuer serves catalog list and encoded-alias detail, with or without optional browser assets.
 - Verify durable human/policy attribution, anonymous denial, next-request Deny/revoked binding, required-audit outage, unchanged token authentication and unrelated/inference path isolation.
 - Verify one connection and idempotent close. Local test issuer/PGlite sockets are not browser login, installed PostgreSQL, company IdP or provider acceptance.
-
 
 ## Exact audit principal references (#642)
 
@@ -1864,7 +1828,6 @@ The shared Node HTTP bridge forces no-store and nosniff on exact /management and
 
 An unactivated GET /management/v1/usage factory now reuses the existing fresh-SSO scoped usage service, filters, keyset JSON/CSV and mandatory audit. Signed JWT/migrated embedded SQL/Fetch tests cover scoped/empty pages, explicit-self ReadAll, current Deny/revocation, query/SQL failures, cross-principal hidden lookahead and awaited/failed audit. Durable SSO audit composition, runtime/session/UI and installed/browser acceptance remain open. See [contract](../contracts/sso-usage-history.md).
 
-
 ## Browser CSV usage transport (#642)
 
 Explicit caller-authorized export adapter reads one bounded CSV page with existing principal/model/time/limit/opaque-cursor filters, preserves unknown billing and pagination, and cancels stale identity results. No UI/session/runtime activation or installed acceptance is implied. See [contract](../contracts/management-usage-export.md) and [plan](plans/642-browser-usage-export.md).
@@ -1874,7 +1837,6 @@ Explicit caller-authorized export adapter reads one bounded CSV page with existi
 `createPostgresSsoUsageHistoryHandler` composes the existing signed-bearer Fetch usage handler with fresh SSO/IAM reads and mandatory awaited PostgreSQL metadata audit. Migration 013 adds dedicated `sso_usage_audit_events` without rewriting historical usage or fabricating proxy credentials. Persist server request ID, actor, policy versions, target principal, self/all mode, outcome and returned row count only. Never store bearer credentials, query strings, model filters, CSV/usage rows or content in this metadata table. JSON/CSV and anonymous/denied/error responses are withheld with HTTP 503 if the audit insert or acknowledgement fails. Additional callback properties cannot replace the durable writer. Existing query, authorization and no-store response contracts remain unchanged.
 
 Acceptance: signed SSO JSON/CSV and empty pages persist attribution; malformed query and fresh Deny persist zero-count outcomes; no response completes while its insert is pending; failed insert withholds results. Additive migration preserves previous checksums and data and is idempotent under the existing runner. The factory is unactivated; database migration/lifecycle, runtime mount, browser sessions, retention/readers and installed PostgreSQL/IdP/provider E2E remain separate gates. See [plan](plans/642-durable-sso-usage-http.md).
-
 
 ## CSV continuation progress (#642)
 
@@ -1919,11 +1881,9 @@ An already-authorized browser request port reads one filtered, paginated signed-
 
 Require public-port RED/GREEN, exact serialized filters and bigint progress, header-only empty output, malformed headers/media/UTF-8/length failures, immutable filter accessors, cancellation/deadline and signed-SSO Fetch over migrated embedded SQL with redaction, foreign denial before history SQL and failed durable audit withholding CSV. Existing JSON behavior must regress cleanly. Native browser UI, canonical artifact integration, real IdP, installed PostgreSQL and deployment remain separate gates. See [plan](plans/642-browser-audit-export.md).
 
-
 ## Audit review screen state (#642)
 
 An opt-in DOM-free coordinator now joins existing authorized audit JSON and CSV clients for immutable filter searches, exact next/back navigation, loading/empty/safe failures, explicit current-page export and terminal identity teardown. New searches reset pagination; stale requests cannot republish rows or export CSV. A fresh 401/403 removes rows and blocks port reuse. Server IAM and mandatory durable access audit remain authoritative. See [contract](../contracts/management-audit-review.md) and [plan](plans/642-audit-review-state.md). No browser entry, DOM, session, canonical-build integration or deployment activation is included; native browser acceptance remains outstanding.
-
 
 ## Usage review coordinator (#642)
 
@@ -2013,7 +1973,6 @@ The history DOM mount preserves the CsvDownloadResult port contract: only `start
 - Receive issuance status 201 before the grant deadline; deliver bytes or EOF after expiry without firing the timer. Require expired boundary, no issued-secret publication and cancellation of an open source.
 - Require successful streamed issuance before expiry; logout, identity replacement and screen navigation cancel a pending body without stale publication. Source failures show only generic uncertain-outcome guidance, never source diagnostics.
 
-
 ## Late operations response disposal (#637)
 
 If an abort-ignoring trusted request returns headers after logout, expiry, identity replacement, navigation or disposal, the operations adapter rejects it and attempts to cancel its unused body without waiting. Cancellation failures stay private; local cleanup does not guarantee remote resource reclamation or mutation rollback. Existing success, denial and streamed authority checks remain unchanged. No public entry or session acquisition is enabled. See docs/plans/637-operations-stream-teardown.md (repository-root relative).
@@ -2027,7 +1986,6 @@ Existing principal-scoped management and proxy usage histories accept an optiona
 The canonical read composition now routes exact /management/v1/me and /management/v1/principal to fresh registered-key active-human authentication and mandatory dedicated SQL audit. This ports the existing PR769/771/775/777 Account contract, not a browser login/session approval or IAM grant. The me response contains only principalId; principal contains only id and kind. The explicit optional [audit SQL contract](../contracts/sql/current-principal-audit.sql) is NOT a default migration and is never auto-installed; missing audit storage fails closed. Caller-owned committed/autocommit SQL and schema approval remain prerequisites. No runtime activation or deployment is included. See [contract](../contracts/canonical-current-principal.md) and [plan](plans/639-canonical-current-principal.md).
 
 Bounded local acceptance: signed registered-key JWT + explicitly prepared embedded PostgreSQL + actual Node loopback HTTP verify exact Account payload, revocation, no model permission grant, mandatory pending audit, missing audit with no auto-install, malformed acknowledgement suppression, anonymous rejection, and zero-private-work malformed/unknown requests. These tests are not browser sign-in or installed/deployed acceptance.
-
 
 ## Owned management Account API (#639)
 Local loopback HTTP with signed test JWT and migrated embedded PostgreSQL must cover exact Account projections, fresh binding revocation, no implicit model permission, mandatory audit completion, missing-table no-install suppression, malformed acknowledgements, anonymous authentication failure, exact route/method/query handling, public-shell no-authority and idempotent resource closure. Existing management runtime and browser artifact tests remain required. No live IdP, installed PostgreSQL, browser login or deployment certification is implied.
@@ -2046,11 +2004,9 @@ The shared Node adapter discards a response returned after client disconnect wit
 ## CSP-compatible model descriptions (#637)
 The public management shell serves a fixed no-store stylesheet and links it explicitly. Published multiline descriptions use a fixed class and literal text, never inline styles or HTML. CSP remains unchanged; static method/framing/query checks and exact API delegation remain in force. See [plan](plans/637-model-description-csp.md) and [contract](../contracts/model-description-csp.md). Local native-browser rendering is not company SSO, installed PostgreSQL, deployment or provider acceptance.
 
-
 ## Issued-token revocation handoff (#640)
 
 After a successful authorized issuance, activate Review issued token revocation: both live and retained bearer display nodes clear, exact credential ID appears in a separate confirmation, and no request is sent. Cancel sends nothing; only Confirm revocation sends one existing POST. Pending mutation refuses replacement; stale callbacks, disposal and fresh 401/403 cannot revive credentials or submit again. Verify persisted revocation/event and rejected credential through owned HTTP; Deny/audit outage must leave credential unrevoked and must not report success. Local embedded evidence is not installed SSO acceptance.
-
 
 ## Account response byte integrity (#639)
 The caller-authorized Account client rejects malformed, oversized or mismatched identity/no-encoding Content-Length before publishing identity. It cancels declared overflow without waiting for EOF. Fetch-decoded compressed representations are not compared with their compressed wire length; all decoded bodies remain limited to 4096 bytes and fatal UTF-8. Rejection uses the existing unavailable/retry UI, never partial identity or raw diagnostics. No session, endpoint, authorization, storage or deployment change. See [plan](plans/639-account-response-integrity.md).
@@ -2059,9 +2015,74 @@ The caller-authorized Account client rejects malformed, oversized or mismatched 
 
 Existing principal-scoped management and proxy usage histories accept an optional exact request_id filter, intersected with model/time/keyset filters for JSON and CSV. Canonical parameterized SQL and full-page/lookahead validation preserve isolation; fresh IAM and mandatory audit remain required. No new authority, session acquisition, schema or deployment activation. Browser drilldown integration and installed/live acceptance remain separate. See [plan](plans/642-usage-request-filter.md) and [contract](../contracts/usage-request-filter.md).
 
-
 ## Request-scoped usage review (#642)
 
 Usage now accepts an exact Request ID filter and a row action that reloads authorized attempts for that request while preserving the current principal mode and applied model/time bounds. Self mode does not gain an explicit principal_id (which would require usage:ReadAll); explicit target mode retains its existing authorization. Fresh loads reset cursors; paging and current-page CSV retain request_id. JSON rows are checked against the captured exact request ID, and invalid IDs never reach transport. No complete-history, invoice-total, session or deployment claim. See [plan](plans/642-request-usage-browser.md) and [contract](../contracts/usage-request-review.md).
 ### Request-filter and usage framing integration (#642)
 - Request-scoped Usage JSON/CSV rejects framed GETs before any identity/usage SQL or service audit; absent/zero-length reads preserve exact principal/request intersection, keyset/lookahead and awaited audit. Audit failure withholds both formats. Preserve both original request-filter and framing regressions during main integration. Synthetic signed-token/PGlite and loopback results are not installed acceptance. See [plan](plans/642-usage-get-framing.md).
+
+## Canonical row model drilldown (#988)
+
+The canonical Usage history now provides View usage for this model per authorized row. It reloads the existing protected endpoint with the exact model, preserving applied principal/request/time bounds, never substituting row principal in self mode. A fresh load resets cursors and pending CSV; paging/CSV retain model scope. Model draft follows the action, while unrelated edits are not applied. Audit filters are independent; detached controls, denial and disposal cannot revive reads. Loading, empty and error states remove old rows. This is not a complete-history aggregation, session acquisition or installed/live acceptance. See [plan](plans/988-canonical-model-drilldown.md).
+
+## Canonical current-page cost coverage (#982)
+
+The ready canonical Usage history page shows exact estimated and reported totals separately per currency, cost coverage, reported/partial/missing/invalid usage counts, possibly billed and duplicate counts. Missing amounts remain Unknown; explicit zero is retained. Duplicate rows remain included and flagged. The summary is current-page only, not an invoice, reconciliation or all-pages total; no extra request, authority or accounting write is introduced. Loading, empty/error, audit navigation, denial and disposal remove the summary with the current rows. See [plan](plans/982-canonical-page-cost-summary.md).
+
+## Canonical history explicit reset (#984)
+
+- Explicit Clear filters recovers invalid drafts, removes applied filters and paging cursors only on active tab, and starts existing scoped JSON read. Inactive tab unchanged.
+- Pending read/CSV is aborted; late old data cannot render/download; CSV delivery errors clear. Detached controls after reset/denial/disposal cannot read or acquire authority.
+- Focused mounted DOM and loopback synthetic-SSO/native-browser evidence are not installed login/PostgreSQL/provider or deployment acceptance.
+
+## History filter reset (#986)
+Clear filters in the canonical history mount recovers invalid drafts, clears only the active tab's drafts/applied filters and CSV delivery alert, cancels in-flight reads/exports, resets cursors and issues one fresh first-page authorized request; the other tab keeps its filters and initial Account scope. Detached controls after navigation, denial or disposal cannot re-dispatch, and 401/403 during the reset clears both histories and releases the download lease once. Focused suites cover fixture DOM plus bundled-workspace loopback HTTP with migrated embedded SQL; this is not native-browser IdP login, installed PostgreSQL or live-provider acceptance. See [plan](plans/986-canonical-history-reset.md) and [contract](../contracts/history-dom.md).
+
+## Canonical history keyboard submission (#988)
+For Usage and Audit, submit the named History filters form with Enter or Apply filters: exactly one authorized read, exact principal/model/request/time scope, and no filter disclosure in the document URL. Invalid timestamps stay local. Old forms after rerender, denial or disposal are inert. Existing model drilldown, page summary and reset remain available. No installed/SSO acceptance is implied by fixture tests.
+
+
+## Canonical history page size (#988)
+- Usage and audit independently reject zero, values above 100, decimals, nonnumeric or noncanonical integers without a request. Blank retains the server default.
+- Limits 1 and 100 reach JSON/CSV unchanged; refresh, cursor navigation and exact model drilldown preserve the applied principal/model/limit intersection. Clearing one tab removes its limit and leaves the sibling unchanged. Covered by test/history-page-size.test.ts; not installed-login or deployment acceptance.
+
+### Canonical unapplied history drafts (#988)
+For each history tab, edit principal/model/page size without submitting, switch away/back, refresh and export CSV: the exact draft remains visible, no typing request occurs, and reads/CSV retain applied scope. An accessible status distinguishes edits from applied filters. Pending completion preserves edits, detached listeners cannot overwrite them, invalid submission stays local, and denial/disposal erases private inputs. Explicit Clear filters keeps existing canonical semantics.
+
+## Canonical UTC history presentation (#988, #642)
+
+Both Usage and Audit list/detail show exact ISO UTC with millisecond precision; details retain raw Unix milliseconds. Epoch zero and out-of-Date-range safe timestamps remain visible. Failed refresh and fresh Deny remove old rows/timestamps; retry restores current authorized data, disposal clears the view. Source-derived public-mount regressions: test/history-readable-time.test.ts. API/CSV, filters and authorization unchanged. This is source-level evidence, not installed login/deployment/provider acceptance.
+
+## Canonical UTC history input (#988, #637, #642)
+On both history tabs apply explicit UTC bounds and verify exact millisecond queries intersect principal/model/request scope. Equivalent numeric text clears the unapplied notice; changed drafts remain private and do not affect CSV. Returning from the other tab retains draft text and applied range. Ambiguous timestamps, normalized invalid dates, unsafe numbers and reversed ranges issue no request; numeric epoch compatibility, denial and disposal remain intact. Public-mount tests are not installed IdP/PostgreSQL/provider acceptance.
+
+## Canonical filter focus continuity (#988)
+Asynchronous same-tab history renders preserve focus and selection only for the currently focused filter draft. External focus and tab changes never trigger restoration. Denial and disposal clear private filters without refocusing them. UTC draft text, applied request/CSV scope and authorization remain unchanged. Source980 is only partially integrated. See test/history-filter-focus.test.ts and the #988 plan.
+
+## Canonical history applied query scope (#988, #637, #642)
+
+Usage and Audit display the applied query scope separately from unapplied edits, including principal/self, model/request, UTC time bounds and page size. Only ready/empty pages expose it; pending/failure/invalid/terminal states hide it. Current-page CSV retains the same applied filters. This is not effective permissions or complete history. Clear filters retains its explicit all-filter reset behavior. See [contract](../contracts/history-applied-scope.md) and [plan](plans/988-canonical-model-drilldown.md).
+
+## Canonical history tab CSV cancellation (#988)
+- In either Usage or Audit, start a current-page CSV download and select the other tab before completion. The export signal is aborted; a late successful body saves no file.
+- A late403 from that aborted CSV cannot clear the fresh destination. Returning reads with current authority. Existing pending JSON coalescing remains unchanged. Evidence: test/history-tab-cancellation.test.ts; installed browser download acceptance remains separate.
+
+
+### Canonical history discard edits (#637, #642, #988)
+- On either tab, edit principal/model/request/time/page-size without applying, then Discard filter edits: restore submitted values and remove the unapplied notice without another HTTP read. Clear filters remains a separate scope-changing action.
+- From a second authorized page, discard preserves visible records and the current opaque cursor used by CSV. The other tab's draft is unchanged.
+- Discard during pending JSON or CSV does not abort or restart it. Successful completion still renders/saves once. Denial/disposal retires detached discard actions and leaves no editable private inputs.
+- Automated mount tests are not native-browser download or installed SSO/PostgreSQL/provider acceptance.
+
+
+## Canonical operations page-exit integration (#990, #637)
+
+Integrate PR981 pagehide teardown into canonical PR989: dispose the complete trusted operations adapter for both persisted and nonpersisted exits, clearing Account/History/token display, pending local work, timers and download ownership. Retained controls and pageshow cannot reuse its grant. A new adapter and fresh trusted authority are required. No login acquisition, entry/runtime activation, IAM or DDL change, token revocation or mutation rollback claim. See docs/plans/990-canonical-operations-page-exit.md (repository-root relative); test/canonical-operations-page-exit.test.ts covers the public mount. Independent review/CI and parent gates remain mandatory; synthetic tests do not certify installed E2E.
+
+
+## Canonical model discovery integration (#992, #637, #641)
+
+Port existing PR952 name/description list discovery and PR964 exact published modality/parameter selectors into the canonical catalog. Filtering is local to the current authorized publication; fresh details/refresh retain existing IAM/audit. Preserve canonical detail projection, unknown/empty distinction, safe text and retired-control invalidation. No session/runtime/DDL/entry activation or installed acceptance. See [contract](../contracts/canonical-model-discovery.md) and [plan](plans/992-canonical-model-discovery.md). Source PRs are not wholly superseded.
+
+## Canonical Audit-to-Usage request investigation (#994)
+An authorized Audit row can open Usage for its exact request ID. Intersect destination applied Usage principal/model/time/page-size filters, clear its cursor and unapplied drafts, and require a fresh Usage read. Never copy Audit scope or infer Usage permission from Audit visibility. Canonical tab departure cancels pending CSV delivery; stale responses/controls cannot download or restore data after denial/disposal. Empty results are not proof of no provider call, bill, or complete history. Preserve pending JSON coalescing and all existing session/activation gates. See [plan](plans/994-canonical-audit-usage-investigation.md).

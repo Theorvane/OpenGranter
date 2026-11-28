@@ -20,6 +20,17 @@ function mountCatalog(
   createAuthority: typeof createManagementCatalogAuthority,
 ) {
   let navigate = false;
+  let disposed = false;
+  // BFCache restoration is not a fresh grant. Mirror the Operations adapter
+  // lifecycle without supplying authentication or activating a public entry.
+  const page = (
+    root.ownerDocument as typeof root.ownerDocument & {
+      readonly defaultView?: {
+        addEventListener(type: string, listener: () => void): void;
+        removeEventListener(type: string, listener: () => void): void;
+      } | null;
+    }
+  ).defaultView;
   const authority = createAuthority({
     onChange(snapshot) {
       renderCatalogView(root, snapshot, actions, navigate);
@@ -36,7 +47,14 @@ function mountCatalog(
       void authority.detail(id);
     },
   };
+  function dispose() {
+    if (disposed) return;
+    disposed = true;
+    page?.removeEventListener('pagehide', dispose);
+    authority.dispose();
+  }
   renderCatalogView(root, authority.snapshot(), actions);
+  page?.addEventListener('pagehide', dispose);
   return {
     /** No UI input may be promoted to a grant. */
     async authorize(grant: CatalogAuthorityGrant) {
@@ -44,6 +62,6 @@ function mountCatalog(
       await authority.list();
     },
     clear: authority.clear,
-    dispose: authority.dispose,
+    dispose,
   };
 }

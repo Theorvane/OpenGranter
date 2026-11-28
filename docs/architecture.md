@@ -1590,3 +1590,18 @@ Existing principal-scoped management and proxy usage histories accept an optiona
 ## Request-scoped usage review (#642)
 
 Usage now accepts an exact Request ID filter and a row action that reloads authorized attempts for that request while preserving the current principal mode and applied model/time bounds. Self mode does not gain an explicit principal_id (which would require usage:ReadAll); explicit target mode retains its existing authorization. Fresh loads reset cursors; paging and current-page CSV retain request_id. JSON rows are checked against the captured exact request ID, and invalid IDs never reach transport. No complete-history, invoice-total, session or deployment claim. See [plan](plans/642-request-usage-browser.md) and [contract](../contracts/usage-request-review.md).
+
+## Canonical history UTC input (#988, #637, #642)
+The history view converts strict explicit UTC or integer draft text through a pure input helper before existing range/client validation. Transport continues to receive numeric from_ms/to_ms; no endpoint, identity, persistence, session or deployment architecture changes. Source980 integration remains partial.
+
+## Canonical history applied query scope (#988, #637, #642)
+
+Usage and Audit display the applied query scope separately from unapplied edits, including principal/self, model/request, UTC time bounds and page size. Only ready/empty pages expose it; pending/failure/invalid/terminal states hide it. Current-page CSV retains the same applied filters. This is not effective permissions or complete history. Clear filters retains its explicit all-filter reset behavior. See [contract](../contracts/history-applied-scope.md) and [plan](plans/988-canonical-model-drilldown.md).
+
+
+## Canonical operations page-exit integration (#990, #637)
+
+Integrate PR981 pagehide teardown into canonical PR989: dispose the complete trusted operations adapter for both persisted and nonpersisted exits, clearing Account/History/token display, pending local work, timers and download ownership. Retained controls and pageshow cannot reuse its grant. A new adapter and fresh trusted authority are required. No login acquisition, entry/runtime activation, IAM or DDL change, token revocation or mutation rollback claim. See docs/plans/990-canonical-operations-page-exit.md (repository-root relative); test/canonical-operations-page-exit.test.ts covers the public mount. Independent review/CI and parent gates remain mandatory; synthetic tests do not certify installed E2E.
+
+## Canonical Audit-to-Usage request investigation (#994)
+An authorized Audit row can open Usage for its exact request ID. Intersect destination applied Usage principal/model/time/page-size filters, clear its cursor and unapplied drafts, and require a fresh Usage read. Never copy Audit scope or infer Usage permission from Audit visibility. Canonical tab departure cancels pending CSV delivery; stale responses/controls cannot download or restore data after denial/disposal. Empty results are not proof of no provider call, bill, or complete history. Preserve pending JSON coalescing and all existing session/activation gates. See [plan](plans/994-canonical-audit-usage-investigation.md).
