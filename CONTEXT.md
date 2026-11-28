@@ -1,5 +1,17 @@
 # OpenGranter
 
+**Reservation**:
+A temporary allocation of request allowance and potential monetary exposure before model inference.
+
+**Liability ceiling**:
+An administrator-attested maximum monetary exposure for one bounded inference attempt.
+
+**Uncertain hold**:
+Reserved monetary exposure whose final charge or absence of charge has not been established.
+
+**Settlement evidence**:
+An authoritative attestation of the final monetary liability for a particular inference attempt.
+
 Shared domain language for the product that controls access to company-provided LLM resources and records their use.
 
 ## Language

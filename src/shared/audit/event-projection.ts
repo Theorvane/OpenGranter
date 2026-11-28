@@ -129,6 +129,25 @@ function decision(value: unknown): RecordValue {
 
 function details(event: RecordValue): RecordValue {
   switch (event.kind) {
+    case 'reservation': {
+      const attemptId = optionalIdentifier(event.attemptId);
+      const evidenceId = optionalIdentifier(event.evidenceId);
+      return {
+        modelAlias: identifier(event.modelAlias),
+        action: oneOf(event.action, [
+          'admitted',
+          'denied',
+          'intent',
+          'handoff',
+          'completed',
+          'expired',
+          'reconciled',
+          'overrun',
+        ] as const),
+        ...(attemptId === undefined ? {} : { attemptId }),
+        ...(evidenceId === undefined ? {} : { evidenceId }),
+      };
+    }
     case 'management-auth-denied':
     case 'management-auth-unavailable':
       return { operation: oneOf(event.operation, ['issue', 'revoke'] as const) };

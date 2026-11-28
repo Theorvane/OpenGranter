@@ -1,3 +1,7 @@
+## Durable owned-routing reservations (#1016 / THE-18)
+
+An opt-in internal PostgreSQL service enforces explicitly provisioned principal request quotas in epoch-aligned UTC windows and single-currency monetary exposure across every candidate attempt. Administrator-attested ceilings must remain valid through the execution lease; absent policies/bounds deny. Unknown or possibly billed attempts retain liability across expiry and new windows until authoritative evidence establishes final charges. Estimates and provider-reported cost remain separate from settlement evidence. No production cap, gateway activation, billing collection or Jev call is introduced. See [plan](plans/1016-durable-reservations.md) and [contract](../contracts/durable-reservations.md).
+
 ## Explicit history CSV file saves (#642)
 
 An opt-in caller-owned browser adapter starts a fixed-filename UTF-8 CSV download for one already-authorized usage/audit page, preserving server bytes. Dispose with the identity epoch; no automatic fetch, authority or public-entry activation. Download dispatch is not completion. See [plan](plans/642-csv-download.md) and [contract](../contracts/management-csv-download.md).

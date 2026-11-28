@@ -93,8 +93,8 @@ test('SSO binding keys enforce uniqueness/FK/restricted deletion and bounded non
 });
 test('trusted migration bundle includes the new SSO binding migration without editing historical sources', async () => {
   const sources = await loadPostgresMigrationSources();
-  assert.equal(sources.length, 14);
-  assert.equal(sources.at(-1)?.version, '014');
+  assert.equal(sources.length, 15);
+  assert.equal(sources.at(-1)?.version, '015');
   assert.match(
     sources.find((source) => source.version === '011')?.sql ?? '',
     /CREATE TABLE iam_sso_identity_bindings/u,
@@ -107,5 +107,9 @@ test('trusted migration bundle includes the new SSO binding migration without ed
     sources.find((source) => source.version === '013')?.sql ?? '',
     /CREATE TABLE sso_usage_audit_events/u,
   );
-  assert.match(sources.at(-1)?.sql ?? '', /CREATE TABLE sso_audit_history_access_events/u);
+  assert.match(
+    sources.find((source) => source.version === '014')?.sql ?? '',
+    /CREATE TABLE sso_audit_history_access_events/u,
+  );
+  assert.match(sources.at(-1)?.sql ?? '', /CREATE TABLE reservation_principals/u);
 });

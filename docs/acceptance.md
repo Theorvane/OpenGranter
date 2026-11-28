@@ -1,5 +1,13 @@
 # Acceptance and Verification Scenarios
 
+## Durable reservation admission and recovery (#1016)
+
+- Public reservation boundaries reject missing/stale policies or liability attestations, complete-set budget excess, model/transport/final-provider Default or explicit Deny, identity conflicts and duplicate execution. Identical request replay returns state without another execution token.
+- Concurrent requests compete atomically for the same request allowance and monetary exposure. Independent installed PostgreSQL pools must admit exactly one of sixteen requests when only one liability fits; distinguish this opt-in installed test from embedded PGlite tests.
+- Disk restart recovers durable attempt intent, expiry fences old execution, and uncertain exposure survives a new UTC window. Only never-entered slots release automatically; request quota is never refunded. No automatic inference replay or TTL write-off.
+- Existing immutable usage and control audit commit together; required failure rolls back both. Duplicate handoff/settlement is idempotent, conflicting evidence preserves the original, missing/partial usage remains unknown, fallback requires explicit retryable-before-response evidence and possible duplicate costs are retained.
+- Authoritative settlement may establish zero, but missing evidence never does. Truthful liability above the attested ceiling blocks admission without clamping the recorded debit. No live providers, Jev, production caps, activation or deployment are part of verification. See [plan](plans/1016-durable-reservations.md).
+
 ## Reviewed model response marker removal (#543)
 
 - Independently verify v4 provenance, exactly seven complete optional type/format shapes without nullable:true, and the complete previous v3 digest after restoring those markers. Current structure matching v2 must not allow stale v2/v3 pins.
