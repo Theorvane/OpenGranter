@@ -1,4 +1,8 @@
-import { projectGatewayAuditEvent, validAuditPrincipalReference } from './event-projection.ts';
+import {
+  projectGatewayAuditEvent,
+  validAuditPrincipalReference,
+  validateOwnedAuditDetails,
+} from './event-projection.ts';
 import {
   type AuditHistoryFilters,
   matchesAuditHistoryFilters,
@@ -103,6 +107,7 @@ export function projectAuditHistoryPage(
       throw new InvalidAuditHistoryQuery();
     }
     previous = id;
+    validateOwnedAuditDetails(input.kind, input.details);
     const projected = projectGatewayAuditEvent(
       {
         ...input.details,

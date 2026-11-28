@@ -127,8 +127,98 @@ function decision(value: unknown): RecordValue {
   };
 }
 
+/** Owned events are closed data records, including nonenumerable and symbol keys. */
+function ownedFields(value: unknown, keys: readonly string[]): RecordValue {
+  const input = record(value);
+  const prototype: unknown = Object.getPrototypeOf(input);
+  if (prototype !== Object.prototype && prototype !== null) throw new InvalidGatewayAuditEvent();
+  const actualKeys = Reflect.ownKeys(input);
+  if (actualKeys.length !== keys.length) throw new InvalidGatewayAuditEvent();
+  for (const key of actualKeys) {
+    if (typeof key !== 'string' || !keys.includes(key)) throw new InvalidGatewayAuditEvent();
+    const descriptor = Object.getOwnPropertyDescriptor(input, key);
+    if (!descriptor || !Object.hasOwn(descriptor, 'value') || !descriptor.enumerable)
+      throw new InvalidGatewayAuditEvent();
+  }
+  return input;
+}
+
+function ownedArray(value: unknown, minimum: number): unknown[] {
+  if (
+    !Array.isArray(value) ||
+    Object.getPrototypeOf(value) !== Array.prototype ||
+    value.length < minimum ||
+    value.length > 1024
+  )
+    throw new InvalidGatewayAuditEvent();
+  if (Reflect.ownKeys(value).length !== value.length + 1) throw new InvalidGatewayAuditEvent();
+  return Array.from({ length: value.length }, (_, index) => {
+    const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+    if (!descriptor || !Object.hasOwn(descriptor, 'value') || !descriptor.enumerable)
+      throw new InvalidGatewayAuditEvent();
+    return descriptor.value as unknown;
+  });
+}
+
+/** Validate stored owned details before flattening can overwrite reserved attribution keys. */
+export function validateOwnedAuditDetails(kind: unknown, value: unknown): void {
+  if (kind === 'owned-selection-started')
+    ownedFields(value, ['routeVersion', 'modelAlias', 'candidateIds']);
+  else if (kind === 'owned-selection')
+    ownedFields(value, ['routeVersion', 'modelAlias', 'candidateId', 'selection', 'strategy']);
+  else if (kind === 'owned-denied') ownedFields(value, ['routeVersion', 'modelAlias', 'reason']);
+}
+
+function ownedDetails(event: RecordValue): RecordValue {
+  const common = [
+    'kind',
+    'requestId',
+    'principalId',
+    'credentialId',
+    'policyVersions',
+    'routeVersion',
+    'modelAlias',
+  ];
+  const fields =
+    event.kind === 'owned-selection-started'
+      ? ['candidateIds']
+      : event.kind === 'owned-selection'
+        ? ['candidateId', 'selection', 'strategy']
+        : ['reason'];
+  ownedFields(event, [...common, ...fields]);
+  for (const entry of ownedArray(event.policyVersions, 0)) ownedFields(entry, ['id', 'version']);
+  const base = {
+    routeVersion: identifier(event.routeVersion),
+    modelAlias: identifier(event.modelAlias),
+  };
+  if (event.kind === 'owned-selection-started') {
+    const candidateIds = ownedArray(event.candidateIds, 1).map(identifier);
+    if (new Set(candidateIds).size !== candidateIds.length) throw new InvalidGatewayAuditEvent();
+    return { ...base, candidateIds };
+  }
+  if (event.kind === 'owned-selection')
+    return {
+      ...base,
+      candidateId: identifier(event.candidateId),
+      selection: oneOf(event.selection, ['strategy', 'deterministic-fallback'] as const),
+      strategy: oneOf(event.strategy, [
+        'administrator-priority',
+        'jev-research',
+        'custom',
+      ] as const),
+    };
+  return {
+    ...base,
+    reason: oneOf(event.reason, ['no-candidates', 'configuration', 'reservation'] as const),
+  };
+}
+
 function details(event: RecordValue): RecordValue {
   switch (event.kind) {
+    case 'owned-selection-started':
+    case 'owned-selection':
+    case 'owned-denied':
+      return ownedDetails(event);
     case 'management-auth-denied':
     case 'management-auth-unavailable':
       return { operation: oneOf(event.operation, ['issue', 'revoke'] as const) };

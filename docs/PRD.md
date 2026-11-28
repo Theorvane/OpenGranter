@@ -1576,3 +1576,8 @@ The existing common SQL audit append succeeds only after exactly one own result 
 ## Owned reader scope and terminal cancellation (#1006)
 
 Usage SQL reads copy principal/filter/limit and nested cursor coordinates before awaiting SQL so parameters and post-await validation use one owned scope. The canonical audit reader retains its existing scalar snapshot and gains the original mutation regressions. Usage and audit loading cancellation preserve exact retry scope but do not overwrite reentrant disposal or newer work after transport abort. No endpoint, permission, schema, route, accounting policy or activation changes. See [plan](plans/1006-reader-scope-consolidation.md).
+
+
+## Bounded owned-routing audit projection (#1014)
+
+The existing audit store can project bounded owned-selection-started, owned-selection and owned-denied metadata while retaining principal-scoped audit permissions. This is metadata compatibility with the unmerged opt-in core, not gateway activation, durable reservation delivery or operational certification. See [plan](plans/1014-owned-audit-projection.md) and [contract](../contracts/owned-routing-audit.md).
