@@ -126,7 +126,11 @@ for (const outcome of ['ready', 'fresh-deny', 'audit-failure'] as const) {
           (await db.query('SELECT * FROM sso_audit_history_access_events')).rows.length,
           1,
         );
-        const expired = await jwt.token({ exp: jwt.nowSeconds - 3600 });
+        const expired = await jwt.token({
+          iat: jwt.nowSeconds - 600,
+          auth_time: jwt.nowSeconds - 700,
+          exp: jwt.nowSeconds - 120,
+        });
         const unbound = await jwt.token({ sub: 'unbound-subject-fixture' });
         for (const credential of [expired, unbound]) {
           const before = usageReads;

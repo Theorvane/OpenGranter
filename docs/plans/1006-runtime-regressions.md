@@ -59,8 +59,21 @@ or other unfinished product requirements.
 
 The initial fixture used a token expired by one second and expected 401, but
 the existing RFC9068 validator intentionally permits 60 seconds of clock skew.
-That was a test setup error, not a newly found product defect. Restore the
-source PR's one-hour-expired token and its unbound signed-subject scenario;
-do not change production expiry semantics. Keep the no-usage-read and private
-response assertions for both JSON and CSV. Refresh fixture adaptations change
-only current UTC labels and real input-event dispatch, not assertions.
+That was a test setup error, not a newly found product defect. Preserve the
+source PR's expiry rejection and unbound signed-subject assertions without
+changing production expiry semantics. Use coherent fixture times: issuance
+600 seconds ago, authentication 700 seconds ago, and expiry 120 seconds ago.
+This isolates expiry beyond the skew allowance while staying within the
+existing maximum age and lifetime, avoiding unrelated chronology failures.
+Keep the no-usage-read and private response assertions for JSON and CSV.
+Refresh fixture adaptations change only current UTC labels and real input
+event dispatch, not assertions.
+
+## Current-main integration
+
+Integrate actual main `a835c0b0cad3cf08976baf660030e2b5fa5c86ed` after #1008
+merged, preserving its complete cleanup/catalog regression coverage. The
+post-integration five-suite run passes 44 tests with no failures or skips.
+Only this plan and the two runtime/refresh test files differ from that base;
+production, scripts and contracts are unchanged. Record strict types, lint,
+document checks and fresh full CI/review in the PR before guarded merge.
