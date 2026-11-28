@@ -2109,3 +2109,8 @@ An authorized Audit row can open Usage for its exact request ID. Intersect desti
 ## Required common gateway acknowledgement (#780)
 
 The existing common SQL audit append succeeds only after exactly one own result row with an own positive signed-bigint event_id (safe integer number or canonical decimal string). Missing, sparse, inherited, malformed or out-of-range acknowledgement fails privately with GatewayAuditUnavailable. Existing management credential denial returns no-store503 audit_unavailable before mutation; both public chat bases preserve their existing error envelopes and return503 instead of401 when required audit fails. No new host, schema, grant, retry or activation. An acknowledgement is not independent proof of transaction commit or exactly-once persistence. See [consolidation plan](plans/1006-boundary-hardening-consolidation.md).
+
+
+## Owned reader scope and terminal cancellation (#1006)
+
+Usage SQL reads copy principal/filter/limit and nested cursor coordinates before awaiting SQL so parameters and post-await validation use one owned scope. The canonical audit reader retains its existing scalar snapshot and gains the original mutation regressions. Usage and audit loading cancellation preserve exact retry scope but do not overwrite reentrant disposal or newer work after transport abort. No endpoint, permission, schema, route, accounting policy or activation changes. See [plan](plans/1006-reader-scope-consolidation.md).

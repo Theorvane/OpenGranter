@@ -28,3 +28,8 @@ Acceptance: signed SSO JSON/CSV and empty pages persist attribution; malformed q
 ## GET framing parity (#642)
 
 The Fetch adapter rejects any Transfer-Encoding header and any Content-Length other than the exact normalized string `0`, before invoking history.read. An absent Content-Length or exact `0` remains accepted. This preserves the bodyless GET contract when Node adaptation omits the actual request body, matching Audit and Models. Malformed framing returns the existing fixed no-store/nosniff 400 invalid_request response, with no identity/usage SQL or service audit, as for existing method/body rejection. Successful JSON/CSV retains fresh identity/IAM and mandatory awaited audit. This is not a substitute for Node/proxy parser defenses or ingress approval. See [plan](../docs/plans/642-usage-get-framing.md).
+
+
+## Owned asynchronous SQL query scope
+
+The canonical usage SQL reader captures all principal/filter/limit values and nested cursor coordinates before validation and SQL. The same owned values govern returned rows, order and lookahead after await. Caller mutation cannot legitimize foreign rows or widen paging; independent pending calls retain separate scopes. This does not grant authority or change query fields.
