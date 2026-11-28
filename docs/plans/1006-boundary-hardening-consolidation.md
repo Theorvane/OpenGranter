@@ -13,9 +13,11 @@
 
 - #857 / #856: reject incomplete audit metadata pages instead of silently
   filtering invalid rows into a partial successful page.
-- #860 / #853: allow only explicit reviewed shared browser sources while
-  retaining public-source containment, private-source denial and safe default
-  artifact behavior. No automatic source-boundary expansion.
+- #860 / #853: allow explicit reviewed public browser sources while retaining
+  source containment, ungranted-source and node/package denial, and the fixed
+  reviewed default closure. Each extra exact source is the trusted build
+  caller's publication decision, not a secret scan or arbitrary server-code
+  approval. No automatic source-boundary expansion.
 - #919 / #640: bound authenticated credential request-body consumption and
   settle aborted/stalled uploads without dispatching a mutation.
 - #925 / #640: reject incomplete or malformed token-actor snapshots before
@@ -75,3 +77,28 @@ Broad #641/#642/#643/#116 and owned Router #7/THE-10/#1007 remain untouched.
 
 Rollback removes only the mapped bounded changes and their tests; it must not
 revert other main integration work or weaken existing authorization/audit.
+
+## Recorded red and green evidence
+
+All original regression files were committed and run on main `a835c0b` before
+applying production changes. The failures matched their intended boundaries:
+
+| Source | Baseline RED | Dedicated GREEN |
+| --- | --- | --- |
+| #857 | 2 pass / 10 fail: missing positions accepted | 12 pass / 0 fail |
+| #860 | 8 pass / 3 fail: explicit reviewed-source support/validation missing | 11 pass / 0 fail |
+| #919 | 13 reported failures, including live-socket timeout; baseline process stopped at the explicit 60-second harness bound before a final summary | 17 pass / 0 fail, including live sockets |
+| #925 | 4 pass / 34 fail: incomplete actor collections accepted or failed after boundary work | 38 pass / 0 fail |
+
+The combined 13-suite related run passed 315 tests with zero failures,
+cancellations or skips. Strict types, full lint, planning/link/contract/fixture
+scan, six pinned compatibility checks and whitespace checks passed. Production
+delta remains the five original files (85 added / 26 removed lines); current
+content-coding and cleanup guards remain intact. Documentation conflicts kept
+both independent current and new topics, with peer headings where appropriate.
+Clarify that explicit public-source grants preserve the pre-existing fixed
+reviewed closure rather than implying no fixed shared source exists.
+
+Fresh latest-main integration, CI and independent exact-head review remain
+mandatory before publication/merge; these focused results are not a full local
+aggregate success claim. No historical approval is reused.
