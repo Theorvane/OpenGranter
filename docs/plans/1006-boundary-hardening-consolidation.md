@@ -22,6 +22,11 @@
   settle aborted/stalled uploads without dispatching a mutation.
 - #925 / #640: reject incomplete or malformed token-actor snapshots before
   policy/mutation work; preserve valid actor success and explicit Deny.
+- #780, retained inside cumulative #785 through source #781: the common
+  gateway SQL audit store still confirms any one-row result without checking
+  the returned identity. Extract only the existing acknowledgement guard and
+  regressions; preserve the current shared event projector. Keep #785's
+  remaining audit-page/client work open.
 
 No new feature scope, provider adapter, model discovery API, routing policy,
 permission grant, session/SSO decision, usage accounting, runtime activation,
@@ -72,7 +77,7 @@ account switch, alternate review identity, force push or branch deletion.
 Merge only after current-main, unchanged-head/diff, required checks, fresh
 review and unresolved-thread gates pass with a matching-head guard. Close
 source proposals only with their actual implementation/test mapping, and close
-only demonstrated narrow issues #856/#853 when their acceptance is complete.
+only demonstrated narrow issues #856/#853/#780 when their acceptance is complete.
 Broad #641/#642/#643/#116 and owned Router #7/THE-10/#1007 remain untouched.
 
 Rollback removes only the mapped bounded changes and their tests; it must not
@@ -102,3 +107,32 @@ reviewed closure rather than implying no fixed shared source exists.
 Fresh latest-main integration, CI and independent exact-head review remain
 mandatory before publication/merge; these focused results are not a full local
 aggregate success claim. No historical approval is reused.
+
+## Additional bounded acknowledgement extraction
+
+The existing #781 patch adds a small own-result/own-row/positive bigint guard
+for open issue #780. Reproduce its missing acknowledgements on the current
+local hardening state before changing this separate production file; that
+store is unchanged from main `6e2c6ff`. Preserve valid pg strings and PGlite
+safe integers, query/event projection and private failure behavior.
+
+Port the original store and Node management denial regressions to current
+credential endpoints. The old standalone administration host is not in main
+and will not be restored. Current `/me` uses the separately validated identity
+audit store. Add public chat authentication-denial parity on `/v1` and
+`/api/v1` with the real common store callback, ensuring no routing, limits or
+upstream work after rejection. Review/update the compatibility inventory for
+this fail-closed shared control. Keep body and credential data out of errors.
+
+Run expected RED first, then the original minimal guard, dedicated GREEN and
+related gateway/management success, denial and SQL failure tests. Require the
+same fresh full CI and independent cumulative review. This is an existing
+security fix, with no new endpoint, schema, permission or route behavior.
+
+## Latest-main and acknowledgement evidence
+
+Integrated actual main `6e2c6ffddb249732207a3e32d70f621f496f73bb` after #1009 merged. The original four-patch related run on that main passed325 tests with zero failures, cancellations or skips. Their production scope remains85 added/26 removed lines in five files.
+
+The additional #780 guard adds32 net lines in one separate store file, preserving the shared projector. Corrected conformance fixtures use each existing public error envelope: native string codes versus OpenRouter numeric codes plus metadata. Chat cache headers are unchanged; no-store assertions apply to management. Against the unchanged length-only check,44 acknowledgement tests gave13PASS/31 expectedFAIL; after the guard all44PASS. A prior fixture attempt assumed identical public error envelopes and chat no-store headers; those assumptions were corrected before the recorded RED run without production changes. Seven related gateway/SQL/management suites then passed292 tests with zero failures, cancellations or skips. Strict types, lint, planning/link/contract/secret scan and six pinned compatibility checks passed again. The legacy administration host is intentionally not restored; current credential endpoints exercise the common store, while current /me uses its separately validated identity audit store. #785 remains open for its distinct audit-page/client work.
+
+Fresh cumulative full CI and exact independent AI approval remain required. The earlier failed local aggregate runs and the separately tracked unchanged Codex descendant fixture incident (#1010/THE-24) are not represented as successful local aggregates.

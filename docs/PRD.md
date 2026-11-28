@@ -1566,3 +1566,8 @@ An authorized Audit row can open Usage for its exact request ID. Intersect desti
 
 ## Canonical request decision investigation (#996)
 The explicitly mounted canonical history UI links Usage rows to a fresh exact-request Audit read, intersected with applied Audit scope. Usage visibility does not grant Audit authority; unsubmitted destination edits and pagination are discarded. Empty results do not establish no decision or complete history. See [history workspace contract](../contracts/management-history-workspace.md). This is source UI behavior, not installed login or live E2E acceptance.
+
+
+## Required common gateway acknowledgement (#780)
+
+The existing common SQL audit append succeeds only after exactly one own result row with an own positive signed-bigint event_id (safe integer number or canonical decimal string). Missing, sparse, inherited, malformed or out-of-range acknowledgement fails privately with GatewayAuditUnavailable. Existing management credential denial returns no-store503 audit_unavailable before mutation; both public chat bases preserve their existing error envelopes and return503 instead of401 when required audit fails. No new host, schema, grant, retry or activation. An acknowledgement is not independent proof of transaction commit or exactly-once persistence. See [consolidation plan](plans/1006-boundary-hardening-consolidation.md).

@@ -1356,3 +1356,8 @@ Explicit strict:false Gemini schema transport additionally permits ASCII digits 
 ## Codex operator OAuth first slice (#635)
 
 The operator command adds isolated official-CLI device login, status and logout only. It does not register a subscription-backed inference provider, change OpenRouter/OpenAI-compatible APIs, or bypass IAM, limits, audit or usage. Success does not establish model entitlement or live acceptance. A separate app-server/Responses adapter and authenticated streaming/tool-call E2E remain pending. See the [operator guide](guides/codex-oauth.md), [contract](../contracts/codex-oauth.md), and [plan](plans/635-codex-device-oauth.md).
+
+
+## Required common audit acknowledgement (#780)
+
+Both `/v1/chat/completions` and `/api/v1/chat/completions` now reject malformed required SQL authentication-denial acknowledgements with503 before model, route, limits, usage or upstream work. Valid pg/PGlite identities preserve401. Existing native string codes and OpenRouter numeric codes plus `metadata.opengranter_code` remain unchanged and private. This shared fail-closed control is covered in `test/gateway-audit-acknowledgement.test.ts`; it does not add model/provider support, retries, live-provider certification or a complete compatibility claim. See the [contract](../contracts/gateway-audit-acknowledgement.md).

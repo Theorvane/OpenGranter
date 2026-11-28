@@ -2104,3 +2104,8 @@ Port existing PR952 name/description list discovery and PR964 exact published mo
 
 ## Canonical Audit-to-Usage request investigation (#994)
 An authorized Audit row can open Usage for its exact request ID. Intersect destination applied Usage principal/model/time/page-size filters, clear its cursor and unapplied drafts, and require a fresh Usage read. Never copy Audit scope or infer Usage permission from Audit visibility. Canonical tab departure cancels pending CSV delivery; stale responses/controls cannot download or restore data after denial/disposal. Empty results are not proof of no provider call, bill, or complete history. Preserve pending JSON coalescing and all existing session/activation gates. See [plan](plans/994-canonical-audit-usage-investigation.md).
+
+
+## Required common gateway acknowledgement (#780)
+
+The existing common SQL audit append succeeds only after exactly one own result row with an own positive signed-bigint event_id (safe integer number or canonical decimal string). Missing, sparse, inherited, malformed or out-of-range acknowledgement fails privately with GatewayAuditUnavailable. Existing management credential denial returns no-store503 audit_unavailable before mutation; both public chat bases preserve their existing error envelopes and return503 instead of401 when required audit fails. No new host, schema, grant, retry or activation. An acknowledgement is not independent proof of transaction commit or exactly-once persistence. See [consolidation plan](plans/1006-boundary-hardening-consolidation.md).
