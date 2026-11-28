@@ -1,3 +1,4 @@
+import { validateOwnedAuditDetails } from '../shared/audit/event-projection.ts';
 import type { AuditHistoryEvent, AuditHistoryPage } from '../shared/audit/history-types.ts';
 
 export type { AuditHistoryEvent, AuditHistoryPage } from '../shared/audit/history-types.ts';
@@ -115,6 +116,7 @@ export function createPostgresAuditHistoryReader(
         }
         previous = eventId.numeric;
         const details = object(row.details);
+        validateOwnedAuditDetails(row.kind, details);
         const projected = projectGatewayAuditEvent(
           {
             ...details,

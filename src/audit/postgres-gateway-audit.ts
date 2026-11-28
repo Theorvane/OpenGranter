@@ -1,4 +1,7 @@
-import { projectGatewayAuditEvent } from '../shared/audit/event-projection.ts';
+import {
+  InvalidGatewayAuditEvent,
+  projectGatewayAuditEvent,
+} from '../shared/audit/event-projection.ts';
 
 export {
   InvalidGatewayAuditEvent,
@@ -9,8 +12,10 @@ import type { GatewayAuditEvent } from '../gateway/chat-handler.ts';
 import type { ManagementAuthenticationAuditEvent } from '../gateway/sso-management-http.ts';
 import type { DelegatedRouteAuditEvent } from '../routing/invoke-delegated-route.ts';
 import type { ManagedRouteAuditEvent } from '../routing/invoke-jev-managed-route.ts';
+import type { OwnedRoutingAuditEvent } from './owned-routing-event.ts';
 
 export type GatewayAuditInput =
+  | OwnedRoutingAuditEvent
   | GatewayAuditEvent
   | ManagementAuthenticationAuditEvent
   | ManagedRouteAuditEvent
@@ -65,7 +70,7 @@ function requireAuditAcknowledgement(value: unknown): void {
 export function createPostgresGatewayAuditStore(
   client: GatewayAuditSqlClient,
   now: () => number,
-): { readonly append: (event: GatewayAuditInput) => Promise<void> } {
+): { readonly append: (event: unknown) => Promise<void> } {
   return {
     async append(event) {
       let occurredAt: number;
@@ -74,7 +79,12 @@ export function createPostgresGatewayAuditStore(
       } catch {
         throw new GatewayAuditUnavailable();
       }
-      const projected = projectGatewayAuditEvent(event, occurredAt);
+      let projected: ReturnType<typeof projectGatewayAuditEvent>;
+      try {
+        projected = projectGatewayAuditEvent(event, occurredAt);
+      } catch {
+        throw new InvalidGatewayAuditEvent();
+      }
       try {
         const result = await client.query(
           `INSERT INTO gateway_audit_events
