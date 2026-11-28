@@ -125,62 +125,68 @@ test('timeouts are bounded and release only the owned lock', () =>
     await assert.rejects(stat(join(home, '.opengranter-auth.lock')));
   }));
 
-for (const reason of ['timeout', 'abort'] as const)
-  test(
-    `termination stops descendant processes: ${reason}`,
-    { skip: process.platform !== 'linux' },
-    () =>
-      fixture(async (_, binary, home) => {
-        await mkdir(home, { mode: 0o700 });
-        await writeFile(
-          binary,
-          '#!/bin/sh\ntrap "" TERM\n/bin/sleep 30 &\necho $! > "$CODEX_HOME/descendant"\nwait\n',
-        );
-        const controller = new AbortController();
-        const result = runCodexAuth({
-          action: 'status',
-          binary,
-          home,
-          env: {},
-          timeoutMs: reason === 'timeout' ? 300 : 3000,
-          signal: controller.signal,
-        });
-        const rejection = assert.rejects(result, {
-          message: 'Codex authentication command failed',
-        });
-        let pid = 0;
-        for (let attempt = 0; attempt < 100; attempt++) {
-          try {
-            pid = Number((await readFile(join(home, 'descendant'), 'utf8')).trim());
-            break;
-          } catch {
+for (const publication of ['immediate', 'delayed'] as const)
+  for (const reason of ['timeout', 'abort'] as const)
+    test(
+      `termination stops descendant processes: ${reason}, ${publication} PID publication`,
+      { skip: process.platform !== 'linux' },
+      () =>
+        fixture(async (_, binary, home) => {
+          await mkdir(home, { mode: 0o700 });
+          await writeFile(
+            binary,
+            '#!/bin/sh\ntrap "" TERM\n/bin/sleep 30 &\n' +
+              (publication === 'delayed'
+                ? 'exec 3> "$CODEX_HOME/descendant"\n/bin/sleep 0.05\necho $! >&3\n'
+                : 'echo $! > "$CODEX_HOME/descendant"\n') +
+              'wait\n',
+          );
+          const controller = new AbortController();
+          const result = runCodexAuth({
+            action: 'status',
+            binary,
+            home,
+            env: {},
+            timeoutMs: reason === 'timeout' ? 300 : 3000,
+            signal: controller.signal,
+          });
+          const rejection = assert.rejects(result, {
+            message: 'Codex authentication command failed',
+          });
+          let pid = 0;
+          for (let attempt = 0; attempt < 100; attempt++) {
+            try {
+              pid = Number((await readFile(join(home, 'descendant'), 'utf8')).trim());
+              // Opening the shell redirection precedes writing the PID, so an empty
+              // file is not readiness. Keep waiting within the existing startup bound.
+              if (Number.isSafeInteger(pid) && pid > 0) break;
+            } catch {}
             await new Promise((resolve) => setTimeout(resolve, 10));
           }
-        }
-        assert.ok(pid > 0);
-        if (reason === 'abort') controller.abort();
-        await new Promise((resolve) => setTimeout(resolve, reason === 'timeout' ? 450 : 100));
-        assert.ok((await stat(join(home, '.opengranter-auth.lock'))).isDirectory());
-        await rejection;
-        let running = true;
-        for (let attempt = 0; attempt < 100; attempt++) {
-          try {
-            running = !(await readFile(`/proc/${pid}/stat`, 'utf8')).includes(') Z ');
-          } catch {
-            running = false;
+          assert.ok(pid > 0);
+          if (reason === 'abort') controller.abort();
+          await new Promise((resolve) => setTimeout(resolve, reason === 'timeout' ? 450 : 100));
+          assert.ok((await stat(join(home, '.opengranter-auth.lock'))).isDirectory());
+          await rejection;
+          let running = true;
+          for (let attempt = 0; attempt < 100; attempt++) {
+            try {
+              running = !(await readFile(`/proc/${pid}/stat`, 'utf8')).includes(') Z ');
+            } catch {
+              running = false;
+            }
+            if (!running) break;
+            await new Promise((resolve) => setTimeout(resolve, 10));
           }
-          if (!running) break;
-          await new Promise((resolve) => setTimeout(resolve, 10));
-        }
-        if (running) {
-          try {
-            process.kill(pid, 'SIGKILL');
-          } catch {}
-        }
-        assert.equal(running, false);
-        await assert.rejects(stat(join(home, '.opengranter-auth.lock')));
-      }),
-  );
+          if (running) {
+            try {
+              process.kill(pid, 'SIGKILL');
+            } catch {}
+          }
+          assert.equal(running, false);
+          await assert.rejects(stat(join(home, '.opengranter-auth.lock')));
+        }),
+    );
 
 test('pre-cancelled login does not create credential storage', () =>
   fixture(async (_, binary, home) => {
