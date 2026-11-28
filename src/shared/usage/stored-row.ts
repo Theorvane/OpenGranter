@@ -30,8 +30,10 @@ export function parseStoredUsageRecord(value: unknown): UsageRecord {
     (stored.selectedCandidateId !== null && !nonempty(stored.selectedCandidateId)) ||
     (stored.actualInferenceProviderId !== null && !nonempty(stored.actualInferenceProviderId)) ||
     !count(stored.occurredAt) ||
-    !count(stored.latencyMs) ||
-    (stored.outcome !== 'succeeded' && stored.outcome !== 'failed') ||
+    !(stored.latencyMs === null || count(stored.latencyMs)) ||
+    (stored.outcome !== 'succeeded' &&
+      stored.outcome !== 'failed' &&
+      stored.outcome !== 'unknown') ||
     typeof stored.possiblyBilled !== 'boolean' ||
     typeof stored.possibleDuplicate !== 'boolean' ||
     !usage ||

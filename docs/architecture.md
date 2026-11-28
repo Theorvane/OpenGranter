@@ -1,5 +1,9 @@
 # Architecture Draft
 
+## Durable reservation infrastructure (#1016)
+
+The opt-in service locks a permanent principal-policy row for admission, intent, usage handoff, settlement and recovery. Empty migration tables add no default allowance. Complete candidate exposure, cross-window uncertainty and current-window settled debit are counted with exact decimal arithmetic. Opaque owner tokens fence execution; start intent commits before adapter entry. Handoff composes the existing immutable usage ledger and allowlisted reservation audit into the same existing transaction connection. Expiry/recovery revoke execution and release only never-entered slots. Trusted evidence resolution remains separate from provider reports; overrun is preserved and blocks admission. The service independently applies existing model, transport and final-provider IAM. Authenticated HTTP/stream composition with unmerged PR1007 and policy/bound provisioning remain separate work; using only the old core reserve/complete port is insufficient. See [contract](../contracts/durable-reservations.md).
+
 ## Model-response v4 provenance review (#543)
 
 Use the existing structural projector/fixed-source transport without widening traversal or ignoring nullable keys. Pair the response pin v4 with its validator gate; remove only the seven reviewed markers and refresh its canonical source/projection digests. Restore markers in independent tests to reconstruct the complete previous digest. Other five pin bytes, all runtime source and operational schemas remain unchanged. See [plan](plans/543-model-response-drift.md) and [contract](../contracts/model-response-schema.md#reviewed-version4-checkpoint-543).
@@ -1623,3 +1627,7 @@ The existing common SQL audit append succeeds only after exactly one own result 
 ## Owned reader scope and terminal cancellation (#1006)
 
 Usage SQL reads copy principal/filter/limit and nested cursor coordinates before awaiting SQL so parameters and post-await validation use one owned scope. The canonical audit reader retains its existing scalar snapshot and gains the original mutation regressions. Usage and audit loading cancellation preserve exact retry scope but do not overwrite reentrant disposal or newer work after transport abort. No endpoint, permission, schema, route, accounting policy or activation changes. See [plan](plans/1006-reader-scope-consolidation.md).
+
+### Fenced recovery accounting (#1016)
+
+After acquiring the principal lock, refresh the injected clock before expiry/window decisions. Persist intent time before inference. If that execution is fenced and its original handoff is lost, authoritative settlement atomically writes an unknown-outcome/null-latency record through the same immutable usage ledger before releasing the hold. Actual provider, tokens and cost sources remain unknown; the evidence-backed reservation debit does not become a fabricated provider bill. Shared history JSON/CSV/detail validation supports this explicit unknown shape while existing known outcomes retain required numeric latency.

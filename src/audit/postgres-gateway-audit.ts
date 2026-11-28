@@ -1,4 +1,5 @@
 import { projectGatewayAuditEvent } from '../shared/audit/event-projection.ts';
+import type { ReservationAuditEvent } from './reservation-event.ts';
 
 export {
   InvalidGatewayAuditEvent,
@@ -11,6 +12,7 @@ import type { DelegatedRouteAuditEvent } from '../routing/invoke-delegated-route
 import type { ManagedRouteAuditEvent } from '../routing/invoke-jev-managed-route.ts';
 
 export type GatewayAuditInput =
+  | ReservationAuditEvent
   | GatewayAuditEvent
   | ManagementAuthenticationAuditEvent
   | ManagedRouteAuditEvent

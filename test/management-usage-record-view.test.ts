@@ -42,6 +42,24 @@ function click(root: Element, label: string) {
 }
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
+test('recovered intent details preserve unknown outcome, latency and actual provider', () => {
+  const root = new Element();
+  const value = {
+    ...record(),
+    outcome: 'unknown',
+    latencyMs: null,
+    actualInferenceProviderId: null,
+    usage: { status: 'missing', promptTokens: null, completionTokens: null, totalTokens: null },
+    estimatedCost: null,
+    upstreamBilledCost: null,
+  };
+  const details = renderUsageRecordDetails(root, value) as Element;
+  assert.match(text(details), /Latency \(ms\) Unknown/u);
+  assert.match(text(details), /Outcome unknown/u);
+  assert.match(text(details), /Actual inference provider Unknown/u);
+  assert.doesNotMatch(text(details), /unavailable|Latency \(ms\) 0/u);
+});
+
 function record() {
   return buildUsageRecord({
     principalId: 'human',
