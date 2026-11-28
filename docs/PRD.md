@@ -1287,6 +1287,10 @@ JSON usage transport also withholds complete-looking pages when uncompressed Con
 
 Read-only SSO usage lifecycle copies filters, follows only current opaque continuation and replaces pages. Loading, identity change, expiry and teardown clear old rows; stale completions cannot publish. Unknown costs and duplicate markers are preserved. Caller owns trusted authorization, expiry and rendering; no session/runtime activation. See [plan](plans/642-usage-review-session.md) and [contract](../contracts/management-usage-session.md).
 
+## Complete audit metadata pages (#856)
+
+Audit review and CSV export reject missing positions in untrusted SQL and injected event collections, including lookahead, instead of exposing partial evidence or null JSON entries. Preserve target audit:Read scope, redaction, mandatory audit and private errors. See [plan](plans/856-audit-page-completeness.md) and [contract](../contracts/audit-page-completeness.md).
+
 
 ## Scoped SSO audit metadata history (#642)
 

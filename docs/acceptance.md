@@ -1874,6 +1874,12 @@ Read-only SSO usage lifecycle copies filters, follows only current opaque contin
 
 Explicit usage lifecycle retry repeats the failed first page or continuation with the original copied principal/model/time/limit and exact opaque cursor. Loading hides old rows; no previous rows are retained. Success, new search, invalid query, denial, logout/expiry, replacement authority and disposal remove retry authority. A pending retry cannot publish after identity teardown. This is an unactivated UI-independent lifecycle, not browser/session/runtime acceptance. See [contract](../contracts/management-usage-session.md).
 
+## Audit page completeness (#856)
+
+- Missing first/middle/last/all event positions and SQL lookahead fail the whole audit page. JSON and CSV public reads return503 without partial evidence; mandatory failure audit is awaited.
+- Dense valid/empty pages preserve continuation and redaction; explicit Deny prevents reads and failed audit remains private.
+- Local loopback HTTP uses controlled authentication, not company IdP/browser login or installed PostgreSQL/provider certification. See [contract](../contracts/audit-page-completeness.md).
+
 ## CSV browser page progress (#642)
 
 The authorized usage CSV page transport rejects equal or regressing continuation keys against the exact serialized request cursor before exposing a page. This prevents stalled browser pagination without parsing CSV rows, granting authority, or activating sessions. See the [contract](../contracts/management-usage-export.md) and [plan](plans/642-csv-client-progress.md). Native browser and installed acceptance remain separate.

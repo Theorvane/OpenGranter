@@ -1466,6 +1466,10 @@ JSON usage transport also withholds complete-looking pages when uncompressed Con
 
 Read-only SSO usage lifecycle copies filters, follows only current opaque continuation and replaces pages. Loading, identity change, expiry and teardown clear old rows; stale completions cannot publish. Unknown costs and duplicate markers are preserved. Caller owns trusted authorization, expiry and rendering; no session/runtime activation. See [plan](plans/642-usage-review-session.md) and [contract](../contracts/management-usage-session.md).
 
+## Audit collection traversal (#856)
+
+The SQL reader and shared HTTP projector visit every bounded collection position through existing validators, so missing slots cannot bypass projection. JSON and CSV reuse the same fail-closed page boundary and mandatory read-failure audit. No schema, session or runtime activation change. See [contract](../contracts/audit-page-completeness.md).
+
 ## CSV browser page progress (#642)
 
 The authorized usage CSV page transport rejects equal or regressing continuation keys against the exact serialized request cursor before exposing a page. This prevents stalled browser pagination without parsing CSV rows, granting authority, or activating sessions. See the [contract](../contracts/management-usage-export.md) and [plan](plans/642-csv-client-progress.md). Native browser and installed acceptance remain separate.
