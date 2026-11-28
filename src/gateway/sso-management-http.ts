@@ -57,6 +57,8 @@ function record(value: unknown, fields: readonly string[]): Record<string, unkno
   return value as Record<string, unknown>;
 }
 async function readBody(request: Request): Promise<unknown> {
+  const coding = request.headers.get('content-encoding');
+  if (coding !== null && coding.trim().toLowerCase() !== 'identity') return undefined;
   if (
     request.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() !== 'application/json'
   )
