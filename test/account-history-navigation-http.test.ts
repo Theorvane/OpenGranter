@@ -26,6 +26,7 @@ for (const outcome of ['ready', 'fresh-deny', 'audit-failure'] as const) {
   test(`Account to scoped history over owned signed-JWT HTTP: ${outcome}`, async () => {
     const db = new PGlite();
     let closes = 0;
+    let usageReads = 0;
     const client: PostgresConnection = {
       transaction: (callback) =>
         db.transaction((tx) =>
@@ -34,7 +35,10 @@ for (const outcome of ['ready', 'fresh-deny', 'audit-failure'] as const) {
             query: (sql, params) => tx.query(sql, [...params]),
           }),
         ),
-      query: (sql, params) => db.query(sql, [...params]),
+      query: (sql, params) => {
+        if (sql.includes('FROM usage_records')) usageReads++;
+        return db.query(sql, [...params]);
+      },
       close: async () => {
         closes++;
         await db.close();
@@ -122,6 +126,25 @@ for (const outcome of ['ready', 'fresh-deny', 'audit-failure'] as const) {
           (await db.query('SELECT * FROM sso_audit_history_access_events')).rows.length,
           1,
         );
+        const expired = await jwt.token({ exp: jwt.nowSeconds - 3600 });
+        const unbound = await jwt.token({ sub: 'unbound-subject-fixture' });
+        for (const credential of [expired, unbound]) {
+          const before = usageReads;
+          for (const format of ['json', 'csv']) {
+            const response = await fetch(
+              `http://127.0.0.1:${runtime.address.port}/management/v1/usage?format=${format}`,
+              { headers: { authorization: `Bearer ${credential}` } },
+            );
+            assert.equal(response.status, 401);
+            assert.equal(response.headers.get('cache-control'), 'no-store');
+            const body = await response.text();
+            assert.doesNotMatch(body, /account-human|SELECT|INSERT|postgres/i);
+            assert.ok(!body.includes(credential));
+            assert.ok(!body.includes(jwt.subject));
+            assert.ok(!body.includes('unbound-subject-fixture'));
+          }
+          assert.equal(usageReads, before, 'rejected identity never reads usage');
+        }
       } else
         assert.match(
           text(root),
