@@ -1,5 +1,9 @@
 # Architecture Draft
 
+## Separate owned-configuration publication (#641 / THE-17)
+
+An opt-in SSO management handler/server composes current human bindings, IAM attachments and a dedicated transaction-capable PostgreSQL connection. Additive migration 015 stores immutable complete revisions, a singleton publication pointer with monotonic generation, and allowlisted administrative audit. Trusted deployment supplies a versioned exact provider/host/credential-reference/mapping registry through a transaction-aware loader; HTTP cannot self-attest. Mutation and audit commit atomically; CAS locks the pointer and rollback revalidates. No existing gateway, catalog/discovery or IAM pointer is changed. PR #1007 remains an unmerged semantic execution dependency; future activation, runtime translation, reservations and owned-event projection are separate prerequisites. See [contract](contracts/owned-route-configuration.md) and [plan](plans/641-owned-route-configuration.md).
+
 ## Model-response v4 provenance review (#543)
 
 Use the existing structural projector/fixed-source transport without widening traversal or ignoring nullable keys. Pair the response pin v4 with its validator gate; remove only the seven reviewed markers and refresh its canonical source/projection digests. Restore markers in independent tests to reconstruct the complete previous digest. Other five pin bytes, all runtime source and operational schemas remain unchanged. See [plan](plans/543-model-response-drift.md) and [contract](../contracts/model-response-schema.md#reviewed-version4-checkpoint-543).

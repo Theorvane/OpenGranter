@@ -4,6 +4,12 @@ Shared domain language for the product that controls access to company-provided 
 
 ## Language
 
+**Configuration revision**:
+An immutable complete set of approved provider registrations and owned-route settings saved for review or publication.
+
+**Configuration publication**:
+The explicit administrative selection of a saved configuration revision for future use; publication alone does not activate inference routing.
+
 **OpenGranter**:
 The product that evaluates access to approved LLM services through a unified API and records their use.
 _Avoid_: OpenIAM

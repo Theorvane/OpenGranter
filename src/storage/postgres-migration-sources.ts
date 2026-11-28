@@ -19,6 +19,7 @@ const migrationFiles = [
   '012_sso_catalog_audit.sql',
   '013_sso_usage_audit.sql',
   '014_sso_audit_history_access.sql',
+  '015_owned_configuration.sql',
 ] as const;
 
 export class MigrationSourceUnavailable extends Error {
