@@ -37,4 +37,25 @@
 - An intermediate reader correction without sleeping between empty reads also failed both delayed cases (54.1 ms and 36.7 ms); the final reader retains a 10 ms delay after every unsuccessful read.
 - GREEN: `node --experimental-strip-types --test test/codex-auth.test.ts`: 17 pass / 0 fail / 0 skip, including both publication modes and both termination reasons. No production files changed.
 - Full-check setup failure: an initial macOS tar copy included AppleDouble `._*.sql` metadata files, which correctly caused migration-manifest rejection. That contaminated run was stopped, its log retained, and those files removed only from the disposable container before a clean full check. An initial production-mode dependency install also omitted development tools; the environment was corrected using `npm ci --include=dev` and Python 3.11.2.
-- Clean full `npm run check`, hosted CI and independent reviewer validation are pending. Do not interpret the focused GREEN result as those validations.
+- Representative bounded process-start experiment: run the two delayed-publication cases concurrently with eight Node startups, each executing a busy loop until a 500 ms wall-clock deadline, inside the same two-CPU quota. With the original reader: 0 pass / 2 fail, at the PID assertion after 177.4 ms / 14.0 ms. With the corrected reader: 2 pass / 0 fail / 0 skip. All eight workload processes exited zero in both experiments. The controlled publication gap remained 50 ms; the 300 ms command timeout was unchanged. This is a disclosed fault-injection experiment under Linux load, not repeated CI reruns or proof of the historical cause.
+- Clean full `npm run check` with disposable PostgreSQL 17: exit 0; 10,644 pass / 0 fail / 0 cancel / 0 skip, test duration 405,368 ms. Typecheck, lint, planning documents, links, contracts, fixture-secret scan and all six pinned OpenRouter schema checks passed. The full test runner exercised the real Linux process boundaries with two available CPUs. Source verification logs remain at `/tmp/the24-full-check-clean.log`; failed setup and RED logs are retained separately.
+- Independent reviewer validated frozen implementation commit `8b9185ef2eebfce586ae1db35c2b83fad9cacb4d` without editing implementation files: exact suite 17/17, plus a separate 150 ms publication-gap/load probe 2/2, on Linux arm64 Node 22.23.4 with half a CPU, a read-only filesystem and no network. The unrelated process sentinel survived, and no live fixture descendants remained. The reviewer's first noexec-tmpfs setup failure is separately retained; allowing executable temporary fixtures corrected that environment without changing assertions. The report is `/tmp/the24-independent-review/report.md` (Orca item202). No actionable implementation defect was found; this was independent AI validation, not human approval.
+- Hosted Ubuntu CI and incremental COMMENT-only review of the eventual PR head (including this verification-only documentation update) remain pending. No formal approval, merge, activation or deployment is authorized.
+
+### Process-start experiment harness
+
+Use the checked-out test file for GREEN. For RED, use an ephemeral copy with the original reader (unconditional `break` immediately after `readFile`, sleep only in `catch`); do not change production files or the delayed fixture. Run this JavaScript from the repository root inside a two-CPU Linux container using Node 22:
+
+```javascript
+import { spawn } from 'node:child_process';
+const loads = Array.from({ length: 8 }, () => spawn(process.execPath, ['--eval',
+  'const end=performance.now()+500; while(performance.now()<end) { Math.sqrt(Math.random()); }'],
+  { stdio: 'ignore' }));
+const tested = spawn(process.execPath, ['--experimental-strip-types', '--test',
+  '--test-name-pattern=delayed PID publication', 'test/codex-auth.test.ts'],
+  { stdio: 'inherit' });
+const closed = child => new Promise(resolve => child.on('close', code => resolve(code)));
+const codes = await Promise.all([closed(tested), ...loads.map(closed)]);
+console.log({ testExit: codes[0], loadExit: codes.slice(1) });
+process.exitCode = codes[0] ?? 1;
+```
