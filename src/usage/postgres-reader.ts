@@ -19,7 +19,30 @@ function object(value: unknown): Record<string, unknown> | undefined {
 export function createPostgresUsageReader(
   client: UsageSqlClient,
 ): (query: UsageHistoryQuery) => Promise<UsageHistoryPage> {
-  return async (query) => {
+  return async (input) => {
+    // The SQL port may suspend while a caller reuses its query object. Own all
+    // scope and pagination values once; SQL and projection must agree even then.
+    let query: UsageHistoryQuery;
+    try {
+      const { principalId, limit, cursor, requestId, modelAlias, fromMs, toMs } = input;
+      query = {
+        principalId,
+        limit,
+        cursor:
+          cursor === null
+            ? null
+            : {
+                occurredAt: cursor.occurredAt,
+                attemptId: cursor.attemptId,
+              },
+        ...(requestId === undefined ? {} : { requestId }),
+        ...(modelAlias === undefined ? {} : { modelAlias }),
+        ...(fromMs === undefined ? {} : { fromMs }),
+        ...(toMs === undefined ? {} : { toMs }),
+      };
+    } catch {
+      throw new UsageLedgerUnavailable();
+    }
     if (
       !query.principalId ||
       !Number.isSafeInteger(query.limit) ||

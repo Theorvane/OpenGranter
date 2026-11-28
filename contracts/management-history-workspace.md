@@ -41,3 +41,8 @@ While Usage or Audit JSON is loading, Cancel history request aborts that reviewâ
 
 ## Action focus continuity
 Same-tab renders preserve keyboard focus only on the same still-enabled action. Do not restore absent/disabled actions, cross-tab focus, external focus, or private controls after authority denial/disposal. Input selection behavior remains unchanged.
+
+
+## Reentrant cancellation teardown
+
+Existing cancelRead retires the pending revision before transport abort and rechecks revision/blocked state before publishing cancelled. Abort observers that dispose or start newer work own the resulting state; cancellation cannot overwrite them. Exact attempted scope remains available only for ordinary explicit retry in an active controller. No second cancellation API or automatic replay.

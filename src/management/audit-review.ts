@@ -157,8 +157,10 @@ export function createAuditReview(
     },
     cancelRead() {
       if (blocked || view.state !== 'loading') return;
-      // Keep the attempted scope/path for explicit retry, never old rows.
+      // Keep attempted scope, but do not overwrite reentrant teardown.
+      const current = revision + 1;
       stop();
+      if (blocked || revision !== current) return;
       publish({
         state: 'cancelled',
         data: [],
